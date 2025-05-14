@@ -153,7 +153,7 @@ const ChartBlock: React.FC<{ spec: ChartConfiguration }> = memo(({ spec }) => {
       ds.borderWidth = ds.borderWidth ?? 1;
     });
 
-    const fontColor = isDark ? "#ffffff" : "#000000";
+    const fontColor = "#aea287"; // Set the primary color
     Chart.defaults.color = fontColor;
     cfg.options = {
       ...(cfg.options || {}),
