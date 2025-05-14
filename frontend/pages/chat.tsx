@@ -106,11 +106,7 @@ export const ChartBlock: React.FC<ChartBlockProps> = React.memo(
     };
 
     const getFontColor = () => {
-      const isDark = document.documentElement.classList.contains("dark");
-      if (canvasRef.current) {
-        return getComputedStyle(canvasRef.current).color;
-      }
-      return isDark ? "#ffffff" : "#000000";
+      return "#aea287"; // Set the primary color
     };
 
     const specString = JSON.stringify(spec);
@@ -684,7 +680,7 @@ const TopBar: React.FC<TopBarProps> = ({
               aria-label="Delete Conversation"
             >
               <Trash2 className="w-5 h-5" />
-              Delete Conversation
+              Delete
             </Button>
           </div>
         )}

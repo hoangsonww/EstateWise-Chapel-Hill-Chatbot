@@ -639,6 +639,7 @@ export default function Home() {
               reserved.
             </p>
             <div className="mt-4 md:mt-0 flex flex-wrap items-center gap-4 justify-center md:justify-start">
+              {/* 
               <Link
                 href="https://github.com/hoangsonww/Luxera Ai-Chapel-Hill-Estate"
                 className="flex items-center whitespace-nowrap hover:text-primary transition-colors"
@@ -648,6 +649,7 @@ export default function Home() {
                 <GithubIcon className="w-4 h-4 mr-1" />
                 <span className="text-sm">GitHub Repository</span>
               </Link>
+              */}
               <Link
                 href="/privacy"
                 className="flex items-center whitespace-nowrap hover:text-primary transition-colors"
