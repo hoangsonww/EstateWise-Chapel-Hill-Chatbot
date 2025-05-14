@@ -272,7 +272,7 @@ export default function ChartsPage() {
         <title>Luxera Ai | Charts</title>
         <meta
           name="description"
-          content="Interactive visualizations of Chapel Hill real-estate data"
+          content="Interactive visualizations of Luxera real-estate data"
         />
       </Head>
 
@@ -312,7 +312,7 @@ export default function ChartsPage() {
 
         <section className="mx-auto max-w-4xl px-6 py-10 text-center space-y-3">
           <h1 className="text-3xl md:text-4xl font-bold leading-tight">
-            Chapel Hill Real-Estate Visualized 📊
+            Luxera Real Estate LLC Visualized 📊
           </h1>
           <p className="text-muted-foreground max-w-xl mx-auto">
             Eighteen crisp charts that uncover general price patterns, bedroom

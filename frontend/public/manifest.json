@@ -1,7 +1,7 @@
 {
   "name": "Luxera Ai | Your Intelligent Estate Assistant",
   "short_name": "Luxera Ai",
-  "description": "Your Intelligent Estate Assistant providing personalized property recommendations in Chapel Hill.",
+  "description": "Your Intelligent Estate Assistant providing personalized property recommendations in Luxera.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

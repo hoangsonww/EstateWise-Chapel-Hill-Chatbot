@@ -65,7 +65,7 @@ If any provision of these Terms is found to be unenforceable or invalid, the rem
 Luxera Ai provides data, analyses, and recommendations "as is" based on publicly available and user-provided information. You acknowledge that the data may contain inaccuracies or omissions and agree to waive any claims against Luxera Ai arising from such inaccuracies. You should verify all critical information independently and use the App’s data at your own risk.
 
 ## 15. Contact Information
-For any questions regarding these Terms, please contact us at [hoangson091104@gmail.com](mailto:hoangson091104@gmail.com).
+For any questions regarding these Terms, please contact us at [info@homesluxera.com](mailto:info@homesluxera.com).
 `;
 
 const TermsPage = () => {

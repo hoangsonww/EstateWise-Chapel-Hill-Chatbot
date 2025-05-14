@@ -113,7 +113,7 @@ const features = [
   {
     title: "Verified Listings",
     description:
-      "Browse up-to-date and verified property listings in Chapel Hill.",
+      "Browse up-to-date and verified property listings in Luxera.",
     icon: <Shield className="w-16 h-16 text-primary" />,
   },
   {
@@ -261,7 +261,7 @@ const chatAdvantages = [
   {
     title: "Verified Listings",
     description:
-      "Browse up-to-date and verified property listings in Chapel Hill.",
+      "Browse up-to-date and verified property listings in Luxera.",
     icon: <CheckSquare className="w-16 h-16 text-primary" />,
   },
   {
@@ -275,7 +275,7 @@ const chatAdvantages = [
 const testimonials = [
   {
     testimonial:
-      "Luxera Ai made finding my dream home in Chapel Hill a breeze. The interactive chat is a total game changer!",
+      "Luxera Ai made finding my dream home in Luxera a breeze. The interactive chat is a total game changer!",
     author: "— Alice",
   },
   {
@@ -359,7 +359,7 @@ const faqs = [
   {
     question: "Can I get recommendations for other areas?",
     answer:
-      "Currently, we focus on Chapel Hill, but we plan to expand our services to other areas in the future.",
+      "Currently, we focus on Luxera, but we plan to expand our services to other areas in the future.",
   },
   {
     question: "Do I need to create an account to use the chatbot?",
@@ -387,10 +387,10 @@ export default function Home() {
   return (
     <>
       <Head>
-        <title>Luxera Ai | Your Chapel Hill Property Assistant</title>
+        <title>Luxera Ai | Your Luxera Property Assistant</title>
         <meta
           name="description"
-          content="Discover dynamic, real-time property recommendations in Chapel Hill using our interactive chatbot."
+          content="Discover dynamic, real-time property recommendations in Luxera using our interactive chatbot."
         />
       </Head>
 
@@ -468,7 +468,7 @@ export default function Home() {
               <h2 className="text-4xl font-bold mb-4">Features</h2>
               <p className="text-lg text-muted-foreground">
                 Discover what makes Luxera Ai your smart property companion in
-                Chapel Hill.
+                Luxera.
               </p>
             </div>
           </AnimatedInView>
