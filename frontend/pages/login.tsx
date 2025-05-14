@@ -70,8 +70,8 @@ export default function LoginPage() {
   return (
     <>
       <Head>
-        <title>EstateWise | Login</title>
-        <meta name="description" content="Login to EstateWise" />
+        <title>Luxera Ai | Login</title>
+        <meta name="description" content="Login to Luxera Ai" />
       </Head>
       <div className="min-h-screen flex items-center justify-center animated-gradient px-4">
         <style jsx global>{`

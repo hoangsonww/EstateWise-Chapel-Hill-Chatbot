@@ -269,7 +269,7 @@ export default function ChartsPage() {
   return (
     <>
       <Head>
-        <title>EstateWise | Charts</title>
+        <title>Luxera Ai | Charts</title>
         <meta
           name="description"
           content="Interactive visualizations of Chapel Hill real-estate data"

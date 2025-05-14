@@ -107,8 +107,8 @@ export default function ResetPasswordPage() {
   return (
     <>
       <Head>
-        <title>EstateWise | Reset Password</title>
-        <meta name="description" content="Reset your password for EstateWise" />
+        <title>Luxera Ai | Reset Password</title>
+        <meta name="description" content="Reset your password for Luxera Ai" />
       </Head>
       <div className="min-h-screen flex items-center justify-center animated-gradient px-4">
         <style jsx global>{`

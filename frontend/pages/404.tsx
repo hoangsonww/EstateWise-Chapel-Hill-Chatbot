@@ -53,10 +53,10 @@ export default function NotFoundPage() {
   return (
     <>
       <Head>
-        <title>EstateWise | Page Not Found</title>
+        <title>Luxera Ai | Page Not Found</title>
         <meta
           name="description"
-          content="Oops! The page you are looking for was not found. Please return to EstateWise to continue your journey."
+          content="Oops! The page you are looking for was not found. Please return to Luxera Ai to continue your journey."
         />
       </Head>
       <motion.div

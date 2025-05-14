@@ -275,7 +275,7 @@ const chatAdvantages = [
 const testimonials = [
   {
     testimonial:
-      "EstateWise made finding my dream home in Chapel Hill a breeze. The interactive chat is a total game changer!",
+      "Luxera Ai made finding my dream home in Chapel Hill a breeze. The interactive chat is a total game changer!",
     author: "— Alice",
   },
   {
@@ -319,7 +319,7 @@ const faqs = [
   {
     question: "Are the listings verified?",
     answer:
-      "Yes, all listings featured on EstateWise are thoroughly verified via Zillow and updated regularly.",
+      "Yes, all listings featured on Luxera Ai are thoroughly verified via Zillow and updated regularly.",
   },
   {
     question: "How does the chatbot work?",
@@ -352,9 +352,9 @@ const faqs = [
       "Yes, you can update your preferences anytime through your account settings.",
   },
   {
-    question: "Is there a fee to use EstateWise?",
+    question: "Is there a fee to use Luxera Ai?",
     answer:
-      "No, EstateWise is completely free to use! We aim to provide you with the best property recommendations without any cost.",
+      "No, Luxera Ai is completely free to use! We aim to provide you with the best property recommendations without any cost.",
   },
   {
     question: "Can I get recommendations for other areas?",
@@ -387,7 +387,7 @@ export default function Home() {
   return (
     <>
       <Head>
-        <title>EstateWise | Your Chapel Hill Property Assistant</title>
+        <title>Luxera Ai | Your Chapel Hill Property Assistant</title>
         <meta
           name="description"
           content="Discover dynamic, real-time property recommendations in Chapel Hill using our interactive chatbot."
@@ -424,7 +424,7 @@ export default function Home() {
           <div className="relative z-10 flex flex-col items-center justify-center min-h-screen text-center px-4">
             <AnimatedInView delay={0}>
               <h1 className="text-5xl md:text-7xl font-bold text-white mb-4">
-                EstateWise
+                Luxera Ai
               </h1>
             </AnimatedInView>
             <AnimatedInView delay={0.2}>
@@ -467,7 +467,7 @@ export default function Home() {
             <div className="max-w-6xl mx-auto text-center mb-12">
               <h2 className="text-4xl font-bold mb-4">Features</h2>
               <p className="text-lg text-muted-foreground">
-                Discover what makes EstateWise your smart property companion in
+                Discover what makes Luxera Ai your smart property companion in
                 Chapel Hill.
               </p>
             </div>
@@ -635,12 +635,12 @@ export default function Home() {
           <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between">
             <p className="text-sm">
               © {new Date().getFullYear()}{" "}
-              <strong className="font-bold">EstateWise</strong>. All rights
+              <strong className="font-bold">Luxera Ai</strong>. All rights
               reserved.
             </p>
             <div className="mt-4 md:mt-0 flex flex-wrap items-center gap-4 justify-center md:justify-start">
               <Link
-                href="https://github.com/hoangsonww/EstateWise-Chapel-Hill-Estate"
+                href="https://github.com/hoangsonww/Luxera Ai-Chapel-Hill-Estate"
                 className="flex items-center whitespace-nowrap hover:text-primary transition-colors"
                 aria-label="GitHub Repository"
                 title="GitHub Repository"

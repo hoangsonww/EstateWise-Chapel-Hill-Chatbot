@@ -94,8 +94,8 @@ export default function SignUpPage() {
   return (
     <>
       <Head>
-        <title>EstateWise | Sign Up</title>
-        <meta name="description" content="Sign up for EstateWise" />
+        <title>Luxera Ai | Sign Up</title>
+        <meta name="description" content="Sign up for Luxera Ai" />
       </Head>
       <div className="min-h-screen flex items-center justify-center animated-gradient px-4">
         <style jsx global>{`

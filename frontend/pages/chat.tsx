@@ -598,7 +598,7 @@ const TopBar: React.FC<TopBarProps> = ({
           </button>
         )}
         <span className="hidden md:inline text-xl font-bold select-none text-foreground">
-          Hi {username}, welcome to EstateWise! 🏠
+          Hi {username}, welcome to Luxera Ai! 🏠
         </span>
       </div>
       <div className="flex items-center gap-4 relative">
@@ -1978,10 +1978,10 @@ export default function ChatPage() {
   return (
     <>
       <Head>
-        <title>EstateWise | Chat</title>
+        <title>Luxera Ai | Chat</title>
         <meta
           name="description"
-          content="Chat with EstateWise for personalized property recommendations"
+          content="Chat with Luxera Ai for personalized property recommendations"
         />
       </Head>
       <ClientOnly>
