@@ -22,7 +22,7 @@ import {
   Smile,
   CheckSquare,
   FileText,
-  GithubIcon,
+  //GithubIcon,
 } from "lucide-react";
 
 // Dynamically load react-slick to avoid SSR issues
