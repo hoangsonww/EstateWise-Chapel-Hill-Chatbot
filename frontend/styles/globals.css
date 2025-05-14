@@ -29,7 +29,7 @@ body {
   --card-foreground: oklch(0.19 0 106.59);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.27 0.02 98.94);
-  --primary: oklch(0.62 0.14 39.04);
+  --primary: oklch(0.72 0.0766 86.88);
   --primary-foreground: oklch(1 0 0);
   --secondary: oklch(0.92 0.01 92.99);
   --secondary-foreground: oklch(0.43 0.02 98.6);
@@ -49,7 +49,7 @@ body {
   --chart-5: oklch(0.56 0.13 42.06);
   --sidebar: oklch(0.97 0.01 98.88);
   --sidebar-foreground: oklch(0.36 0.01 106.65);
-  --sidebar-primary: oklch(0.62 0.14 39.04);
+  --sidebar-primary: oklch(0.72 0.0766 86.88);
   --sidebar-primary-foreground: oklch(0.99 0 0);
   --sidebar-accent: oklch(0.92 0.01 92.99);
   --sidebar-accent-foreground: oklch(0.33 0 0);
@@ -76,6 +76,8 @@ body {
   --shadow-xl:
     0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 8px 10px -1px hsl(0 0% 0% / 0.1);
   --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
+  --color-primary: #aea287;
+  --color-primary-foreground: #ffffff; /* Optional: Adjust foreground color for contrast */
 }
 
 .dark {
