@@ -76,8 +76,6 @@ body {
   --shadow-xl:
     0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 8px 10px -1px hsl(0 0% 0% / 0.1);
   --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
-  --color-primary: #aea287;
-  --color-primary-foreground: #ffffff; /* Optional: Adjust foreground color for contrast */
 }
 
 .dark {
@@ -87,8 +85,7 @@ body {
   --card-foreground: oklch(0.98 0.01 95.1);
   --popover: oklch(0.31 0 106.6);
   --popover-foreground: oklch(0.92 0 106.48);
-  --primary: oklch(0.72 0.0766 86.88);
-  --primary-foreground: oklch(1 0 0);
+  --primary: okoklch(0.72 0.0766 86.88)  --primary-foreground: oklch(1 0 0);
   --secondary: oklch(0.98 0.01 95.1);
   --secondary-foreground: oklch(0.31 0 106.6);
   --muted: oklch(0.22 0 106.71);
