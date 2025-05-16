@@ -8,7 +8,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/hoangsonww/AI-Assistant-Chatbot.git"
+    "url": "https://github.com/Vordium/luxerachat.git"
   },
   "keywords": [
     "real-estate",
@@ -22,7 +22,7 @@
     "recommendation"
   ],
   "bugs": {
-    "url": "https://github.com/hoangsonww/AI-Assistant-Chatbot/issues"
+    "url": "https://github.com/Vordium/luxerachat/issues"
   },
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
