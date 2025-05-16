@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import mongoose from "mongoose";
 import Conversation, { IConversation } from "../models/Conversation.model";
-import { chatWithEstateWise } from "../services/geminiChat.service";
+import { chatWithLuxera } from "../services/geminiChat.service";
 import { AuthRequest } from "../middleware/auth.middleware";
 
 /**
@@ -60,7 +60,7 @@ export const chat = async (req: AuthRequest, res: Response) => {
       ];
 
       // run MoE pipeline
-      const { finalText, expertViews } = await chatWithEstateWise(
+      const { finalText, expertViews } = await chatWithLuxera(
         historyForGemini,
         message,
         {},
@@ -125,7 +125,7 @@ export const chat = async (req: AuthRequest, res: Response) => {
       { role: "user", parts: [{ text: message }] },
     ];
 
-    const { finalText, expertViews } = await chatWithEstateWise(
+    const { finalText, expertViews } = await chatWithLuxera(
       historyForGemini,
       message,
       {},

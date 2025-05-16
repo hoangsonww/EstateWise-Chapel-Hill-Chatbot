@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.runEstateWiseAgent = runEstateWiseAgent;
+exports.runLuxeraAgent = runLuxeraAgent;
 const generative_ai_1 = require("@google/generative-ai");
 const queryProperties_1 = require("../scripts/queryProperties");
 const geminiChat_service_1 = require("./geminiChat.service");
@@ -15,7 +15,7 @@ const geminiChat_service_1 = require("./geminiChat.service");
  * @param userContext    Any additional context you want to pass through
  * @param expertWeights  Weights for each expert in the MoE
  */
-async function runEstateWiseAgent(prompt, userContext = "", expertWeights = {}) {
+async function runLuxeraAgent(prompt, userContext = "", expertWeights = {}) {
     const apiKey = process.env.GOOGLE_AI_API_KEY;
     if (!apiKey) {
         throw new Error("Missing GOOGLE_AI_API_KEY in environment");
@@ -84,10 +84,10 @@ async function runEstateWiseAgent(prompt, userContext = "", expertWeights = {}) 
       --- PROPERTY DATA END ---
       `
         : userContext;
-    const estateWiseContext = {
+    const LuxeraContext = {
         propertyContext: mergedPropertyContext,
         rawResults: usePropertyData ? rawResults : undefined,
     };
     // --- 4) Kick off the Mixture-of-Experts pipeline ---
-    return (0, geminiChat_service_1.chatWithEstateWise)([{ role: "user", parts: [{ text: prompt }] }], prompt, estateWiseContext, expertWeights);
+    return (0, geminiChat_service_1.chatWithLuxera)([{ role: "user", parts: [{ text: prompt }] }], prompt, LuxeraContext, expertWeights);
 }

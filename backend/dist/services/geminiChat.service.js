@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.chatWithEstateWise = chatWithEstateWise;
+exports.chatWithLuxera = chatWithLuxera;
 const generative_ai_1 = require("@google/generative-ai");
 const lib_1 = __importDefault(require("../utils/lib"));
 const queryProperties_1 = require("../scripts/queryProperties");
@@ -99,7 +99,7 @@ const CLUSTER_COUNT = 4;
  * @param userContext - Additional context provided by the user.
  * @param expertWeights - Weights for each expert to influence their responses.
  */
-async function chatWithEstateWise(history, message, userContext = {}, expertWeights = {}) {
+async function chatWithLuxera(history, message, userContext = {}, expertWeights = {}) {
     if (typeof userContext !== "object" || userContext === null) {
         userContext = {};
     }

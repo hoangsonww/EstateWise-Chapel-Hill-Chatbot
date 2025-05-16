@@ -8,7 +8,7 @@ import {
   queryPropertiesAsString,
   RawQueryResult,
 } from "../scripts/queryProperties";
-import { chatWithEstateWise, EstateWiseContext } from "./geminiChat.service";
+import { chatWithLuxera, LuxeraContext } from "./geminiChat.service";
 
 interface DecisionPayload {
   usePropertyData: boolean;
@@ -25,7 +25,7 @@ interface DecisionPayload {
  * @param userContext    Any additional context you want to pass through
  * @param expertWeights  Weights for each expert in the MoE
  */
-export async function runEstateWiseAgent(
+export async function runLuxeraAgent(
   prompt: string,
   userContext: string = "",
   expertWeights: Record<string, number> = {},
@@ -108,16 +108,16 @@ export async function runEstateWiseAgent(
       `
     : userContext;
 
-  const estateWiseContext: EstateWiseContext = {
+  const LuxeraContext: LuxeraContext = {
     propertyContext: mergedPropertyContext,
     rawResults: usePropertyData ? rawResults : undefined,
   };
 
   // --- 4) Kick off the Mixture-of-Experts pipeline ---
-  return chatWithEstateWise(
+  return chatWithLuxera(
     [{ role: "user", parts: [{ text: prompt }] }],
     prompt,
-    estateWiseContext,
+    LuxeraContext,
     expertWeights,
   );
 }

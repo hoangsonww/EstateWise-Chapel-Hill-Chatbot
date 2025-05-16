@@ -95,7 +95,7 @@ function kmeans(
 const CLUSTER_COUNT = 4;
 
 // context object so we can cache and reuse pinecone results
-export interface EstateWiseContext {
+export interface LuxeraContext {
   rawResults?: RawQueryResult[];
   propertyContext?: string;
 }
@@ -115,10 +115,10 @@ export interface EstateWiseContext {
  * @param userContext - Additional context provided by the user.
  * @param expertWeights - Weights for each expert to influence their responses.
  */
-export async function chatWithEstateWise(
+export async function chatWithLuxera(
   history: Array<{ role: string; parts: Array<{ text: string }> }>,
   message: string,
-  userContext: EstateWiseContext = {},
+  userContext: LuxeraContext = {},
   expertWeights: Record<string, number> = {},
 ): Promise<{ finalText: string; expertViews: Record<string, string> }> {
   if (typeof userContext !== "object" || userContext === null) {
@@ -209,7 +209,7 @@ export async function chatWithEstateWise(
 
   // ─── 2) Base system instruction (used for all experts) ─────────────────
   const baseSystemInstruction = `
-    You are EstateWise Assistant, an expert real estate concierge for Chapel Hill, NC, USA. You help users find their dream homes by providing personalized property recommendations based on their preferences and needs. You have access to a database of detailed property records, including information about the properties, their locations, and their features.
+    You are Luxera Ai Assistant, an expert real estate concierge for Dubai, DXB, UAE. You help users find their dream homes by providing personalized property recommendations based on their preferences and needs. You have access to a database of detailed property records, including information about the properties, their locations, and their features.
 
     Below is a current list of detailed property records from our database. Use ALL THE DATA in the property records to provide the best recommendations. You can also use the user's additional context to tailor your recommendations:
     ---------------------------------------------------------

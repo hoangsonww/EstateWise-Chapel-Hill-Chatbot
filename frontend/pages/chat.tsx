@@ -491,7 +491,7 @@ type ChatMessage = {
 
 const getInitialMessages = (): ChatMessage[] => {
   if (typeof window !== "undefined" && !Cookies.get("estatewise_token")) {
-    const stored = localStorage.getItem("estateWiseChat");
+    const stored = localStorage.getItem("luxeraChat");
     if (stored) {
       try {
         return JSON.parse(stored);
@@ -670,7 +670,7 @@ const TopBar: React.FC<TopBarProps> = ({
             </div>
             <Button
               onClick={() => {
-                localStorage.removeItem("estateWiseChat");
+                localStorage.removeItem("luxeraChat");
                 toast.success("Conversation deleted successfully");
                 window.location.reload();
               }}
@@ -1425,7 +1425,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   /* persist guest history + autoscroll */
   useEffect(() => {
     if (!Cookies.get("estatewise_token")) {
-      localStorage.setItem("estateWiseChat", JSON.stringify(messages));
+      localStorage.setItem("luxeraChat", JSON.stringify(messages));
     }
     latestMessageRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -2019,7 +2019,7 @@ export default function ChatPage() {
               <TopBar
                 onNewConvo={() => {
                   setSelectedConvo(null);
-                  if (!isAuthed) localStorage.removeItem("estateWiseChat");
+                  if (!isAuthed) localStorage.removeItem("luxeraChat");
                 }}
                 toggleSidebar={toggleSidebar}
                 sidebarVisible={sidebarVisible}

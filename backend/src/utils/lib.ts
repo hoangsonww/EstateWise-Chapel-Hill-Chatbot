@@ -1,4 +1,4 @@
-import { runEstateWiseAgent } from "../services/geminiAgent.service";
+import { runLuxeraAgent } from "../services/geminiAgent.service";
 
 /**
  * Run the EstateWise agent to determine if we need to fetch
@@ -10,12 +10,12 @@ import { runEstateWiseAgent } from "../services/geminiAgent.service";
  * @return The final text response and expert views, which
  * include the decision to fetch property data or not
  */
-export async function runEstateWiseAgentCheck(
+export async function runLuxeraAgentCheck(
   message: string,
   userContext = "",
   expertWeights: Record<string, number> = {},
 ): Promise<{ finalText: string; expertViews: Record<string, string> }> {
-  const response = await runEstateWiseAgent(
+  const response = await runLuxeraAgent(
     message,
     userContext,
     expertWeights,

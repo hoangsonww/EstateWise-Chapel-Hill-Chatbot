@@ -54,7 +54,7 @@ const chat = async (req, res) => {
                 { role: "user", parts: [{ text: message }] },
             ];
             // run MoE pipeline
-            const { finalText, expertViews } = await (0, geminiChat_service_1.chatWithEstateWise)(historyForGemini, message, {}, conversation.expertWeights);
+            const { finalText, expertViews } = await (0, geminiChat_service_1.chatWithLuxera)(historyForGemini, message, {}, conversation.expertWeights);
             /* persist both msgs */
             conversation.messages.push({
                 role: "user",
@@ -103,7 +103,7 @@ const chat = async (req, res) => {
             ...normalizedHistory,
             { role: "user", parts: [{ text: message }] },
         ];
-        const { finalText, expertViews } = await (0, geminiChat_service_1.chatWithEstateWise)(historyForGemini, message, {}, guestWeights);
+        const { finalText, expertViews } = await (0, geminiChat_service_1.chatWithLuxera)(historyForGemini, message, {}, guestWeights);
         return res.json({
             response: finalText,
             expertViews,

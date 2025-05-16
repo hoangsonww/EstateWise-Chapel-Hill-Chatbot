@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.runEstateWiseAgentCheck = runEstateWiseAgentCheck;
+exports.runLuxeraAgentCheck = runLuxeraAgentCheck;
 exports.default = agentHelper;
 const geminiAgent_service_1 = require("../services/geminiAgent.service");
 /**
@@ -13,8 +13,8 @@ const geminiAgent_service_1 = require("../services/geminiAgent.service");
  * @return The final text response and expert views, which
  * include the decision to fetch property data or not
  */
-async function runEstateWiseAgentCheck(message, userContext = "", expertWeights = {}) {
-    const response = await (0, geminiAgent_service_1.runEstateWiseAgent)(message, userContext, expertWeights);
+async function runLuxeraAgentCheck(message, userContext = "", expertWeights = {}) {
+    const response = await (0, geminiAgent_service_1.runLuxeraAgent)(message, userContext, expertWeights);
     return {
         finalText: response.finalText,
         expertViews: response.expertViews,

@@ -869,7 +869,7 @@ sequenceDiagram
     participant User
     participant UI as Next.js UI
     participant API as /api/chat
-    participant Agent as runEstateWiseAgent
+    participant Agent as runLuxeraAgent
     participant DecisionAI as Decision Model
     participant Pinecone
     participant Experts as MoE Pipeline
@@ -877,7 +877,7 @@ sequenceDiagram
 
     User->>UI: sendMessage()
     UI->>API: POST /api/chat { message }
-    API->>Agent: runEstateWiseAgent(prompt)
+    API->>Agent: runLuxeraAgent(prompt)
 
     Agent->>DecisionAI: {"usePropertyData": ?}
     DecisionAI-->>Agent: {"usePropertyData": true/false}
@@ -885,9 +885,9 @@ sequenceDiagram
     alt usePropertyData = true
         Agent->>Pinecone: queryPropertiesAsString(prompt,50)\nqueryProperties(prompt,50)
         Pinecone-->>Agent: propertyContext + rawResults
-        Agent->>Experts: chatWithEstateWise(history, prompt, propertyContext)
+        Agent->>Experts: chatWithLuxera(history, prompt, propertyContext)
     else usePropertyData = false
-        Agent->>Experts: chatWithEstateWise(history, prompt, userContext)
+        Agent->>Experts: chatWithLuxera(history, prompt, userContext)
     end
 
     Experts->>Gemini: expert & merger invocations
