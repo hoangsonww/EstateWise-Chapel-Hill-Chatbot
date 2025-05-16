@@ -1,8 +1,8 @@
-# EstateWise: AI‑Powered Real Estate Assistant for Chapel Hill, NC - Technical Documentation
+# Luxera: AI‑Powered Real Estate Assistant for Chapel Hill, NC - Technical Documentation
 
-EstateWise is an AI‑powered real estate assistant focused on Chapel Hill, NC and surrounding areas. This document provides a deep dive into every component—from raw data ingestion to AI orchestration, delivery via a React/Next.js front‑end, and end‑to‑end deployment.
+Luxera is an AI‑powered real estate assistant focused on Chapel Hill, NC and surrounding areas. This document provides a deep dive into every component—from raw data ingestion to AI orchestration, delivery via a React/Next.js front‑end, and end‑to‑end deployment.
 
-Below, we outline the architecture, key components, and challenges faced during development. This is intended for developers and data scientists interested in understanding the inner workings of EstateWise. We also provide a flowchart and various diagrams to visualize the architecture and data flow throughout the system.
+Below, we outline the architecture, key components, and challenges faced during development. This is intended for developers and data scientists interested in understanding the inner workings of Luxera. We also provide a flowchart and various diagrams to visualize the architecture and data flow throughout the system.
 
 ![Node.js](https://img.shields.io/badge/Node.js-339933?logo=node.js&logoColor=white) ![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?logo=typescript&logoColor=white) ![stream-json](https://img.shields.io/badge/stream--json-007ACC) ![Pinecone](https://img.shields.io/badge/Pinecone-%2300837A?logo=vectorworks&logoColor=white) ![Google AI](https://img.shields.io/badge/Google%20AI-4285F4?logo=google&logoColor=white) ![React](https://img.shields.io/badge/React-61DAFB?logo=react&logoColor=white) ![Next.js](https://img.shields.io/badge/Next.js-000000?logo=next.js&logoColor=white) ![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-38B2AC?logo=tailwind-css&logoColor=white) ![Shadcn UI](https://img.shields.io/badge/Shadcn%20UI-FFFFFF?logo=shadcnui&logoColor=000000) ![Framer Motion](https://img.shields.io/badge/Framer%20Motion-0055FF?logo=framer&logoColor=white) ![React Markdown](https://img.shields.io/badge/React--Markdown-000000?logo=markdown&logoColor=white) ![Express.js](https://img.shields.io/badge/Express.js-404D59?logo=express&logoColor=white) ![MongoDB](https://img.shields.io/badge/MongoDB-47A248?logo=mongodb&logoColor=white) ![Swagger](https://img.shields.io/badge/Swagger-85EA2D?logo=swagger&logoColor=black) ![Docker Compose](https://img.shields.io/badge/Docker%20Compose-2496ED?logo=docker&logoColor=white) ![Vercel](https://img.shields.io/badge/Vercel-000000?logo=vercel&logoColor=white) ![GitHub Actions](https://img.shields.io/badge/GitHub%20Actions-2088FF?logo=github-actions&logoColor=white) ![Prometheus](https://img.shields.io/badge/Prometheus-FF6B00?logo=prometheus&logoColor=white) ![Grafana](https://img.shields.io/badge/Grafana-F46800?logo=grafana&logoColor=white) ![Sentry](https://img.shields.io/badge/Sentry-000000?logo=sentry&logoColor=white) ![node-lru-cache](https://img.shields.io/badge/node--lru--cache-339933?logo=node.js&logoColor=white) ![k‑Means](https://img.shields.io/badge/k--Means-FF4080) ![Mermaid](https://img.shields.io/badge/Mermaid-00A9E0?logo=mermaid&logoColor=white) ![JSON](https://img.shields.io/badge/JSON-000000?logo=json&logoColor=white) ![Winston](https://img.shields.io/badge/Winston-000000?logo=winston&logoColor=white)
 
@@ -608,7 +608,7 @@ MONGO_URI=...
 GOOGLE_AI_API_KEY=...
 PINECONE_API_KEY=...
 PINECONE_ENVIRONMENT=us‑west1‑gcp
-PINECONE_INDEX=estatewise-index
+PINECONE_INDEX=Luxera-index
 JWT_SECRET=...
 ```
 
@@ -649,7 +649,7 @@ jobs:
 
 ## 10. Challenges
 
-Throughout the development of **EstateWise**, we encountered several technical and operational hurdles. Below is a breakdown of the most significant challenges and how we addressed them:
+Throughout the development of **Luxera**, we encountered several technical and operational hurdles. Below is a breakdown of the most significant challenges and how we addressed them:
 
 ### 10.1 Large‑Scale Data Ingestion
 
@@ -689,7 +689,7 @@ Throughout the development of **EstateWise**, we encountered several technical a
 ## 11. Logging & Monitoring
 
 **What it is:**
-A comprehensive logging and monitoring system that tracks the performance, errors, and usage of the EstateWise application.
+A comprehensive logging and monitoring system that tracks the performance, errors, and usage of the Luxera application.
 
 **Why we use it:**
 To ensure the application runs smoothly, identify issues quickly, and gather insights into user behavior and system performance.
@@ -753,7 +753,7 @@ We use Winston for logging in the backend. The logging system is configured to l
 
 ## 12. Appendices
 
-Additional resources, diagrams, and references for developers and data scientists who are interested working on EstateWise.
+Additional resources, diagrams, and references for developers and data scientists who are interested working on Luxera.
 
 ### A. Environment Variables Reference
 
@@ -925,8 +925,8 @@ Below is an example of the vector schema and metadata stored in Pinecone:
 
 ---
 
-Thank you for reading through the technical documentation of EstateWise! If you have any questions or need further clarification, feel free to reach out to us! 🏠
+Thank you for reading through the technical documentation of Luxera! If you have any questions or need further clarification, feel free to reach out to us! 🏠
 
-[🔝 Back to Top](#estatewise-aipowered-real-estate-assistant-for-chapel-hill-nc)
+[🔝 Back to Top](#Luxera-aipowered-real-estate-assistant-for-chapel-hill-nc)
 
 [🏠 Back to README](README.md)

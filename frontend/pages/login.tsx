@@ -45,7 +45,7 @@ export default function LoginPage() {
       if (res.status === 200) {
         const data = await res.json();
         // Store the token in a browser cookie
-        Cookies.set("estatewise_token", data.token);
+        Cookies.set("Luxera_token", data.token);
         // Store user data in local storage
         localStorage.setItem("username", data.user.username);
         localStorage.setItem("email", data.user.email);

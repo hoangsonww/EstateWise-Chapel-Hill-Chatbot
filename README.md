@@ -1,6 +1,6 @@
-# EstateWise – Your Intelligent Estate Assistant 🏡
+# Luxera – Your Intelligent Estate Assistant 🏡
 
-**EstateWise** is a full‑stack AI chatbot built for Chapel Hill, NC and the surrounding areas, featuring a sleek, responsive UI with smooth
+**Luxera** is a full‑stack AI chatbot built for Chapel Hill, NC and the surrounding areas, featuring a sleek, responsive UI with smooth
 animations and optional sign‑in to save your conversation history. Under the hood it leverages agentic AI, Retrieval‑Augmented Generation with Pinecone
 (kNN & cosine similarity), k‑Means clustering, and a Mixture‑of‑Experts ensemble to deliver fast, hyper‑personalized property recommendations based on your preferences. 📲
 
@@ -39,7 +39,7 @@ animations and optional sign‑in to save your conversation history. Under the h
 
 ## Live App
 
-Visit the live app on **Vercel** at **[https://estatewise.vercel.app/](https://estatewise.vercel.app/)** and explore the intelligent estate assistant!
+Visit the live app on **Vercel** at **[https://ai.homesluxera.com/](https://ai.homesluxera.com/)** and explore the intelligent estate assistant!
 
 The backend API is also available at: [https://api.homesluxera.com/](https://api.homesluxera.com/).
 
@@ -75,7 +75,7 @@ For a CLI version of the chatbot, as well as the initial EDA (Exploratory Data A
 
 ### AI Techniques
 
-**EstateWise** combines a modern API, real‑time chat, and a responsive UI with a powerful AI stack to deliver hyper‑personalized property recommendations:
+**Luxera** combines a modern API, real‑time chat, and a responsive UI with a powerful AI stack to deliver hyper‑personalized property recommendations:
 
 - **Retrieval‑Augmented Generation (RAG):** Uses Pinecone for kNN‑based vector retrieval, then fuses retrieved data into generated responses.
 - **k‑Means Clustering:** Automatically groups similar listings and finds closest matches to refine recommendations.
@@ -89,7 +89,7 @@ For a CLI version of the chatbot, as well as the initial EDA (Exploratory Data A
 
 ## Features
 
-EstateWise is packed with both UI and AI features to enhance your home-finding experience:
+Luxera is packed with both UI and AI features to enhance your home-finding experience:
 
 - **Intelligent Property Recommendations**  
   Get tailored property suggestions powered by AI and Retrieval‑Augmented Generation (RAG).
@@ -150,7 +150,7 @@ EstateWise is packed with both UI and AI features to enhance your home-finding e
 
 ## Architecture
 
-**EstateWise** is built with a modern, full-stack architecture consisting of two major parts:
+**Luxera** is built with a modern, full-stack architecture consisting of two major parts:
 
 ### Backend
 
@@ -275,8 +275,8 @@ Below is a high-level diagram that illustrates the flow of the application, incl
 1. **Clone the repository:**
 
    ```bash
-   git clone https://github.com/hoangsonww/EstateWise-Chapel-Hill-Chatbot.git
-   cd EstateWise-Chapel-Hill-Chatbot/backend
+   git clone https://github.com/hoangsonww/Luxera-Chapel-Hill-Chatbot.git
+   cd Luxera-Chapel-Hill-Chatbot/backend
    ```
 
 2. **Install dependencies:**
@@ -294,10 +294,10 @@ Below is a high-level diagram that illustrates the flow of the application, incl
    JWT_SECRET=<your_jwt_secret>
    GOOGLE_AI_API_KEY=<your_google_ai_api_key>
    PINECONE_API_KEY=<your_pinecone_api_key>
-   PINECONE_INDEX=estatewise-index
+   PINECONE_INDEX=Luxera-index
    ```
 
-   Important: Be sure that you created the Pinecone index with the name `estatewise-index` in your Pinecone account before proceeding. Then,
+   Important: Be sure that you created the Pinecone index with the name `Luxera-index` in your Pinecone account before proceeding. Then,
    add data to the index using the `pinecone` CLI or API. For security purposes, our properties data is not publicly available in the repository. Please use your own data.
 
 4. **Upsert Properties Data to Pinecone:**  
@@ -359,7 +359,7 @@ Below is a high-level diagram that illustrates the flow of the application, incl
 - **Backend:** Deploy your backend on your chosen platform (Heroku, Vercel, AWS, etc.) and ensure environment variables are properly set.
   - Currently, the backend is deployed on Vercel at [https://api.homesluxera.com/](https://api.homesluxera.com/).
 - **Frontend:** Deploy the React/Next.js frontend using services like Vercel or Netlify. Update any API endpoints if necessary.
-  - Currently, the frontend is deployed on Vercel at [https://estatewise.vercel.app/](https://estatewise.vercel.app/).
+  - Currently, the frontend is deployed on Vercel at [https://ai.homesluxera.com/](https://ai.homesluxera.com/).
 - **Database:** Ensure your MongoDB instance is accessible from your deployed backend. You can use services like MongoDB Atlas for cloud hosting.
   - Currently, we are using MongoDB Atlas for the database. It is a cloud-hosted MongoDB service that provides a fully managed database solution.
 - **Pinecone:** Ensure your Pinecone instance is accessible from your deployed backend. You can use the Pinecone CLI or API to manage your index and data.
@@ -392,60 +392,60 @@ Below is a high-level diagram that illustrates the flow of the application, incl
 
 ## User Interface
 
-EstateWise features a modern, animated, and fully responsive user interface built with Next.js and Shadcn UI, with the help of Tailwind CSS for styling. The UI is designed to be intuitive and user-friendly, ensuring a seamless experience across devices.
+Luxera features a modern, animated, and fully responsive user interface built with Next.js and Shadcn UI, with the help of Tailwind CSS for styling. The UI is designed to be intuitive and user-friendly, ensuring a seamless experience across devices.
 
 ### Landing Page
 
 <p align="center">
-  <img src="img/landing.png" alt="EstateWise UI" width="100%" />
+  <img src="img/landing.png" alt="Luxera UI" width="100%" />
 </p>
 
 ### Chat Interface - Guest
 
 <p align="center">
-  <img src="img/home-guest.png" alt="EstateWise UI" width="100%" />
+  <img src="img/home-guest.png" alt="Luxera UI" width="100%" />
 </p>
 
 ### Chat Interface - Authenticated
 
 <p align="center">
-  <img src="img/home-authed.png" alt="EstateWise UI" width="100%" />
+  <img src="img/home-authed.png" alt="Luxera UI" width="100%" />
 </p>
 
 ### Dark Mode: Chat Interface - Guest
 
 <p align="center">
-  <img src="img/home-guest-dark.png" alt="EstateWise UI" width="100%" />
+  <img src="img/home-guest-dark.png" alt="Luxera UI" width="100%" />
 </p>
 
 ### Dark Mode: Chat Interface - Authenticated
 
 <p align="center">
-  <img src="img/home-authed-dark.png" alt="EstateWise UI" width="100%" />
+  <img src="img/home-authed-dark.png" alt="Luxera UI" width="100%" />
 </p>
 
 ### Visualizations Page
 
 <p align="center">
-  <img src="img/visualizations.png" alt="EstateWise UI" width="100%" />
+  <img src="img/visualizations.png" alt="Luxera UI" width="100%" />
 </p>
 
 ### Login Page
 
 <p align="center">
-  <img src="img/login.png" alt="EstateWise UI" width="100%" />
+  <img src="img/login.png" alt="Luxera UI" width="100%" />
 </p>
 
 ### Register Page
 
 <p align="center">
-  <img src="img/register.png" alt="EstateWise UI" width="100%" />
+  <img src="img/register.png" alt="Luxera UI" width="100%" />
 </p>
 
 ### Reset Password Page
 
 <p align="center">
-  <img src="img/reset-password.png" alt="EstateWise UI" width="100%" />
+  <img src="img/reset-password.png" alt="Luxera UI" width="100%" />
 </p>
 
 ## API Endpoints
@@ -486,7 +486,7 @@ Live API documentation is available at: [https://api.homesluxera.com/api-docs](h
 ## Project Structure
 
 ```plaintext
-EstateWise/
+Luxera/
 ├── frontend/                 # Frontend Next.js application
 │   ├── public/               # Static assets (images, icons, etc.)
 │   ├── components/           # Reusable UI components

@@ -8,17 +8,17 @@ const options = {
     definition: {
         openapi: "3.0.0",
         info: {
-            title: "EstateWise API",
+            title: "Luxera API",
             version: "1.0.0",
-            description: "API documentation for EstateWise chatbot - an AI assistant helping users find their dream homes in Chapel Hill, NC.",
+            description: "API documentation for Luxera chatbot - an AI assistant helping users find their dream homes in Chapel Hill, NC.",
             license: {
                 name: "MIT",
                 url: "https://opensource.org/licenses/MIT",
             },
             contact: {
-                name: "EstateWise",
-                email: "hoangson091104@gmail.com",
-                url: "https://estatewise.vercel.app/",
+                name: "LuxeraAI",
+                email: "info@homesluxera.com",
+                url: "https://ai.homesluxera.com",
             },
         },
         servers: [

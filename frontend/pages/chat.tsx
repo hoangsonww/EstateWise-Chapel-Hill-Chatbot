@@ -490,7 +490,7 @@ type ChatMessage = {
 };
 
 const getInitialMessages = (): ChatMessage[] => {
-  if (typeof window !== "undefined" && !Cookies.get("estatewise_token")) {
+  if (typeof window !== "undefined" && !Cookies.get("Luxera_token")) {
     const stored = localStorage.getItem("luxeraChat");
     if (stored) {
       try {
@@ -572,7 +572,7 @@ const TopBar: React.FC<TopBarProps> = ({
   toggleSidebar,
   sidebarVisible,
 }) => {
-  const isAuthed = !!Cookies.get("estatewise_token");
+  const isAuthed = !!Cookies.get("Luxera_token");
   const username = localStorage.getItem("username") || "Guest";
   const [authMenuOpen, setAuthMenuOpen] = useState(false);
 
@@ -622,7 +622,7 @@ const TopBar: React.FC<TopBarProps> = ({
               variant="outline"
               onClick={() => {
                 document.cookie =
-                  "estatewise_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+                  "Luxera_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
                 toast.success("Logged out successfully");
                 window.location.reload();
               }}
@@ -777,7 +777,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         let results: any[] = [];
         if (isAuthed) {
-          const token = Cookies.get("estatewise_token");
+          const token = Cookies.get("Luxera_token");
           const res = await fetch(
             `${API_BASE_URL}/api/conversations/search?q=${value}`,
             {
@@ -790,7 +790,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             toast.error("Conversation search failed");
           }
         } else {
-          const local = localStorage.getItem("estateWiseConvos");
+          const local = localStorage.getItem("LuxeraConvos");
           if (local) {
             const convos = JSON.parse(local);
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -811,7 +811,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   const handleRename = async (convId: string) => {
     try {
-      const token = Cookies.get("estatewise_token");
+      const token = Cookies.get("Luxera_token");
       const res = await fetch(`${API_BASE_URL}/api/conversations/${convId}`, {
         method: "PUT",
         headers: {
@@ -864,7 +864,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   const handleDelete = async () => {
     if (!deleteId) return;
     try {
-      const token = Cookies.get("estatewise_token");
+      const token = Cookies.get("Luxera_token");
       const res = await fetch(`${API_BASE_URL}/api/conversations/${deleteId}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
@@ -1322,7 +1322,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   onSetSelectedConvo,
 }) => {
   const [messages, setMessages] = useState<ChatMessage[]>(
-    !Cookies.get("estatewise_token") ? getInitialMessages() : [],
+    !Cookies.get("Luxera_token") ? getInitialMessages() : [],
   );
   const [userInput, setUserInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -1349,7 +1349,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
       if (typeof window === "undefined") return {};
       try {
         const stored = JSON.parse(
-          localStorage.getItem("estateWiseGuestWeights") || "{}",
+          localStorage.getItem("LuxeraGuestWeights") || "{}",
         );
         const KEYS = [
           "Data Analyst",
@@ -1424,7 +1424,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
 
   /* persist guest history + autoscroll */
   useEffect(() => {
-    if (!Cookies.get("estatewise_token")) {
+    if (!Cookies.get("Luxera_token")) {
       localStorage.setItem("luxeraChat", JSON.stringify(messages));
     }
     latestMessageRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -1440,7 +1440,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${Cookies.get("estatewise_token")}`,
+        Authorization: `Bearer ${Cookies.get("Luxera_token")}`,
       },
       body: JSON.stringify({ title: "Untitled Conversation" }),
     });
@@ -1505,7 +1505,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
         headers: {
           "Content-Type": "application/json",
           ...(isAuthed
-            ? { Authorization: `Bearer ${Cookies.get("estatewise_token")}` }
+            ? { Authorization: `Bearer ${Cookies.get("Luxera_token")}` }
             : {}),
         },
         body: JSON.stringify(body),
@@ -1522,7 +1522,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
       if (!isAuthed && data.expertWeights) {
         setGuestWeights(data.expertWeights);
         localStorage.setItem(
-          "estateWiseGuestWeights",
+          "LuxeraGuestWeights",
           JSON.stringify(data.expertWeights),
         );
       }
@@ -1530,7 +1530,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
       if (isAuthed && body.convoId && !selectedConvoId) {
         const r = await fetch(`${API_BASE_URL}/api/conversations`, {
           headers: {
-            Authorization: `Bearer ${Cookies.get("estatewise_token")}`,
+            Authorization: `Bearer ${Cookies.get("Luxera_token")}`,
           },
         });
         if (r.ok) setLocalConvos(await r.json());
@@ -1577,7 +1577,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
         headers: {
           "Content-Type": "application/json",
           ...(isAuthed
-            ? { Authorization: `Bearer ${Cookies.get("estatewise_token")}` }
+            ? { Authorization: `Bearer ${Cookies.get("Luxera_token")}` }
             : {}),
         },
         body: JSON.stringify(payload),
@@ -1587,7 +1587,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
       if (!isAuthed && j.expertWeights) {
         setGuestWeights(j.expertWeights);
         localStorage.setItem(
-          "estateWiseGuestWeights",
+          "LuxeraGuestWeights",
           JSON.stringify(j.expertWeights),
         );
       }
@@ -1913,7 +1913,7 @@ const AnimatedDots: React.FC<{ resetKey: number }> = ({ resetKey }) => {
 // Main ChatPage Layout: Sidebar + Top Bar + ChatWindow
 // ----------------------------------------------------------
 export default function ChatPage() {
-  const isAuthed = !!Cookies.get("estatewise_token");
+  const isAuthed = !!Cookies.get("Luxera_token");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [conversations, setConversations] = useState<any[]>([]);
   const [conversationLoading, setConversationLoading] = useState(false);
@@ -1945,7 +1945,7 @@ export default function ChatPage() {
 
     try {
       if (isAuthed) {
-        const token = Cookies.get("estatewise_token");
+        const token = Cookies.get("Luxera_token");
         const res = await fetch(`${API_BASE_URL}/api/conversations`, {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -1956,7 +1956,7 @@ export default function ChatPage() {
           toast.error("Failed to load conversations");
         }
       } else {
-        const local = localStorage.getItem("estateWiseConvos");
+        const local = localStorage.getItem("LuxeraConvos");
         if (local) setConversations(JSON.parse(local));
       }
     } catch (err) {

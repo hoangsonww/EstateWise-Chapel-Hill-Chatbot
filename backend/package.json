@@ -1,7 +1,7 @@
 {
-  "name": "estatewise-backend",
+  "name": "Luxera-backend",
   "version": "1.1.0",
-  "description": "Backend for EstateWise, a real estate chatbot that learns from past conversations.",
+  "description": "Backend for Luxera, a real estate chatbot that learns from past conversations.",
   "main": "dist/server.js",
   "private": false,
   "author": "Son Nguyen",

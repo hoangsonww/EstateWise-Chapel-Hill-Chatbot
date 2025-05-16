@@ -4,7 +4,7 @@ exports.runLuxeraAgentCheck = runLuxeraAgentCheck;
 exports.default = agentHelper;
 const geminiAgent_service_1 = require("../services/geminiAgent.service");
 /**
- * Run the EstateWise agent to determine if we need to fetch
+ * Run the Luxera agent to determine if we need to fetch
  * property data or not.
  *
  * @param message - The user’s message

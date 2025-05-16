@@ -61,7 +61,7 @@ export default function SignUpPage() {
         });
         if (loginRes.status === 200) {
           const data = await loginRes.json();
-          Cookies.set("estatewise_token", data.token);
+          Cookies.set("Luxera_token", data.token);
           router.push("/chat");
           toast.success("Sign up and login successfully");
         } else {

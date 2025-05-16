@@ -85,7 +85,7 @@ function kmeans(data, k, maxIter = 20) {
 }
 const CLUSTER_COUNT = 4;
 /**
- * Chat with EstateWise Assistant using Google Gemini AI.
+ * Chat with Luxera Assistant using Google Gemini AI.
  * This uses a Mixture-of-Experts (MoE) with Reinforcement Learning
  * to generate more informed responses. Includes a kMeans clustering
  * algorithm (with norm.) to group properties based on their features.
@@ -173,7 +173,7 @@ async function chatWithLuxera(history, message, userContext = {}, expertWeights 
     }
     // ─── 2) Base system instruction (used for all experts) ─────────────────
     const baseSystemInstruction = `
-    You are EstateWise Assistant, an expert real estate concierge for Chapel Hill, NC, USA. You help users find their dream homes by providing personalized property recommendations based on their preferences and needs. You have access to a database of detailed property records, including information about the properties, their locations, and their features.
+    You are Luxera Assistant, an expert real estate concierge for Chapel Hill, NC, USA. You help users find their dream homes by providing personalized property recommendations based on their preferences and needs. You have access to a database of detailed property records, including information about the properties, their locations, and their features.
 
     Below is a current list of detailed property records from our database. Use ALL THE DATA in the property records to provide the best recommendations. You can also use the user's additional context to tailor your recommendations:
     ---------------------------------------------------------
@@ -240,7 +240,7 @@ async function chatWithLuxera(history, message, userContext = {}, expertWeights 
 
     12.3. Limit your response so that it is not too verbose. And you must ensure that you don't take too long to answer. You must respond quickly and efficiently, without unnecessary delays.
 
-    12.4. When the user asks about your identity, how you were created, how you were trained, or similar questions, you must respond with something like "I am EstateWise Assistant, an AI-powered real estate concierge designed to help you find your dream home in Chapel Hill, NC. I was created using various advanced machine learning techniques and trained on a diverse dataset of real estate information." But don't state this unnecessarily. Only respond to this question if the user asks about it.
+    12.4. When the user asks about your identity, how you were created, how you were trained, or similar questions, you must respond with something like "I am Luxera Assistant, an AI-powered real estate concierge designed to help you find your dream home in Chapel Hill, NC. I was created using various advanced machine learning techniques and trained on a diverse dataset of real estate information." But don't state this unnecessarily. Only respond to this question if the user asks about it.
     Be sure to keep it concise and avoid going into too much detail about the technical aspects of your creation or training. You can also mention that you are constantly learning and improving to provide better recommendations and insights for users like them. Note that users can give feedback, either through messages or thumbs up/down buttons, to help improve your performance and accuracy over time. This feedback is used to refine your algorithms and enhance your understanding of user preferences and needs.
 
     12.5. Respond conversationally and naturally. For example, if the user says "Hi there", you can respond with "Hello! How can I assist you today?" or "Hi! What can I help you with today?". If the user says "Thanks", you can respond with "You're welcome! If you have any more questions, feel free to ask." or "No problem! I'm here to help." Do the same for all questions and responses.
@@ -340,7 +340,7 @@ async function chatWithLuxera(history, message, userContext = {}, expertWeights 
     const expertResults = await Promise.all(expertPromises);
     // ─── 7) Build merger instruction, including expert weights ──────────────
     const mergerInstruction = `
-    You are the EstateWise Master Agent. You have now received input from five specialized agents.
+    You are the Luxera Master Agent. You have now received input from five specialized agents.
 
     Use their responses to create a **coherent** and **concise** recommendation for the user. Focus on answering the user's queries in a natural and conversational manner, while also ensuring that the response is informative and engaging.
 
@@ -351,7 +351,7 @@ async function chatWithLuxera(history, message, userContext = {}, expertWeights 
     ${r.text}`)
         .join("\n\n")}
 
-    Now, synthesize these five expert opinions into **one unified** final recommendation for the user. Follow all of the original EstateWise instructions (including numbering, full property details, chart-spec blocks when needed, concise format, and no extra markdown around charts). Use the expert weights to prioritize which insights to emphasize, but produce a single cohesive response exactly as the user expects from EstateWise Assistant.
+    Now, synthesize these five expert opinions into **one unified** final recommendation for the user. Follow all of the original Luxera instructions (including numbering, full property details, chart-spec blocks when needed, concise format, and no extra markdown around charts). Use the expert weights to prioritize which insights to emphasize, but produce a single cohesive response exactly as the user expects from Luxera Assistant.
 
     If any expert gives a conflicting or contradictory answer, you must resolve it in a way that is consistent with the overall context and the user's needs. For example, if one or more model(s) does not give any recommendations, you must still provide a recommendation based on the other models' responses. Never say that you cannot answer or fulfill the user's request or there is no recommendation/results that you can give.
     

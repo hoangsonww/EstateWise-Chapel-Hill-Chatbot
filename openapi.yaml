@@ -1,9 +1,9 @@
 openapi: "3.0.3"
 info:
-  title: "EstateWise API"
+  title: "Luxera API"
   version: "1.0.0"
   description: >
-    API documentation for EstateWise chatbot - an AI assistant helping users find their dream homes in Chapel Hill, NC.
+    API documentation for Luxera chatbot - an AI assistant helping users find their dream homes in Chapel Hill, NC.
   license:
     name: "MIT"
     url: "https://opensource.org/licenses/MIT"
@@ -138,7 +138,7 @@ paths:
           description: "Server error - Failed to reset password"
   /api/chat:
     post:
-      summary: "Send a chat message to EstateWise"
+      summary: "Send a chat message to Luxera"
       tags:
         - Chat
       requestBody:
