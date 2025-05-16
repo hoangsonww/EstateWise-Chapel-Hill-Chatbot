@@ -4,6 +4,7 @@ import cors from "cors";
 import favicon from "serve-favicon";
 import path from "path";
 import dotenv from "dotenv";
+dotenv.config();
 import swaggerSpec from "./utils/swagger";
 import authRoutes from "./routes/auth.routes";
 import chatRoutes from "./routes/chat.routes";
@@ -58,7 +59,6 @@ process.on("unhandledRejection", (reason) => {
 });
 
 // ─── App Setup ────────────────────────────────────────────────────────────────
-dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3001;
 
@@ -67,7 +67,7 @@ app.use(cookieParser());
 // ─── Status Monitor Middleware ───────────────────────────────────────────────
 app.use(
   statusMonitor({
-    title: "EstateWise Status",
+    title: "Luxera Status",
     path: "/status",
     spans: [
       { interval: 1, retention: 60 },
@@ -109,10 +109,10 @@ app.use((req, res, next) => {
 
 // CORS configuration
 const corsOptions = {
-  origin: "*", // Allow all origins
+  origin: ["https://api.homesluxera.com"], // Allow requests from your frontend domain
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
-  credentials: false,
+  credentials: true, // Allow cookies or authorization headers
 };
 app.use(cors(corsOptions));
 app.use(express.json());
