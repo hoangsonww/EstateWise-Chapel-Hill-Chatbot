@@ -7,7 +7,7 @@ const options = {
       title: "Luxera API",
       version: "1.0.0",
       description:
-        "API documentation for Luxera chatbot - an AI assistant helping users find their dream homes in Chapel Hill, NC.",
+        "API documentation for Luxera chatbot - an AI assistant helping users find their dream homes in Dubai, UAE.",
       license: {
         name: "MIT",
         url: "https://opensource.org/licenses/MIT",
@@ -20,7 +20,7 @@ const options = {
     },
     servers: [
       {
-        url: "https://luxerachat.vercel.app/",
+        url: "https://api.homesluxera.com",
         description: "Production server",
       },
       {
