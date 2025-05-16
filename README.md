@@ -41,7 +41,7 @@ animations and optional sign‑in to save your conversation history. Under the h
 
 Visit the live app on **Vercel** at **[https://estatewise.vercel.app/](https://estatewise.vercel.app/)** and explore the intelligent estate assistant!
 
-The backend API is also available at: [https://estatewise-backend.vercel.app/](https://estatewise-backend.vercel.app/).
+The backend API is also available at: [https://api.homesluxera.com/](https://api.homesluxera.com/).
 
 Feel free to use the app as a guest or sign up for an account to save your conversations!
 
@@ -347,7 +347,7 @@ Below is a high-level diagram that illustrates the flow of the application, incl
    The frontend should be running at [http://localhost:3000](http://localhost:3000).
 
 4. **Change API URL:**  
-   If your backend is running on a different port or domain, update the API URL in the frontend code (simply CTRL + F or CMD + F and search for `https://estatewise-backend.vercel.app` in all frontend files, then replace it with your backend URL - by default it is `http://localhost:3001`).
+   If your backend is running on a different port or domain, update the API URL in the frontend code (simply CTRL + F or CMD + F and search for `https://api.homesluxera.com` in all frontend files, then replace it with your backend URL - by default it is `http://localhost:3001`).
 
 5. **View and Interact with the App:**  
    Open your browser and navigate to [http://localhost:3000](http://localhost:3000) to view the app. You can interact with the chatbot, sign up, log in, and explore the features.
@@ -357,7 +357,7 @@ Below is a high-level diagram that illustrates the flow of the application, incl
 ## Deployment
 
 - **Backend:** Deploy your backend on your chosen platform (Heroku, Vercel, AWS, etc.) and ensure environment variables are properly set.
-  - Currently, the backend is deployed on Vercel at [https://estatewise-backend.vercel.app/](https://estatewise-backend.vercel.app/).
+  - Currently, the backend is deployed on Vercel at [https://api.homesluxera.com/](https://api.homesluxera.com/).
 - **Frontend:** Deploy the React/Next.js frontend using services like Vercel or Netlify. Update any API endpoints if necessary.
   - Currently, the frontend is deployed on Vercel at [https://estatewise.vercel.app/](https://estatewise.vercel.app/).
 - **Database:** Ensure your MongoDB instance is accessible from your deployed backend. You can use services like MongoDB Atlas for cloud hosting.
@@ -481,7 +481,7 @@ Access detailed API docs at the `/api-docs` endpoint on your deployed backend.
   <img src="img/swagger.png" alt="Swagger API Documentation" width="100%" />
 </p>
 
-Live API documentation is available at: [https://estatewise-backend.vercel.app/api-docs](https://estatewise-backend.vercel.app/api-docs). You can visit it to explore and directly interact with the API endpoints, right in your web browser!
+Live API documentation is available at: [https://api.homesluxera.com/api-docs](https://api.homesluxera.com/api-docs). You can visit it to explore and directly interact with the API endpoints, right in your web browser!
 
 ## Project Structure
 
@@ -545,9 +545,9 @@ Metrics collected & visualized include:
 - Status codes
 - Response times
 
-To view live server metrics, go to `https://estatewise-backend.vercel.app/metrics` in your browser. This will show you the raw metrics collected by Prometheus. If you are running the app locally, you can go to `http://localhost:3001/metrics` in your browser.
+To view live server metrics, go to `https://api.homesluxera.com/metrics` in your browser. This will show you the raw metrics collected by Prometheus. If you are running the app locally, you can go to `http://localhost:3001/metrics` in your browser.
 
-To view live server data, go to `https://estatewise-backend.vercel.app/status` in your browser. If you are running the app locally, you can go to `http://localhost:3001/status` in your browser.
+To view live server data, go to `https://api.homesluxera.com/status` in your browser. If you are running the app locally, you can go to `http://localhost:3001/status` in your browser.
 
 <p align="center">
   <img src="img/prometheus.png" alt="Prometheus Monitoring" width="100%" style="border-radius: 8px" />

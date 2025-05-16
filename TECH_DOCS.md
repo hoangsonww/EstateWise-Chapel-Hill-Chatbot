@@ -575,7 +575,7 @@ A Next.js + React + TailwindCSS app using Shadcn UI components, Framer Motion an
 Delivers a smooth, responsive chat experience—complete with inline charts, expert‑view toggles, theme switching, and conversation management—so users can focus on real estate insights.
 
 **Live Frontend URL:**  
-https://estatewise-backend.vercel.app/
+https://api.homesluxera.com/
 
 ---
 

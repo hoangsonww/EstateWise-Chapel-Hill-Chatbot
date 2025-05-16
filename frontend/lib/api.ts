@@ -1,4 +1,4 @@
-export const API_BASE_URL = "https://estatewise-backend.vercel.app";
+export const API_BASE_URL = "https://api.homesluxera.com";
 
 export type ChatMessage = { role: "user" | "model"; text: string };
 

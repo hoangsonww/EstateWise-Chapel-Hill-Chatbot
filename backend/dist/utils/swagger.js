@@ -23,7 +23,7 @@ const options = {
         },
         servers: [
             {
-                url: "https://estatewise-backend.vercel.app/",
+                url: "https://api.homesluxera.com/",
                 description: "Production server",
             },
             {

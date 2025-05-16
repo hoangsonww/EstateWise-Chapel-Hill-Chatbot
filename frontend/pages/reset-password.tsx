@@ -42,7 +42,7 @@ export default function ResetPasswordPage() {
     setIsVerifying(true);
     try {
       const res = await fetch(
-        "https://estatewise-backend.vercel.app/api/auth/verify-email",
+        "https://api.homesluxera.com/api/auth/verify-email",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -78,7 +78,7 @@ export default function ResetPasswordPage() {
     setIsResetting(true);
     try {
       const res = await fetch(
-        "https://estatewise-backend.vercel.app/api/auth/reset-password",
+        "https://api.homesluxera.com/api/auth/reset-password",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

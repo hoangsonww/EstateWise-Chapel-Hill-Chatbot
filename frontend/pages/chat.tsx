@@ -52,7 +52,7 @@ import {
 } from "@/components/ui/dialog";
 import Chart, { ChartConfiguration } from "chart.js/auto";
 
-const API_BASE_URL = "https://estatewise-backend.vercel.app";
+const API_BASE_URL = "https://api.homesluxera.com";
 
 const containerVariants = {
   hidden: { opacity: 0 },
