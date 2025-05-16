@@ -25,7 +25,6 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [errorMsg, setErrorMsg] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
@@ -35,14 +34,13 @@ export default function LoginPage() {
     setErrorMsg("");
     setIsLoading(true);
     try {
-      const res = await fetch(
-        "https://estatewise-backend.vercel.app/api/auth/login",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password }),
-        },
-      );
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL; // Use environment variable for backend URL
+
+      const res = await fetch(`${backendUrl}/api/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
 
       if (res.status === 200) {
         const data = await res.json();
@@ -186,6 +184,7 @@ export default function LoginPage() {
                   </button>
                 </div>
               </div>
+              {errorMsg && <p className="text-red-500">{errorMsg}</p>} {/* Display error message */}
               <Button
                 type="submit"
                 className="w-full mt-4 cursor-pointer"

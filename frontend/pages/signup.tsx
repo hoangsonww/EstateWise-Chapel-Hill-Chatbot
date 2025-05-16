@@ -28,7 +28,6 @@ export default function SignUpPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [errorMsg, setErrorMsg] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
@@ -45,25 +44,21 @@ export default function SignUpPage() {
 
     setIsLoading(true);
     try {
-      const res = await fetch(
-        "https://estatewise-backend.vercel.app/api/auth/signup",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username, email, password }),
-        },
-      );
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL; // Use environment variable for backend URL
+
+      const res = await fetch(`${backendUrl}/api/auth/signup`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, email, password }),
+      });
 
       if (res.status === 201) {
         // Automatically log the user in upon successful sign up
-        const loginRes = await fetch(
-          "https://estatewise-backend.vercel.app/api/auth/login",
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email, password }),
-          },
-        );
+        const loginRes = await fetch(`${backendUrl}/api/auth/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        });
         if (loginRes.status === 200) {
           const data = await loginRes.json();
           Cookies.set("estatewise_token", data.token);
@@ -245,6 +240,7 @@ export default function SignUpPage() {
                   </button>
                 </div>
               </div>
+              {errorMsg && <p className="text-red-500">{errorMsg}</p>} {/* Display error message */}
               <Button
                 type="submit"
                 className="w-full py-2 mt-4 cursor-pointer"
