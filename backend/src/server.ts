@@ -109,7 +109,7 @@ app.use((req, res, next) => {
 
 // CORS configuration
 const corsOptions = {
-  origin: ["https://api.homesluxera.com"], // Allow requests from your frontend domain
+  origin: ["https://api.homesluxera.com"], // Allow requests from your custom domain
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true, // Allow cookies or authorization headers
