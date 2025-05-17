@@ -14,7 +14,7 @@ if not MONGO_URI:
 
 try:
     client = MongoClient(MONGO_URI)
-    db = client.get_default_database()  # specify your database if needed
+    db = client.get_default_database()
     properties_collection = db["properties"]
     logging.info("Connected to MongoDB")
 except Exception as e:

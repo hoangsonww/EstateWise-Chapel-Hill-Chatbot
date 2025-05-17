@@ -1,6 +1,10 @@
-# EstateWise – Your Intelligent Estate Assistant 🏡
+# Luxera – Your Intelligent Estate Assistant 🏡
 
-**EstateWise** is a full‑stack AI chatbot built for Chapel Hill, NC and the surrounding areas, featuring a sleek, responsive UI with smooth animations and optional sign‑in to save your conversation history. Under the hood it leverages agentic AI, Retrieval‑Augmented Generation with Pinecone (kNN), k‑Means clustering, and a Mixture‑of‑Experts ensemble to deliver fast, hyper‑personalized property recommendations based on your preferences. 📲
+**Luxera** is a full‑stack AI chatbot built for Chapel Hill, NC and the surrounding areas, featuring a sleek, responsive UI with smooth
+animations and optional sign‑in to save your conversation history. Under the hood it leverages agentic AI, Retrieval‑Augmented Generation with Pinecone
+(kNN & cosine similarity), k‑Means clustering, and a Mixture‑of‑Experts ensemble to deliver fast, hyper‑personalized property recommendations based on your preferences. 📲
+
+> Built by Rikhil Fellner, Muskaan Joshi, David Nguyen, Vinir Rai, Rishabh Singh, and Rajbalan Yogarajan for the BUSI/COMP-488 course at UNC-Chapel Hill, Spring 2025.
 
 ## Table of Contents
 
@@ -25,17 +29,21 @@
   - [Swagger API Documentation](#swagger-api-documentation)
 - [Project Structure](#project-structure)
 - [Dockerization](#dockerization)
+- [Prometheus Monitoring & Visualizations](#prometheus-monitoring--visualizations)
 - [OpenAPI Specification](#openapi-specification)
+- [Challenges & Future Improvements](#challenges--future-improvements)
 - [Contributing](#contributing)
 - [License](#license)
+- [Contact](#contact)
+- [Acknowledgments](#acknowledgments)
 
 ## Live App
 
-Visit the live app on **Vercel** at [https://estatewise.vercel.app/](https://estatewise.vercel.app/) and explore the intelligent estate assistant!
+Visit the live app on **Vercel** at **[https://ai.homesluxera.com/](https://ai.homesluxera.com/)** and explore the intelligent estate assistant!
 
-The API is available at: [https://estatewise-backend.vercel.app/](https://estatewise-backend.vercel.app/).
+The backend API is also available at: [https://api.homesluxera.com/](https://api.homesluxera.com/).
 
-Feel free to test the app as a guest or sign up for an account to save your conversations!
+Feel free to use the app as a guest or sign up for an account to save your conversations!
 
 ### Key Technologies Used
 
@@ -46,6 +54,7 @@ Feel free to test the app as a guest or sign up for an account to save your conv
 ![Next.js](https://img.shields.io/badge/Next.js-000000?style=for-the-badge&logo=nextdotjs&logoColor=white)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-06B6D4?style=for-the-badge&logo=tailwind-css&logoColor=white)
 ![Framer Motion](https://img.shields.io/badge/Framer%20Motion-000000?style=for-the-badge&logo=framer&logoColor=white)
+![Chart.js](https://img.shields.io/badge/Chart.js-F38B4A?style=for-the-badge&logo=chartdotjs&logoColor=white)
 ![Shadcn UI](https://img.shields.io/badge/Shadcn%20UI-000000?style=for-the-badge&logo=shadcn/ui&logoColor=white)
 ![MongoDB](https://img.shields.io/badge/MongoDB-47A248?style=for-the-badge&logo=mongodb&logoColor=white)
 ![Pinecone](https://img.shields.io/badge/Pinecone-FF6F61?style=for-the-badge&logo=googledataflow&logoColor=white)
@@ -53,22 +62,34 @@ Feel free to test the app as a guest or sign up for an account to save your conv
 ![JWT](https://img.shields.io/badge/JWT-black?style=for-the-badge&logo=json-web-tokens)
 ![Vercel](https://img.shields.io/badge/Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
+![Prometheus](https://img.shields.io/badge/Prometheus-E6512D?style=for-the-badge&logo=prometheus&logoColor=white)
+![Grafana](https://img.shields.io/badge/Grafana-F46800?style=for-the-badge&logo=grafana&logoColor=white)
 ![Swagger](https://img.shields.io/badge/Swagger-85EA2D?style=for-the-badge&logo=swagger&logoColor=white)
 ![Postman](https://img.shields.io/badge/Postman-FF6C37?style=for-the-badge&logo=postman&logoColor=white)
 
 For a more detailed technical overview, check out the [Technical Documentation](TECH_DOCS.md) file. It includes more information on how the app was built, how it works, how the data was processed, and more.
 
+> Feel free to go to this [Colaboratory Notebook](https://colab.research.google.com/drive/1-Z3h0LUHl0v-e0RaZgwruL8q180Uk4Z-?usp=sharing) to directly view and run the code in this notebook & see the results in real time.
+
+For a CLI version of the chatbot, as well as the initial EDA (Exploratory Data Analysis) of the properties data and interactive geospatial visualizations, check out the Jupyter notebooks in the root directory: [EDA-CLI-Chatbot.ipynb](EDA-CLI-Chatbot.ipynb).
+
 ### AI Techniques
 
-**EstateWise** combines a modern API, real‑time chat, and a responsive UI with a powerful AI stack to deliver hyper‑personalized property recommendations:
+**Luxera** combines a modern API, real‑time chat, and a responsive UI with a powerful AI stack to deliver hyper‑personalized property recommendations:
 
 - **Retrieval‑Augmented Generation (RAG):** Uses Pinecone for kNN‑based vector retrieval, then fuses retrieved data into generated responses.
-- **k‑Means Clustering & kNN:** Automatically groups similar listings and finds closest matches to refine recommendations.
+- **k‑Means Clustering:** Automatically groups similar listings and finds closest matches to refine recommendations.
+  - All features are also normalized to a range of 0-1 for better clustering and kNN performance.
 - **Decision AI Agent:** Decides whether to fetch RAG data (via `queryProperties`); if yes, it pulls in the Pinecone results, otherwise it skips straight to the Mixture‑of‑Experts pipeline.
 - **Mixture of Experts (MoE):** Dynamically routes each query through a master model to select specialized sub‑models (Data Analyst, Lifestyle Concierge, Financial Advisor, Neighborhood Expert, Cluster Analyst) for maximal relevance.
 - **Feedback Loop & Reinforcement Learning:** Users rate responses; thumbs‑up/down adjust expert weights per conversation, and the system continuously learns to improve accuracy.
+- **Prompt Engineering:** Each expert has a unique prompt template, ensuring tailored responses based on user input.
+  - All experts, agents, and merger have a detailed and ultra-specific prompt template to ensure the best possible responses.
+- **kNN & Cosine Similarity:** Uses Pinecone for fast, real‑time property retrieval based on user queries.
 
 ## Features
+
+Luxera is packed with both UI and AI features to enhance your home-finding experience:
 
 - **Intelligent Property Recommendations**  
   Get tailored property suggestions powered by AI and Retrieval‑Augmented Generation (RAG).
@@ -100,7 +121,7 @@ For a more detailed technical overview, check out the [Technical Documentation](
 - **Clustering & Similarity Search**
 
   - k‑Means clustering groups similar properties for more focused suggestions.
-  - kNN (via Pinecone) finds the closest matches to your query in real time.
+  - kNN & Cosine Similarity (via Pinecone) finds the closest matches to your query in real time.
 
 - **Smooth Animations**  
   Engaging transitions and micro‑interactions powered by Framer Motion.
@@ -122,12 +143,14 @@ For a more detailed technical overview, check out the [Technical Documentation](
   - Peek at our sample dataset here:  
     [Google Drive CSV (50k+ records)](https://drive.google.com/file/d/1vJCSlQgnQyVxoINosfWJWl6Jg1f0ltyo/view?usp=sharing)
   - After cleaning, **30,772 properties** remain in the database, available for the chatbot to use.
-  - Explore `Initial-Data-Analysis.ipynb` in the repo root for an initial Jupyter‑powered dive into the data.
-  - Explore `EstateWise-CLI-Chatbot.ipynb` in the repo root for a Jupyter‑powered CLI chatbot that can be used to test the Gemini chatbot.
+  - Explore `Initial-Data-Analysis.ipynb` in the repo root for an initial, quick Jupyter‑powered dive into the data.
+  - Explore `EDA-CLI-Chatbot.ipynb` in the repo root for a more detailed and comprehensive analysis of the data, as well as a CLI version of our chatbot.
+
+> Note: Please note that the deployed version of the app is subject to Vercel's infrastructure limitations, which may affect the performance and availability of the app. You are encouraged to run the app locally for the best experience.
 
 ## Architecture
 
-**EstateWise** is built with a modern, full-stack architecture consisting of two major parts:
+**Luxera** is built with a modern, full-stack architecture consisting of two major parts:
 
 ### Backend
 
@@ -252,8 +275,8 @@ Below is a high-level diagram that illustrates the flow of the application, incl
 1. **Clone the repository:**
 
    ```bash
-   git clone https://github.com/hoangsonww/EstateWise-Chapel-Hill-Chatbot.git
-   cd EstateWise-Chapel-Hill-Chatbot/backend
+   git clone https://github.com/hoangsonww/Luxera-Chapel-Hill-Chatbot.git
+   cd Luxera-Chapel-Hill-Chatbot/backend
    ```
 
 2. **Install dependencies:**
@@ -271,13 +294,29 @@ Below is a high-level diagram that illustrates the flow of the application, incl
    JWT_SECRET=<your_jwt_secret>
    GOOGLE_AI_API_KEY=<your_google_ai_api_key>
    PINECONE_API_KEY=<your_pinecone_api_key>
-   PINECONE_INDEX=estatewise-index
+   PINECONE_INDEX=Luxera-index
    ```
 
-   Important: Be sure that you created the Pinecone index with the name `estatewise-index` in your Pinecone account before proceeding. Then,
+   Important: Be sure that you created the Pinecone index with the name `Luxera-index` in your Pinecone account before proceeding. Then,
    add data to the index using the `pinecone` CLI or API. For security purposes, our properties data is not publicly available in the repository. Please use your own data.
 
-4. **Run the Backend in Development Mode:**
+4. **Upsert Properties Data to Pinecone:**  
+   Use the `upsertProperties.ts` script to upsert your properties data into the Pinecone index. This script assumes that you place the 4 JSON files in the same directory as the script itself,
+   under the names `Zillow-March2025-dataset_part0.json`, `Zillow-March2025-dataset_part1.json`, `Zillow-March2025-dataset_part2.json`, and `Zillow-March2025-dataset_part3.json`.
+
+   ```bash
+   ts-node-dev --respawn --transpile-only src/scripts/upsertProperties.ts
+   ```
+
+   Alternatively, and preferably, you can use the following NPM command from the `backend` directory to quickly upsert the properties data:
+
+   ```bash
+   npm run upsert
+   ```
+
+   Note that it may take quite long to upsert all the 30,772 properties data into the Pinecone index, so please be patient.
+
+5. **Run the Backend in Development Mode:** After the properties data has been upserted into the Pinecone index, you can run the backend server in development mode:
 
    ```bash
    npm run dev
@@ -307,14 +346,20 @@ Below is a high-level diagram that illustrates the flow of the application, incl
 
    The frontend should be running at [http://localhost:3000](http://localhost:3000).
 
+4. **Change API URL:**  
+   If your backend is running on a different port or domain, update the API URL in the frontend code (simply CTRL + F or CMD + F and search for `https://api.homesluxera.com` in all frontend files, then replace it with your backend URL - by default it is `http://localhost:3001`).
+
+5. **View and Interact with the App:**  
+   Open your browser and navigate to [http://localhost:3000](http://localhost:3000) to view the app. You can interact with the chatbot, sign up, log in, and explore the features.
+
 > Note: As you develop, before committing, we recommend running the linter and formatter to ensure code quality with `npm run format`. This will format your code according to the project's ESLint and Prettier configurations.
 
 ## Deployment
 
 - **Backend:** Deploy your backend on your chosen platform (Heroku, Vercel, AWS, etc.) and ensure environment variables are properly set.
-  - Currently, the backend is deployed on Vercel at [https://estatewise-backend.vercel.app/](https://estatewise-backend.vercel.app/).
+  - Currently, the backend is deployed on Vercel at [https://api.homesluxera.com/](https://api.homesluxera.com/).
 - **Frontend:** Deploy the React/Next.js frontend using services like Vercel or Netlify. Update any API endpoints if necessary.
-  - Currently, the frontend is deployed on Vercel at [https://estatewise.vercel.app/](https://estatewise.vercel.app/).
+  - Currently, the frontend is deployed on Vercel at [https://ai.homesluxera.com/](https://ai.homesluxera.com/).
 - **Database:** Ensure your MongoDB instance is accessible from your deployed backend. You can use services like MongoDB Atlas for cloud hosting.
   - Currently, we are using MongoDB Atlas for the database. It is a cloud-hosted MongoDB service that provides a fully managed database solution.
 - **Pinecone:** Ensure your Pinecone instance is accessible from your deployed backend. You can use the Pinecone CLI or API to manage your index and data.
@@ -347,60 +392,60 @@ Below is a high-level diagram that illustrates the flow of the application, incl
 
 ## User Interface
 
-EstateWise features a modern, animated, and fully responsive user interface built with Next.js and Shadcn UI, with the help of Tailwind CSS for styling. The UI is designed to be intuitive and user-friendly, ensuring a seamless experience across devices.
+Luxera features a modern, animated, and fully responsive user interface built with Next.js and Shadcn UI, with the help of Tailwind CSS for styling. The UI is designed to be intuitive and user-friendly, ensuring a seamless experience across devices.
 
 ### Landing Page
 
 <p align="center">
-  <img src="img/landing.png" alt="EstateWise UI" width="100%" />
+  <img src="img/landing.png" alt="Luxera UI" width="100%" />
 </p>
 
 ### Chat Interface - Guest
 
 <p align="center">
-  <img src="img/home-guest.png" alt="EstateWise UI" width="100%" />
+  <img src="img/home-guest.png" alt="Luxera UI" width="100%" />
 </p>
 
 ### Chat Interface - Authenticated
 
 <p align="center">
-  <img src="img/home-authed.png" alt="EstateWise UI" width="100%" />
+  <img src="img/home-authed.png" alt="Luxera UI" width="100%" />
 </p>
 
 ### Dark Mode: Chat Interface - Guest
 
 <p align="center">
-  <img src="img/home-guest-dark.png" alt="EstateWise UI" width="100%" />
+  <img src="img/home-guest-dark.png" alt="Luxera UI" width="100%" />
 </p>
 
 ### Dark Mode: Chat Interface - Authenticated
 
 <p align="center">
-  <img src="img/home-authed-dark.png" alt="EstateWise UI" width="100%" />
+  <img src="img/home-authed-dark.png" alt="Luxera UI" width="100%" />
 </p>
 
 ### Visualizations Page
 
 <p align="center">
-  <img src="img/visualizations.png" alt="EstateWise UI" width="100%" />
+  <img src="img/visualizations.png" alt="Luxera UI" width="100%" />
 </p>
 
 ### Login Page
 
 <p align="center">
-  <img src="img/login.png" alt="EstateWise UI" width="100%" />
+  <img src="img/login.png" alt="Luxera UI" width="100%" />
 </p>
 
 ### Register Page
 
 <p align="center">
-  <img src="img/register.png" alt="EstateWise UI" width="100%" />
+  <img src="img/register.png" alt="Luxera UI" width="100%" />
 </p>
 
 ### Reset Password Page
 
 <p align="center">
-  <img src="img/reset-password.png" alt="EstateWise UI" width="100%" />
+  <img src="img/reset-password.png" alt="Luxera UI" width="100%" />
 </p>
 
 ## API Endpoints
@@ -436,12 +481,12 @@ Access detailed API docs at the `/api-docs` endpoint on your deployed backend.
   <img src="img/swagger.png" alt="Swagger API Documentation" width="100%" />
 </p>
 
-Live API documentation is available at: [https://estatewise-backend.vercel.app/api-docs](https://estatewise-backend.vercel.app/api-docs)
+Live API documentation is available at: [https://api.homesluxera.com/api-docs](https://api.homesluxera.com/api-docs). You can visit it to explore and directly interact with the API endpoints, right in your web browser!
 
 ## Project Structure
 
 ```plaintext
-EstateWise/
+Luxera/
 ├── frontend/                 # Frontend Next.js application
 │   ├── public/               # Static assets (images, icons, etc.)
 │   ├── components/           # Reusable UI components
@@ -465,7 +510,7 @@ EstateWise/
 ├── docker-compose.yml        # Docker configuration for backend and frontend
 ├── Dockerfile                # Dockerfile for backend
 ├── openapi.yaml              # OpenAPI specification for API documentation
-├── EstateWise-CLI-Chatbot.ipynb # Jupyter notebook for CLI chatbot
+├── EDA-CLI-Chatbot.ipynb        # Jupyter notebook for CLI chatbot
 ├── Initial-Data-Analysis.ipynb  # Jupyter notebook for initial data analysis
 └── ... (other config files, etc.)
 ```
@@ -485,9 +530,45 @@ This command builds and starts both the backend and frontend services as defined
 
 However, you don't need to run the app using Docker. You can run the backend and frontend separately as described in the **Setup & Installation** section.
 
+## Prometheus Monitoring & Visualizations
+
+Prometheus is used for monitoring the backend server. It collects metrics from the server and provides a web interface to visualize them.
+
+Metrics collected & visualized include:
+
+- CPU usage
+- Memory usage
+- Heap usage
+- Load average
+- Event loops
+- Requests per second
+- Status codes
+- Response times
+
+To view live server metrics, go to `https://api.homesluxera.com/metrics` in your browser. This will show you the raw metrics collected by Prometheus. If you are running the app locally, you can go to `http://localhost:3001/metrics` in your browser.
+
+To view live server data, go to `https://api.homesluxera.com/status` in your browser. If you are running the app locally, you can go to `http://localhost:3001/status` in your browser.
+
+<p align="center">
+  <img src="img/prometheus.png" alt="Prometheus Monitoring" width="100%" style="border-radius: 8px" />
+</p>
+
 ## OpenAPI Specification
 
 An OpenAPI specification file (`openapi.yaml`) is included in the root directory. You can use Swagger UI or Postman to explore and test the API endpoints.
+
+> Note: It may not be the latest and most updated version of the API specification, so please refer to the [Swagger API Documentation](#swagger-api-documentation) for the most up-to-date information.
+
+## Challenges & Future Improvements
+
+- **Data Quality:** Ensuring the quality and accuracy of the property data used for recommendations.
+- **Performance Optimization:** Improving the speed and efficiency of the AI processing and response generation.
+- **User Experience:** Enhancing the user interface and experience based on user feedback.
+- **Vercel Infrastructure Limitations:** The current Vercel infrastructure has limitations on the number of requests and the amount of data that can be processed. We may need to consider using a different hosting solution for the backend in the future.
+  - Additionally, it imposes a limit of 60 seconds to process API requests, which may not be sufficient for some complex queries. Thus, it may cause timeouts for some requests.
+  - The user will be notified if the request times out, and the user will be prompted to try again later.
+- **Gemini API Limitations:** The current Gemini API has limitations on the number of requests and the amount of data that can be processed. We may need to consider using a different AI solution in the future.
+  - Also, Google imposes rate limits on the number of requests that can be made to the Gemini API. If the rate limit is exceeded, the user will be notified and prompted to try again later.
 
 ## Contributing
 
@@ -506,6 +587,19 @@ Contributions are welcome! Follow these steps:
 
 This project is licensed under the [MIT License](LICENSE).
 
+## Contact
+
+For any questions or inquiries, please contact the [repository maintainer](https://github.com/hoangsonww) or open an issue in the repository.
+
+## Acknowledgments
+
+- Thanks to the BUSI/COMP-488 course at UNC-Chapel Hill for the inspiration and opportunity to build this project.
+  - Thanks to the professors and TAs for the comprehensive Chapel Hill real-estate datasets provided. Without them, we would not have been able to build this project.
+- Special thanks to our instructor and TA for their guidance and support throughout the course.
+- Huge thanks to the team members for their hard work and collaboration in building this project!
+
 ---
+
+[📝 Go to Technical Documentation](TECH_DOCS.md)
 
 [⬆️ Back to Top](#table-of-contents)

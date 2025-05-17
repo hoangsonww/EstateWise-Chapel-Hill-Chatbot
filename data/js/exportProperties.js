@@ -3,7 +3,6 @@ const mongoose = require("mongoose");
 const fs = require("fs");
 const { Parser } = require("json2csv");
 
-// Create a simple schema for properties (or import your Property model)
 const propertySchema = new mongoose.Schema({}, { strict: false });
 const Property = mongoose.model("Property", propertySchema, "properties");
 

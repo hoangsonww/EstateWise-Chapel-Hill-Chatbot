@@ -1,6 +1,6 @@
 {
-  "name": "estatewise-ai-chatbot",
-  "version": "1.0.0",
+  "name": "luxera-ai",
+  "version": "1.1.0",
   "description": "Your Intelligent Estate Assistant providing personalized property recommendations in Chapel Hill.",
   "main": "dist/index.js",
   "author": "Son Nguyen",
@@ -24,13 +24,14 @@
     "url": "https://github.com/hoangsonww/AI-Assistant-Chatbot/issues"
   },
   "scripts": {
+    "lint": "eslint ./src --max-warnings=0",
     "build": "tsc",
-    "start": "cd frontend && npm run dev",
-    "dev": "cd backend && npm start",
-    "frontend": "cd frontend && npm run dev",
-    "backend": "cd backend && npm start",
-    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,css,scss,md,html}\"",
-    "store": "cd server && ts-node src/scripts/storeKnowledge.ts"
+    "build:watch": "tsc --watch",
+    "serve": "npm run build && firebase emulators:start --only functions",
+    "shell": "npm run build && firebase functions:shell",
+    "start": "npm run shell",
+    "deploy": "firebase deploy --only functions",
+    "logs": "firebase functions:log"
   },
   "dependencies": {
     "prettier": "^3.4.2"

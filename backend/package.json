@@ -1,30 +1,55 @@
 {
-  "name": "estatewise-backend",
-  "version": "1.0.0",
-  "description": "Backend for EstateWise, a real estate chatbot that learns from past conversations.",
+  "name": "luxera-backend",
+  "version": "1.1.0",
+  "description": "Backend for Luxera, a real estate chatbot that learns from past conversations.",
   "main": "dist/server.js",
+  "private": false,
+  "author": "Son Nguyen",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Vordium/luxerachat.git"
+  },
+  "keywords": [
+    "real-estate",
+    "chatbot",
+    "ai",
+    "assistant",
+    "estate",
+    "home",
+    "property",
+    "apartment",
+    "recommendation"
+  ],
+  "bugs": {
+    "url": "https://github.com/Vordium/luxerachat/issues"
+  },
   "scripts": {
-    "start": "ts-node-dev --respawn --transpile-only src/server.ts",
-    "build": "tsc",
-    "upsert": "ts-node-dev --respawn --transpile-only src/scripts/upsertProperties.ts",
-    "clean": "ts-node-dev --respawn --transpile-only src/scripts/cleanProperties.ts"
+    "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
+    "start": "node dist/index.js",
+    "build": "tsc"
   },
   "dependencies": {
     "@google/generative-ai": "^0.21.0",
-    "@pinecone-database/pinecone": "^5.1.1",
+    "@pinecone-database/pinecone": "^5.1.2",
     "bcryptjs": "^2.4.3",
     "body-parser": "^1.20.2",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
-    "dotenv": "^16.0.0",
+    "dotenv": "^16.5.0",
     "express": "^4.18.2",
     "express-jwt": "^7.7.5",
+    "express-status-monitor": "^1.3.4",
+    "firebase": "^11.7.3",
     "jsonwebtoken": "^9.0.0",
     "mongoose": "^7.0.1",
+    "node-fetch": "^3.3.2",
+    "prom-client": "^15.1.3",
     "serve-favicon": "^2.5.0",
     "stream-json": "^1.9.1",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^4.6.3",
+    "winston": "^3.17.0",
     "yamljs": "^0.3.0"
   },
   "devDependencies": {
@@ -32,6 +57,7 @@
     "@types/cookie-parser": "^1.4.8",
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.17",
+    "@types/express-status-monitor": "^1.3.3",
     "@types/jsonwebtoken": "^9.0.1",
     "@types/node": "^18.15.11",
     "@types/serve-favicon": "^2.5.7",
@@ -39,6 +65,6 @@
     "@types/swagger-jsdoc": "^6.0.4",
     "@types/swagger-ui-express": "^4.1.8",
     "ts-node-dev": "^2.0.0",
-    "typescript": "^5.0.4"
+    "typescript": "^5.8.3"
   }
 }

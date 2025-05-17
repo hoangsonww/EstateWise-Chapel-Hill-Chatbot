@@ -126,29 +126,16 @@ import mongoose, { Schema, Document } from "mongoose";
  * It contains only the fields needed for your chatbot recommendations.
  */
 export interface IProperty extends Document {
-  zpid: number;
-  city: string;
-  state: string;
-  homeStatus: string;
-  address: {
-    streetAddress: string;
-    city: string;
-    state: string;
-    zipcode: string;
-    neighborhood?: string | null;
-    community?: string | null;
-    subdivision?: string | null;
-  };
+  id: string;
+  price: number;
   bedrooms: number;
   bathrooms: number;
-  price: number;
-  yearBuilt: number;
-  latitude: number;
-  longitude: number;
   livingArea: number;
+  yearBuilt?: number;
   homeType: string;
-  listingDataSource: string;
-  description: string;
+  homeStatus: string;
+  city: string;
+  link?: string; // Added field for external property links
 }
 
 /**

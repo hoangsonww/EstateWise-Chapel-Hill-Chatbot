@@ -25,7 +25,6 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [errorMsg, setErrorMsg] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
@@ -35,19 +34,18 @@ export default function LoginPage() {
     setErrorMsg("");
     setIsLoading(true);
     try {
-      const res = await fetch(
-        "https://estatewise-backend.vercel.app/api/auth/login",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password }),
-        },
-      );
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL; // Use environment variable for backend URL
+
+      const res = await fetch(`${backendUrl}/api/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
 
       if (res.status === 200) {
         const data = await res.json();
         // Store the token in a browser cookie
-        Cookies.set("estatewise_token", data.token);
+        Cookies.set("Luxera_token", data.token);
         // Store user data in local storage
         localStorage.setItem("username", data.user.username);
         localStorage.setItem("email", data.user.email);
@@ -70,10 +68,10 @@ export default function LoginPage() {
   return (
     <>
       <Head>
-        <title>EstateWise | Login</title>
-        <meta name="description" content="Login to EstateWise" />
+        <title>Luxera Ai | Login</title>
+        <meta name="description" content="Login to Luxera Ai" />
       </Head>
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-blue-600 to-purple-600 px-4">
+      <div className="min-h-screen flex items-center justify-center animated-gradient px-4">
         <style jsx global>{`
           html {
             scroll-behavior: smooth;
@@ -82,6 +80,42 @@ export default function LoginPage() {
           html,
           body {
             overscroll-behavior: none;
+          }
+
+          @keyframes gradientAnimation {
+            0% {
+              background-position: 0% 50%;
+            }
+            50% {
+              background-position: 100% 50%;
+            }
+            100% {
+              background-position: 0% 50%;
+            }
+          }
+
+          .animated-gradient {
+            background: linear-gradient(
+              270deg,
+              #7928ca,
+              #ff0080,
+              #fbbc05,
+              #12c2e9
+            );
+            background-size: 800% 800%;
+            animation: gradientAnimation 20s ease infinite;
+          }
+
+          /* Hover effect for all <a> links */
+          a {
+            transition:
+              color 0.2s,
+              text-decoration-color 0.2s;
+          }
+
+          a:hover {
+            color: #ff0080;
+            text-decoration-color: #ff0080;
           }
         `}</style>
         <motion.div
@@ -133,7 +167,7 @@ export default function LoginPage() {
                       }
                     }}
                     required
-                    className="w-full pr-10" // extra right padding to accommodate the icon button
+                    className="w-full pr-10"
                   />
                   <button
                     type="button"
@@ -150,6 +184,7 @@ export default function LoginPage() {
                   </button>
                 </div>
               </div>
+              {errorMsg && <p className="text-red-500">{errorMsg}</p>} {/* Display error message */}
               <Button
                 type="submit"
                 className="w-full mt-4 cursor-pointer"

@@ -3,7 +3,9 @@
 @import "slick-carousel/slick/slick.css";
 @import "slick-carousel/slick/slick-theme.css";
 
-@custom-variant dark (&:is(.dark *));
+.dark * {
+  /* Add your custom styles here for the dark variant */
+}
 
 html,
 body,
@@ -29,7 +31,7 @@ body {
   --card-foreground: oklch(0.19 0 106.59);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.27 0.02 98.94);
-  --primary: oklch(0.62 0.14 39.04);
+  --primary: oklch(0.72 0.0766 86.88);
   --primary-foreground: oklch(1 0 0);
   --secondary: oklch(0.92 0.01 92.99);
   --secondary-foreground: oklch(0.43 0.02 98.6);
@@ -49,7 +51,7 @@ body {
   --chart-5: oklch(0.56 0.13 42.06);
   --sidebar: oklch(0.97 0.01 98.88);
   --sidebar-foreground: oklch(0.36 0.01 106.65);
-  --sidebar-primary: oklch(0.62 0.14 39.04);
+  --sidebar-primary: oklch(0.72 0.0766 86.88);
   --sidebar-primary-foreground: oklch(0.99 0 0);
   --sidebar-accent: oklch(0.92 0.01 92.99);
   --sidebar-accent-foreground: oklch(0.33 0 0);
@@ -85,8 +87,7 @@ body {
   --card-foreground: oklch(0.98 0.01 95.1);
   --popover: oklch(0.31 0 106.6);
   --popover-foreground: oklch(0.92 0 106.48);
-  --primary: oklch(0.67 0.13 38.76);
-  --primary-foreground: oklch(1 0 0);
+  --primary: okoklch(0.72 0.0766 86.88)  --primary-foreground: oklch(1 0 0);
   --secondary: oklch(0.98 0.01 95.1);
   --secondary-foreground: oklch(0.31 0 106.6);
   --muted: oklch(0.22 0 106.71);

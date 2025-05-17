@@ -53,14 +53,14 @@ export default function NotFoundPage() {
   return (
     <>
       <Head>
-        <title>404 - Page Not Found</title>
+        <title>Luxera Ai | Page Not Found</title>
         <meta
           name="description"
-          content="Oops! The page you are looking for was not found."
+          content="Oops! The page you are looking for was not found. Please return to Luxera Ai to continue your journey."
         />
       </Head>
       <motion.div
-        className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-purple-500 to-pink-500 text-white px-4"
+        className="min-h-screen flex flex-col items-center justify-center animated-gradient text-white px-4"
         variants={containerVariants}
         initial="hidden"
         animate="visible"
@@ -74,7 +74,32 @@ export default function NotFoundPage() {
           body {
             overscroll-behavior: none;
           }
+
+          @keyframes gradientAnimation {
+            0% {
+              background-position: 0% 50%;
+            }
+            50% {
+              background-position: 100% 50%;
+            }
+            100% {
+              background-position: 0% 50%;
+            }
+          }
+
+          .animated-gradient {
+            background: linear-gradient(
+              270deg,
+              #7928ca,
+              #ff0080,
+              #fbbc05,
+              #12c2e9
+            );
+            background-size: 800% 800%;
+            animation: gradientAnimation 20s ease infinite;
+          }
         `}</style>
+
         <motion.h1
           className="text-6xl md:text-8xl font-extrabold mb-4 text-center drop-shadow-lg"
           variants={titleVariants}

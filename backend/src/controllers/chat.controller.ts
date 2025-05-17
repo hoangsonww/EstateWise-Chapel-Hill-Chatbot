@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import mongoose from "mongoose";
 import Conversation, { IConversation } from "../models/Conversation.model";
-import { chatWithEstateWise } from "../services/geminiChat.service";
+import { chatWithLuxera } from "../services/geminiChat.service";
 import { AuthRequest } from "../middleware/auth.middleware";
 
 /**
@@ -59,11 +59,11 @@ export const chat = async (req: AuthRequest, res: Response) => {
         { role: "user", parts: [{ text: message }] },
       ];
 
-      /* call MoE (synthetic experts) chat */
-      const { finalText, expertViews } = await chatWithEstateWise(
+      // run MoE pipeline
+      const { finalText, expertViews } = await chatWithLuxera(
         historyForGemini,
         message,
-        "",
+        {},
         conversation.expertWeights,
       );
 
@@ -102,7 +102,6 @@ export const chat = async (req: AuthRequest, res: Response) => {
       ...clientWeights,
     };
 
-    // Ensure `history` is an array, then normalize each entry to { role, parts: [{ text }] }
     const rawHistory = Array.isArray(history) ? history : [];
     const normalizedHistory: Array<{
       role: string;
@@ -126,10 +125,10 @@ export const chat = async (req: AuthRequest, res: Response) => {
       { role: "user", parts: [{ text: message }] },
     ];
 
-    const { finalText, expertViews } = await chatWithEstateWise(
+    const { finalText, expertViews } = await chatWithLuxera(
       historyForGemini,
       message,
-      "",
+      {},
       guestWeights,
     );
 
@@ -159,24 +158,24 @@ export const rateConversation = async (req: AuthRequest, res: Response) => {
     const {
       convoId,
       rating,
-      expert,
       expertWeights = {},
     } = req.body as {
       convoId?: string;
       rating: "up" | "down";
-      expert?: string;
       expertWeights?: Record<string, number>;
     };
 
     // Unauthenticated users
     if (!req.user) {
-      const wts: Record<string, number> = { ...expertWeights };
-
+      const wts = { ...expertWeights };
       if (Object.keys(wts).length === 0) {
         return res.json({ success: true });
       }
-
-      adjustWeightsInPlace(wts, rating, expert);
+      // only adjust weights if rating is "down"
+      // "up": keep everything as is
+      if (rating === "down") {
+        adjustWeightsInPlace(wts, rating);
+      }
       return res.json({ success: true, expertWeights: wts });
     }
 
@@ -190,8 +189,11 @@ export const rateConversation = async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ error: "Conversation not found" });
     }
 
-    adjustWeightsInPlace(convo.expertWeights, rating, expert);
-    await convo.save();
+    // on thumbs-down, randomly adjust two non-cluster experts
+    if (rating === "down") {
+      adjustWeightsInPlace(convo.expertWeights, rating);
+      await convo.save();
+    }
 
     return res.json({ success: true, expertWeights: convo.expertWeights });
   } catch (err) {
@@ -214,37 +216,30 @@ function adjustWeightsInPlace(
   rating: "up" | "down",
   expert?: string,
 ) {
-  const factor = rating === "up" ? 1.2 : 0.8;
-  const CLUSTER_KEY = "Cluster Analyst";
-  const clusterWeight = wts[CLUSTER_KEY] ?? 0;
+  const CLUSTER = "Cluster Analyst";
+  const NON_CLUSTER = Object.keys(wts).filter((k) => k !== CLUSTER);
+  const delta = rating === "up" ? 0.2 : -0.2;
 
-  if (expert) {
-    // Only adjust if it's not the cluster analyst
-    if (expert !== CLUSTER_KEY && wts[expert] != null) {
-      wts[expert] *= factor;
+  // 1) Always reset cluster to 1
+  wts[CLUSTER] = 1;
+
+  if (expert && expert !== CLUSTER && wts[expert] != null) {
+    // 2a) Specific expert bump
+    wts[expert] = Math.min(Math.max(wts[expert] + delta, 0.1), 2.0);
+  } else if (!expert) {
+    // 2b) Global thumb: pick two distinct non‐cluster experts
+    const iUp = Math.floor(Math.random() * NON_CLUSTER.length);
+    let iDown = Math.floor(Math.random() * NON_CLUSTER.length);
+    while (iDown === iUp) {
+      iDown = Math.floor(Math.random() * NON_CLUSTER.length);
     }
-  } else {
-    // Adjust all except cluster analyst
-    Object.keys(wts).forEach((k) => {
-      if (k !== CLUSTER_KEY) {
-        wts[k] *= factor;
-      }
-    });
+    // 2c) Adjust & normalize
+    const keyUp = NON_CLUSTER[iUp];
+    const keyDown = NON_CLUSTER[iDown];
+    wts[keyUp] = Math.min(Math.max(wts[keyUp] + 0.2, 0.1), 2.0);
+    wts[keyDown] = Math.min(Math.max(wts[keyDown] - 0.2, 0.1), 2.0);
   }
 
-  // Renormalize so sum(wts) = 1 and cluster weight remains fixed
-  const sumOthers =
-    Object.entries(wts)
-      .filter(([k]) => k !== CLUSTER_KEY)
-      .reduce((sum, [, v]) => sum + v, 0) || 1;
-  const remaining = 1 - clusterWeight;
-
-  Object.keys(wts).forEach((k) => {
-    if (k !== CLUSTER_KEY) {
-      wts[k] = (wts[k] / sumOthers) * remaining;
-    }
-  });
-
-  // Restore cluster analyst's original weight
-  wts[CLUSTER_KEY] = clusterWeight;
+  // 3) Re-enforce cluster analyst at 1 to avoid drift
+  wts[CLUSTER] = 1;
 }

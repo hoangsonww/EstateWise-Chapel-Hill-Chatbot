@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-const API_BASE_URL = "https://estatewise-backend.vercel.app";
+const API_BASE_URL = "https://api.homesluxera.com";
 
 // ------------------------------------------------------------------
 // THEME TOGGLE
@@ -153,7 +153,7 @@ const ChartBlock: React.FC<{ spec: ChartConfiguration }> = memo(({ spec }) => {
       ds.borderWidth = ds.borderWidth ?? 1;
     });
 
-    const fontColor = isDark ? "#ffffff" : "#000000";
+    const fontColor = "#aea287"; // Set the primary color
     Chart.defaults.color = fontColor;
     cfg.options = {
       ...(cfg.options || {}),
@@ -207,12 +207,12 @@ const ChartBlock: React.FC<{ spec: ChartConfiguration }> = memo(({ spec }) => {
 ChartBlock.displayName = "ChartBlock";
 
 const chartTitles: Record<string, string> = {
-  homeType: "Home‑type distribution",
+  homeType: "Home-type distribution",
   bedrooms: "Bedroom count",
   bathrooms: "Bathroom count",
   priceDist: "Price distribution",
-  areaDist: "Living‑area distribution",
-  yearBuiltDist: "Year‑built distribution",
+  areaDist: "Living-area distribution",
+  yearBuiltDist: "Year-built distribution",
   priceArea: "Price vs living area",
   priceYear: "Price vs year built",
   bedsBaths: "Bedrooms vs bathrooms",
@@ -222,8 +222,8 @@ const chartTitles: Record<string, string> = {
   homeStatus: "Home status distribution",
   countByCity: "Listings by city",
   avgAreaType: "Average living area by type",
-  scoreDist: "Score distribution",
-  scorePrice: "Price vs score",
+  ageDist: "Property age distribution",
+  avgPricePerSqftType: "Average $/Sqft by type",
   areaYear: "Living area vs year built",
 };
 
@@ -243,8 +243,8 @@ const chartSubtitles: Record<string, string> = {
   homeStatus: "Breakdown of listing statuses",
   countByCity: "Number of listings per city",
   avgAreaType: "Average living area size per home type",
-  scoreDist: "Shows how listing scores are distributed",
-  scorePrice: "Scatter comparing listing score with price",
+  ageDist: "Histogram showing distribution of property ages",
+  avgPricePerSqftType: "Average price per square foot by home type",
   areaYear: "Scatter of living area vs year built",
 };
 
@@ -269,10 +269,10 @@ export default function ChartsPage() {
   return (
     <>
       <Head>
-        <title>EstateWise | Charts</title>
+        <title>Luxera Ai | Charts</title>
         <meta
           name="description"
-          content="Interactive visualizations of Chapel Hill real‑estate data"
+          content="Interactive visualizations of Luxera real-estate data"
         />
       </Head>
 
@@ -312,11 +312,11 @@ export default function ChartsPage() {
 
         <section className="mx-auto max-w-4xl px-6 py-10 text-center space-y-3">
           <h1 className="text-3xl md:text-4xl font-bold leading-tight">
-            Chapel Hill Real‑Estate Visualized 📊
+            Luxera Real Estate LLC Visualized 📊
           </h1>
           <p className="text-muted-foreground max-w-xl mx-auto">
             Eighteen crisp charts that uncover general price patterns, bedroom
-            trends, and neighborhood popularity, giving you the data‑driven edge
+            trends, and neighborhood popularity, giving you the data-driven edge
             in your home search.
           </p>
         </section>

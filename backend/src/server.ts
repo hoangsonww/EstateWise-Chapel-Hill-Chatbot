@@ -12,15 +12,98 @@ import propertyRoutes from "./routes/property.routes";
 import { errorHandler } from "./middleware/error.middleware";
 import cookieParser from "cookie-parser";
 
+// ─── Winston Logger Setup ────────────────────────────────────────────────────
+import winston from "winston";
+const logger = winston.createLogger({
+  level: "info",
+  format: winston.format.combine(
+    winston.format.timestamp(),
+    winston.format.printf(
+      ({ timestamp, level, message }) =>
+        `${timestamp} [${level.toUpperCase()}] ${message}`,
+    ),
+  ),
+  transports: [new winston.transports.Console()],
+});
+
+// ─── Express Status Monitor ─────────────────────────────────────────────────
+import statusMonitor from "express-status-monitor";
+
+// ─── Prometheus Metrics Setup ───────────────────────────────────────────────
+import client from "prom-client";
+
+// Collect default system metrics (CPU, memory, etc)
+client.collectDefaultMetrics();
+
+// HTTP request duration histogram
+const httpHistogram = new client.Histogram({
+  name: "http_request_duration_seconds",
+  help: "Histogram of HTTP request durations in seconds",
+  labelNames: ["method", "route", "status_code"],
+  buckets: [0.005, 0.01, 0.05, 0.1, 0.3, 1, 1.5, 3, 5],
+});
+
+// MongoDB connection status gauge
+const mongoConnectionGauge = new client.Gauge({
+  name: "mongodb_connection_status",
+  help: "MongoDB connection status (1 = connected, 0 = disconnected)",
+});
+
+// ─── Global Error Handlers ───────────────────────────────────────────────────
+process.on("uncaughtException", (err) => {
+  logger.error(`❌ Uncaught Exception: ${err.stack || err}`);
+});
+process.on("unhandledRejection", (reason) => {
+  logger.error(`❌ Unhandled Rejection: ${reason}`);
+});
+
+// ─── App Setup ────────────────────────────────────────────────────────────────
 dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3001;
 
 app.use(cookieParser());
 
-// Logging middleware: Log every incoming request.
+// ─── Status Monitor Middleware ───────────────────────────────────────────────
+app.use(
+  statusMonitor({
+    title: "EstateWise Status",
+    path: "/status",
+    spans: [
+      { interval: 1, retention: 60 },
+      { interval: 5, retention: 60 },
+      { interval: 15, retention: 60 },
+    ],
+    chartVisibility: {
+      cpu: true,
+      mem: true,
+      load: true,
+      heap: true,
+      responseTime: true,
+      rps: true,
+      statusCodes: true,
+    },
+  }),
+);
+
+// ─── Request/Response Logging & Metrics ─────────────────────────────────────
 app.use((req, res, next) => {
-  console.log(`${req.method} ${req.url}`);
+  const { method, url, headers, body } = req;
+  logger.info(`➡️ Incoming Request: ${method} ${url}`);
+  logger.debug(`   Headers: ${JSON.stringify(headers)}`);
+  if (body && Object.keys(body).length > 0) {
+    logger.debug(`   Body: ${JSON.stringify(body)}`);
+  }
+
+  const end = httpHistogram.startTimer({ method, route: url });
+
+  res.on("finish", () => {
+    const durationSec = end({ status_code: res.statusCode });
+    logger.info(
+      `⬅️ Response: ${method} ${url} → ${res.statusCode} (${(durationSec * 1000).toFixed(1)}ms)`,
+    );
+  });
+
   next();
 });
 
@@ -36,6 +119,17 @@ app.use(express.json());
 
 // Serve favicon
 app.use(favicon(path.join(__dirname, "public", "favicon.ico")));
+
+// ─── Expose Prometheus /metrics endpoint ───────────────────────────────────
+app.get("/metrics", async (req, res) => {
+  try {
+    res.set("Content-Type", client.register.contentType);
+    res.end(await client.register.metrics());
+  } catch (ex) {
+    logger.error(`Error in /metrics endpoint: ${ex}`);
+    res.status(500).end(String(ex));
+  }
+});
 
 // REST API routes
 app.use("/api/auth", authRoutes);
@@ -61,10 +155,7 @@ app.get("/api-docs", (req, res) => {
         <link rel="icon" type="image/png" href="/favicon-32x32.png" sizes="16x16" />
         <link rel="icon" type="image/x-icon" href="/favicon.ico" />
         <style>
-          body {
-            margin: 0;
-            padding: 0;
-          }
+          body { margin: 0; padding: 0; }
         </style>
       </head>
       <body>
@@ -98,18 +189,57 @@ app.get("/", (req, res) => {
 // Error Handling Middleware
 app.use(errorHandler);
 
-// Connect to MongoDB and start the server
-mongoose
-  // @ts-ignore
-  .connect(process.env.MONGO_URI, {})
-  .then(() => {
-    console.log("Connected to MongoDB");
-    app.listen(PORT, () => {
-      console.log(`EstateWise backend listening on port ${PORT}`);
+// ─── MongoDB Connection & Resilience ─────────────────────────────────────────
+const connectWithRetry = () => {
+  mongoose
+    .connect(process.env.MONGO_URI!, {
+      // @ts-ignore
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+      serverSelectionTimeoutMS: 60000, // retry up to 60s on initial connect
+      keepAlive: true, // keep sockets alive
+      keepAliveInitialDelay: 300000, // 5m before sending first keepAlive
+      socketTimeoutMS: 45000, // close socket after 45s of no response
+    })
+    .then(() => {
+      logger.info("✅ Connected to MongoDB");
+    })
+    .catch((err) => {
+      logger.error(`❌ Error connecting to MongoDB: ${err}`);
+      logger.info("🔄 Retrying MongoDB connection in 5s...");
+      setTimeout(connectWithRetry, 5000);
     });
-  })
-  .catch((error) => {
-    console.error("Error connecting to MongoDB:", error);
+};
+
+// Start initial connection
+connectWithRetry();
+
+// Mongoose connection event listeners
+const db = mongoose.connection;
+db.on("error", (err) => {
+  logger.error(`❌ MongoDB connection error: ${err}`);
+  mongoConnectionGauge.set(0);
+  if ((err as any).code === "ECONNRESET") {
+    logger.info("🔄 ECONNRESET detected — reconnecting to MongoDB...");
+    connectWithRetry();
+  }
+});
+db.on("disconnected", () => {
+  logger.warn("⚠️ MongoDB disconnected — reconnecting...");
+  mongoConnectionGauge.set(0);
+  connectWithRetry();
+});
+db.on("reconnected", () => {
+  logger.info("🔌 MongoDB reconnected");
+  mongoConnectionGauge.set(1);
+});
+db.once("open", () => {
+  logger.info("📡 MongoDB connection open");
+  mongoConnectionGauge.set(1);
+  // Only start listening after DB is open
+  app.listen(PORT, () => {
+    logger.info(`🏠 EstateWise backend listening on port ${PORT}`);
   });
+});
 
 export default app;

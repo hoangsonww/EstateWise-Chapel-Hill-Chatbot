@@ -61,7 +61,7 @@ router.post("/rate", rateConversation);
  * @swagger
  * /api/chat:
  *   post:
- *     summary: Send a chat message to EstateWise
+ *     summary: Send a chat message to Luxera
  *     tags:
  *       - Chat
  *     security:
@@ -116,7 +116,7 @@ router.post("/rate", rateConversation);
  *               properties:
  *                 response:
  *                   type: string
- *                   description: The reply message from EstateWise.
+ *                   description: The reply message from Luxera.
  *                   example: Sure, I can help you with property taxes. Could you provide more details?
  *                 expertViews:
  *                   type: object

@@ -7,9 +7,13 @@ import Cookies from "js-cookie";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
+import "katex/dist/katex.min.css";
 import { toast } from "sonner";
 import {
   Loader2,
+  BotMessageSquare,
   Send,
   Trash2,
   Search,
@@ -33,6 +37,7 @@ import {
   Cpu,
   Zap,
   Check,
+  Copy,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,7 +52,7 @@ import {
 } from "@/components/ui/dialog";
 import Chart, { ChartConfiguration } from "chart.js/auto";
 
-const API_BASE_URL = "https://estatewise-backend.vercel.app";
+const API_BASE_URL = "https://api.homesluxera.com";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -101,11 +106,7 @@ export const ChartBlock: React.FC<ChartBlockProps> = React.memo(
     };
 
     const getFontColor = () => {
-      const isDark = document.documentElement.classList.contains("dark");
-      if (canvasRef.current) {
-        return getComputedStyle(canvasRef.current).color;
-      }
-      return isDark ? "#ffffff" : "#000000";
+      return "#aea287"; // Set the primary color
     };
 
     const specString = JSON.stringify(spec);
@@ -242,6 +243,15 @@ ChartBlock.displayName = "ChartBlock";
 // ReactMarkdown Custom Components
 // ----------------------------------------------------------
 const markdownComponents = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars
+  text: ({ children, ...props }: any) => (
+    <>
+      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+      {children.map((child: any) =>
+        typeof child === "string" ? child.replace(/\\_/g, "_") : child,
+      )}
+    </>
+  ),
   // Headings
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   h1: ({ children, ...props }: any) => (
@@ -420,7 +430,7 @@ const markdownComponents = {
   ),
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ol: ({ children, ...props }: any) => (
-    <ol className="list-decimal list-outside pl-4 my-3" {...props}>
+    <ol className="list-decimal list-outside pl-4 my-3 ml-2" {...props}>
       {children}
     </ol>
   ),
@@ -480,8 +490,8 @@ type ChatMessage = {
 };
 
 const getInitialMessages = (): ChatMessage[] => {
-  if (typeof window !== "undefined" && !Cookies.get("estatewise_token")) {
-    const stored = localStorage.getItem("estateWiseChat");
+  if (typeof window !== "undefined" && !Cookies.get("Luxera_token")) {
+    const stored = localStorage.getItem("luxeraChat");
     if (stored) {
       try {
         return JSON.parse(stored);
@@ -562,7 +572,7 @@ const TopBar: React.FC<TopBarProps> = ({
   toggleSidebar,
   sidebarVisible,
 }) => {
-  const isAuthed = !!Cookies.get("estatewise_token");
+  const isAuthed = !!Cookies.get("Luxera_token");
   const username = localStorage.getItem("username") || "Guest";
   const [authMenuOpen, setAuthMenuOpen] = useState(false);
 
@@ -584,7 +594,7 @@ const TopBar: React.FC<TopBarProps> = ({
           </button>
         )}
         <span className="hidden md:inline text-xl font-bold select-none text-foreground">
-          Hi {username}, welcome to EstateWise! 🏠
+          Hi {username}, welcome to Luxera Ai! 🏠
         </span>
       </div>
       <div className="flex items-center gap-4 relative">
@@ -612,7 +622,7 @@ const TopBar: React.FC<TopBarProps> = ({
               variant="outline"
               onClick={() => {
                 document.cookie =
-                  "estatewise_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+                  "Luxera_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
                 toast.success("Logged out successfully");
                 window.location.reload();
               }}
@@ -660,7 +670,7 @@ const TopBar: React.FC<TopBarProps> = ({
             </div>
             <Button
               onClick={() => {
-                localStorage.removeItem("estateWiseChat");
+                localStorage.removeItem("luxeraChat");
                 toast.success("Conversation deleted successfully");
                 window.location.reload();
               }}
@@ -670,7 +680,7 @@ const TopBar: React.FC<TopBarProps> = ({
               aria-label="Delete Conversation"
             >
               <Trash2 className="w-5 h-5" />
-              Delete Conversation
+              Delete
             </Button>
           </div>
         )}
@@ -767,7 +777,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         let results: any[] = [];
         if (isAuthed) {
-          const token = Cookies.get("estatewise_token");
+          const token = Cookies.get("Luxera_token");
           const res = await fetch(
             `${API_BASE_URL}/api/conversations/search?q=${value}`,
             {
@@ -780,7 +790,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             toast.error("Conversation search failed");
           }
         } else {
-          const local = localStorage.getItem("estateWiseConvos");
+          const local = localStorage.getItem("LuxeraConvos");
           if (local) {
             const convos = JSON.parse(local);
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -801,7 +811,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   const handleRename = async (convId: string) => {
     try {
-      const token = Cookies.get("estatewise_token");
+      const token = Cookies.get("Luxera_token");
       const res = await fetch(`${API_BASE_URL}/api/conversations/${convId}`, {
         method: "PUT",
         headers: {
@@ -844,7 +854,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           setNewTitle("");
         }}
         title="Cancel"
-        className="cursor-pointer hover:text-gray-500"
+        className="cursor-pointer hover:text-red-500"
       >
         <X className="w-4 h-4" />
       </button>
@@ -854,7 +864,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   const handleDelete = async () => {
     if (!deleteId) return;
     try {
-      const token = Cookies.get("estatewise_token");
+      const token = Cookies.get("Luxera_token");
       const res = await fetch(`${API_BASE_URL}/api/conversations/${deleteId}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
@@ -1250,7 +1260,7 @@ const DeleteConfirmationDialog: React.FC<{
 }> = ({ open, onConfirm, onCancel }) => {
   return (
     <Dialog open={open} onOpenChange={onCancel}>
-      <DialogContent className="[&>button]:hidden">
+      <DialogContent className="[&>button]:hidden border-none">
         <DialogClose asChild>
           <button
             aria-label="Close"
@@ -1312,7 +1322,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   onSetSelectedConvo,
 }) => {
   const [messages, setMessages] = useState<ChatMessage[]>(
-    !Cookies.get("estatewise_token") ? getInitialMessages() : [],
+    !Cookies.get("Luxera_token") ? getInitialMessages() : [],
   );
   const [userInput, setUserInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -1327,6 +1337,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
     }
   });
   const [historyIndex, setHistoryIndex] = useState(inputHistory.length);
+  const [draftInput, setDraftInput] = useState("");
 
   useEffect(() => {
     sessionStorage.setItem("inputHistory", JSON.stringify(inputHistory));
@@ -1337,9 +1348,23 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
     () => {
       if (typeof window === "undefined") return {};
       try {
-        return JSON.parse(
-          localStorage.getItem("estateWiseGuestWeights") || "{}",
+        const stored = JSON.parse(
+          localStorage.getItem("LuxeraGuestWeights") || "{}",
         );
+        const KEYS = [
+          "Data Analyst",
+          "Lifestyle Concierge",
+          "Financial Advisor",
+          "Neighborhood Expert",
+          "Cluster Analyst",
+        ];
+        const ok =
+          KEYS.every((k) => typeof stored[k] === "number") &&
+          KEYS.filter((k) => k !== "Cluster Analyst").every(
+            (k) => stored[k] >= 0.1,
+          ) &&
+          stored["Cluster Analyst"] === 1;
+        return ok ? stored : {};
       } catch {
         return {};
       }
@@ -1399,8 +1424,8 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
 
   /* persist guest history + autoscroll */
   useEffect(() => {
-    if (!Cookies.get("estatewise_token")) {
-      localStorage.setItem("estateWiseChat", JSON.stringify(messages));
+    if (!Cookies.get("Luxera_token")) {
+      localStorage.setItem("luxeraChat", JSON.stringify(messages));
     }
     latestMessageRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -1415,7 +1440,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${Cookies.get("estatewise_token")}`,
+        Authorization: `Bearer ${Cookies.get("Luxera_token")}`,
       },
       body: JSON.stringify({ title: "Untitled Conversation" }),
     });
@@ -1480,7 +1505,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
         headers: {
           "Content-Type": "application/json",
           ...(isAuthed
-            ? { Authorization: `Bearer ${Cookies.get("estatewise_token")}` }
+            ? { Authorization: `Bearer ${Cookies.get("Luxera_token")}` }
             : {}),
         },
         body: JSON.stringify(body),
@@ -1497,7 +1522,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
       if (!isAuthed && data.expertWeights) {
         setGuestWeights(data.expertWeights);
         localStorage.setItem(
-          "estateWiseGuestWeights",
+          "LuxeraGuestWeights",
           JSON.stringify(data.expertWeights),
         );
       }
@@ -1505,7 +1530,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
       if (isAuthed && body.convoId && !selectedConvoId) {
         const r = await fetch(`${API_BASE_URL}/api/conversations`, {
           headers: {
-            Authorization: `Bearer ${Cookies.get("estatewise_token")}`,
+            Authorization: `Bearer ${Cookies.get("Luxera_token")}`,
           },
         });
         if (r.ok) setLocalConvos(await r.json());
@@ -1552,7 +1577,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
         headers: {
           "Content-Type": "application/json",
           ...(isAuthed
-            ? { Authorization: `Bearer ${Cookies.get("estatewise_token")}` }
+            ? { Authorization: `Bearer ${Cookies.get("Luxera_token")}` }
             : {}),
         },
         body: JSON.stringify(payload),
@@ -1562,7 +1587,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
       if (!isAuthed && j.expertWeights) {
         setGuestWeights(j.expertWeights);
         localStorage.setItem(
-          "estateWiseGuestWeights",
+          "LuxeraGuestWeights",
           JSON.stringify(j.expertWeights),
         );
       }
@@ -1597,6 +1622,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
     const [view, setView] = useState<string>("Combined");
     const [pickerOpen, setPickerOpen] = useState<boolean>(false);
     const pickerRef = useRef<HTMLDivElement>(null);
+    const [copied, setCopied] = useState(false);
 
     // scroll the dropdown into view when opened
     useEffect(() => {
@@ -1607,6 +1633,21 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
         });
       }
     }, [pickerOpen]);
+
+    const handleCopy = async () => {
+      try {
+        await navigator.clipboard.writeText(displayedText);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      } catch (err) {
+        console.error("Clipboard write failed", err);
+      }
+    };
+
+    const displayedText =
+      view === "Combined" || !msg.expertViews
+        ? msg.text
+        : msg.expertViews[view];
 
     const text =
       view === "Combined" || !msg.expertViews
@@ -1634,10 +1675,11 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
           } max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg`}
         >
           <ReactMarkdown
-            remarkPlugins={[remarkGfm]}
+            remarkPlugins={[remarkGfm, remarkMath]}
+            rehypePlugins={[rehypeKatex]}
             components={markdownComponents}
           >
-            {text}
+            {text.replace(/\\_/g, "_")}
           </ReactMarkdown>
 
           {msg.role === "model" && (
@@ -1699,6 +1741,18 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
               {/* thumbs btns */}
               <div className="flex gap-1">
                 <button
+                  onClick={handleCopy}
+                  className="p-1 cursor-pointer hover:text-primary"
+                  title="Copy message"
+                  aria-label="Copy message"
+                >
+                  {copied ? (
+                    <Check className="w-4 h-4 text-green-500" />
+                  ) : (
+                    <Copy className="w-4 h-4" />
+                  )}
+                </button>
+                <button
                   onClick={() => rateConversation("up", idx)}
                   className={`p-1 cursor-pointer ${upColor}`}
                   title="Like the response? Click to let us know!"
@@ -1741,8 +1795,8 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
           <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
             <Home className="w-20 h-20 mb-4 text-primary" />
             <p className="text-xl text-center font-semibold">
-              Hey {localStorage.getItem("username") || "there"}, send a message
-              to start your home finding journey! 🚀
+              Hey {localStorage.getItem("username") || "there"} 👋 Send a
+              message to start your home finding journey! 🚀
             </p>
           </div>
         )}
@@ -1785,6 +1839,10 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
             onKeyDown={(e) => {
               if (e.key === "ArrowUp") {
                 e.preventDefault();
+                // if this is the very first up, stash the current draft
+                if (historyIndex === inputHistory.length) {
+                  setDraftInput(userInput);
+                }
                 if (historyIndex > 0) {
                   const prevIdx = historyIndex - 1;
                   setUserInput(inputHistory[prevIdx]);
@@ -1795,9 +1853,12 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
                 if (historyIndex < inputHistory.length) {
                   const nextIdx = historyIndex + 1;
                   setHistoryIndex(nextIdx);
-                  setUserInput(
-                    nextIdx < inputHistory.length ? inputHistory[nextIdx] : "",
-                  );
+                  // if we've moved back past the last history entry, restore draft
+                  if (nextIdx === inputHistory.length) {
+                    setUserInput(draftInput);
+                  } else {
+                    setUserInput(inputHistory[nextIdx]);
+                  }
                 }
               } else if (e.key === "Enter") {
                 e.preventDefault();
@@ -1825,6 +1886,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
             Privacy Policy
           </Link>
           .
+          <BotMessageSquare className="inline-block w-4 h-4 ml-0.5 hover:text-primary" />
         </p>
       </div>
     </div>
@@ -1851,7 +1913,7 @@ const AnimatedDots: React.FC<{ resetKey: number }> = ({ resetKey }) => {
 // Main ChatPage Layout: Sidebar + Top Bar + ChatWindow
 // ----------------------------------------------------------
 export default function ChatPage() {
-  const isAuthed = !!Cookies.get("estatewise_token");
+  const isAuthed = !!Cookies.get("Luxera_token");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [conversations, setConversations] = useState<any[]>([]);
   const [conversationLoading, setConversationLoading] = useState(false);
@@ -1883,7 +1945,7 @@ export default function ChatPage() {
 
     try {
       if (isAuthed) {
-        const token = Cookies.get("estatewise_token");
+        const token = Cookies.get("Luxera_token");
         const res = await fetch(`${API_BASE_URL}/api/conversations`, {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -1894,7 +1956,7 @@ export default function ChatPage() {
           toast.error("Failed to load conversations");
         }
       } else {
-        const local = localStorage.getItem("estateWiseConvos");
+        const local = localStorage.getItem("LuxeraConvos");
         if (local) setConversations(JSON.parse(local));
       }
     } catch (err) {
@@ -1912,10 +1974,10 @@ export default function ChatPage() {
   return (
     <>
       <Head>
-        <title>EstateWise | Chat</title>
+        <title>Luxera Ai | Chat</title>
         <meta
           name="description"
-          content="Chat with EstateWise for personalized property recommendations"
+          content="Chat with Luxera Ai for personalized property recommendations"
         />
       </Head>
       <ClientOnly>
@@ -1957,7 +2019,7 @@ export default function ChatPage() {
               <TopBar
                 onNewConvo={() => {
                   setSelectedConvo(null);
-                  if (!isAuthed) localStorage.removeItem("estateWiseChat");
+                  if (!isAuthed) localStorage.removeItem("luxeraChat");
                 }}
                 toggleSidebar={toggleSidebar}
                 sidebarVisible={sidebarVisible}

@@ -1,4 +1,4 @@
-export const API_BASE_URL = "https://estatewise-backend.vercel.app";
+export const API_BASE_URL = "https://api.homesluxera.com";
 
 export type ChatMessage = { role: "user" | "model"; text: string };
 
@@ -143,3 +143,11 @@ export async function searchConversations(
   }
   return await res.json();
 }
+
+export const fetchHealthStatus = async () => {
+  const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/health`);
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+  return await response.json();
+};

@@ -12,11 +12,11 @@ import { ChevronLeft } from "lucide-react";
 
 // Privacy Policy content written in Markdown
 const privacyContent = `
-# Privacy Policy - EstateWise App
+# Privacy Policy - Luxera Ai App
 
 _Last Updated: April 18th, 2025_
 
-This Privacy Policy describes how EstateWise ("we", "us", or "our") collects, uses, shares, and safeguards your information when you use our application ("App"). By using our App, you agree to the collection and use of information in accordance with this Privacy Policy.
+This Privacy Policy describes how Luxera Ai ("we", "us", or "our") collects, uses, shares, and safeguards your information when you use our application ("App"). By using our App, you agree to the collection and use of information in accordance with this Privacy Policy.
 
 ## 1. Information We Collect
 ### 1.1 Personal Information
@@ -70,10 +70,10 @@ const PrivacyPage = () => {
   return (
     <>
       <Head>
-        <title>Privacy Policy | EstateWise App</title>
+        <title>Privacy Policy | Luxera Ai App</title>
         <meta
           name="description"
-          content="Read the privacy policy for EstateWise App to learn how we protect your information."
+          content="Read the privacy policy for Luxera Ai App to learn how we protect your information."
         />
       </Head>
       <motion.div

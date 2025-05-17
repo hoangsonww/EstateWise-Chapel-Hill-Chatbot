@@ -1,4 +1,4 @@
-# Data Directory - EstateWise App
+# Data Directory - Luxera App
 
 This directory contains the data analysis files and scripts used by our team
 to understand the data available to us before building the app.

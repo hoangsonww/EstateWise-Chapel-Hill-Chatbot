@@ -11,17 +11,17 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft } from "lucide-react";
 
 const termsContent = `
-# Terms of Service - EstateWise App
+# Terms of Service - Luxera Ai App
 
 _Last Updated: April 18th, 2025_
 
-Welcome to EstateWise Chat! These Terms of Service ("Terms") govern your use of our application ("App"). By accessing or using our App, you agree to be bound by these Terms. Please read them carefully.
+Welcome to Luxera Ai Chat! These Terms of Service ("Terms") govern your use of our application ("App"). By accessing or using our App, you agree to be bound by these Terms. Please read them carefully.
 
 ## 1. Acceptance of Terms
 By using the App, you accept these Terms in full. If you disagree with any part of these Terms, you must not use our App.
 
 ## 2. Changes to the Terms
-EstateWise reserves the right to modify these Terms at any time. Changes will be posted on this page with an updated "Last Updated" date. Your continued use of the App after any modifications constitutes your acceptance of the new Terms.
+Luxera Ai reserves the right to modify these Terms at any time. Changes will be posted on this page with an updated "Last Updated" date. Your continued use of the App after any modifications constitutes your acceptance of the new Terms.
 
 ## 3. Eligibility
 You must be at least 18 years of age to use this App. By accessing or using the App, you represent and warrant that you meet the eligibility requirements.
@@ -31,7 +31,7 @@ You must be at least 18 years of age to use this App. By accessing or using the 
 - **Data Security:** We implement security measures to protect your data, but you are responsible for securing your own device and network.
 
 ## 5. User Content
-You may submit content, including messages and other data, to the App. While you retain ownership of your content, you grant EstateWise a non-exclusive, irrevocable, royalty-free, worldwide license to use, reproduce, and display your content for purposes of operating and improving the App.
+You may submit content, including messages and other data, to the App. While you retain ownership of your content, you grant Luxera Ai a non-exclusive, irrevocable, royalty-free, worldwide license to use, reproduce, and display your content for purposes of operating and improving the App.
 
 ## 6. Prohibited Conduct
 You agree not to:
@@ -41,35 +41,41 @@ You agree not to:
 - Attempt to gain unauthorized access to any part of the App or its related systems.
 
 ## 7. Intellectual Property
-All content, trademarks, logos, and materials on the App are the property of EstateWise or its licensors and are protected by applicable laws.
+All content, trademarks, logos, and materials on the App are the property of Luxera Ai or its licensors and are protected by applicable laws.
 
 ## 8. Disclaimer of Warranties
-The App is provided "as is" and "as available" without any warranties, whether express or implied. EstateWise disclaims all warranties, including the implied warranties of merchantability, fitness for a particular purpose, and non-infringement.
+The App is provided "as is" and "as available" without any warranties, whether express or implied. Luxera Ai disclaims all warranties, including the implied warranties of merchantability, fitness for a particular purpose, and non-infringement.
 
 ## 9. Limitation of Liability
-In no event shall EstateWise be liable for any indirect, incidental, or consequential damages arising from your use of the App.
+In no event shall Luxera Ai be liable for any indirect, incidental, or consequential damages arising from your use of the App.
 
 ## 10. Indemnification
-You agree to indemnify and hold harmless EstateWise, its officers, employees, and agents from any claims, losses, or damages arising out of your use of the App or violation of these Terms.
+You agree to indemnify and hold harmless Luxera Ai, its officers, employees, and agents from any claims, losses, or damages arising out of your use of the App or violation of these Terms.
 
 ## 11. Governing Law
-These Terms are governed by and construed in accordance with the laws of the jurisdiction in which EstateWise operates.
+These Terms are governed by and construed in accordance with the laws of the jurisdiction in which Luxera Ai operates.
 
 ## 12. Termination
-EstateWise reserves the right to suspend or terminate your access to the App at any time without notice for conduct that violates these Terms or is deemed harmful.
+Luxera Ai reserves the right to suspend or terminate your access to the App at any time without notice for conduct that violates these Terms or is deemed harmful.
 
-## 13. Contact Information
-For any questions regarding these Terms, please contact us at [hoangson091104@gmail.com](mailto:hoangson091104@gmail.com).
+## 13. Severability
+If any provision of these Terms is found to be unenforceable or invalid, the remaining provisions will remain in full force and effect.
+
+## 14. Responsibility
+Luxera Ai provides data, analyses, and recommendations "as is" based on publicly available and user-provided information. You acknowledge that the data may contain inaccuracies or omissions and agree to waive any claims against Luxera Ai arising from such inaccuracies. You should verify all critical information independently and use the App’s data at your own risk.
+
+## 15. Contact Information
+For any questions regarding these Terms, please contact us at [info@homesluxera.com](mailto:info@homesluxera.com).
 `;
 
 const TermsPage = () => {
   return (
     <>
       <Head>
-        <title>Terms of Service | EstateWise Chat</title>
+        <title>Terms of Service | Luxera Ai Chat</title>
         <meta
           name="description"
-          content="Read the detailed Terms of Service for EstateWise Chat."
+          content="Read the detailed Terms of Service for Luxera Ai Chat."
         />
       </Head>
       <motion.div

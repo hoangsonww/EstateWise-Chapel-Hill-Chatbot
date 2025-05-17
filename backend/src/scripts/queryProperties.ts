@@ -8,6 +8,7 @@ if (!process.env.GOOGLE_AI_API_KEY) {
   console.error("GOOGLE_AI_API_KEY is not set in .env");
   process.exit(1);
 }
+
 if (!process.env.PINECONE_INDEX) {
   console.error("PINECONE_INDEX is not set in .env");
   process.exit(1);
@@ -16,12 +17,24 @@ if (!process.env.PINECONE_INDEX) {
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY);
 const model = genAI.getGenerativeModel({ model: "models/text-embedding-004" });
 
+/**
+ * This is the cleaned property interface. It
+ * contains only the fields needed for chatbot recommendations.
+ */
 export interface RawQueryResult {
   id: string;
   score: number;
   metadata: Record<string, string | number | boolean>;
 }
 
+/**
+ * Sanitizes metadata by converting all values to strings, numbers, or booleans.
+ * Arrays are joined into a string if they contain only strings.
+ * Objects are converted to JSON strings.
+ *
+ * @param metadata The metadata object to sanitize.
+ * @returns A sanitized metadata object.
+ */
 function sanitizeMetadata(
   metadata: any,
 ): Record<string, string | number | boolean> {
@@ -49,7 +62,14 @@ function sanitizeMetadata(
   return result;
 }
 
-export async function queryProperties(
+/**
+ * Queries the Pinecone index for properties matching the given query string.
+ *
+ * @param query The query string to search for.
+ * @param topK The number of top results to return.
+ * @returns A promise that resolves with an array of RawQueryResult objects.
+ */
+export async function queryPropertiesFromPinecone(
   query: string,
   topK = 10,
 ): Promise<RawQueryResult[]> {
@@ -77,12 +97,36 @@ export async function queryProperties(
   return results;
 }
 
+export async function queryProperties(message: string, limit: number): Promise<RawQueryResult[]> {
+  // Fetch internal properties
+  const internalResults = await fetchInternalProperties(message, limit);
+
+  // Fetch external properties
+  const externalResults: RawQueryResult[] = []; // Placeholder for external properties
+
+  // Combine and validate properties
+  return [...internalResults, ...externalResults].filter(
+    (property) => 
+      typeof property.metadata.price === "number" &&
+      property.metadata.price > 0 &&
+      typeof property.metadata.bedrooms === "number" &&
+      property.metadata.bedrooms > 0
+  );
+}
+
+/**
+ * Queries properties and formats the results as a string.
+ *
+ * @param query The query string to search for.
+ * @param topK The number of top results to return.
+ * @returns A promise that resolves with a formatted string of property details.
+ */
 export async function queryPropertiesAsString(
   query: string,
   topK = 10,
 ): Promise<string> {
   try {
-    const results = await queryProperties(query, topK);
+    const results = await queryPropertiesFromPinecone(query, topK);
     if (results.length === 0) return "No matching properties found.";
 
     let response = "Matching Properties:\n\n";
@@ -102,6 +146,7 @@ export async function queryPropertiesAsString(
           console.warn(`Failed to parse address for id ${result.id}`);
         }
       }
+
       // Extract additional property fields from metadata.
       const street = addressObj.streetAddress || "Unknown address";
       const city = addressObj.city || "Unknown city";
@@ -139,3 +184,21 @@ export async function queryPropertiesAsString(
     return "Error retrieving property details.";
   }
 }
+async function fetchInternalProperties(
+  message: string,
+  limit: number,
+): Promise<RawQueryResult[]> {
+  console.log(`Fetching internal properties for message: "${message}"`);
+
+  // Query the Pinecone index for properties matching the message
+  const results = await queryPropertiesFromPinecone(message, limit);
+
+  // Filter out properties with invalid metadata
+  return results.filter(
+    (property) =>
+      property.metadata.price !== undefined &&
+      property.metadata.bedrooms !== undefined &&
+      property.metadata.bathrooms !== undefined,
+  );
+}
+

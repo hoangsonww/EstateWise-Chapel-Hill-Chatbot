@@ -28,7 +28,6 @@ export default function SignUpPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [errorMsg, setErrorMsg] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
@@ -45,28 +44,24 @@ export default function SignUpPage() {
 
     setIsLoading(true);
     try {
-      const res = await fetch(
-        "https://estatewise-backend.vercel.app/api/auth/signup",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username, email, password }),
-        },
-      );
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL; // Use environment variable for backend URL
+
+      const res = await fetch(`${backendUrl}/api/auth/signup`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, email, password }),
+      });
 
       if (res.status === 201) {
         // Automatically log the user in upon successful sign up
-        const loginRes = await fetch(
-          "https://estatewise-backend.vercel.app/api/auth/login",
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email, password }),
-          },
-        );
+        const loginRes = await fetch(`${backendUrl}/api/auth/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        });
         if (loginRes.status === 200) {
           const data = await loginRes.json();
-          Cookies.set("estatewise_token", data.token);
+          Cookies.set("Luxera_token", data.token);
           router.push("/chat");
           toast.success("Sign up and login successfully");
         } else {
@@ -94,18 +89,49 @@ export default function SignUpPage() {
   return (
     <>
       <Head>
-        <title>EstateWise | Sign Up</title>
-        <meta name="description" content="Sign up for EstateWise" />
+        <title>Luxera Ai | Sign Up</title>
+        <meta name="description" content="Sign up for Luxera Ai" />
       </Head>
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-blue-600 to-purple-600 px-4">
+      <div className="min-h-screen flex items-center justify-center animated-gradient px-4">
         <style jsx global>{`
           html {
             scroll-behavior: smooth;
           }
-
           html,
           body {
             overscroll-behavior: none;
+          }
+          @keyframes gradientAnimation {
+            0% {
+              background-position: 0% 50%;
+            }
+            50% {
+              background-position: 100% 50%;
+            }
+            100% {
+              background-position: 0% 50%;
+            }
+          }
+          .animated-gradient {
+            background: linear-gradient(
+              270deg,
+              #7928ca,
+              #ff0080,
+              #fbbc05,
+              #12c2e9
+            );
+            background-size: 800% 800%;
+            animation: gradientAnimation 20s ease infinite;
+          }
+          /* Hover effect for all links */
+          a {
+            transition:
+              color 0.2s,
+              text-decoration-color 0.2s;
+          }
+          a:hover {
+            color: #ff0080;
+            text-decoration-color: #ff0080;
           }
         `}</style>
         <motion.div
@@ -165,7 +191,7 @@ export default function SignUpPage() {
                       }
                     }}
                     required
-                    className="w-full pr-10" // extra right padding to accommodate the icon button
+                    className="w-full pr-10"
                   />
                   <button
                     type="button"
@@ -214,6 +240,7 @@ export default function SignUpPage() {
                   </button>
                 </div>
               </div>
+              {errorMsg && <p className="text-red-500">{errorMsg}</p>} {/* Display error message */}
               <Button
                 type="submit"
                 className="w-full py-2 mt-4 cursor-pointer"

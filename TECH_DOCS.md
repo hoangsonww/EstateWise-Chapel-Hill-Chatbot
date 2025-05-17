@@ -1,8 +1,14 @@
-# EstateWise: AI‑Powered Real Estate Assistant for Chapel Hill, NC
+# Luxera: AI‑Powered Real Estate Assistant for Chapel Hill, NC - Technical Documentation
 
-EstateWise is an AI‑powered real estate assistant focused on Chapel Hill, NC and surrounding areas. This document provides a deep dive into every component—from raw data ingestion to AI orchestration, delivery via a React/Next.js front‑end, and end‑to‑end deployment.
+Luxera is an AI‑powered real estate assistant focused on Chapel Hill, NC and surrounding areas. This document provides a deep dive into every component—from raw data ingestion to AI orchestration, delivery via a React/Next.js front‑end, and end‑to‑end deployment.
 
-![Node.js](https://img.shields.io/badge/Node.js-339933?logo=node.js&logoColor=white) ![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?logo=typescript&logoColor=white) ![stream-json](https://img.shields.io/badge/stream--json-007ACC) ![Pinecone](https://img.shields.io/badge/Pinecone-%2300837A?logo=pinecone&logoColor=white) ![Google AI](https://img.shields.io/badge/Google%20AI-4285F4?logo=google&logoColor=white) ![React](https://img.shields.io/badge/React-61DAFB?logo=react&logoColor=white) ![Next.js](https://img.shields.io/badge/Next.js-000000?logo=next.js&logoColor=white) ![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-38B2AC?logo=tailwind-css&logoColor=white) ![Shadcn UI](https://img.shields.io/badge/Shadcn%20UI-FFFFFF?logo=shadcn&logoColor=000000) ![Framer Motion](https://img.shields.io/badge/Framer%20Motion-0055FF?logo=framer&logoColor=white) ![React Markdown](https://img.shields.io/badge/React--Markdown-000000?logo=markdown&logoColor=white) ![Express.js](https://img.shields.io/badge/Express.js-404D59?logo=express&logoColor=white) ![MongoDB](https://img.shields.io/badge/MongoDB-47A248?logo=mongodb&logoColor=white) ![Swagger](https://img.shields.io/badge/Swagger-85EA2D?logo=swagger&logoColor=black) ![Docker Compose](https://img.shields.io/badge/Docker%20Compose-2496ED?logo=docker&logoColor=white) ![Vercel](https://img.shields.io/badge/Vercel-000000?logo=vercel&logoColor=white) ![GitHub Actions](https://img.shields.io/badge/GitHub%20Actions-2088FF?logo=github-actions&logoColor=white) ![Prometheus](https://img.shields.io/badge/Prometheus-FF6B00?logo=prometheus&logoColor=white) ![Grafana](https://img.shields.io/badge/Grafana-F46800?logo=grafana&logoColor=white) ![Sentry](https://img.shields.io/badge/Sentry-000000?logo=sentry&logoColor=white) ![node-lru-cache](https://img.shields.io/badge/node--lru--cache-339933?logo=node.js&logoColor=white) ![k‑Means](https://img.shields.io/badge/k--Means-FF4080)
+Below, we outline the architecture, key components, and challenges faced during development. This is intended for developers and data scientists interested in understanding the inner workings of Luxera. We also provide a flowchart and various diagrams to visualize the architecture and data flow throughout the system.
+
+![Node.js](https://img.shields.io/badge/Node.js-339933?logo=node.js&logoColor=white) ![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?logo=typescript&logoColor=white) ![stream-json](https://img.shields.io/badge/stream--json-007ACC) ![Pinecone](https://img.shields.io/badge/Pinecone-%2300837A?logo=vectorworks&logoColor=white) ![Google AI](https://img.shields.io/badge/Google%20AI-4285F4?logo=google&logoColor=white) ![React](https://img.shields.io/badge/React-61DAFB?logo=react&logoColor=white) ![Next.js](https://img.shields.io/badge/Next.js-000000?logo=next.js&logoColor=white) ![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-38B2AC?logo=tailwind-css&logoColor=white) ![Shadcn UI](https://img.shields.io/badge/Shadcn%20UI-FFFFFF?logo=shadcnui&logoColor=000000) ![Framer Motion](https://img.shields.io/badge/Framer%20Motion-0055FF?logo=framer&logoColor=white) ![React Markdown](https://img.shields.io/badge/React--Markdown-000000?logo=markdown&logoColor=white) ![Express.js](https://img.shields.io/badge/Express.js-404D59?logo=express&logoColor=white) ![MongoDB](https://img.shields.io/badge/MongoDB-47A248?logo=mongodb&logoColor=white) ![Swagger](https://img.shields.io/badge/Swagger-85EA2D?logo=swagger&logoColor=black) ![Docker Compose](https://img.shields.io/badge/Docker%20Compose-2496ED?logo=docker&logoColor=white) ![Vercel](https://img.shields.io/badge/Vercel-000000?logo=vercel&logoColor=white) ![GitHub Actions](https://img.shields.io/badge/GitHub%20Actions-2088FF?logo=github-actions&logoColor=white) ![Prometheus](https://img.shields.io/badge/Prometheus-FF6B00?logo=prometheus&logoColor=white) ![Grafana](https://img.shields.io/badge/Grafana-F46800?logo=grafana&logoColor=white) ![Sentry](https://img.shields.io/badge/Sentry-000000?logo=sentry&logoColor=white) ![node-lru-cache](https://img.shields.io/badge/node--lru--cache-339933?logo=node.js&logoColor=white) ![k‑Means](https://img.shields.io/badge/k--Means-FF4080) ![Mermaid](https://img.shields.io/badge/Mermaid-00A9E0?logo=mermaid&logoColor=white) ![JSON](https://img.shields.io/badge/JSON-000000?logo=json&logoColor=white) ![Winston](https://img.shields.io/badge/Winston-000000?logo=winston&logoColor=white)
+
+> Built by Rikhil Fellner, Muskaan Joshi, David Nguyen, Vinir Rai, Rishabh Singh, and Rajbalan Yogarajan for the BUSI/COMP-488 course at UNC-Chapel Hill, Spring 2025.
+
+> For a CLI version of the chatbot, as well as the EDA (Exploratory Data Analysis) of the properties data and interactive geospatial visualizations, check out the Jupyter notebooks in the root directory: [EDA-CLI-Chatbot.ipynb](EDA-CLI-Chatbot.ipynb). Alternatively, feel free to go to this [Colaboratory Notebook](https://colab.research.google.com/drive/1-Z3h0LUHl0v-e0RaZgwruL8q180Uk4Z-?usp=sharing) to directly view and run the code in this notebook & see the results in real time.
 
 ---
 
@@ -35,6 +41,7 @@ EstateWise is an AI‑powered real estate assistant focused on Chapel Hill, NC a
   - [6.2 Parallel Expert Invocations](#62-parallel-expert-invocations)
   - [6.3 Weight Normalization & Feedback Loop](#63-weight-normalization--feedback-loop)
   - [6.4 Master Merger Model](#64-master-merger-model)
+  - [6.5 Prompt Engineering](#65-prompt-engineering)
 - [7. Backend API & Data Layer](#7-backend-api--data-layer)
   - [7.1 Express.js Routes & Controllers](#71-expressjs-routes--controllers)
   - [7.2 MongoDB Models & Conversations](#72-mongodb-models--conversations)
@@ -53,7 +60,11 @@ EstateWise is an AI‑powered real estate assistant focused on Chapel Hill, NC a
   - [10.4 RAG & Context Assembly](#104-rag--context-assembly)
   - [10.5 Mixture‑of‑Experts Complexity](#105-mixtureofexperts-complexity)
   - [10.6 Deployment & Infrastructure](#106-deployment--infrastructure)
-- [11. Appendices](#11-appendices)
+- [11. Logging & Monitoring](#11-logging--monitoring)
+  - [11.1 Logging](#111-logging)
+  - [11.2 Monitoring](#112-monitoring)
+  - [11.3 Visualization](#113-visualization)
+- [12. Appendices](#11-appendices)
   - [A. Environment Variables Reference](#a-environment-variables-reference)
   - [B. AI/ML Flow Chart](#b-aiml-flow-chart)
   - [C. Overall App’s Flow Diagram](#c-overall-apps-flow-diagram)
@@ -466,6 +477,31 @@ Now synthesize a single concise recommendation…
 `;
 ```
 
+### 6.5 Prompt Engineering
+
+All expert prompts are carefully crafted to elicit the most relevant information:
+
+- **Data Analyst**: “Analyze the price distribution, average/median prices, and any outliers.”
+- **Lifestyle Concierge**: “Focus on schools, parks, commute times, and local amenities.”
+- **Financial Advisor**: “Evaluate the investment potential, ROI, and financing options.”
+- **Neighborhood Expert**: “Provide insights on the neighborhood’s safety, culture, and community.”
+- **Cluster Analyst**: “Analyze the cluster of similar properties and their market trends.”
+
+The master merger model also receives a prompt that combines all expert outputs and their respective weights:
+
+- **Master Merger**: “You are the Master Merger. Combine these expert views (with weights): [expert outputs]. Now synthesize a single concise recommendation…”
+
+Also, all models, including the master model, share a common system prompt, carefully crafted so that they work together seamlessly:
+
+- **System Prompt**: “You are an AI model that specializes in real estate analysis. Your task is to provide insights based on the data and context provided.”
+
+Additionally, the AI Agent also receives a carefully-crafted system prompt to ensure it understands its role in the process:
+
+- **Agentic AI**: “You are an AI agent that orchestrates the entire process. You will decide whether to use property data, invoke experts, and merge their responses into a final recommendation.”
+
+**Takeaways**: All prompts, especially system prompts, are designed to be clear, concise, and focused on the specific task at hand. This ensures that the AI can generate the most relevant and accurate responses.
+They are ultra-specific and tailored to the task at hand, ensuring that the AI can generate the most relevant and accurate responses.
+
 ---
 
 ## 7. Backend API & Data Layer
@@ -539,7 +575,7 @@ A Next.js + React + TailwindCSS app using Shadcn UI components, Framer Motion an
 Delivers a smooth, responsive chat experience—complete with inline charts, expert‑view toggles, theme switching, and conversation management—so users can focus on real estate insights.
 
 **Live Frontend URL:**  
-https://estatewise-backend.vercel.app/
+https://api.homesluxera.com/
 
 ---
 
@@ -572,7 +608,7 @@ MONGO_URI=...
 GOOGLE_AI_API_KEY=...
 PINECONE_API_KEY=...
 PINECONE_ENVIRONMENT=us‑west1‑gcp
-PINECONE_INDEX=estatewise-index
+PINECONE_INDEX=Luxera-index
 JWT_SECRET=...
 ```
 
@@ -613,7 +649,7 @@ jobs:
 
 ## 10. Challenges
 
-Throughout the development of **EstateWise**, we encountered several technical and operational hurdles. Below is a breakdown of the most significant challenges and how we addressed them:
+Throughout the development of **Luxera**, we encountered several technical and operational hurdles. Below is a breakdown of the most significant challenges and how we addressed them:
 
 ### 10.1 Large‑Scale Data Ingestion
 
@@ -643,13 +679,81 @@ Throughout the development of **EstateWise**, we encountered several technical a
 ### 10.6 Deployment & Infrastructure
 
 - **Vercel Timeouts:** The free‑tier 60 second function limit forced us to split some heavy operations (e.g. clustering) into background tasks or pre‑compute nightly.
+  - However, many heavy queries can still cause timeouts. This is unavoidable, and we have to ensure that the user is informed about the timeout and that they should retry the query.
 - **Secret Management:** Ensuring that Google AI keys, Pinecone credentials, and JWT secrets remained secure yet available to both frontend (only public‑safe tokens) and backend required careful `.env` scoping and GitHub Actions secrets configuration.
+- **Payload Size Limits:** Vercel enforces a 1024 \* 100 KB payload limit on API responses. We had to ensure that our responses were concise and efficient, especially when dealing with large datasets or multiple expert outputs.
+  - This can be problematic for guest users since we have to transmit the entire conversation history to the backend. We had to implement a mechanism to limit the size of the conversation history sent to guest users, ensuring that it fits within the payload size limits while still providing meaningful context.
 
 ---
 
-## 11. Appendices
+## 11. Logging & Monitoring
 
-Additional resources, diagrams, and references for developers and data scientists who are interested working on EstateWise.
+**What it is:**
+A comprehensive logging and monitoring system that tracks the performance, errors, and usage of the Luxera application.
+
+**Why we use it:**
+To ensure the application runs smoothly, identify issues quickly, and gather insights into user behavior and system performance.
+
+### 11.1 Logging
+
+We use Winston for logging in the backend. The logging system is configured to log messages at different levels (info, warn, error) and to output logs in JSON format for easy parsing and analysis:
+
+- Logs are written to both the console and a file.
+- The log file is rotated daily to prevent it from growing too large.
+- We log important events such as:
+
+  - Incoming requests
+  - Responses sent to clients
+  - Errors encountered during processing
+  - Embedding generation times
+  - Database query times
+  - Expert model invocations
+  - User ratings for AI responses
+  - and more...
+
+- Each log entry includes:
+  - Timestamp
+  - Log level (info, warn, error)
+  - Message
+  - Additional metadata (e.g., request ID, user ID, etc.)
+
+### 11.2 Monitoring
+
+- We use Prometheus to collect metrics from the application, including:
+
+  - Request counts and latencies
+  - Error rates
+  - Embedding generation times
+  - Database query times
+  - And more…
+
+- Prometheus is configured to scrape metrics from the application at regular intervals.
+- The app exposes a `/metrics` endpoint that Prometheus can scrape.
+  - This endpoint provides a summary of the application’s performance metrics in a format that Prometheus can understand.
+  - It includes metrics such as:
+    - `http_requests_total`: Total number of HTTP requests received
+    - `http_request_duration_seconds`: Duration of HTTP requests in seconds
+    - `embedding_generation_duration_seconds`: Duration of embedding generation in seconds
+    - `database_query_duration_seconds`: Duration of database queries in seconds
+    - And more…
+
+### 11.3 Visualization
+
+- We use `express-status-monitor` to expose a `/status` endpoint to visualize the application’s health and performance metrics.
+- We also use Grafana to create dashboards for monitoring key metrics over time.
+- Grafana is configured to pull data from Prometheus and display it in a user-friendly format.
+- Dashboards include:
+  - Request rates and latencies
+  - Error rates
+  - Embedding generation times
+  - Database query times
+  - And more…
+
+---
+
+## 12. Appendices
+
+Additional resources, diagrams, and references for developers and data scientists who are interested working on Luxera.
 
 ### A. Environment Variables Reference
 
@@ -758,14 +862,14 @@ Below is a simplified flow diagram of the entire application architecture, from 
 
 ### D. Mermaid Sequence Diagram
 
-This is a `Mermaid` sequence diagram. Paste it into a compatible editor (e.g. Notion's `Mermaid` code block) to visualize.
+This UML sequence diagram illustrates the flow of data and interactions between the user, UI, API, agent, decision model, Pinecone, experts, and Gemini models:
 
 ```mermaid
 sequenceDiagram
     participant User
     participant UI as Next.js UI
     participant API as /api/chat
-    participant Agent as runEstateWiseAgent
+    participant Agent as runLuxeraAgent
     participant DecisionAI as Decision Model
     participant Pinecone
     participant Experts as MoE Pipeline
@@ -773,7 +877,7 @@ sequenceDiagram
 
     User->>UI: sendMessage()
     UI->>API: POST /api/chat { message }
-    API->>Agent: runEstateWiseAgent(prompt)
+    API->>Agent: runLuxeraAgent(prompt)
 
     Agent->>DecisionAI: {"usePropertyData": ?}
     DecisionAI-->>Agent: {"usePropertyData": true/false}
@@ -781,9 +885,9 @@ sequenceDiagram
     alt usePropertyData = true
         Agent->>Pinecone: queryPropertiesAsString(prompt,50)\nqueryProperties(prompt,50)
         Pinecone-->>Agent: propertyContext + rawResults
-        Agent->>Experts: chatWithEstateWise(history, prompt, propertyContext)
+        Agent->>Experts: chatWithLuxera(history, prompt, propertyContext)
     else usePropertyData = false
-        Agent->>Experts: chatWithEstateWise(history, prompt, userContext)
+        Agent->>Experts: chatWithLuxera(history, prompt, userContext)
     end
 
     Experts->>Gemini: expert & merger invocations
@@ -793,6 +897,8 @@ sequenceDiagram
     API->>UI: 200 { response }
     UI->>User: renderResponse()
 ```
+
+> Diagram not working? Paste the code into a compatible Mermaid editor, like [Mermaid Live Editor](https://mermaid-js.github.io/mermaid-live-editor/) or [Mermaid Preview](https://marketplace.visualstudio.com/items?itemName=vstirbu.vscode-mermaid-preview) to visualize it.
 
 ### E. Vector Schema & Metadata Example
 
@@ -819,6 +925,8 @@ Below is an example of the vector schema and metadata stored in Pinecone:
 
 ---
 
-Thank you for reading through the technical documentation of EstateWise! If you have any questions or need further clarification, feel free to reach out. 🏠
+Thank you for reading through the technical documentation of Luxera! If you have any questions or need further clarification, feel free to reach out to us! 🏠
 
-[🔝 Back to Top](#estatewise-aipowered-real-estate-assistant-for-chapel-hill-nc)
+[🔝 Back to Top](#Luxera-aipowered-real-estate-assistant-for-chapel-hill-nc)
+
+[🏠 Back to README](README.md)

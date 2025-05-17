@@ -20,6 +20,10 @@ const model = genAI.getGenerativeModel({ model: "models/text-embedding-004" });
 
 const BATCH_SIZE = 50;
 
+/**
+ * This is the cleaned property interface.
+ * It contains only the fields needed for chatbot recommendations.
+ */
 interface CleanedProperty {
   zpid: number;
   city: string;
@@ -46,11 +50,19 @@ interface CleanedProperty {
   description: string;
 }
 
+/**
+ * Helper: if a value is a nonempty string, return the trimmed version;
+ * otherwise, return a fallback.
+ */
 function safeStr(val: any, fallback = "Unknown"): string {
   if (typeof val === "string" && val.trim().length > 0) return val.trim();
   return fallback;
 }
 
+/**
+ * Helper: if a value is a number, return it; otherwise, return a fallback.
+ * Optionally, check if the value is within a specified range (min and max).
+ */
 function safeNum(val: any, fallback = 0, min?: number, max?: number): number {
   const n = Number(val);
   if (isNaN(n)) return fallback;
@@ -59,6 +71,10 @@ function safeNum(val: any, fallback = 0, min?: number, max?: number): number {
   return n;
 }
 
+/**
+ * Clean the document by extracting and validating necessary fields.
+ * This function will return a CleanedProperty object.
+ */
 function cleanDocument(doc: any): CleanedProperty {
   const currentYear = new Date().getFullYear();
 
