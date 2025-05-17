@@ -440,61 +440,14 @@ function buildAreaYearScatter(listings: Listing[]) {
 export async function getPropertyData(req: Request, res: Response) {
   try {
     const q = String(req.query.q || "");
-    // Fetch up to `topK` results (default to 1500 to ensure enough after filtering)
-    const desiredCount = 1500;
-    const rawTopK = Number(req.query.topK) || desiredCount;
-    const raw = await queryProperties(q, rawTopK);
+    const limit = Number(req.query.limit) || 30;
 
-    // Map raw results to Listing objects
-    const allListings: Listing[] = raw.map((r) => {
-      const m = r.metadata as any;
-      const addr = JSON.parse(m.address || "{}");
-      return {
-        id: r.id,
-        score: r.score || 0,
-        price: Number(m.price) || 0,
-        bedrooms: Number(m.bedrooms) || 0,
-        bathrooms: Number(m.bathrooms) || 0,
-        livingArea: Number(m.livingArea) || 0,
-        yearBuilt: Number(m.yearBuilt) || 0,
-        homeType: String(m.homeType || ""),
-        homeStatus: String(m.homeStatus || ""),
-        city: String(m.city || ""),
-        zipcode: String(addr.zipcode || ""),
-      };
-    });
+    // Fetch combined internal and external properties
+    const rawResults = await queryProperties(q, limit);
 
-    // Filter out any listings where yearBuilt is 0
-    let listings = allListings.filter((l) => l.yearBuilt !== 0);
-
-    // Ensure we return exactly `desiredCount` listings
-    listings = listings.slice(0, desiredCount);
-
-    // Build all the charts
-    const charts = {
-      homeType: buildHomeTypeDistribution(listings),
-      bedrooms: buildBedroomsDistribution(listings),
-      bathrooms: buildBathroomsDistribution(listings),
-      priceDist: buildPriceDistribution(listings),
-      areaDist: buildLivingAreaDistribution(listings),
-      yearBuiltDist: buildYearBuiltDistribution(listings),
-      priceArea: buildPriceAreaTrend(listings),
-      priceYear: buildPriceYearTrend(listings),
-      pricePerSqft: buildPricePerSqftDistribution(listings),
-      bedsBaths: buildBedsBathsScatter(listings),
-      avgPriceType: buildAveragePriceByHomeType(listings),
-      countByZip: buildCountByZipcode(listings),
-      homeStatus: buildHomeStatusDistribution(listings),
-      countByCity: buildCountByCity(listings),
-      avgAreaType: buildAverageLivingAreaByHomeType(listings),
-      ageDist: buildAgeDistribution(listings),
-      avgPricePerSqftType: buildAveragePricePerSqftByHomeType(listings),
-      areaYear: buildAreaYearScatter(listings),
-    };
-
-    res.json({ listings, charts });
-  } catch (err) {
-    console.error(err);
+    res.json({ properties: rawResults });
+  } catch (error) {
+    console.error("Error fetching property data:", error);
     res.status(500).json({ error: "Failed to fetch property data" });
   }
 }

@@ -69,7 +69,7 @@ function sanitizeMetadata(
  * @param topK The number of top results to return.
  * @returns A promise that resolves with an array of RawQueryResult objects.
  */
-export async function queryProperties(
+export async function queryPropertiesFromPinecone(
   query: string,
   topK = 10,
 ): Promise<RawQueryResult[]> {
@@ -97,6 +97,23 @@ export async function queryProperties(
   return results;
 }
 
+export async function queryProperties(message: string, limit: number): Promise<RawQueryResult[]> {
+  // Fetch internal properties
+  const internalResults = await fetchInternalProperties(message, limit);
+
+  // Fetch external properties
+  const externalResults: RawQueryResult[] = []; // Placeholder for external properties
+
+  // Combine and validate properties
+  return [...internalResults, ...externalResults].filter(
+    (property) => 
+      typeof property.metadata.price === "number" &&
+      property.metadata.price > 0 &&
+      typeof property.metadata.bedrooms === "number" &&
+      property.metadata.bedrooms > 0
+  );
+}
+
 /**
  * Queries properties and formats the results as a string.
  *
@@ -109,7 +126,7 @@ export async function queryPropertiesAsString(
   topK = 10,
 ): Promise<string> {
   try {
-    const results = await queryProperties(query, topK);
+    const results = await queryPropertiesFromPinecone(query, topK);
     if (results.length === 0) return "No matching properties found.";
 
     let response = "Matching Properties:\n\n";
@@ -167,3 +184,21 @@ export async function queryPropertiesAsString(
     return "Error retrieving property details.";
   }
 }
+async function fetchInternalProperties(
+  message: string,
+  limit: number,
+): Promise<RawQueryResult[]> {
+  console.log(`Fetching internal properties for message: "${message}"`);
+
+  // Query the Pinecone index for properties matching the message
+  const results = await queryPropertiesFromPinecone(message, limit);
+
+  // Filter out properties with invalid metadata
+  return results.filter(
+    (property) =>
+      property.metadata.price !== undefined &&
+      property.metadata.bedrooms !== undefined &&
+      property.metadata.bathrooms !== undefined,
+  );
+}
+

@@ -9,6 +9,7 @@ import {
   queryProperties,
   RawQueryResult,
 } from "../scripts/queryProperties";
+import fetch from "node-fetch"; // Ensure node-fetch is installed
 
 /**
  * Function to perform K-Means clustering on a set of data points. It
@@ -101,19 +102,49 @@ export interface LuxeraContext {
 }
 
 /**
+ * Fetches property data from the external REST API.
+ */
+async function fetchExternalProperties(): Promise<RawQueryResult[]> {
+  const apiUrl = "https://homesluxera.com/wp-json/wp/v2/properties";
+
+  try {
+    const response = await fetch(apiUrl);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch properties: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+
+    if (!Array.isArray(data)) {
+      throw new Error("Unexpected response format: data is not an array");
+    }
+
+    // Map the external API response to the RawQueryResult format
+    return data.map((property: any) => ({
+      id: property.id.toString(),
+      score: 0, // Default score value
+      metadata: {
+        price: Number(property.property_meta.fave_property_price[0]) || 0,
+        bedrooms: Number(property.property_meta.fave_property_bedrooms[0]) || 0,
+        bathrooms: Number(property.property_meta.fave_property_bathrooms[0]) || 0,
+        livingArea: Number(property.property_meta.fave_property_size[0]) || 0,
+        yearBuilt: 0, // External API doesn't provide yearBuilt
+        homeType: property.class_list.find((cls: string) =>
+          cls.startsWith("property_type-")
+        ) || "Unknown",
+        homeStatus: property.status || "Unknown",
+        city: property.property_meta.fave_property_map_address[0]?.split(",")[2]?.trim() || "Unknown",
+        link: property.link || "",
+      },
+    }));
+  } catch (error) {
+    console.error("Error fetching external properties:", error);
+    return [];
+  }
+}
+
+/**
  * Chat with Luxera Assistant using Google Gemini AI.
- * This uses a Mixture-of-Experts (MoE) with Reinforcement Learning
- * to generate more informed responses. Includes a kMeans clustering
- * algorithm (with norm.) to group properties based on their features.
- *
- * Note: When deployed on Vercel, this may cause a timeout due to
- * Vercel's 60s limit, and our approach requires at least 6 AI
- * calls (6 experts + 1 merger).
- *
- * @param history - The conversation history, including previous messages.
- * @param message - The new message to send.
- * @param userContext - Additional context provided by the user.
- * @param expertWeights - Weights for each expert to influence their responses.
  */
 export async function chatWithLuxera(
   history: Array<{ role: string; parts: Array<{ text: string }> }>,
@@ -121,8 +152,43 @@ export async function chatWithLuxera(
   userContext: LuxeraContext = {},
   expertWeights: Record<string, number> = {},
 ): Promise<{ finalText: string; expertViews: Record<string, string> }> {
-  if (typeof userContext !== "object" || userContext === null) {
-    userContext = {};
+  let propertyContext: string;
+  let rawResults: RawQueryResult[];
+
+  if (!userContext.rawResults) {
+    // Fetch internal and external properties
+    const [internalPropertyContext, internalRawResults] = await Promise.all([
+      queryPropertiesAsString(message, 30),
+      queryProperties(message, 30),
+    ]);
+    const externalRawResults = await fetchExternalProperties();
+
+    // Combine and validate properties
+    rawResults = [...internalRawResults, ...externalRawResults].filter(
+      (property) =>
+        typeof property.metadata.price === "number" &&
+        property.metadata.price > 0 &&
+        typeof property.metadata.bedrooms === "number" &&
+        property.metadata.bedrooms > 0
+    );
+
+    propertyContext = `
+      ${internalPropertyContext}
+
+      External Properties:
+      ${externalRawResults
+        .map(
+          (property) =>
+            `- ${property.metadata.city}: ${property.metadata.bedrooms} beds, ${property.metadata.bathrooms} baths, ${property.metadata.livingArea} sqft, ${property.metadata.price} AED. More details: ${property.metadata.link}`
+        )
+        .join("\n")}
+    `.trim();
+
+    userContext.propertyContext = propertyContext;
+    userContext.rawResults = rawResults;
+  } else {
+    propertyContext = userContext.propertyContext!;
+    rawResults = userContext.rawResults!;
   }
 
   const apiKey = process.env.GOOGLE_AI_API_KEY;
@@ -139,20 +205,6 @@ export async function chatWithLuxera(
 
   // ─── 1) Fetch or skip property context and raw results ───────────────────
   const dataNotFetched = lib(message);
-  let propertyContext: string;
-  let rawResults: RawQueryResult[];
-
-  if (!dataNotFetched || !userContext.rawResults) {
-    [propertyContext, rawResults] = await Promise.all([
-      queryPropertiesAsString(message, 30),
-      queryProperties(message, 30),
-    ]);
-    userContext.propertyContext = propertyContext;
-    userContext.rawResults = rawResults;
-  } else {
-    propertyContext = userContext.propertyContext!;
-    rawResults = userContext.rawResults!;
-  }
 
   // ─── 1.5) Only compute clustering if we have rawResults ────────────────
   let combinedPropertyContext: string;
@@ -219,9 +271,9 @@ export async function chatWithLuxera(
     When recommending properties, do the following:
     1. For each property, list the full address (street, city, state, zipcode), price, number of bedrooms, number of bathrooms, living area (in sqft), year built, and home type.
     2. Include the property description.
-    3. Always provide a direct link to the property's Zillow page using its Zillow id. Use this exact format:
-         More details: https://www.zillow.com/homedetails/{zpid}_zpid/
-       Ensure to replace {zpid} with the actual Zillow id. Keep the link format consistent. No extra symbols or texts inside the link. Do NOT add a '\\\\' before the '_zpid'. PLEASE DO NOT ADD \\\\ BEFORE THE '_zpid'.
+    3. Always provide a direct link to the property's Luxera page using its exrept link. Use this exact format:
+         More details: https://homesluxera.com/property/{exrept-link}/
+       Ensure to replace {exrept-link} with the actual exrept-link. Keep the link format consistent. No extra symbols or texts inside the link. Do NOT add a '\\\\' before the '{exrept-link}'. PLEASE DO NOT ADD \\\\ BEFORE THE '{exrept-link}'.
     4. Present your answer in a clear, numbered list so the user can easily see all options.
     5. Use the property data to create engaging, detailed, and actionable recommendations. Present a top few options first, and then provide additional options based on the user's preferences and feedback.
     6. If the user provides additional context or preferences, adjust your recommendations accordingly.

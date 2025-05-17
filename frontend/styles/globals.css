@@ -3,7 +3,9 @@
 @import "slick-carousel/slick/slick.css";
 @import "slick-carousel/slick/slick-theme.css";
 
-@custom-variant dark (&:is(.dark *));
+.dark * {
+  /* Add your custom styles here for the dark variant */
+}
 
 html,
 body,
