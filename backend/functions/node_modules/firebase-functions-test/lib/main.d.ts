@@ -1,0 +1,11 @@
+import { CloudFunction as CloudFunctionV1, HttpsFunction, Runnable } from 'firebase-functions/v1';
+import { CloudFunction as CloudFunctionV2, CloudEvent } from 'firebase-functions/v2';
+import { CallableFunction } from 'firebase-functions/v2/https';
+import { WrappedFunction, WrappedScheduledFunction } from './v1';
+import { WrappedV2Function, WrappedV2CallableFunction } from './v2';
+export { ContextOptions, EventContextOptions, WrappedFunction, WrappedScheduledFunction, CallableContextOptions, makeChange, mockConfig, } from './v1';
+export { WrappedV2Function } from './v2';
+export declare function wrap<T>(cloudFunction: HttpsFunction & Runnable<T>): WrappedFunction<T, HttpsFunction & Runnable<T>>;
+export declare function wrap<T>(cloudFunction: CallableFunction<any, T>): WrappedV2CallableFunction<T>;
+export declare function wrap<T>(cloudFunction: CloudFunctionV1<T>): WrappedScheduledFunction | WrappedFunction<T>;
+export declare function wrap<T extends CloudEvent<unknown>>(cloudFunction: CloudFunctionV2<T>): WrappedV2Function<T>;
