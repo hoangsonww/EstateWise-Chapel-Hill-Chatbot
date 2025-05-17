@@ -4,7 +4,6 @@ import cors from "cors";
 import favicon from "serve-favicon";
 import path from "path";
 import dotenv from "dotenv";
-dotenv.config();
 import swaggerSpec from "./utils/swagger";
 import authRoutes from "./routes/auth.routes";
 import chatRoutes from "./routes/chat.routes";
@@ -59,6 +58,7 @@ process.on("unhandledRejection", (reason) => {
 });
 
 // ─── App Setup ────────────────────────────────────────────────────────────────
+dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3001;
 
@@ -67,7 +67,7 @@ app.use(cookieParser());
 // ─── Status Monitor Middleware ───────────────────────────────────────────────
 app.use(
   statusMonitor({
-    title: "Luxera Status",
+    title: "EstateWise Status",
     path: "/status",
     spans: [
       { interval: 1, retention: 60 },
@@ -109,10 +109,10 @@ app.use((req, res, next) => {
 
 // CORS configuration
 const corsOptions = {
-  origin: ["https://api.homesluxera.com", "https://ai.homesluxera.com"], // Allow requests from both domains
+  origin: "*", // Allow all origins
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
-  credentials: true, // Allow cookies or authorization headers
+  credentials: false,
 };
 app.use(cors(corsOptions));
 app.use(express.json());
@@ -149,7 +149,7 @@ app.get("/api-docs", (req, res) => {
     <html lang="en">
       <head>
         <meta charset="UTF-8" />
-        <title>Luxera API Documentation</title>
+        <title>EstateWise API Documentation</title>
         <link rel="stylesheet" type="text/css" href="https://unpkg.com/swagger-ui-dist@4.15.5/swagger-ui.css" />
         <link rel="icon" type="image/png" href="/favicon-32x32.png" sizes="32x32" />
         <link rel="icon" type="image/png" href="/favicon-32x32.png" sizes="16x16" />
@@ -238,7 +238,7 @@ db.once("open", () => {
   mongoConnectionGauge.set(1);
   // Only start listening after DB is open
   app.listen(PORT, () => {
-    logger.info(`🏠 Luxera backend listening on port ${PORT}`);
+    logger.info(`🏠 EstateWise backend listening on port ${PORT}`);
   });
 });
 

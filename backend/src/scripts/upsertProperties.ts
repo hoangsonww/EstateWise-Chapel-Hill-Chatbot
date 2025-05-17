@@ -282,39 +282,6 @@ async function upsertPropertiesToPinecone() {
   }
 }
 
-// Define the IProperty interface
-interface IProperty {
-  id: string;
-  price: number;
-  bedrooms: number;
-  bathrooms: number;
-  livingArea: number;
-  yearBuilt?: number;
-  homeType: string;
-  homeStatus: string;
-  city: string;
-  link?: string;
-}
-
-export async function upsertProperties(properties: IProperty[]) {
-  const formattedProperties = properties.map((property) => ({
-    id: property.id,
-    metadata: {
-      price: property.price,
-      bedrooms: property.bedrooms,
-      bathrooms: property.bathrooms,
-      livingArea: property.livingArea,
-      yearBuilt: property.yearBuilt || 0,
-      homeType: property.homeType,
-      homeStatus: property.homeStatus,
-      city: property.city,
-      link: property.link || "", // Include the link field
-    },
-  }));
-
-  // Upsert logic remains unchanged
-}
-
 upsertPropertiesToPinecone().catch((error) => {
   console.error("Unhandled error:", error);
   process.exit(1);
