@@ -67,7 +67,7 @@ app.use(cookieParser());
 // ─── Status Monitor Middleware ───────────────────────────────────────────────
 app.use(
   statusMonitor({
-    title: "EstateWise Status",
+    title: "luxera Status",
     path: "/status",
     spans: [
       { interval: 1, retention: 60 },
@@ -149,7 +149,7 @@ app.get("/api-docs", (req, res) => {
     <html lang="en">
       <head>
         <meta charset="UTF-8" />
-        <title>EstateWise API Documentation</title>
+        <title>luxera API Documentation</title>
         <link rel="stylesheet" type="text/css" href="https://unpkg.com/swagger-ui-dist@4.15.5/swagger-ui.css" />
         <link rel="icon" type="image/png" href="/favicon-32x32.png" sizes="32x32" />
         <link rel="icon" type="image/png" href="/favicon-32x32.png" sizes="16x16" />
@@ -238,7 +238,7 @@ db.once("open", () => {
   mongoConnectionGauge.set(1);
   // Only start listening after DB is open
   app.listen(PORT, () => {
-    logger.info(`🏠 EstateWise backend listening on port ${PORT}`);
+    logger.info(`🏠 luxera backend listening on port ${PORT}`);
   });
 });
 
