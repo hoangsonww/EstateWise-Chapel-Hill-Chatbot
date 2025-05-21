@@ -467,15 +467,16 @@ const markdownComponents = {
   ),
   // Custom Link
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  a: ({ children, href, ...props }: any) => (
+  a: ({ href, ...props }: any) => (
     <a
       href={href}
-      className="inline-block bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm font-medium hover:bg-blue-200 max-w-full break-words"
+      className="flex items-center gap-1 px-4 py-2 border border-border rounded-md bg-background text-foreground hover:bg-muted hover:text-primary transition-colors cursor-pointer"
       target="_blank"
       rel="noopener noreferrer"
       {...props}
     >
-      {children}
+      <Home className="w-5 h-5" />
+      View Property
     </a>
   ),
 };
@@ -594,7 +595,7 @@ const TopBar: React.FC<TopBarProps> = ({
           </button>
         )}
         <span className="hidden md:inline text-xl font-bold select-none text-foreground">
-          Hi {username}, welcome to Luxera Ai! 🏠
+          Hi {username}, welcome to Luxera Ai
         </span>
       </div>
       <div className="flex items-center gap-4 relative">
@@ -675,12 +676,11 @@ const TopBar: React.FC<TopBarProps> = ({
                 window.location.reload();
               }}
               variant="outline"
-              className="flex items-center gap-1 transition-none text-red-500 hover:bg-red-500/10 cursor-pointer ml-2"
+              className="flex items-center gap-1 transition-colors duration-200 text-foreground hover:bg-muted cursor-pointer ml-2"
               title="Delete Conversation"
               aria-label="Delete Conversation"
             >
               <Trash2 className="w-5 h-5" />
-              Delete
             </Button>
           </div>
         )}
@@ -960,8 +960,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                   e.stopPropagation();
                   setDeleteId(conv._id);
                 }}
-                title="Delete"
-                className="cursor-pointer hover:text-red-500"
+                title=""
+                className="cursor-pointer text-foreground hover:text-muted-foreground transition-colors duration-200"
                 aria-label="Delete Conversation"
               >
                 <Trash2 className="w-4 h-4" />
@@ -1679,7 +1679,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
             rehypePlugins={[rehypeKatex]}
             components={markdownComponents}
           >
-            {text.replace(/\\_/g, "_")}
+            {text}
           </ReactMarkdown>
 
           {msg.role === "model" && (
