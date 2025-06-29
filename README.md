@@ -1,11 +1,19 @@
 # EstateWise – Your Intelligent Estate Assistant 🏡
 
-**EstateWise** is a full‑stack, monorepo AI chatbot built for Chapel Hill, NC and the surrounding areas, featuring a sleek, responsive UI with smooth
-animations and optional sign‑in to save your conversation history. Under the hood it leverages agentic AI, Retrieval‑Augmented Generation with Pinecone
-(kNN & cosine similarity), k‑Means clustering, Chain-of-Thought (CoT), and a Mixture‑of‑Experts ensemble to deliver fast, hyper‑personalized property recommendations based on your preferences. 📲
+**EstateWise** is a **full‑stack, monorepo AI/ML** **chatbot & data analytics project** built for real estates in _Chapel Hill, NC_ and the surrounding areas,
+featuring a sleek, responsive UI with smart, agentic AI capabilities powered by comprehensive data analysis and advanced machine learning techniques to help you find your dream home! 🏠✨
+
+Under the hood, it leverages **agentic AI, Retrieval‑Augmented Generation (RAG) with Pinecone (kNN & cosine similarity), k‑Means clustering, Chain-of-Thought (CoT),
+Large Language Models (LLMs), and a Mixture‑of‑Experts ensemble** to deliver _fast,_ _hyper‑personalized_ property recommendations based on your preferences! 📲🧠
+
+<p align="center">
+  <a href="https://estatewise.vercel.app/">
+    <img src="img/logo.png" alt="EstateWise Logo" width="30%" style="border-radius: 8px" />
+  </a>
+</p>
 
 > [!NOTE]
-> Built by Rikhil Fellner, Muskaan Joshi, [David Nguyen](https://github.com/hoangsonww), Vinir Rai, Rishabh Singh, and Rajbalan Yogarajan for the BUSI/COMP-488 course at UNC-Chapel Hill, Spring 2025.
+> Built by Rikhil Fellner, Muskaan Joshi, [David Nguyen](https://github.com/hoangsonww), Vinir Rai, Rishabh Singh, and Rajbalan Yogarajan for the BUSI/COMP-488 course at UNC-Chapel Hill. **© EstateWise Team, 2025.**
 
 ## Table of Contents
 
@@ -29,7 +37,7 @@ animations and optional sign‑in to save your conversation history. Under the h
   - [Chat](#chat)
   - [Swagger API Documentation](#swagger-api-documentation)
 - [Project Structure](#project-structure)
-- [AWS Deployment](#aws-deployment)
+- [Deployment](#deployment)
 - [Dockerization](#dockerization)
 - [Prometheus Monitoring & Visualizations](#prometheus-monitoring--visualizations)
 - [OpenAPI Specification](#openapi-specification)
@@ -60,9 +68,12 @@ _Feel free to use the app as a guest or sign up for an account to save your conv
 ![Shadcn UI](https://img.shields.io/badge/Shadcn%20UI-000000?style=for-the-badge&logo=shadcn/ui&logoColor=white)
 ![MongoDB](https://img.shields.io/badge/MongoDB-47A248?style=for-the-badge&logo=mongodb&logoColor=white)
 ![Pinecone](https://img.shields.io/badge/Pinecone-FF6F61?style=for-the-badge&logo=googledataflow&logoColor=white)
+![Redis](https://img.shields.io/badge/Redis-DC382D?style=for-the-badge&logo=redis&logoColor=white)
 ![Google AI](https://img.shields.io/badge/Google%20AI-4285F4?style=for-the-badge&logo=google&logoColor=white)
 ![JWT](https://img.shields.io/badge/JWT-black?style=for-the-badge&logo=json-web-tokens)
-![Amazon Web Services](https://img.shields.io/badge/Amazon%20Web%20Services-124568?style=for-the-badge&logo=amazonwebservices&logoColor=white)
+![Amazon Web Services](https://img.shields.io/badge/Amazon%20Web%20Services-124568?style=for-the-badge&logo=task&logoColor=white)
+![Google Cloud Platform](https://img.shields.io/badge/Google%20Cloud%20Platform-4285F4?style=for-the-badge&logo=googlecloud&logoColor=white)
+![Terraform](https://img.shields.io/badge/Terraform-623CE4?style=for-the-badge&logo=terraform&logoColor=white)
 ![Vercel](https://img.shields.io/badge/Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
 ![Prometheus](https://img.shields.io/badge/Prometheus-E6512D?style=for-the-badge&logo=prometheus&logoColor=white)
@@ -168,6 +179,8 @@ EstateWise is packed with both UI and AI features to enhance your home-finding e
 
 - **Express.js & TypeScript:** A robust backend API that handles authentication, conversation management, and AI chat processing.
 - **MongoDB:** Database for storing user data, conversation histories, and more.
+- **Pinecone:** A managed vector database for fast, real‑time property retrieval using kNN and cosine similarity.
+- **Redis:** Caching layer for quick access to frequently used data and to improve performance.
 - **JWT Authentication:** Secure user sessions using JSON Web Tokens.
 - **Integration with AI & RAG:** Communicates with AI APIs and uses **Google Gemini API & Pinecone** for advanced property recommendation logic.
 - **Swagger API Documentation:** Automatically generated API documentation for easy reference and testing.
@@ -375,20 +388,48 @@ Below is a high-level diagram that illustrates the flow of the application, incl
 
 ## Deployment
 
-- **Backend:** Deploy your backend on your chosen platform (Heroku, Vercel, AWS, etc.) and ensure environment variables are properly set.
-  - Currently, our backend & AI/ML APIs are deployed on Vercel & AWS at [https://estatewise-backend.vercel.app/](https://estatewise-backend.vercel.app/).
-- **Frontend:** Deploy the React/Next.js frontend using services like Vercel or Netlify. Update any API endpoints if necessary.
-  - Currently, our frontend is deployed on Vercel at [https://estatewise.vercel.app/](https://estatewise.vercel.app/).
-- **Database:** Ensure your MongoDB instance is accessible from your deployed backend. You can use services like MongoDB Atlas for cloud hosting.
-  - Currently, we are using MongoDB Atlas for the database. It is a cloud-hosted MongoDB service that provides a fully managed database solution.
-- **Pinecone:** Ensure your Pinecone instance is accessible from your deployed backend. You can use the Pinecone CLI or API to manage your index and data.
-  - Currently, we are using Pinecone for vector storage and retrieval. It is a cloud-hosted vector database that provides a fully managed solution for storing and retrieving vectors.
+- **Infrastructure as Code (IaC)**
+
+  - **Terraform**: Provision VPC, subnets, Internet Gateway, ECS/Fargate cluster & service, ALB, IAM roles, and security groups via the `terraform/` modules.
+  - **CloudFormation**: Modular templates under `aws/cloudformation/` for VPC, IAM roles, ECS cluster/task/service, and ALB if you prefer AWS’s native IaC.
+
+- **CI/CD Pipelines**
+
+  - **GitHub Actions**: Builds, tests, and pushes Docker images to AWS ECR or Google Artifact Registry, then triggers deployments.
+  - **AWS CodePipeline**: (Optional) Fully AWS-native pipeline—CodeBuild builds & pushes your image, CodePipeline deploys to ECS via Fargate.
+  - **GCP Cloud Build**: Builds and pushes containers to Artifact Registry and deploys the backend to Cloud Run using `gcp/cloudbuild.yaml`.
+
+- **Backend**
+
+  - **AWS ECS (Fargate)**: Containerized Node/TypeScript API hosted on ECS behind an Application Load Balancer, with autoscaling.
+  - **GCP Cloud Run**: Serverless container deployment option via Cloud Build; autoscaling to zero when idle.
+  - **Vercel** (Backup): Node server largely stateless, can run on Vercel for smaller workloads.
+  - _Env vars_ managed in Secrets Manager (AWS) or Secret Manager (GCP).
+
+- **Frontend**
+
+  - **Vercel**: Primary host for the Next.js/React UI with edge caching.
+  - **Netlify** (Backup): Can also deploy static build artifacts with environment overrides for API endpoints.
+  - **S3 + CloudFront**: (Optional) Host `out/` export of Next.js as static site, fronted by a CDN.
+
+- **Data Stores**
+
+  - **MongoDB Atlas**: Global, fully managed MongoDB for user data and chat histories.
+  - **Pinecone**: Managed vector database for RAG-based property retrieval.
+
+- **Monitoring & Logging**
+
+  - **Prometheus + Grafana** on AWS ECS (or GKE) for metrics collection and dashboards.
+  - **CloudWatch** (AWS) / **Cloud Logging** (GCP) for logs, alarms, and alerts.
 
 ![AWS](https://img.shields.io/badge/Deployed%20on%20AWS-232F3E?style=for-the-badge&logo=amazonwebservices&logoColor=white)
+![GCP](https://img.shields.io/badge/Deployed%20on%20GCP-4285F4?style=for-the-badge&logo=googlecloud&logoColor=white)
+![Terraform](https://img.shields.io/badge/IaC%20with%20Terraform-623CE4?style=for-the-badge&logo=terraform&logoColor=white)
 ![Vercel](https://img.shields.io/badge/Deployed%20on%20Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white)
+![GitHub Actions](https://img.shields.io/badge/CI/CD%20with%20GitHub%20Actions-2088FF?style=for-the-badge&logo=github-actions&logoColor=white)
+![Cloud Build](https://img.shields.io/badge/CI/CD%20with%20Cloud%20Build-4285F4?style=for-the-badge&logo=googlecloud&logoColor=white)
 ![MongoDB Atlas](https://img.shields.io/badge/Using%20MongoDB%20Atlas-47A248?style=for-the-badge&logo=mongodb&logoColor=white)
 ![Pinecone](https://img.shields.io/badge/Using%20Pinecone-FF6F61?style=for-the-badge&logo=googledataflow&logoColor=white)
-![GitHub Actions](https://img.shields.io/badge/CI/CD%20with%20GitHub%20Actions-2088FF?style=for-the-badge&logo=github-actions&logoColor=white)
 
 ## Usage
 
@@ -547,7 +588,7 @@ EstateWise/
 └── ... (other config files, etc.)
 ```
 
-## AWS Deployment
+## Deployment
 
 To deploy the backend to AWS, you can use the provided `deploy.sh` script in the `aws/` directory.
 This script automates the deployment process to AWS, including building the Docker image, pushing it to AWS ECR, and deploying it to AWS ECS.
