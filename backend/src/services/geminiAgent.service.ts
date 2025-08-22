@@ -9,6 +9,9 @@ import {
   RawQueryResult,
 } from "../scripts/queryProperties";
 import { chatWithEstateWise, EstateWiseContext } from "./geminiChat.service";
+import { IntentClassificationService, IntentType } from "./intentClassification.service";
+import { DisambiguationService } from "./disambiguation.service";
+import { IntentTelemetryService } from "./intentTelemetry.service";
 
 interface DecisionPayload {
   usePropertyData: boolean;
