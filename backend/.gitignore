@@ -1,2 +1,4 @@
 .vercel
 dist
+.env
+node_modules
