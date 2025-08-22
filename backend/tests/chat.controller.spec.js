@@ -2,6 +2,10 @@
  * @jest-environment node
  */
 process.env.JWT_SECRET = "irrelevant";
+process.env.GOOGLE_AI_API_KEY = "test-key";
+process.env.PINECONE_API_KEY = "test-pinecone-key";
+process.env.PINECONE_ENVIRONMENT = "test-env";
+process.env.PINECONE_INDEX = "test-index";
 
 /* ─── mock mongoose ───────────────────────────────────────────── */
 const ObjectIdMock = function (v) {
@@ -12,6 +16,22 @@ jest.mock("mongoose", () => {
   const core = { Types: { ObjectId: ObjectIdMock } };
   return { __esModule: true, ...core, default: core };
 });
+
+/* ─── mock enhanced agent services ─────────────────────────────── */
+jest.mock("../src/services/enhancedGeminiAgent.service", () => ({
+  runEnhancedEstateWiseAgent: jest.fn().mockResolvedValue({
+    finalText: "Enhanced agent response",
+    expertViews: { "Data Analyst": "Enhanced analysis" },
+    needsDisambiguation: false,
+    intentClassification: {
+      primaryIntent: "PROPERTY_INQUIRY",
+      confidence: 0.9,
+      alternativeIntents: []
+    }
+  }),
+  getIntentTelemetryService: jest.fn().mockReturnValue(null),
+  getDisambiguationService: jest.fn().mockReturnValue(null),
+}));
 
 /* ─── helpers ─────────────────────────────────────────────────── */
 const httpMocks = require("node-mocks-http");
@@ -70,6 +90,7 @@ describe("chat()", () => {
         message: "hello",
         history: [{ role: "sys", parts: [{ text: "init" }] }],
         expertWeights: { "Data Analyst": 2 },
+        useEnhancedAgent: false, // Use legacy agent for this test
       },
     });
     const res = buildRes();
@@ -95,7 +116,12 @@ describe("chat()", () => {
   it("creates a new conversation for auth user", async () => {
     findOneMock.mockResolvedValueOnce(null);
 
-    const req = httpMocks.createRequest({ body: { message: "yo" } });
+    const req = httpMocks.createRequest({ 
+      body: { 
+        message: "yo",
+        useEnhancedAgent: false // Use legacy agent for this test
+      } 
+    });
     req.user = { id: "u1" };
     const res = buildRes();
 
@@ -118,7 +144,12 @@ describe("chat()", () => {
 
   it("internal error → 500", async () => {
     chatWithEstateWise.mockRejectedValueOnce(new Error("boom"));
-    const req = httpMocks.createRequest({ body: { message: "oops" } });
+    const req = httpMocks.createRequest({ 
+      body: { 
+        message: "oops",
+        useEnhancedAgent: false // Use legacy agent for this test
+      } 
+    });
     req.user = { id: "u1" };
     const res = buildRes();
 
