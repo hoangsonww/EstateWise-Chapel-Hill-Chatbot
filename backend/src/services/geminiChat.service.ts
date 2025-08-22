@@ -9,6 +9,8 @@ import {
   queryProperties,
   RawQueryResult,
 } from "../scripts/queryProperties";
+import { ConfidenceTrackingService } from "./confidenceTracking.service";
+import { IExpertPrediction } from "../models/InferenceLog.model";
 
 /**
  * Chain-of-Thought prompt to guide the models.
@@ -121,6 +123,82 @@ const CLUSTER_COUNT = 4;
 export interface EstateWiseContext {
   rawResults?: RawQueryResult[];
   propertyContext?: string;
+  conversationId?: string;
+  userId?: string;
+}
+
+// Create a singleton instance of the confidence tracking service
+const confidenceTracker = new ConfidenceTrackingService();
+
+/**
+ * Calculates confidence score for an expert response based on various heuristics
+ */
+function calculateExpertConfidence(
+  responseText: string, 
+  expertName: string, 
+  propertyCount: number
+): number {
+  let confidence = 0.5; // Base confidence
+  
+  // Response length heuristic
+  const responseLength = responseText.length;
+  if (responseLength < 50) {
+    confidence -= 0.2; // Very short responses are likely low confidence
+  } else if (responseLength > 200) {
+    confidence += 0.1; // Longer responses often indicate more confident analysis
+  }
+  
+  // Specific content indicators
+  const lowerResponse = responseText.toLowerCase();
+  
+  // Negative confidence indicators
+  if (lowerResponse.includes("i don't know") || 
+      lowerResponse.includes("unable to") ||
+      lowerResponse.includes("cannot provide") ||
+      lowerResponse.includes("no data") ||
+      lowerResponse.includes("insufficient information")) {
+    confidence -= 0.3;
+  }
+  
+  // Positive confidence indicators
+  if (lowerResponse.includes("recommend") || 
+      lowerResponse.includes("suggest") ||
+      lowerResponse.includes("analysis shows") ||
+      lowerResponse.includes("data indicates")) {
+    confidence += 0.2;
+  }
+  
+  // Expert-specific adjustments
+  switch (expertName) {
+    case "Data Analyst":
+      // Data analyst should have specific numbers/statistics
+      if (/\d+/.test(responseText) && (lowerResponse.includes("average") || lowerResponse.includes("%"))) {
+        confidence += 0.1;
+      }
+      break;
+    case "Cluster Analyst":
+      // Cluster analyst should mention clusters
+      if (lowerResponse.includes("cluster")) {
+        confidence += 0.1;
+      }
+      break;
+    case "Financial Advisor":
+      // Financial advisor should mention money/costs
+      if (/\$[\d,]+/.test(responseText) || lowerResponse.includes("price") || lowerResponse.includes("cost")) {
+        confidence += 0.1;
+      }
+      break;
+  }
+  
+  // Property availability factor
+  if (propertyCount === 0) {
+    confidence -= 0.2; // Lower confidence when no properties available
+  } else if (propertyCount > 10) {
+    confidence += 0.1; // Higher confidence with more data
+  }
+  
+  // Clamp confidence between 0 and 1
+  return Math.max(0, Math.min(1, confidence));
 }
 
 /**
@@ -384,8 +462,10 @@ export async function chatWithEstateWise(
     },
   ];
 
-  // ─── 6) Run each expert in parallel ─────────────────────────────────────
+  // ─── 6) Run each expert in parallel with timing and confidence tracking ────
   const expertPromises = experts.map(async (expert) => {
+    const expertStartTime = Date.now();
+    
     const systemInstruction = wrapWithHiddenCoT(
       baseSystemInstruction + "\n\n" + expert.instructions,
     );
@@ -398,11 +478,35 @@ export async function chatWithEstateWise(
       safetySettings,
       history: effectiveHistory,
     });
-    const result = await chat.sendMessage(message);
-    return {
-      name: expert.name,
-      text: result.response.text(),
-    };
+    
+    try {
+      const result = await chat.sendMessage(message);
+      const expertEndTime = Date.now();
+      const processingTime = expertEndTime - expertStartTime;
+      const responseText = result.response.text();
+      
+      // Calculate confidence score for this expert based on response characteristics
+      const confidenceScore = calculateExpertConfidence(responseText, expert.name, rawResults.length);
+      
+      return {
+        name: expert.name,
+        text: responseText,
+        confidenceScore,
+        processingTime,
+      };
+    } catch (error) {
+      console.error(`Error from expert ${expert.name}:`, error);
+      const expertEndTime = Date.now();
+      const processingTime = expertEndTime - expertStartTime;
+      
+      // Return a fallback response with low confidence
+      return {
+        name: expert.name,
+        text: "I apologize, but I'm having trouble processing your request at the moment. Please try rephrasing your question.",
+        confidenceScore: 0.1, // Very low confidence for error cases
+        processingTime,
+      };
+    }
   });
   const expertResults = await Promise.all(expertPromises);
 
@@ -470,7 +574,33 @@ export async function chatWithEstateWise(
     finalText = (resultOrTimeout as any).response.text();
   }
 
-  // ─── 9) Return both the merged text and each expert view so the UI can toggle them
+  // ─── 9) Log inference for active learning analysis ─────────────────────────
+  try {
+    const expertPredictions: IExpertPrediction[] = expertResults.map((result) => ({
+      expert: result.name,
+      response: result.text,
+      confidenceScore: result.confidenceScore,
+      processingTime: result.processingTime,
+    }));
+
+    await confidenceTracker.logInference({
+      conversationId: userContext.conversationId,
+      userId: userContext.userId,
+      userQuery: message,
+      expertPredictions,
+      finalResponse: finalText,
+      contextSnippet: combinedPropertyContext.slice(0, 500), // First 500 chars of context
+      metadata: {
+        propertyCount: rawResults.length,
+        responseLatency: Date.now() - startTime,
+      },
+    });
+  } catch (error) {
+    console.error("Failed to log inference for active learning:", error);
+    // Don't fail the main request if logging fails
+  }
+
+  // ─── 10) Return both the merged text and each expert view so the UI can toggle them
   const expertViews: Record<string, string> = {};
   expertResults.forEach((r) => {
     expertViews[r.name] = r.text;
