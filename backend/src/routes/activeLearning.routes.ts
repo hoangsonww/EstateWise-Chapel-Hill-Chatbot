@@ -314,4 +314,139 @@ router.post("/integrate", authMiddleware, activeLearningController.markExamplesI
  */
 router.get("/examples/:exampleId", activeLearningController.getExampleDetails);
 
+/**
+ * @swagger
+ * /api/active-learning/retraining/status:
+ *   get:
+ *     summary: Get retraining pipeline status and recommendations
+ *     tags: [Active Learning]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved retraining status
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 retrainingCheck:
+ *                   type: object
+ *                   properties:
+ *                     shouldRetrain:
+ *                       type: boolean
+ *                     reason:
+ *                       type: string
+ *                     availableExamples:
+ *                       type: integer
+ *                     recommendedAction:
+ *                       type: string
+ *                 stats:
+ *                   type: object
+ *                   description: Retraining pipeline statistics
+ *                 ambiguitySlice:
+ *                   type: object
+ *                   description: Ambiguity validation slice information
+ *       401:
+ *         description: Authentication required
+ *       500:
+ *         description: Server error
+ */
+router.get("/retraining/status", authMiddleware, activeLearningController.getRetrainingStatus);
+
+/**
+ * @swagger
+ * /api/active-learning/retraining/prepare:
+ *   post:
+ *     summary: Prepare training data for retraining
+ *     tags: [Active Learning]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Successfully prepared training data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 trainingData:
+ *                   type: object
+ *                   properties:
+ *                     statistics:
+ *                       type: object
+ *                       description: Training data statistics
+ *                 message:
+ *                   type: string
+ *       401:
+ *         description: Authentication required
+ *       500:
+ *         description: Server error
+ */
+router.post("/retraining/prepare", authMiddleware, activeLearningController.prepareTrainingData);
+
+/**
+ * @swagger
+ * /api/active-learning/retraining/results:
+ *   post:
+ *     summary: Process retraining results and update metrics
+ *     tags: [Active Learning]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - modelVersion
+ *               - trainingAccuracy
+ *               - validationAccuracy
+ *               - examplesUsed
+ *             properties:
+ *               modelVersion:
+ *                 type: string
+ *                 description: Version identifier for the retrained model
+ *               trainingAccuracy:
+ *                 type: number
+ *                 description: Training accuracy of the retrained model
+ *               validationAccuracy:
+ *                 type: number
+ *                 description: Validation accuracy of the retrained model
+ *               ambiguitySliceAccuracy:
+ *                 type: number
+ *                 description: Accuracy on ambiguity-focused validation slice
+ *               trainingDate:
+ *                 type: string
+ *                 format: date-time
+ *                 description: Date when retraining was completed
+ *               examplesUsed:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: Array of example IDs used in retraining
+ *     responses:
+ *       200:
+ *         description: Retraining results processed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 processedExamples:
+ *                   type: integer
+ *                 message:
+ *                   type: string
+ *       401:
+ *         description: Authentication required
+ *       400:
+ *         description: Invalid request data
+ *       500:
+ *         description: Server error
+ */
+router.post("/retraining/results", authMiddleware, activeLearningController.processRetrainingResults);
+
 export default router;

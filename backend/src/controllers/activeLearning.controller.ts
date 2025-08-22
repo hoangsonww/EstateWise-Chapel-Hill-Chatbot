@@ -255,6 +255,137 @@ export const markExamplesIntegrated = async (req: AuthRequest, res: Response) =>
 };
 
 /**
+ * Get retraining pipeline status and recommendations
+ * 
+ * @param req - Request
+ * @param res - Response with retraining status
+ */
+export const getRetrainingStatus = async (req: AuthRequest, res: Response) => {
+  try {
+    // Only authenticated users can access retraining status
+    if (!req.user) {
+      return res.status(401).json({ error: "Authentication required" });
+    }
+
+    const { RetrainingIntegrationService } = await import("../services/retrainingIntegration.service");
+    const retrainingService = new RetrainingIntegrationService();
+
+    const [retrainingCheck, stats, ambiguitySlice] = await Promise.all([
+      retrainingService.shouldTriggerRetraining(),
+      retrainingService.getRetrainingStats(),
+      retrainingService.createAmbiguityValidationSlice(),
+    ]);
+
+    res.json({
+      retrainingCheck,
+      stats,
+      ambiguitySlice: {
+        ambiguousCount: ambiguitySlice.statistics.ambiguousCount,
+        nonAmbiguousCount: ambiguitySlice.statistics.nonAmbiguousCount,
+        avgOriginalConfidence: ambiguitySlice.statistics.avgOriginalConfidence,
+        commonAmbiguityReasons: ambiguitySlice.statistics.commonAmbiguityReasons,
+      },
+      message: "Retraining status retrieved successfully",
+    });
+  } catch (error) {
+    console.error("Error getting retraining status:", error);
+    res.status(500).json({ error: "Failed to get retraining status" });
+  }
+};
+
+/**
+ * Prepare training data for retraining
+ * 
+ * @param req - Request
+ * @param res - Response with prepared training data
+ */
+export const prepareTrainingData = async (req: AuthRequest, res: Response) => {
+  try {
+    // Only authenticated users can prepare training data
+    if (!req.user) {
+      return res.status(401).json({ error: "Authentication required" });
+    }
+
+    const { RetrainingIntegrationService } = await import("../services/retrainingIntegration.service");
+    const retrainingService = new RetrainingIntegrationService();
+
+    const trainingData = await retrainingService.prepareTrainingData();
+
+    res.json({
+      trainingData: {
+        statistics: trainingData.statistics,
+        // Don't return actual examples for security/performance reasons
+        // They would be accessed directly by the training pipeline
+      },
+      message: `Prepared ${trainingData.statistics.totalExamples} examples for training`,
+    });
+  } catch (error) {
+    console.error("Error preparing training data:", error);
+    res.status(500).json({ error: "Failed to prepare training data" });
+  }
+};
+
+/**
+ * Process retraining results and update metrics
+ * 
+ * @param req - Request with retraining results
+ * @param res - Response confirming processing
+ */
+export const processRetrainingResults = async (req: AuthRequest, res: Response) => {
+  try {
+    // Only authenticated users can process retraining results
+    if (!req.user) {
+      return res.status(401).json({ error: "Authentication required" });
+    }
+
+    const {
+      modelVersion,
+      trainingAccuracy,
+      validationAccuracy,
+      ambiguitySliceAccuracy,
+      trainingDate,
+      examplesUsed,
+    } = req.body as {
+      modelVersion: string;
+      trainingAccuracy: number;
+      validationAccuracy: number;
+      ambiguitySliceAccuracy: number;
+      trainingDate: string;
+      examplesUsed: string[];
+    };
+
+    // Validate required fields
+    if (!modelVersion || typeof trainingAccuracy !== "number" || 
+        typeof validationAccuracy !== "number" || !Array.isArray(examplesUsed)) {
+      return res.status(400).json({ 
+        error: "Missing required fields: modelVersion, trainingAccuracy, validationAccuracy, examplesUsed" 
+      });
+    }
+
+    const { RetrainingIntegrationService } = await import("../services/retrainingIntegration.service");
+    const retrainingService = new RetrainingIntegrationService();
+
+    await retrainingService.processRetrainingResults({
+      modelVersion,
+      trainingAccuracy,
+      validationAccuracy,
+      ambiguitySliceAccuracy: ambiguitySliceAccuracy || 0,
+      trainingDate: new Date(trainingDate),
+      examplesUsed,
+    });
+
+    res.json({
+      success: true,
+      processedExamples: examplesUsed.length,
+      message: "Retraining results processed successfully",
+    });
+  } catch (error) {
+    console.error("Error processing retraining results:", error);
+    res.status(500).json({ error: "Failed to process retraining results" });
+  }
+};
+
+/**
  * Get specific example details for review
  * 
  * @param req - Request with example ID parameter
