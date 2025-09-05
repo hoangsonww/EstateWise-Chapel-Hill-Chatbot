@@ -53,8 +53,10 @@ export const resolvers = {
     priceUpdated: {
       subscribe: withFilter(
         () => pubsub.asyncIterator(PRICE_UPDATED),
-        (payload, variables) =>
-          payload.priceUpdated.propertyId === Number(variables.propertyId),
+        (
+          payload: { priceUpdated: { propertyId: number } },
+          variables: { propertyId: number },
+        ) => payload.priceUpdated.propertyId === Number(variables.propertyId),
       ),
     },
   },

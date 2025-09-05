@@ -202,7 +202,7 @@ async function startApolloServer() {
   const schema = makeExecutableSchema({ typeDefs, resolvers });
   const apolloServer = new ApolloServer({ schema });
   await apolloServer.start();
-  apolloServer.applyMiddleware({ app, path: "/graphql" });
+  apolloServer.applyMiddleware({ app: app as any, path: "/graphql" });
 
   const wsServer = new WebSocketServer({
     server: httpServer,
