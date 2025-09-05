@@ -1,6 +1,15 @@
 import { useState } from "react";
 import { gql, useMutation, useQuery, useSubscription } from "@apollo/client";
 
+type WatchProperty = {
+  propertyId: string;
+  price: number;
+};
+
+interface WatchlistData {
+  watchlist: WatchProperty[];
+}
+
 const WATCHLIST_QUERY = gql`
   query Watchlist {
     watchlist {
@@ -29,9 +38,12 @@ const PRICE_UPDATED = gql`
 `;
 
 function PriceListener({ propertyId }: { propertyId: string }) {
-  const { data } = useSubscription(PRICE_UPDATED, {
-    variables: { propertyId },
-  });
+  const { data } = useSubscription<{ priceUpdated: WatchProperty }>(
+    PRICE_UPDATED,
+    {
+      variables: { propertyId },
+    },
+  );
   if (!data) return null;
   return (
     <span className="ml-2 text-sm text-green-600">
@@ -41,8 +53,11 @@ function PriceListener({ propertyId }: { propertyId: string }) {
 }
 
 export default function Watchlist() {
-  const { data, refetch } = useQuery(WATCHLIST_QUERY);
-  const [addToWatchlist] = useMutation(ADD_TO_WATCHLIST);
+  const { data, refetch } = useQuery<WatchlistData>(WATCHLIST_QUERY);
+  const [addToWatchlist] = useMutation<
+    { addToWatchlist: WatchProperty },
+    { propertyId: string }
+  >(ADD_TO_WATCHLIST);
   const [id, setId] = useState("");
 
   const handleAdd = async () => {
@@ -70,7 +85,7 @@ export default function Watchlist() {
         </button>
       </div>
       <ul>
-        {data?.watchlist.map((p: any) => (
+        {data?.watchlist.map((p: WatchProperty) => (
           <li key={p.propertyId} className="mb-2">
             {p.propertyId}: ${p.price}
             <PriceListener propertyId={p.propertyId} />
