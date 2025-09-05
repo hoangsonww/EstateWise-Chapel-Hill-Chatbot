@@ -153,6 +153,9 @@ EstateWise is packed with both UI and AI features to enhance your home-finding e
   - In‑chat, the AI generates live Chart.js graphs from Pinecone data so you can instantly see trends and distributions.
   - A dedicated Visualizations page offers aggregate charts and insights for all Chapel Hill properties.
 
+- **Real-time Property Watchlist**
+  Follow listings and receive instant price updates via GraphQL subscriptions.
+
 - **Clustering & Similarity Search**
 
   - k‑Means clustering groups similar properties for more focused suggestions.

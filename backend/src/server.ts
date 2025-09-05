@@ -11,6 +11,13 @@ import conversationRoutes from "./routes/conversation.routes";
 import propertyRoutes from "./routes/property.routes";
 import { errorHandler } from "./middleware/error.middleware";
 import cookieParser from "cookie-parser";
+import http from "http";
+import { ApolloServer } from "apollo-server-express";
+import { typeDefs } from "./graphql/typeDefs";
+import { resolvers } from "./graphql/resolvers";
+import { makeExecutableSchema } from "@graphql-tools/schema";
+import { WebSocketServer } from "ws";
+import { useServer } from "graphql-ws/lib/use/ws";
 
 // ─── Winston Logger Setup ────────────────────────────────────────────────────
 import winston from "winston";
@@ -61,6 +68,7 @@ process.on("unhandledRejection", (reason) => {
 dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3001;
+const httpServer = http.createServer(app);
 
 app.use(cookieParser());
 
@@ -189,6 +197,23 @@ app.get("/", (req, res) => {
 // Error Handling Middleware
 app.use(errorHandler);
 
+// ─── GraphQL Apollo Server Setup ────────────────────────────────────────────
+async function startApolloServer() {
+  const schema = makeExecutableSchema({ typeDefs, resolvers });
+  const apolloServer = new ApolloServer({ schema });
+  await apolloServer.start();
+  apolloServer.applyMiddleware({ app, path: "/graphql" });
+
+  const wsServer = new WebSocketServer({
+    server: httpServer,
+    path: "/graphql",
+  });
+
+  useServer({ schema }, wsServer);
+}
+
+startApolloServer();
+
 // ─── MongoDB Connection & Resilience ─────────────────────────────────────────
 const connectWithRetry = () => {
   mongoose
@@ -237,7 +262,7 @@ db.once("open", () => {
   logger.info("📡 MongoDB connection open");
   mongoConnectionGauge.set(1);
   // Only start listening after DB is open
-  app.listen(PORT, () => {
+  httpServer.listen(PORT, () => {
     logger.info(`🏠 EstateWise backend listening on port ${PORT}`);
   });
 });
