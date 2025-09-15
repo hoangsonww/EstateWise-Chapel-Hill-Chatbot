@@ -23,6 +23,7 @@ import {
   CheckSquare,
   FileText,
   GithubIcon,
+  HelpCircle,
 } from "lucide-react";
 
 // Dynamically load react-slick to avoid SSR issues
@@ -444,6 +445,18 @@ export default function Home() {
                 </Button>
               </Link>
             </AnimatedInView>
+            <AnimatedInView delay={0.5}>
+              <Link href="/mortgage-calculator">
+                <Button
+                  variant="secondary"
+                  className="mt-4 rounded-full px-8 py-4 text-lg cursor-pointer"
+                  aria-label="Mortgage Calculator"
+                  title="Mortgage Calculator"
+                >
+                  Mortgage Calculator
+                </Button>
+              </Link>
+            </AnimatedInView>
             <AnimatedInView delay={0.6}>
               <Link href="#features">
                 <Button
@@ -665,6 +678,15 @@ export default function Home() {
               >
                 <FileText className="w-4 h-4 mr-1" />
                 <span className="text-sm">Terms of Service</span>
+              </Link>
+              <Link
+                href="/faq"
+                className="flex items-center whitespace-nowrap hover:text-primary transition-colors"
+                aria-label="FAQ"
+                title="FAQ"
+              >
+                <HelpCircle className="w-4 h-4 mr-1" />
+                <span className="text-sm">FAQ</span>
               </Link>
             </div>
           </div>
