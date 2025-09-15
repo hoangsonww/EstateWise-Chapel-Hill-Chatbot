@@ -23,6 +23,7 @@ import {
   CheckSquare,
   FileText,
   GithubIcon,
+  HelpCircle,
 } from "lucide-react";
 
 // Dynamically load react-slick to avoid SSR issues
@@ -665,6 +666,15 @@ export default function Home() {
               >
                 <FileText className="w-4 h-4 mr-1" />
                 <span className="text-sm">Terms of Service</span>
+              </Link>
+              <Link
+                href="/faq"
+                className="flex items-center whitespace-nowrap hover:text-primary transition-colors"
+                aria-label="FAQ"
+                title="FAQ"
+              >
+                <HelpCircle className="w-4 h-4 mr-1" />
+                <span className="text-sm">FAQ</span>
               </Link>
             </div>
           </div>
