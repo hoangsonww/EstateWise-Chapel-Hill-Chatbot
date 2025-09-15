@@ -1,1 +1,3 @@
 .next/
+backend/dist/
+frontend/.next/
