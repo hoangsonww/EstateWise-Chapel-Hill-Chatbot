@@ -3,6 +3,10 @@ import mongoose from "mongoose";
 import Conversation, { IConversation } from "../models/Conversation.model";
 import { chatWithEstateWise } from "../services/geminiChat.service";
 import { AuthRequest } from "../middleware/auth.middleware";
+import { ConfidenceTrackingService } from "../services/confidenceTracking.service";
+
+// Create confidence tracking service instance
+const confidenceTracker = new ConfidenceTrackingService();
 
 /**
  * Main chat endpoint – handles both logged‑in and guest users.
@@ -59,11 +63,14 @@ export const chat = async (req: AuthRequest, res: Response) => {
         { role: "user", parts: [{ text: message }] },
       ];
 
-      // run MoE pipeline
+      // run MoE pipeline with conversation context for active learning
       const { finalText, expertViews } = await chatWithEstateWise(
         historyForGemini,
         message,
-        {},
+        {
+          conversationId: conversation._id.toString(),
+          userId: userId.toString(),
+        },
         conversation.expertWeights,
       );
 
@@ -128,7 +135,10 @@ export const chat = async (req: AuthRequest, res: Response) => {
     const { finalText, expertViews } = await chatWithEstateWise(
       historyForGemini,
       message,
-      {},
+      {
+        // For guest users, we don't have conversationId or userId
+        // but we still want to track inferences for active learning
+      },
       guestWeights,
     );
 
@@ -193,6 +203,22 @@ export const rateConversation = async (req: AuthRequest, res: Response) => {
     if (rating === "down") {
       adjustWeightsInPlace(convo.expertWeights, rating);
       await convo.save();
+    }
+
+    // Update inference logs with user feedback for active learning
+    try {
+      // Find the most recent inference log for this conversation
+      const InferenceLog = (await import("../models/InferenceLog.model")).default;
+      const recentLog = await InferenceLog.findOne({
+        conversationId: convo._id,
+      }).sort({ timestamp: -1 });
+
+      if (recentLog) {
+        await confidenceTracker.updateWithFeedback(recentLog._id.toString(), rating);
+      }
+    } catch (error) {
+      console.error("Failed to update inference log with feedback:", error);
+      // Don't fail the main request if feedback logging fails
     }
 
     return res.json({ success: true, expertWeights: convo.expertWeights });
