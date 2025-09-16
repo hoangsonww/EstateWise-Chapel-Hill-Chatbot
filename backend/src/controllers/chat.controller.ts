@@ -2,13 +2,13 @@ import { Request, Response } from "express";
 import mongoose from "mongoose";
 import Conversation, { IConversation } from "../models/Conversation.model";
 import { chatWithEstateWise } from "../services/geminiChat.service";
+import { runEnhancedEstateWiseAgent, getIntentTelemetryService } from "../services/enhancedGeminiAgent.service";
+import { IntentType } from "../services/intentClassification.service";
 import { AuthRequest } from "../middleware/auth.middleware";
 
 /**
- * Main chat endpoint – handles both logged‑in and guest users.
- * Guests send their current expertWeights in the request body;
- * we echo the *updated* weights back so the FE can stash them
- * in localStorage for the next turn.
+ * Enhanced chat endpoint that supports intent classification and disambiguation.
+ * Handles both logged‑in and guest users with advanced intent understanding.
  *
  * @param req - The request object containing the chat message and optional conversation ID.
  * @param res - The response object to send the chat response.
@@ -21,6 +21,7 @@ export const chat = async (req: AuthRequest, res: Response) => {
       convoId,
       history,
       expertWeights: clientWeights = {},
+      useEnhancedAgent = true, // Allow fallback to legacy agent
     } = req.body;
 
     /* authenticated users */
@@ -59,13 +60,52 @@ export const chat = async (req: AuthRequest, res: Response) => {
         { role: "user", parts: [{ text: message }] },
       ];
 
-      // run MoE pipeline
-      const { finalText, expertViews } = await chatWithEstateWise(
-        historyForGemini,
-        message,
-        {},
-        conversation.expertWeights,
-      );
+      let finalText: string;
+      let expertViews: Record<string, string>;
+      let needsDisambiguation = false;
+      let clarificationMessage: string | undefined;
+      let suggestedActions: Array<{ text: string; intent: IntentType; usePropertyData: boolean }> | undefined;
+      let intentClassification: any;
+
+      if (useEnhancedAgent) {
+        try {
+          // Use enhanced agent with intent classification
+          const result = await runEnhancedEstateWiseAgent(
+            message,
+            "",
+            conversation.expertWeights,
+            conversation._id.toString()
+          );
+
+          finalText = result.finalText;
+          expertViews = result.expertViews;
+          needsDisambiguation = result.needsDisambiguation || false;
+          clarificationMessage = result.clarificationMessage;
+          suggestedActions = result.suggestedActions;
+          intentClassification = result.intentClassification;
+        } catch (error) {
+          console.warn("Enhanced agent failed, falling back to legacy:", error);
+          // Fallback to legacy agent
+          const result = await chatWithEstateWise(
+            historyForGemini,
+            message,
+            {},
+            conversation.expertWeights,
+          );
+          finalText = result.finalText;
+          expertViews = result.expertViews;
+        }
+      } else {
+        // Use legacy agent directly
+        const result = await chatWithEstateWise(
+          historyForGemini,
+          message,
+          {},
+          conversation.expertWeights,
+        );
+        finalText = result.finalText;
+        expertViews = result.expertViews;
+      }
 
       /* persist both msgs */
       conversation.messages.push({
@@ -81,12 +121,24 @@ export const chat = async (req: AuthRequest, res: Response) => {
       conversation.markModified("messages");
       await conversation.save();
 
-      return res.json({
+      const response: any = {
         response: finalText,
         expertViews,
         convoId: conversation._id,
         expertWeights: conversation.expertWeights,
-      });
+      };
+
+      // Add enhanced features if available
+      if (needsDisambiguation) {
+        response.needsDisambiguation = true;
+        response.clarificationMessage = clarificationMessage;
+        response.suggestedActions = suggestedActions;
+      }
+      if (intentClassification) {
+        response.intentClassification = intentClassification;
+      }
+
+      return res.json(response);
     }
 
     // Guest users
@@ -125,18 +177,72 @@ export const chat = async (req: AuthRequest, res: Response) => {
       { role: "user", parts: [{ text: message }] },
     ];
 
-    const { finalText, expertViews } = await chatWithEstateWise(
-      historyForGemini,
-      message,
-      {},
-      guestWeights,
-    );
+    let finalText: string;
+    let expertViews: Record<string, string>;
+    let needsDisambiguation = false;
+    let clarificationMessage: string | undefined;
+    let suggestedActions: Array<{ text: string; intent: IntentType; usePropertyData: boolean }> | undefined;
+    let intentClassification: any;
 
-    return res.json({
+    if (useEnhancedAgent) {
+      try {
+        // Generate guest conversation ID for disambiguation tracking
+        const guestConvoId = convoId || `guest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        
+        const result = await runEnhancedEstateWiseAgent(
+          message,
+          "",
+          guestWeights,
+          guestConvoId
+        );
+
+        finalText = result.finalText;
+        expertViews = result.expertViews;
+        needsDisambiguation = result.needsDisambiguation || false;
+        clarificationMessage = result.clarificationMessage;
+        suggestedActions = result.suggestedActions;
+        intentClassification = result.intentClassification;
+      } catch (error) {
+        console.warn("Enhanced agent failed for guest, falling back to legacy:", error);
+        // Fallback to legacy agent
+        const result = await chatWithEstateWise(
+          historyForGemini,
+          message,
+          {},
+          guestWeights,
+        );
+        finalText = result.finalText;
+        expertViews = result.expertViews;
+      }
+    } else {
+      // Use legacy agent directly
+      const result = await chatWithEstateWise(
+        historyForGemini,
+        message,
+        {},
+        guestWeights,
+      );
+      finalText = result.finalText;
+      expertViews = result.expertViews;
+    }
+
+    const response: any = {
       response: finalText,
       expertViews,
       expertWeights: guestWeights,
-    });
+    };
+
+    // Add enhanced features if available
+    if (needsDisambiguation) {
+      response.needsDisambiguation = true;
+      response.clarificationMessage = clarificationMessage;
+      response.suggestedActions = suggestedActions;
+    }
+    if (intentClassification) {
+      response.intentClassification = intentClassification;
+    }
+
+    return res.json(response);
   } catch (err) {
     console.error("Error processing chat request:", err);
     return res.status(500).json({ error: "Error processing chat request" });
@@ -144,10 +250,11 @@ export const chat = async (req: AuthRequest, res: Response) => {
 };
 
 /**
- * Thumb‑rating endpoint.
+ * Enhanced thumb‑rating endpoint with intent classification feedback.
  * For authenticated users: Update the expertWeights in the DB for the given convoId.
  * For unauthenticated users: Update the expertWeights in the request body so the UI
  * can stash them in localStorage for the next turn.
+ * Also records intent classification feedback for continuous improvement.
  *
  * @param req - The request object containing the conversation ID, rating, and optional expert.
  * @param res - The response object to send the rating response.
@@ -159,11 +266,30 @@ export const rateConversation = async (req: AuthRequest, res: Response) => {
       convoId,
       rating,
       expertWeights = {},
+      intentFeedback, // New: { classificationId, actualIntent, userComment }
     } = req.body as {
       convoId?: string;
       rating: "up" | "down";
       expertWeights?: Record<string, number>;
+      intentFeedback?: {
+        classificationId: string;
+        actualIntent: IntentType;
+        userComment?: string;
+      };
     };
+
+    // Record intent classification feedback if provided
+    if (intentFeedback) {
+      const telemetryService = getIntentTelemetryService();
+      if (telemetryService) {
+        telemetryService.recordFeedback(
+          intentFeedback.classificationId,
+          intentFeedback.actualIntent,
+          rating === "up" ? "positive" : "negative",
+          intentFeedback.userComment
+        );
+      }
+    }
 
     // Unauthenticated users
     if (!req.user) {
