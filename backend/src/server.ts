@@ -11,6 +11,7 @@ import conversationRoutes from "./routes/conversation.routes";
 import propertyRoutes from "./routes/property.routes";
 import { errorHandler } from "./middleware/error.middleware";
 import cookieParser from "cookie-parser";
+import insightRoutes from "./routes/insight.routes";
 
 // ─── Winston Logger Setup ────────────────────────────────────────────────────
 import winston from "winston";
@@ -136,6 +137,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/chat", chatRoutes);
 app.use("/api/conversations", conversationRoutes);
 app.use("/api/properties", propertyRoutes);
+app.use("/api/insights", insightRoutes);
 
 // Serve Swagger JSON definition
 app.get("/swagger.json", (req, res) => {

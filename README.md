@@ -154,6 +154,11 @@ EstateWise is packed with both UI and AI features to enhance your home-finding e
   - In‑chat, the AI generates live Chart.js graphs from Pinecone data so you can instantly see trends and distributions.
   - A dedicated Visualizations page offers aggregate charts and insights for all Chapel Hill properties.
 
+- **HDF5 Market Insight Archive**
+
+  - Property analytics are periodically snapshotted into an HDF5 archive that captures city, home-type, and bedroom-level trends.
+  - The backend exposes `/api/insights/market` for fast retrieval and `/api/insights/rebuild` to refresh the archive directly from MongoDB property records.
+
 - **Clustering & Similarity Search**
 
   - k‑Means clustering groups similar properties for more focused suggestions.
