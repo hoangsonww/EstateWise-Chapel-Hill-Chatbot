@@ -11,6 +11,7 @@ import conversationRoutes from "./routes/conversation.routes";
 import propertyRoutes from "./routes/property.routes";
 import commuteProfileRoutes from "./routes/commute-profile.routes";
 import graphRoutes from "./routes/graph.routes";
+import communityInsightRoutes from "./routes/community-insights.routes";
 import { errorHandler } from "./middleware/error.middleware";
 import cookieParser from "cookie-parser";
 
@@ -140,6 +141,7 @@ app.use("/api/conversations", conversationRoutes);
 app.use("/api/properties", propertyRoutes);
 app.use("/api/commute-profiles", commuteProfileRoutes);
 app.use("/api/graph", graphRoutes);
+app.use("/api/community-insights", communityInsightRoutes);
 
 // Serve Swagger JSON definition
 app.get("/swagger.json", (req, res) => {
