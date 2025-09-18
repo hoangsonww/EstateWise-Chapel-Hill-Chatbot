@@ -652,6 +652,16 @@ paths:
           }
 ```
 
+### 8.5 SQLite Neighborhood Insights
+
+- To complement MongoDB, the backend now ships with a lightweight SQLite database (`community_insights.db`) that stores curated Chapel Hill amenities (schools, healthcare, transit upgrades, dining, etc.).
+- A dedicated service (`CommunityInsightsService`) wraps `sqlite3`, auto-creates the schema, and seeds data from `communityInsightsSeed.ts` on first run. It supports filtering, category listing, and keyword search via SQL queries.
+- Three new REST endpoints expose the dataset:
+  - `GET /api/community-insights` – list insights with optional `?category=`.
+  - `GET /api/community-insights/search?q=` – case-insensitive search across title, description, and category.
+  - `GET /api/community-insights/categories` – retrieve available categories for UI filters.
+- Because the service accepts an environment override for the DB path, tests run fully in-memory (using `:memory:`) without touching production data files.
+
 ---
 
 ## 9. Frontend Integration
