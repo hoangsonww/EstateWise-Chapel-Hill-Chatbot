@@ -40,6 +40,7 @@ import {
   Zap,
   Check,
   Copy,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -532,6 +533,118 @@ type ChatMessage = {
   role: "user" | "model";
   text: string;
   expertViews?: Record<string, string>;
+};
+
+type Suggestion = {
+  id: string;
+  prompt: string;
+  helper?: string;
+};
+
+const MAX_SUGGESTIONS = 4;
+
+const DEFAULT_SUGGESTIONS: Suggestion[] = [
+  {
+    id: "market-trends",
+    prompt: "What are the latest Chapel Hill housing market trends?",
+    helper: "Great place to start",
+  },
+  {
+    id: "neighborhood-compare",
+    prompt: "Compare home prices across Chapel Hill neighborhoods.",
+    helper: "Explore local differences",
+  },
+  {
+    id: "investment-fit",
+    prompt: "Help me pick a Chapel Hill neighborhood for long-term investment.",
+    helper: "Investor-focused",
+  },
+  {
+    id: "financing-options",
+    prompt: "What financing programs should I consider for Chapel Hill?",
+    helper: "Financing guidance",
+  },
+];
+
+const slugify = (value: string): string => {
+  const slug = value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  return slug ? slug.slice(0, 48) : `item-${value.length}`;
+};
+
+const cleanTopic = (topic: string): string =>
+  topic
+    .replace(/[*_`]/g, "")
+    .replace(/\s+/g, " ")
+    .replace(/\s*[•·]\s*/g, " ")
+    .trim()
+    .replace(/\.+$/, "");
+
+const extractTopicsFromText = (text: string): string[] => {
+  const topics = new Set<string>();
+  const bulletRegex = /(?:^|\n)\s*(?:[-*]\s+|\d+\.\s+)([^\n]{4,120})/g;
+  let match: RegExpExecArray | null;
+  while ((match = bulletRegex.exec(text)) && topics.size < MAX_SUGGESTIONS) {
+    const cleaned = cleanTopic(match[1]);
+    if (cleaned.length >= 8 && cleaned.length <= 120) topics.add(cleaned);
+  }
+
+  if (topics.size < MAX_SUGGESTIONS) {
+    const headingRegex = /(?:^|\n)#{1,3}\s+([^\n]{4,100})/g;
+    while ((match = headingRegex.exec(text)) && topics.size < MAX_SUGGESTIONS) {
+      const cleaned = cleanTopic(match[1]);
+      if (cleaned.length >= 6 && cleaned.length <= 100) topics.add(cleaned);
+    }
+  }
+
+  return Array.from(topics);
+};
+
+const generateSuggestions = (history: ChatMessage[]): Suggestion[] => {
+  const suggestions: Suggestion[] = [];
+  const pushUnique = (suggestion: Suggestion) => {
+    if (
+      suggestion.prompt.length === 0 ||
+      suggestions.some((s) => s.prompt === suggestion.prompt) ||
+      suggestions.length >= MAX_SUGGESTIONS
+    )
+      return;
+    suggestions.push(suggestion);
+  };
+
+  const lastModel = [...history]
+    .reverse()
+    .find((m) => m.role === "model");
+
+  if (lastModel) {
+    if (lastModel.expertViews) {
+      Object.keys(lastModel.expertViews)
+        .filter(Boolean)
+        .slice(0, MAX_SUGGESTIONS)
+        .forEach((name) =>
+          pushUnique({
+            id: `expert-${slugify(name)}`,
+            prompt: `Can ${name} dive deeper into this topic?`,
+            helper: `${name}'s perspective`,
+          }),
+        );
+    }
+
+    extractTopicsFromText(lastModel.text)
+      .slice(0, MAX_SUGGESTIONS)
+      .forEach((topic) =>
+        pushUnique({
+          id: `topic-${slugify(topic)}`,
+          prompt: `Could you expand on ${topic}?`,
+          helper: "Based on the last answer",
+        }),
+      );
+  }
+
+  DEFAULT_SUGGESTIONS.forEach((suggestion) => pushUnique(suggestion));
+  return suggestions.slice(0, MAX_SUGGESTIONS);
 };
 
 const getInitialMessages = (): ChatMessage[] => {
@@ -1416,13 +1529,15 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   selectedConvoId,
   onSetSelectedConvo,
 }) => {
-  const [messages, setMessages] = useState<ChatMessage[]>(
-    !Cookies.get("estatewise_token") ? getInitialMessages() : [],
-  );
+  const initialMessages = !Cookies.get("estatewise_token")
+    ? getInitialMessages()
+    : [];
+  const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [userInput, setUserInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [convLoading, setConvLoading] = useState(false);
   const latestMessageRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const prevConvoId = useRef<string | null>(null);
   const [inputHistory, setInputHistory] = useState<string[]>(() => {
     try {
@@ -1433,6 +1548,9 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   });
   const [historyIndex, setHistoryIndex] = useState(inputHistory.length);
   const [draftInput, setDraftInput] = useState("");
+  const [suggestions, setSuggestions] = useState<Suggestion[]>(() =>
+    generateSuggestions(initialMessages),
+  );
 
   useEffect(() => {
     sessionStorage.setItem("inputHistory", JSON.stringify(inputHistory));
@@ -1525,6 +1643,10 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
     latestMessageRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  useEffect(() => {
+    setSuggestions(generateSuggestions(messages));
+  }, [messages]);
+
   /* ------------------------------------------------------------------ */
   /* helpers                                                            */
   /* ------------------------------------------------------------------ */
@@ -1552,12 +1674,12 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   /**
    * Send message to the API and update the chat history.
    */
-  const handleSend = async () => {
-    if (!userInput.trim() || loading) return;
+  const handleSend = async (overrideText?: string) => {
+    const text = (overrideText ?? userInput).trim();
+    if (!text || loading) return;
     setLoading(true);
 
     try {
-      const text = userInput;
       setUserInput("");
       setMessages((m) => [...m, { role: "user", text }]);
       setInputHistory((h) => {
@@ -1639,6 +1761,22 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSuggestionSelect = (
+    prompt: string,
+    sendImmediately: boolean,
+  ) => {
+    if (sendImmediately) {
+      void handleSend(prompt);
+      return;
+    }
+    setUserInput(prompt);
+    setDraftInput(prompt);
+    setHistoryIndex(inputHistory.length);
+    requestAnimationFrame(() => {
+      inputRef.current?.focus();
+    });
   };
 
   /**
@@ -1911,8 +2049,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   return (
     <div className="flex flex-col h-full">
       <motion.div
-        className="relative overflow-y-auto space-y-2 p-4"
-        style={{ height: "calc(100vh - 64px - 80px)" }}
+        className="relative flex-1 overflow-y-auto space-y-2 p-4"
         variants={containerVariants}
         initial="hidden"
         animate="visible"
@@ -1962,7 +2099,37 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
       </motion.div>
 
       {/* input */}
-      <div className="flex flex-col flex-shrink-0 h-20 p-4">
+      <div className="flex flex-col flex-shrink-0 gap-3 p-4">
+        {suggestions.length > 0 && !loading && (
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              <Sparkles className="h-4 w-4 text-primary" />
+              Suggested follow-ups
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {suggestions.map((suggestion) => (
+                <button
+                  key={suggestion.id}
+                  onClick={(event) =>
+                    handleSuggestionSelect(
+                      suggestion.prompt,
+                      !event.shiftKey,
+                    )
+                  }
+                  className="rounded-full border border-border bg-background px-3 py-1.5 text-sm transition hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 cursor-pointer"
+                  disabled={loading}
+                  title={
+                    suggestion.helper
+                      ? `${suggestion.helper}. Click to send, or hold Shift to edit first.`
+                      : "Click to send, or hold Shift to edit first."
+                  }
+                >
+                  {suggestion.prompt}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
         <div className="flex gap-2">
           <Input
             placeholder="Type your message…"
@@ -1998,6 +2165,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
               }
             }}
             className="flex-1"
+            ref={inputRef}
           />
           <Button
             onClick={handleSend}
