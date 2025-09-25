@@ -183,7 +183,11 @@ EstateWise is packed with both UI and AI features to enhance your home-finding e
   - Neighborhood Stats: counts and averages for a named neighborhood.
   - Mortgage & Affordability tools: interactive breakdown + quick utilities.
 
-- **Map Page**  
+- **Neighborhood Knowledge Base**
+  - Curated Chapel Hill highlights are stored in a lightweight SQLite database that ships with the backend.
+  - New `/api/community-insights` endpoints let you filter, search, or browse categories for hyper-local amenities and updates.
+
+- **Map Page**
   A map view at `/map` that displays properties with markers:
   - Accepts `?zpids=123,456` to show specific homes only.
   - If no `zpids`, accepts `?q=` to search and caps to a safe max (200) for performance.
@@ -822,6 +826,12 @@ EstateWise features a modern, animated, and fully responsive user interface buil
 - **GET** `/api/graph/neighborhood/:name?limit=50` – Neighborhood stats and a sample list of properties.
 
 Graph endpoints are available when Neo4j is configured; otherwise they respond with `503`.
+
+### Community Insights
+
+- **GET** `/api/community-insights` – Browse curated Chapel Hill amenities stored in the bundled SQLite database.
+- **GET** `/api/community-insights/search?q=<term>` – Keyword search across insight titles, descriptions, and categories.
+- **GET** `/api/community-insights/categories` – Retrieve the list of available insight categories.
 
 ### Properties (Map Helpers)
 
