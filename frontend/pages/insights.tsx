@@ -43,6 +43,7 @@ import {
   Calculator,
   Info,
   MessageCircleMore,
+  Radar,
   HelpCircle,
   TrendingUp,
   ArrowRight,
@@ -738,21 +739,33 @@ export default function InsightsPage() {
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Link
-                    href="/charts"
-                    className="hover:text-primary"
-                    aria-label="Charts"
-                  >
-                    <BarChart3 className="w-5 h-5" />
-                  </Link>
-                </TooltipTrigger>
-                <TooltipContent>Charts</TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Link
-                    href="/map"
-                    className="hover:text-primary"
+              <Link
+                href="/charts"
+                className="hover:text-primary"
+                aria-label="Charts"
+              >
+                <BarChart3 className="w-5 h-5" />
+              </Link>
+            </TooltipTrigger>
+            <TooltipContent>Charts</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Link
+                href="/policy-radar"
+                className="hover:text-primary"
+                aria-label="Policy Radar"
+              >
+                <Radar className="w-5 h-5" />
+              </Link>
+            </TooltipTrigger>
+            <TooltipContent>Policy Radar</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Link
+                href="/map"
+                className="hover:text-primary"
                     aria-label="Map"
                   >
                     <MapPin className="w-5 h-5" />
@@ -825,6 +838,52 @@ export default function InsightsPage() {
                   <p className="text-xs text-muted-foreground md:text-right">
                     Preview coverage for Raleigh-Durham, Charlotte, and coastal
                     NC markets.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="mb-10 overflow-hidden border-emerald-500/40 bg-gradient-to-r from-emerald-500/15 via-primary/10 to-transparent shadow-sm">
+            <CardContent className="p-6 md:p-8">
+              <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+                <div className="space-y-3 max-w-2xl">
+                  <span className="inline-flex items-center gap-2 rounded-full bg-emerald-500/15 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-emerald-600 dark:text-emerald-300">
+                    <Radar className="h-4 w-4" /> New: Policy Radar
+                  </span>
+                  <h2 className="text-2xl font-semibold leading-tight">
+                    Anticipate civic decisions before they move the market
+                  </h2>
+                  <p className="text-muted-foreground">
+                    Orchestrate rezonings, incentives, and institutional expansions with a live playbook for Chapel Hill. Get coalition intelligence, activation checklists, and engagement calendars in one briefing deck.
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-muted-foreground">
+                    <div className="rounded-lg border border-emerald-500/30 bg-background/70 px-3 py-2">
+                      Civic signal filtering &amp; sentiment pulse
+                    </div>
+                    <div className="rounded-lg border border-emerald-500/30 bg-background/70 px-3 py-2">
+                      Scenario-based playbooks for teams
+                    </div>
+                    <div className="rounded-lg border border-emerald-500/30 bg-background/70 px-3 py-2">
+                      Engagement calendar with prep windows
+                    </div>
+                    <div className="rounded-lg border border-emerald-500/30 bg-background/70 px-3 py-2">
+                      Opportunity + risk scoreboard summaries
+                    </div>
+                  </div>
+                </div>
+                <div className="flex flex-col items-start gap-4 md:items-end">
+                  <div className="rounded-full border border-emerald-500/40 bg-background/70 px-4 py-1 text-xs font-semibold uppercase tracking-wide text-emerald-600 dark:text-emerald-300">
+                    Weekly civic scan
+                  </div>
+                  <Button asChild size="lg" variant="outline" className="border-emerald-500/50 text-emerald-600 dark:text-emerald-300 group">
+                    <Link href="/policy-radar">
+                      Launch Policy Radar
+                      <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                    </Link>
+                  </Button>
+                  <p className="text-xs text-muted-foreground md:text-right">
+                    Updated with rezoning, infrastructure, and incentive files driving Chapel Hill valuations.
                   </p>
                 </div>
               </div>

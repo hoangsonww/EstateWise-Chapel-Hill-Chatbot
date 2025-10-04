@@ -30,6 +30,8 @@ import {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   MapPin,
   ChevronLeft,
+  MessageCircleMore,
+  Radar,
 } from "lucide-react";
 
 import { trpc } from "@/lib/trpc";
@@ -249,6 +251,36 @@ export default function MarketPulsePage() {
                   <ChevronLeft className="h-5 w-5" /> Back to Insights
                 </Link>
               </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon" asChild>
+                    <Link href="/chat" aria-label="Chat">
+                      <MessageCircleMore className="h-5 w-5" />
+                    </Link>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Chat</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon" asChild>
+                    <Link href="/policy-radar" aria-label="Policy Radar">
+                      <Radar className="h-5 w-5" />
+                    </Link>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Policy Radar</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon" asChild>
+                    <Link href="/charts" aria-label="Charts">
+                      <BarChart3 className="h-5 w-5" />
+                    </Link>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Charts</TooltipContent>
+              </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <span className="inline-flex">
