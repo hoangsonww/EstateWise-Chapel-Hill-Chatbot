@@ -3,7 +3,7 @@
 name: Analyze Lines of Code in All Repos
 
 # Note: This workflow is just for me to track the lines of code across all my repositories (@hoangsonww)!
-# Not really related to this repository, but useful for me to see my own personal stats.
+# Not really related to this repository, but useful for me to see my own personal stats...
 
 on:
   schedule:
@@ -101,41 +101,45 @@ jobs:
                      JNB + CPP + SWIFT + C + DOCKER + R + HCL + SQL + RUST + KOTLIN + SCALA + \
                      PERL + DART + XML + JSON + YAML + SHELL + MAKE))
           OTHER=$((TOTAL - LISTED))
+          if [ "$OTHER" -lt 0 ]; then OTHER=0; fi
 
-          format() { export LC_ALL="en_US.UTF-8"; printf "%'d\n" "$1"; }
+          format() { export LC_ALL="en_US.UTF-8"; printf "%'d" "$1"; }
+          percent() { awk -v n="$1" -v d="$2" 'BEGIN{ if(d==0) printf "0.00"; else printf "%.2f", (n/d)*100 }'; }
+          pline() { # label, value
+            printf "%-16s: %s (%s%%)\n" "$1" "$(format "$2")" "$(percent "$2" "$TOTAL")"
+          }
 
           echo "====== Lines of Code Summary ======"
-          echo "JavaScript       : $(format $JS)"
-          echo "TypeScript       : $(format $TS)"
-          echo "JSX              : $(format $JSX)"
-          echo "HTML             : $(format $HTML)"
-          echo "Python           : $(format $PY)"
-          echo "Java             : $(format $JAVA)"
-          echo "Go               : $(format $GO)"
-          echo "Ruby             : $(format $RUBY)"
-          echo "CSS              : $(format $CSS)"
-          echo "PHP              : $(format $PHP)"
-          echo "C#               : $(format $CSHARP)"
-          echo "Vue.js           : $(format $VUE)"
+          pline "JavaScript"       "$JS"
+          pline "TypeScript"       "$TS"
+          pline "JSX"              "$JSX"
+          pline "HTML"             "$HTML"
+          pline "Python"           "$PY"
+          pline "Java"             "$JAVA"
+          pline "Go"               "$GO"
+          pline "Ruby"             "$RUBY"
+          pline "CSS"              "$CSS"
+          pline "PHP"              "$PHP"
+          pline "C#"               "$CSHARP"
+          pline "Vue.js"           "$VUE"
           echo ""
-          echo "Jupyter Notebook : $(format $JNB)"
-          echo "C++              : $(format $CPP)"
-          echo "Swift            : $(format $SWIFT)"
-          echo "C                : $(format $C)"
-          echo "Dockerfile       : $(format $DOCKER)"
-          echo "R                : $(format $R)"
-          echo "HCL              : $(format $HCL)"
-          echo "SQL              : $(format $SQL)"
+          pline "Jupyter Notebook" "$JNB"
+          pline "C++"              "$CPP"
+          pline "Swift"            "$SWIFT"
+          pline "C"                "$C"
+          pline "Dockerfile"       "$DOCKER"
+          pline "R"                "$R"
+          pline "HCL"              "$HCL"
+          pline "SQL"              "$SQL"
           echo ""
-          echo "Rust             : $(format $RUST)"
-          echo "Kotlin           : $(format $KOTLIN)"
-          echo "JSON             : $(format $JSON)"
-          echo "XML              : $(format $XML)"
-          echo "YAML             : $(format $YAML)"
-          echo "Bourne Shell     : $(format $SHELL)"
-          echo "Makefile         : $(format $MAKE)"
+          pline "Rust"             "$RUST"
+          pline "Kotlin"           "$KOTLIN"
+          pline "JSON"             "$JSON"
+          pline "XML"              "$XML"
+          pline "YAML"             "$YAML"
+          pline "Bourne Shell"     "$SHELL"
+          pline "Makefile"         "$MAKE"
           echo ""
-          echo "Other            : $(format $OTHER)"
+          pline "Other"            "$OTHER"
           echo "-----------------------------------"
-          echo "Total Lines      : $(format $TOTAL)"
-      
+          echo "Total Lines      : $(format "$TOTAL")"
