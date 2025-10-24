@@ -30,6 +30,7 @@ import {
   BarChart3,
   MapPin,
   GitBranch,
+  Radar,
   ThumbsUp,
   ThumbsDown,
   ChevronDown,
@@ -666,6 +667,18 @@ const TopBar: React.FC<TopBarProps> = ({
             </Link>
           </TooltipTrigger>
           <TooltipContent>Insights</TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Link
+              href="/policy-radar"
+              className="hover:text-primary"
+              aria-label="Policy Radar"
+            >
+              <Radar className="w-5 h-5" />
+            </Link>
+          </TooltipTrigger>
+          <TooltipContent>Policy Radar</TooltipContent>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>

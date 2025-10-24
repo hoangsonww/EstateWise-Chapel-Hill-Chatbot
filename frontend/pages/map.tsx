@@ -21,6 +21,7 @@ import {
   Sun,
   Moon,
   GitBranch,
+  Radar,
   HelpCircle,
 } from "lucide-react";
 import {
@@ -367,21 +368,33 @@ export default function MapPage() {
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Link
-                    href="/insights"
-                    className="hover:text-primary"
-                    aria-label="Insights"
-                  >
-                    <GitBranch className="w-5 h-5" />
-                  </Link>
-                </TooltipTrigger>
-                <TooltipContent>Insights</TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Link
-                    href="/charts"
-                    className="hover:text-primary"
+              <Link
+                href="/insights"
+                className="hover:text-primary"
+                aria-label="Insights"
+              >
+                <GitBranch className="w-5 h-5" />
+              </Link>
+            </TooltipTrigger>
+            <TooltipContent>Insights</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Link
+                href="/policy-radar"
+                className="hover:text-primary"
+                aria-label="Policy Radar"
+              >
+                <Radar className="w-5 h-5" />
+              </Link>
+            </TooltipTrigger>
+            <TooltipContent>Policy Radar</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Link
+                href="/charts"
+                className="hover:text-primary"
                     aria-label="Charts"
                   >
                     <BarChart3 className="w-5 h-5" />

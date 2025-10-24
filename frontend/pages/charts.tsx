@@ -20,6 +20,7 @@ import {
   MessageCircleMore,
   MapPin,
   GitBranch,
+  Radar,
 } from "lucide-react";
 import {
   Tooltip,
@@ -317,21 +318,33 @@ export default function ChartsPage() {
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Link
-                    href="/insights"
-                    className="hover:text-primary"
-                    aria-label="Insights"
-                  >
-                    <GitBranch className="h-5 w-5" />
-                  </Link>
-                </TooltipTrigger>
-                <TooltipContent>Insights</TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Link
-                    href="/map"
-                    className="hover:text-primary"
+              <Link
+                href="/insights"
+                className="hover:text-primary"
+                aria-label="Insights"
+              >
+                <GitBranch className="h-5 w-5" />
+              </Link>
+            </TooltipTrigger>
+            <TooltipContent>Insights</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Link
+                href="/policy-radar"
+                className="hover:text-primary"
+                aria-label="Policy Radar"
+              >
+                <Radar className="h-5 w-5" />
+              </Link>
+            </TooltipTrigger>
+            <TooltipContent>Policy Radar</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Link
+                href="/map"
+                className="hover:text-primary"
                     aria-label="Map"
                   >
                     <MapPin className="h-5 w-5" />

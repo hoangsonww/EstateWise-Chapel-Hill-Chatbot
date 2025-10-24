@@ -25,6 +25,7 @@ import {
   GithubIcon,
   BarChart3,
   BotMessageSquare,
+  Radar,
 } from "lucide-react";
 
 // Dynamically load react-slick to avoid SSR issues
@@ -146,6 +147,12 @@ const features = [
     description:
       "Like/dislike responses and refine results based on what matters to you.",
     icon: <CheckSquare className="w-16 h-16 text-primary" />,
+  },
+  {
+    title: "Policy Radar Command Center",
+    description:
+      "Track zoning fights, incentives, and institutional moves with one playbook-ready dashboard.",
+    icon: <Radar className="w-16 h-16 text-primary" />,
   },
   {
     title: "Privacy & Security",
@@ -1254,7 +1261,7 @@ export default function Home() {
               </div>
             </AnimatedInView>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <AnimatedInView delay={0.05}>
                 <Card className="h-full border-primary/40">
                   <CardHeader className="flex flex-row items-center gap-3">
@@ -1303,6 +1310,24 @@ export default function Home() {
                       className="w-full cursor-pointer"
                     >
                       <Link href="/map">View Map</Link>
+                    </Button>
+                  </CardContent>
+                </Card>
+              </AnimatedInView>
+              <AnimatedInView delay={0.2}>
+                <Card className="h-full border-primary/40">
+                  <CardHeader className="flex flex-row items-center gap-3">
+                    <Radar className="w-6 h-6 text-primary" />
+                    <CardTitle className="text-xl">Policy Radar</CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-sm text-muted-foreground space-y-4">
+                    <p>Stay ahead of civic decisions that move valuations.</p>
+                    <Button
+                      asChild
+                      variant="outline"
+                      className="w-full cursor-pointer"
+                    >
+                      <Link href="/policy-radar">Open Policy Radar</Link>
                     </Button>
                   </CardContent>
                 </Card>
