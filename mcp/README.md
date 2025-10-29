@@ -2,50 +2,32 @@
 
 ![MCP](https://img.shields.io/badge/MCP-Server-6E56CF?style=for-the-badge&logo=modelcontextprotocol) ![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white) ![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white) ![Zod](https://img.shields.io/badge/Zod-3068B7?style=for-the-badge&logo=zod&logoColor=white) ![LRU Cache](https://img.shields.io/badge/LRU%20Cache-FF6F61?style=for-the-badge&logo=redis&logoColor=white) ![MIT License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
 
-This package exposes EstateWise property, graph, analytics, finance, map, commute, auth, system, and utility tools over the Model Context Protocol (MCP). It lets MCP‑compatible clients (IDEs, assistants, agents) call tools like property search, graph similarity, commute profile CRUD, price/sqft analytics, mortgage math, market analysis, batch operations, and monitoring via stdio.
+This package exposes EstateWise property, graph, analytics, finance, map, commute, auth, system, batch operations, market analysis, monitoring, and token management tools over the Model Context Protocol (MCP). It lets MCP‑compatible clients (IDEs, assistants, agents) call tools like property search, graph similarity, market analysis, batch operations, token authentication, monitoring, and more via stdio.
 
 - Location: `mcp/`
 - Transport: `stdio`
 - SDK: `@modelcontextprotocol/sdk`
 - **Version**: 0.2.0
-- **Tools**: 50+
+- **Tools**: 60+
 
 Works with any MCP client, such as IDE plugins (e.g., Claude Desktop) or agent frameworks (e.g., Agentic AI).
 
 ## Overview
 
-The MCP server wraps the existing EstateWise backend API and frontend map viewer to provide a rich set of tools for real estate research. It can be launched from any MCP‑compatible client, such as IDE plugins (e.g., Claude Desktop) or agent frameworks (e.g., Agentic AI).
+The MCP server wraps the existing EstateWise backend API and frontend map viewer to provide a comprehensive suite of 60+ tools for real estate research, market analysis, and data management. It supports property search, graph-based similarity analysis, market intelligence, batch operations, token-based authentication, performance monitoring, and more.
+
+Key capabilities:
+- **Property Discovery**: Search, lookup, and analyze properties with advanced filters
+- **Graph Analysis**: Find similar properties and explain relationships using Neo4j
+- **Market Intelligence**: Price trends, inventory analysis, competitive positioning, affordability metrics
+- **Batch Operations**: Compare, enrich, and export multiple properties efficiently
+- **Token Management**: Secure access/refresh tokens with HMAC signatures
+- **Monitoring**: Built-in usage tracking, health checks, and performance metrics
+- **Finance Tools**: Mortgage calculators, affordability analysis, ROI projections
+
+The server can be launched from any MCP‑compatible client, such as IDE plugins (e.g., Claude Desktop) or agent frameworks (e.g., Agentic AI).
 
 You can feel free to use this server with your own MCP client or the provided example client (`src/client.ts`). However, you will need to deploy your own MCP server instance if you no longer want to use everything locally.
-
-## 🆕 What's New in v0.2.0
-
-### Market Analysis Tools
-Gain deep insights into real estate markets with comprehensive analysis tools:
-- **Price Trends**: Statistical analysis of pricing patterns with quartiles and distributions
-- **Inventory Analysis**: Understand market composition by bedroom count, property type, and location
-- **Competitive Analysis**: Position properties against comparable listings
-- **Affordability Index**: Calculate affordability metrics based on income levels
-
-### Batch Operations
-Process multiple properties efficiently with powerful batch tools:
-- **Compare Properties**: Side-by-side comparison with rankings (best value, largest size, most bedrooms)
-- **Bulk Search**: Execute up to 5 searches in parallel with aggregated results
-- **Enrich Properties**: Add computed fields like price per sqft, age, financial estimates
-- **Export Properties**: Generate CSV or JSON exports with customizable fields
-
-### Monitoring & Metrics
-Track server performance and usage with built-in monitoring:
-- **Usage Statistics**: Detailed metrics on tool calls, success rates, and performance
-- **Tool-Specific Analytics**: Per-tool usage tracking with error rates
-- **Health Checks**: Memory usage, uptime, and system status monitoring
-- **Automatic Tracking**: All tool calls are automatically instrumented
-
-### Enhanced Documentation
-- Comprehensive examples for all new tools
-- Updated diagrams showing new tool categories
-- Detailed use cases and integration guides
-- Troubleshooting section expanded
 
 ## Token Management
 
@@ -180,6 +162,8 @@ npm start
   - `MCP_DEBUG` (default: `false`) – verbose debug logs
 
 ## Included Tools
+
+**Total: 60+ tools** spanning properties, graph analysis, analytics, market intelligence, batch operations, monitoring, token management, finance, utilities, authentication, and system management.
 
 All tools validate inputs with Zod and return content blocks per MCP. For maximum compatibility, JSON payloads are returned as stringified text.
 
@@ -552,71 +536,294 @@ flowchart TD
 
 ## Tool Category Map
 
-The MCP server organizes tools into several categories: Properties, Graph, Analytics, Map, Utilities, and Finance. Each category contains related tools that clients can call.
+The MCP server organizes tools into several categories: Properties, Graph, Analytics, Market, Batch, Monitoring, Tokens, Map, Utilities, Finance, Auth, Commute, and System. Each category contains related tools that clients can call.
 
 ```mermaid
 classDiagram
-  class MCPServer
+  class MCPServer {
+    +60+ tools
+    +stdio transport
+    +Zod validation
+  }
+  
   class Properties {
-    search(q, topK)
-    searchAdvanced(filters)
-    lookup(filters)
-    byIds(ids)
-    sample(topK)
+    +search(q, topK)
+    +searchAdvanced(filters)
+    +lookup(filters)
+    +byIds(ids)
+    +sample(topK)
   }
+  
   class Graph {
-    similar(zpid, limit)
-    explain(from, to)
-    neighborhood(name, limit)
-    similarityBatch(zpids, limit)
-    comparePairs(zpids)
-    pathMatrix(zpids, limitPairs)
+    +similar(zpid, limit)
+    +explain(from, to)
+    +neighborhood(name, limit)
+    +similarityBatch(zpids, limit)
+    +comparePairs(zpids)
+    +pathMatrix(zpids, limitPairs)
   }
+  
   class Analytics {
-    summarizeSearch(q, topK)
-    groupByZip(q, topK)
-    distributions(q, topK, buckets)
+    +summarizeSearch(q, topK)
+    +groupByZip(q, topK)
+    +distributions(q, topK, buckets)
+    +pricePerSqft(q, topK, buckets)
   }
+  
+  class MarketAnalysis {
+    +pricetrends(q, topK)
+    +inventory(q, topK)
+    +competitiveAnalysis(zpid)
+    +affordabilityIndex(q, income)
+  }
+  
+  class BatchOperations {
+    +compareProperties(zpids)
+    +bulkSearch(queries)
+    +enrichProperties(zpids)
+    +exportProperties(zpids, format)
+  }
+  
+  class Monitoring {
+    +stats(detailed)
+    +toolUsage(toolName)
+    +health()
+    +reset(confirm)
+  }
+  
+  class TokenManagement {
+    +generate(subject, scope)
+    +validate(token)
+    +revoke(token)
+    +refresh(refreshToken)
+    +revokeRefresh(refreshToken)
+    +cleanup()
+    +stats()
+    +validateRequest(header)
+  }
+  
   class Map {
-    linkForZpids(ids)
-    buildLinkByQuery(q)
+    +linkForZpids(ids)
+    +buildLinkByQuery(q)
+    +decodeLink(url)
   }
+  
   class Util {
-    extractZpids(text)
-    zillowLink(zpid)
-    summarize(text, maxLen)
-    parseGoal(text)
+    +extractZpids(text)
+    +zillowLink(zpid)
+    +summarize(text)
+    +parseGoal(text)
+    +address.parse(text)
+    +geo.distance(coords)
+    +geo.center(points)
   }
+  
   class Finance {
-    mortgage(price, downPct, apr, years,...)
-    affordability(monthlyBudget|annualIncome,...)
-    schedule(price, downPct, apr, years, months)
+    +mortgage(price, apr, years)
+    +affordability(income)
+    +schedule(price, months)
+    +capRate(price, rent)
+    +rentVsBuy(rent, price)
   }
+  
+  class Auth {
+    +login(email, password)
+    +signup(username, email, password)
+    +verifyEmail(email)
+    +resetPassword(email)
+  }
+  
+  class Commute {
+    +create(token, destinations)
+    +list(token)
+    +get(token, id)
+    +update(token, id)
+    +delete(token, id)
+  }
+  
+  class System {
+    +config()
+    +time()
+    +health()
+    +tools()
+    +cache.clear()
+  }
+  
   MCPServer --> Properties
   MCPServer --> Graph
   MCPServer --> Analytics
+  MCPServer --> MarketAnalysis
+  MCPServer --> BatchOperations
+  MCPServer --> Monitoring
+  MCPServer --> TokenManagement
   MCPServer --> Map
   MCPServer --> Util
   MCPServer --> Finance
+  MCPServer --> Auth
+  MCPServer --> Commute
+  MCPServer --> System
+```
+
+### Tool Dependencies & Data Flow
+
+```mermaid
+graph TB
+  subgraph Input["Input Sources"]
+    User[User Query]
+    Token[Access Token]
+  end
+  
+  subgraph Core["Core Tools"]
+    Props[Properties Tools]
+    Graph[Graph Tools]
+    Analytics[Analytics Tools]
+  end
+  
+  subgraph Advanced["Advanced Tools"]
+    Market[Market Analysis]
+    Batch[Batch Operations]
+  end
+  
+  subgraph Infrastructure["Infrastructure"]
+    Auth[Token Management]
+    Monitor[Monitoring]
+    System[System Tools]
+  end
+  
+  User --> Props
+  User --> Graph
+  User --> Analytics
+  
+  Props -.provides zpids.-> Graph
+  Props -.provides data.-> Analytics
+  Props -.provides data.-> Market
+  
+  Graph -.similarity data.-> Market
+  Analytics -.statistics.-> Market
+  
+  Props --> Batch
+  Graph --> Batch
+  Market --> Batch
+  
+  Token --> Auth
+  Auth -.secures.-> Props
+  Auth -.secures.-> Graph
+  Auth -.secures.-> Market
+  
+  Props -.tracked by.-> Monitor
+  Graph -.tracked by.-> Monitor
+  Analytics -.tracked by.-> Monitor
+  Market -.tracked by.-> Monitor
+  Batch -.tracked by.-> Monitor
+  
+  System -.manages.-> Monitor
+  System -.manages.-> Auth
+  
+  style Core fill:#E8F4F8
+  style Advanced fill:#FFF4E6
+  style Infrastructure fill:#F0F0F0
+```
+
+### Market Analysis Pipeline
+
+```mermaid
+flowchart LR
+  subgraph Input
+    Query[Search Query]
+  end
+  
+  subgraph Search["Property Search"]
+    PS[properties.search]
+    Results[(Search Results)]
+  end
+  
+  subgraph Analysis["Market Analysis"]
+    Trends[market.pricetrends]
+    Inventory[market.inventory]
+    Afford[market.affordabilityIndex]
+  end
+  
+  subgraph Insights["Generated Insights"]
+    PriceStats[Price Statistics]
+    Distribution[Inventory Distribution]
+    AffordMetrics[Affordability Metrics]
+  end
+  
+  Query --> PS
+  PS --> Results
+  
+  Results --> Trends
+  Results --> Inventory
+  Results --> Afford
+  
+  Trends --> PriceStats
+  Inventory --> Distribution
+  Afford --> AffordMetrics
+  
+  PriceStats --> Report[Market Report]
+  Distribution --> Report
+  AffordMetrics --> Report
 ```
 
 ## Typical Flows
 
 The following diagrams illustrate typical flows for calling specific tools.
 
+### Property Lookup Flow
+
 ```mermaid
 sequenceDiagram
   participant C as Client
   participant S as MCP Server
   participant B as Backend
+  participant DB as MongoDB
 
   C->>S: callTool properties.lookup (city, state, beds)
   S->>B: GET /api/properties/lookup?...filters
+  B->>DB: Query properties
+  DB-->>B: Matching properties
   B-->>S: 200 JSON
   S-->>C: content: text(JSON)
 ```
 
-The graph similarity tool call flow:
+### Graph Similarity Flow
+
+```mermaid
+sequenceDiagram
+  participant C as Client
+  participant S as MCP Server
+  participant B as Backend
+  participant Neo4j as Neo4j Graph
+
+  C->>S: callTool graph.similar (zpid, limit)
+  S->>B: GET /api/graph/similar/{zpid}?limit={limit}
+  B->>Neo4j: MATCH similar nodes
+  Neo4j-->>B: Similar properties
+  B-->>S: 200 JSON
+  S-->>C: content: text(JSON)
+```
+
+### Market Analysis Flow
+
+```mermaid
+sequenceDiagram
+  participant C as Client
+  participant S as MCP Server
+  participant B as Backend
+  participant Cache as LRU Cache
+
+  C->>S: callTool market.pricetrends (q, topK)
+  S->>Cache: Check cache
+  Cache-->>S: MISS
+  S->>B: GET /api/properties?q=...&topK=100
+  B-->>S: 200 JSON (properties)
+  S->>S: Calculate price statistics
+  S->>S: Generate quartiles & distributions
+  S->>Cache: Store result
+  S-->>C: content: text(analysis JSON)
+```
+
+### Batch Comparison Flow
 
 ```mermaid
 sequenceDiagram
@@ -624,10 +831,42 @@ sequenceDiagram
   participant S as MCP Server
   participant B as Backend
 
-  C->>S: callTool graph.similar (zpid, limit)
-  S->>B: GET /api/graph/similar/{zpid}?limit={limit}
-  B-->>S: 200 JSON
-  S-->>C: content: text(JSON)
+  C->>S: callTool batch.compareProperties ([zpid1, zpid2, zpid3])
+  S->>B: GET /api/properties/by-ids?ids=zpid1,zpid2,zpid3
+  B-->>S: 200 JSON (3 properties)
+  S->>S: Calculate comparison metrics
+  S->>S: Generate rankings (bestValue, largestSize, etc)
+  S-->>C: content: text(comparison JSON)
+  
+  Note over C,S: Comparison includes:<br/>- Avg price, sqft, $/sqft<br/>- Min/max values<br/>- Ranked by value, size, bedrooms
+```
+
+### Token-Protected Tool Call
+
+```mermaid
+sequenceDiagram
+  participant C as Client
+  participant S as MCP Server
+  participant TM as Token Manager
+  participant Tool as Protected Tool
+  participant B as Backend
+
+  C->>S: callTool with Authorization: Bearer <token>
+  S->>TM: validateRequest(headers)
+  TM->>TM: Extract token
+  TM->>TM: Verify signature
+  TM->>TM: Check expiration
+  alt Token Valid
+    TM-->>S: { valid: true, payload }
+    S->>Tool: Execute tool
+    Tool->>B: API request
+    B-->>Tool: Response
+    Tool-->>S: Result
+    S-->>C: content: text(result)
+  else Token Invalid/Expired
+    TM-->>S: { valid: false, error }
+    S-->>C: Error: Invalid token
+  end
 ```
 
 ## Example Client (Node.js)
