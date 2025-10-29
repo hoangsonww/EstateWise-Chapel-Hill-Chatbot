@@ -20,7 +20,7 @@ export function recordToolCall(toolName: string, success: boolean) {
   metrics.totalRequests++;
   metrics.toolCalls.set(toolName, (metrics.toolCalls.get(toolName) || 0) + 1);
   metrics.lastCalls.set(toolName, Date.now());
-  
+
   if (!success) {
     metrics.totalErrors++;
     metrics.errors.set(toolName, (metrics.errors.get(toolName) || 0) + 1);
@@ -35,10 +35,10 @@ export const monitoringTools: ToolDef[] = [
     schema: { detailed: z.boolean().optional() },
     handler: async (args: any) => {
       const { detailed = false } = args as { detailed?: boolean };
-      
+
       const uptime = Date.now() - metrics.startTime;
       const uptimeHours = (uptime / (1000 * 60 * 60)).toFixed(2);
-      
+
       const stats = {
         uptime: {
           ms: uptime,
@@ -48,9 +48,14 @@ export const monitoringTools: ToolDef[] = [
         requests: {
           total: metrics.totalRequests,
           errors: metrics.totalErrors,
-          successRate: metrics.totalRequests > 0 
-            ? ((metrics.totalRequests - metrics.totalErrors) / metrics.totalRequests * 100).toFixed(2) + '%'
-            : 'N/A',
+          successRate:
+            metrics.totalRequests > 0
+              ? (
+                  ((metrics.totalRequests - metrics.totalErrors) /
+                    metrics.totalRequests) *
+                  100
+                ).toFixed(2) + "%"
+              : "N/A",
         },
         toolCalls: Object.fromEntries(metrics.toolCalls),
         errors: Object.fromEntries(metrics.errors),
@@ -62,7 +67,7 @@ export const monitoringTools: ToolDef[] = [
           lastCalls[tool] = new Date(timestamp).toISOString();
         }
         (stats as any).lastCalls = lastCalls;
-        
+
         // Top tools by usage
         const topTools = Array.from(metrics.toolCalls.entries())
           .sort((a, b) => b[1] - a[1])
@@ -71,7 +76,9 @@ export const monitoringTools: ToolDef[] = [
         (stats as any).topTools = topTools;
       }
 
-      return { content: [{ type: "text", text: JSON.stringify(stats, null, 2) }] };
+      return {
+        content: [{ type: "text", text: JSON.stringify(stats, null, 2) }],
+      };
     },
   },
   {
@@ -81,21 +88,28 @@ export const monitoringTools: ToolDef[] = [
     schema: { toolName: z.string() },
     handler: async (args: any) => {
       const { toolName } = args as { toolName: string };
-      
+
       const calls = metrics.toolCalls.get(toolName) || 0;
       const errors = metrics.errors.get(toolName) || 0;
       const lastCall = metrics.lastCalls.get(toolName);
-      
+
       const usage = {
         toolName,
         calls,
         errors,
-        successRate: calls > 0 ? (((calls - errors) / calls) * 100).toFixed(2) + '%' : 'N/A',
-        lastCalled: lastCall ? new Date(lastCall).toISOString() : 'Never',
-        timeSinceLastCall: lastCall ? formatDuration(Date.now() - lastCall) : 'N/A',
+        successRate:
+          calls > 0
+            ? (((calls - errors) / calls) * 100).toFixed(2) + "%"
+            : "N/A",
+        lastCalled: lastCall ? new Date(lastCall).toISOString() : "Never",
+        timeSinceLastCall: lastCall
+          ? formatDuration(Date.now() - lastCall)
+          : "N/A",
       };
-      
-      return { content: [{ type: "text", text: JSON.stringify(usage, null, 2) }] };
+
+      return {
+        content: [{ type: "text", text: JSON.stringify(usage, null, 2) }],
+      };
     },
   },
   {
@@ -105,28 +119,37 @@ export const monitoringTools: ToolDef[] = [
     schema: { confirm: z.boolean() },
     handler: async (args: any) => {
       const { confirm } = args as { confirm: boolean };
-      
+
       if (!confirm) {
         return {
-          content: [{
-            type: "text",
-            text: JSON.stringify({ error: "Must set confirm=true to reset metrics" }),
-          }],
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify({
+                error: "Must set confirm=true to reset metrics",
+              }),
+            },
+          ],
         };
       }
-      
+
       metrics.toolCalls.clear();
       metrics.errors.clear();
       metrics.lastCalls.clear();
       metrics.totalRequests = 0;
       metrics.totalErrors = 0;
       metrics.startTime = Date.now();
-      
+
       return {
-        content: [{
-          type: "text",
-          text: JSON.stringify({ message: "Metrics reset successfully", timestamp: new Date().toISOString() }),
-        }],
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify({
+              message: "Metrics reset successfully",
+              timestamp: new Date().toISOString(),
+            }),
+          },
+        ],
       };
     },
   },
@@ -138,7 +161,7 @@ export const monitoringTools: ToolDef[] = [
     handler: async () => {
       const uptime = process.uptime();
       const memory = process.memoryUsage();
-      
+
       const health = {
         status: "healthy",
         timestamp: new Date().toISOString(),
@@ -159,13 +182,18 @@ export const monitoringTools: ToolDef[] = [
         },
         metrics: {
           totalRequests: metrics.totalRequests,
-          errorRate: metrics.totalRequests > 0 
-            ? ((metrics.totalErrors / metrics.totalRequests) * 100).toFixed(2) + '%'
-            : '0%',
+          errorRate:
+            metrics.totalRequests > 0
+              ? ((metrics.totalErrors / metrics.totalRequests) * 100).toFixed(
+                  2,
+                ) + "%"
+              : "0%",
         },
       };
-      
-      return { content: [{ type: "text", text: JSON.stringify(health, null, 2) }] };
+
+      return {
+        content: [{ type: "text", text: JSON.stringify(health, null, 2) }],
+      };
     },
   },
 ];

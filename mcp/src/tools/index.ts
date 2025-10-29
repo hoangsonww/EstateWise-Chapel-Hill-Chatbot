@@ -13,6 +13,7 @@ import { systemTools } from "./system.js";
 import { monitoringTools } from "./monitoring.js";
 import { batchTools } from "./batch.js";
 import { marketTools } from "./market.js";
+import { mcpTokenTools } from "./mcpToken.js";
 
 /** Register all domain tool modules with the MCP server. */
 export function registerAllTools(server: McpServer) {
@@ -30,5 +31,6 @@ export function registerAllTools(server: McpServer) {
     ...monitoringTools,
     ...batchTools,
     ...marketTools,
+    ...mcpTokenTools,
   ]);
 }

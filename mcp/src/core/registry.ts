@@ -55,4 +55,3 @@ function recordToolCall(toolName: string, success: boolean) {
     // Silently fail if monitoring is not available
   }
 }
-

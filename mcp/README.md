@@ -47,6 +47,95 @@ Track server performance and usage with built-in monitoring:
 - Detailed use cases and integration guides
 - Troubleshooting section expanded
 
+## Token Management
+
+The MCP server now includes a comprehensive token management system for securing tool access and implementing authentication workflows.
+
+### Features
+
+- 🔐 **HMAC-SHA256 Signed Tokens**: Secure token generation using HMAC signatures
+- ⏰ **Configurable TTL**: Set custom expiration times for access and refresh tokens
+- 🎯 **Scopes**: Attach scopes to tokens for fine-grained permission control
+- 📦 **Metadata**: Store additional data with tokens for context
+- 🔄 **Refresh Tokens**: Long-lived tokens for seamless access token renewal
+- 🧹 **Auto Cleanup**: Automatic removal of expired tokens every 10 minutes
+- 📊 **Statistics**: Track active and expired tokens
+
+### Configuration
+
+Add to your `.env` file:
+
+```env
+# Secret key for signing tokens (use a strong random value in production!)
+MCP_TOKEN_SECRET=your-secret-key-change-in-production
+
+# Access token TTL in milliseconds (default: 1 hour)
+MCP_TOKEN_TTL_MS=3600000
+
+# Refresh token TTL in milliseconds (default: 30 days)
+MCP_REFRESH_TOKEN_TTL_MS=2592000000
+```
+
+### Token Workflow Example
+
+```typescript
+// 1. Generate a token for a user
+const { accessToken, refreshToken } = await mcp.token.generate({
+  subject: "user@example.com",
+  scope: ["read:properties", "write:favorites"],
+  metadata: { userId: "12345", plan: "premium" },
+  includeRefreshToken: true
+});
+
+// 2. Validate the token before making requests
+const validation = await mcp.token.validate({ token: accessToken });
+// Returns: { valid: true, subject, scope, expiresAt, ... }
+
+// 3. When access token expires, refresh it
+const newToken = await mcp.token.refresh({
+  refreshToken: refreshToken,
+  scope: ["read:properties", "write:favorites"]
+});
+
+// 4. Revoke tokens when logging out
+await mcp.token.revoke({ token: accessToken });
+await mcp.token.revokeRefresh({ refreshToken: refreshToken });
+```
+
+### Token Structure
+
+Tokens are base64-encoded JSON with HMAC signature:
+```
+<base64_payload>.<hmac_signature>
+```
+
+Payload structure:
+```json
+{
+  "sub": "user123",
+  "iat": 1704067200000,
+  "exp": 1704070800000,
+  "scope": ["read", "write"],
+  "metadata": { "role": "admin" }
+}
+```
+
+### Security Best Practices
+
+1. **Use Strong Secrets**: Generate a cryptographically secure random string for `MCP_TOKEN_SECRET`
+2. **HTTPS Only**: Always use HTTPS in production to prevent token interception
+3. **Short TTL**: Keep access token TTL short (1 hour or less)
+4. **Rotate Secrets**: Periodically rotate the token secret
+5. **Revoke on Logout**: Always revoke both access and refresh tokens on logout
+6. **Monitor Usage**: Use `mcp.token.stats` to monitor token usage patterns
+
+### In-Memory Storage
+
+⚠️ **Note**: Tokens are currently stored in memory. For production deployments:
+- Use Redis or a database for persistent token storage
+- Implement distributed token storage for multiple server instances
+- Consider using JWT with public/private key pairs for stateless validation
+
 ## Quick Start
 
 Getting started is easy. Follow the steps below to install dependencies, build the server, and run it.
@@ -123,23 +212,33 @@ All tools validate inputs with Zod and return content blocks per MCP. For maximu
   - `analytics.distributions(q: string, topK?: number, buckets?: number)` – Quartiles and histograms for price/sqft
   - `analytics.pricePerSqft(q: string, topK?: number, buckets?: number)` – Distribution and quantiles of $/sqft
 
-- Market Analysis (NEW)
+- Market Analysis
   - `market.pricetrends({ q, topK? })` – Analyze price trends and statistics for an area
   - `market.inventory({ q, topK? })` – Current inventory levels by bedrooms, type, and location
   - `market.competitiveAnalysis({ zpid, radius? })` – Compare a property to similar listings
   - `market.affordabilityIndex({ q, medianIncome?, topK? })` – Calculate affordability metrics
 
-- Batch Operations (NEW)
+- Batch Operations
   - `batch.compareProperties({ zpids })` – Side-by-side comparison with rankings and metrics
   - `batch.bulkSearch({ queries })` – Execute multiple searches in parallel (max 5)
   - `batch.enrichProperties({ zpids, includeFinancials? })` – Add computed fields and estimates
   - `batch.exportProperties({ zpids, format?, fields? })` – Export data as JSON or CSV
 
-- Monitoring (NEW)
+- Monitoring
   - `monitoring.stats({ detailed? })` – Server usage statistics and metrics
   - `monitoring.toolUsage({ toolName })` – Usage stats for a specific tool
   - `monitoring.health()` – Comprehensive health check with memory and uptime
   - `monitoring.reset({ confirm })` – Reset all monitoring metrics
+
+- MCP Token Management
+  - `mcp.token.generate({ subject, scope?, metadata?, ttlMs?, includeRefreshToken? })` – Generate access tokens
+  - `mcp.token.validate({ token })` – Validate token and return payload
+  - `mcp.token.revoke({ token })` – Revoke an access token
+  - `mcp.token.refresh({ refreshToken, scope?, metadata? })` – Get new access token from refresh token
+  - `mcp.token.revokeRefresh({ refreshToken })` – Revoke a refresh token
+  - `mcp.token.cleanup()` – Clean up expired tokens
+  - `mcp.token.stats()` – Get token system statistics
+  - `mcp.token.validateRequest({ authorizationHeader })` – Validate Bearer token from header
 
 - Map
   - `map.linkForZpids(ids: Array<string | number>)` – Deep link to `/map` with zpids
@@ -187,9 +286,204 @@ All tools validate inputs with Zod and return content blocks per MCP. For maximu
 ```mermaid
 flowchart LR
   Client[IDE/Assistant MCP Client] -- stdio --> Server[MCP Server]
-  Server -->|properties, graph, analytics, finance, map, util, auth, commute, system| API[Backend API]
+  Server -->|properties, graph, analytics, market, batch, monitoring, tokens| API[Backend API]
   Server -->|deep links| Frontend[Frontend /map]
   Server -->|cache| Cache[(LRU cache)]
+  Server -->|tokens| TokenStore[(Token Store)]
+```
+
+### Architecture Diagrams
+
+The following diagrams illustrate the MCP server architecture, data flows, and key subsystems.
+
+#### Overall System Architecture
+
+```mermaid
+flowchart TB
+  subgraph Client["MCP Client (IDE/Agent)"]
+    UI[User Interface]
+  end
+  
+  subgraph MCP["MCP Server (stdio)"]
+    direction TB
+    Registry[Tool Registry]
+    Monitor[Monitoring System]
+    TokenMgr[Token Manager]
+    Cache[LRU Cache]
+    
+    subgraph Tools["Tool Categories"]
+      Props[Properties]
+      Graph[Graph]
+      Analytics[Analytics]
+      Market[Market Analysis]
+      Batch[Batch Ops]
+      TokenTools[Token Tools]
+    end
+    
+    Registry --> Tools
+    Monitor -.monitors.-> Tools
+    TokenMgr -.secures.-> Tools
+  end
+  
+  subgraph Backend["EstateWise Backend"]
+    API[REST API]
+    DB[(MongoDB)]
+    Vector[(Pinecone)]
+    GraphDB[(Neo4j)]
+  end
+  
+  subgraph Frontend["EstateWise Frontend"]
+    Map[Interactive Map]
+  end
+  
+  UI -- stdio --> Registry
+  Props --> API
+  Graph --> API
+  Analytics --> API
+  Market --> API
+  Batch --> API
+  TokenTools --> TokenMgr
+  
+  API --> DB
+  API --> Vector
+  API --> GraphDB
+  
+  Props -.deep links.-> Map
+  Market -.deep links.-> Map
+```
+
+#### Token Authentication Flow
+
+```mermaid
+sequenceDiagram
+  participant Client as MCP Client
+  participant Server as MCP Server
+  participant TokenMgr as Token Manager
+  participant Store as Token Store
+  
+  Client->>Server: mcp.token.generate(subject, scope)
+  Server->>TokenMgr: Generate token
+  TokenMgr->>TokenMgr: Create payload + signature
+  TokenMgr->>Store: Store token
+  Store-->>TokenMgr: Stored
+  TokenMgr-->>Server: Token + metadata
+  Server-->>Client: { accessToken, refreshToken, expiresAt }
+  
+  Note over Client: Use token for protected calls
+  
+  Client->>Server: Tool call with Bearer token
+  Server->>TokenMgr: Validate token
+  TokenMgr->>Store: Check token exists
+  Store-->>TokenMgr: Token payload
+  TokenMgr->>TokenMgr: Verify signature + expiry
+  TokenMgr-->>Server: Valid ✓
+  Server->>Server: Execute tool
+  Server-->>Client: Result
+  
+  Note over Client: Token expires
+  
+  Client->>Server: mcp.token.refresh(refreshToken)
+  Server->>TokenMgr: Validate refresh token
+  TokenMgr->>Store: Check refresh token
+  Store-->>TokenMgr: Valid
+  TokenMgr->>TokenMgr: Generate new access token
+  TokenMgr->>Store: Store new token
+  TokenMgr-->>Server: New token
+  Server-->>Client: { accessToken, expiresAt }
+```
+
+#### Batch Processing Flow
+
+```mermaid
+flowchart TD
+  Start[Client Call: batch.bulkSearch] --> Validate{Validate Input}
+  Validate -->|Invalid| Error1[Return Error]
+  Validate -->|Valid| Split[Split into Parallel Queries]
+  
+  Split --> Q1[Query 1]
+  Split --> Q2[Query 2]
+  Split --> Q3[Query 3]
+  Split --> Q4[Query 4]
+  Split --> Q5[Query 5]
+  
+  Q1 --> API1[Backend API]
+  Q2 --> API2[Backend API]
+  Q3 --> API3[Backend API]
+  Q4 --> API4[Backend API]
+  Q5 --> API5[Backend API]
+  
+  API1 --> R1{Success?}
+  API2 --> R2{Success?}
+  API3 --> R3{Success?}
+  API4 --> R4{Success?}
+  API5 --> R5{Success?}
+  
+  R1 -->|Yes| D1[Data 1]
+  R1 -->|No| E1[Error 1]
+  R2 -->|Yes| D2[Data 2]
+  R2 -->|No| E2[Error 2]
+  R3 -->|Yes| D3[Data 3]
+  R3 -->|No| E3[Error 3]
+  R4 -->|Yes| D4[Data 4]
+  R4 -->|No| E4[Error 4]
+  R5 -->|Yes| D5[Data 5]
+  R5 -->|No| E5[Error 5]
+  
+  D1 --> Aggregate[Aggregate Results]
+  D2 --> Aggregate
+  D3 --> Aggregate
+  D4 --> Aggregate
+  D5 --> Aggregate
+  E1 --> Aggregate
+  E2 --> Aggregate
+  E3 --> Aggregate
+  E4 --> Aggregate
+  E5 --> Aggregate
+  
+  Aggregate --> Summary[Generate Summary Stats]
+  Summary --> Return[Return Combined Results]
+```
+
+#### Monitoring System
+
+```mermaid
+flowchart LR
+  subgraph Tools["All Tools"]
+    T1[properties.search]
+    T2[graph.similar]
+    T3[market.pricetrends]
+    T4[batch.compare]
+    T5[...]
+  end
+  
+  subgraph Registry["Tool Registry"]
+    Wrapper[Monitoring Wrapper]
+  end
+  
+  subgraph Monitor["Monitoring System"]
+    Tracker[Call Tracker]
+    Metrics[(Metrics Store)]
+    Stats[Statistics Engine]
+  end
+  
+  T1 --> Wrapper
+  T2 --> Wrapper
+  T3 --> Wrapper
+  T4 --> Wrapper
+  T5 --> Wrapper
+  
+  Wrapper -->|Record call| Tracker
+  Tracker -->|Success/Failure| Metrics
+  
+  Metrics --> Stats
+  
+  Stats -->|monitoring.stats| Client1[Get Statistics]
+  Stats -->|monitoring.toolUsage| Client2[Get Tool Usage]
+  Stats -->|monitoring.health| Client3[Health Check]
+  
+  style Wrapper fill:#90EE90
+  style Tracker fill:#87CEEB
+  style Stats fill:#FFB6C1
 ```
 
 ### Notes
@@ -378,6 +672,13 @@ npm run client:call -- monitoring.stats '{"detailed":true}'
 npm run client:call -- monitoring.toolUsage '{"toolName":"properties.search"}'
 npm run client:call -- monitoring.health
 
+# MCP Token examples
+npm run client:call -- mcp.token.generate '{"subject":"user123","scope":["read","write"],"includeRefreshToken":true}'
+npm run client:call -- mcp.token.validate '{"token":"your-token-here"}'
+npm run client:call -- mcp.token.refresh '{"refreshToken":"your-refresh-token"}'
+npm run client:call -- mcp.token.stats
+npm run client:call -- mcp.token.validateRequest '{"authorizationHeader":"Bearer your-token-here"}'
+
 # More examples
 npm run client:call -- analytics.pricePerSqft '{"q":"Chapel Hill 3 bed","buckets":8}'
 npm run client:call -- system.tools
@@ -472,9 +773,9 @@ The project structure is as follows:
 │  │  ├─ auth.ts           # auth.*
 │  │  ├─ commute.ts        # commute.* (token)
 │  │  ├─ system.ts         # system.*
-│  │  ├─ monitoring.ts     # monitoring.* (NEW)
-│  │  ├─ batch.ts          # batch.* (NEW)
-│  │  └─ market.ts         # market.* (NEW)
+│  │  ├─ monitoring.ts     # monitoring.*
+│  │  ├─ batch.ts          # batch.*
+│  │  └─ market.ts         # market.*
 │  ├─ server.ts        # Entry: builds server and registers tools
 │  └─ client.ts        # Example stdio client (spawns dist/server.js)
 ├─ dist/               # Build output (tsc)
@@ -531,6 +832,30 @@ npm run client:call -- monitoring.toolUsage '{"toolName":"properties.search"}'
 
 # Reset metrics (requires confirmation)
 npm run client:call -- monitoring.reset '{"confirm":true}'
+```
+
+### Token Management
+```bash
+# Generate a new access token
+npm run client:call -- mcp.token.generate '{"subject":"user123","scope":["read","write"],"includeRefreshToken":true}'
+
+# Validate a token
+npm run client:call -- mcp.token.validate '{"token":"your-token-here.signature"}'
+
+# Refresh an access token
+npm run client:call -- mcp.token.refresh '{"refreshToken":"your-refresh-token","scope":["read","write"]}'
+
+# Revoke a token
+npm run client:call -- mcp.token.revoke '{"token":"token-to-revoke"}'
+
+# Get token statistics
+npm run client:call -- mcp.token.stats
+
+# Validate request with Bearer token
+npm run client:call -- mcp.token.validateRequest '{"authorizationHeader":"Bearer your-token.signature"}'
+
+# Clean up expired tokens
+npm run client:call -- mcp.token.cleanup
 ```
 
 ### Extending
@@ -596,14 +921,17 @@ The MCP server makes outbound HTTP requests to the configured backend API. Follo
 
 ## Changelog
 
-### v0.2.0 (December 2024) - Market Intelligence & Monitoring Update
+### v0.2.0 (October 2025) - Market Intelligence & Monitoring Update
 
 **New Tool Categories**
+- ✨ **MCP Token Management** (8 tools): Generate, validate, revoke, and manage access/refresh tokens with HMAC signatures
 - ✨ **Market Analysis** (4 tools): `market.pricetrends`, `market.inventory`, `market.competitiveAnalysis`, `market.affordabilityIndex`
 - ✨ **Batch Operations** (4 tools): `batch.compareProperties`, `batch.bulkSearch`, `batch.enrichProperties`, `batch.exportProperties`
 - ✨ **Monitoring** (4 tools): `monitoring.stats`, `monitoring.toolUsage`, `monitoring.health`, `monitoring.reset`
 
 **Enhancements**
+- 🔐 **Token-Based Authentication**: Generate and validate MCP access tokens with configurable TTL and scopes
+- 🔄 **Refresh Tokens**: Long-lived refresh tokens for seamless token renewal  
 - 📊 Automatic tool call tracking and metrics collection
 - 💾 Enhanced caching with configurable TTL and size
 - 📈 Performance monitoring with memory and uptime tracking
@@ -612,17 +940,19 @@ The MCP server makes outbound HTTP requests to the configured backend API. Follo
 - 🎯 Competitive analysis and market positioning
 - 💰 Advanced affordability calculations
 - ⚡ Parallel bulk search with error handling
+- 🧹 Automatic cleanup of expired tokens
 
 **Documentation**
-- 📚 Comprehensive use case examples
-- 🔧 Updated directory structure
+- 📚 Comprehensive use case examples including token management
+- 🔧 Updated directory structure with new token core module
 - 📖 Enhanced troubleshooting guide
 - 🎨 New architecture diagrams
+- 🔐 Token security best practices
 
 **Breaking Changes**
 - ❌ None - All changes are backward compatible
 
-### v0.1.0 (September 2024) - Initial Release
+### v0.1.0 (August 2025) - Initial Release
 
 - Initial MCP server implementation
 - Core property search and lookup tools

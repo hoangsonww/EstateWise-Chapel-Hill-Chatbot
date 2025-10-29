@@ -1003,7 +1003,7 @@ This ensures that the application is always in a deployable state and that any i
 
 Bring EstateWise data, graphs, analytics, and utilities to MCP‑compatible clients (IDEs/assistants) via the `mcp/` package.
 
-![MCP](https://img.shields.io/badge/MCP-Server-6E56CF?style=for-the-badge&logo=modelcontextprotocol) ![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white) ![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white) ![Zod](https://img.shields.io/badge/Zod-3068B7?style=for-the-badge&logo=zod&logoColor=white)
+![MCP](https://img.shields.io/badge/Model_Context_Protocol-Server-6E56CF?style=for-the-badge&logo=modelcontextprotocol) ![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white) ![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white) ![Zod](https://img.shields.io/badge/Zod-3068B7?style=for-the-badge&logo=zod&logoColor=white)
 
 - Location: `mcp/`
 - Transport: stdio (works with typical MCP launchers)
@@ -1017,6 +1017,7 @@ Bring EstateWise data, graphs, analytics, and utilities to MCP‑compatible clie
 - **Market Analysis**: `market.pricetrends`, `market.inventory`, `market.competitiveAnalysis`, `market.affordabilityIndex`
 - **Batch Operations**: `batch.compareProperties`, `batch.bulkSearch`, `batch.enrichProperties`, `batch.exportProperties`
 - **Monitoring**: `monitoring.stats`, `monitoring.toolUsage`, `monitoring.health`, `monitoring.reset`
+- **MCP Token Management**: `mcp.token.generate`, `mcp.token.validate`, `mcp.token.revoke`, `mcp.token.refresh`, and more
 - **Map**: `map.linkForZpids`, `map.buildLinkByQuery`, `map.decodeLink`
 - **Utilities & Finance**: `util.extractZpids`, `util.zillowLink`, `util.summarize`, `util.parseGoal`, `util.address.parse`, `util.geo.distance`, `util.geo.center`, `finance.mortgage`, `finance.affordability`, `finance.schedule`, `finance.capRate`, `finance.rentVsBuy`
 - **Auth**: `auth.login`, `auth.signup`, `auth.verifyEmail`, `auth.resetPassword`
@@ -1075,16 +1076,6 @@ npm run client:call -- market.pricetrends '{"q":"Chapel Hill","topK":100}'
 npm run client:call -- batch.compareProperties '{"zpids":[1234567,2345678,3456789]}'
 npm run client:call -- monitoring.stats '{"detailed":true}'
 ```
-
-### What's New
-
-**v0.2.0 Enhancements** (December 2024)
-- 🆕 **Market Analysis Tools**: Deep market insights with price trends, inventory analysis, competitive positioning, and affordability index
-- 🆕 **Batch Operations**: Efficiently compare, search, enrich, and export multiple properties
-- 🆕 **Monitoring Suite**: Comprehensive usage tracking, metrics, health checks, and performance monitoring
-- ⚡ **Automatic Monitoring**: All tool calls are automatically tracked for usage analytics
-- 📝 **Enhanced Documentation**: Detailed examples and use cases for all new tools
-- 🎯 **Backward Compatible**: All existing tools work exactly as before
 
 ### Notes
 
