@@ -629,14 +629,19 @@ const TopBar: React.FC<TopBarProps> = ({
     <div className="sticky top-0 z-20 flex items-center justify-between p-4 border-b border-border bg-background shadow-md h-16 overflow-visible whitespace-nowrap">
       <div className="flex items-center gap-2">
         {!sidebarVisible && (
-          <button
-            onClick={toggleSidebar}
-            className="p-2 cursor-pointer hover:bg-muted rounded duration-200"
-            aria-label="Toggle Sidebar"
-            title="Toggle Sidebar"
-          >
-            <Menu className="w-6 h-6" />
-          </button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={toggleSidebar}
+                className="p-2 cursor-pointer hover:bg-muted rounded duration-200"
+                aria-label="Toggle Sidebar"
+                title="Toggle Sidebar"
+              >
+                <Menu className="w-6 h-6" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>Open sidebar</TooltipContent>
+          </Tooltip>
         )}
         <span className="hidden md:inline text-xl font-bold select-none text-foreground">
           Hi {username}, welcome to EstateWise! 🏠
@@ -1085,23 +1090,33 @@ const Sidebar: React.FC<SidebarProps> = ({
                 <h2 className="text-xl font-bold select-none">Conversations</h2>
                 <div className="flex items-center gap-2">
                   {isAuthed && (
-                    <button
-                      onClick={() => setShowSearchModal(true)}
-                      className="p-1 cursor-pointer hover:bg-muted rounded"
-                      title="Search Conversations"
-                      aria-label="Search Conversations"
-                    >
-                      <Search className="w-5 h-5" />
-                    </button>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          onClick={() => setShowSearchModal(true)}
+                          className="p-1 cursor-pointer hover:bg-muted rounded"
+                          title="Search Conversations"
+                          aria-label="Search Conversations"
+                        >
+                          <Search className="w-5 h-5" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent>Search conversations</TooltipContent>
+                    </Tooltip>
                   )}
-                  <button
-                    onClick={toggleSidebar}
-                    className="p-1 cursor-pointer hover:bg-muted rounded"
-                    title="Close Sidebar"
-                    aria-label="Close Sidebar"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={toggleSidebar}
+                        className="p-1 cursor-pointer hover:bg-muted rounded"
+                        title="Close Sidebar"
+                        aria-label="Close Sidebar"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>Close sidebar</TooltipContent>
+                  </Tooltip>
                 </div>
               </div>
               <div className="flex-1 overflow-y-auto">
@@ -1220,23 +1235,33 @@ const Sidebar: React.FC<SidebarProps> = ({
           <h2 className="text-xl font-bold select-none">Conversations</h2>
           <div className="flex items-center gap-2">
             {isAuthed && (
-              <button
-                onClick={() => setShowSearchModal(true)}
-                className="p-1 cursor-pointer hover:bg-muted rounded"
-                title="Search Conversations"
-                aria-label="Search Conversations"
-              >
-                <Search className="w-5 h-5" />
-              </button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => setShowSearchModal(true)}
+                    className="p-1 cursor-pointer hover:bg-muted rounded"
+                    title="Search Conversations"
+                    aria-label="Search Conversations"
+                  >
+                    <Search className="w-5 h-5" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>Search conversations</TooltipContent>
+              </Tooltip>
             )}
-            <button
-              onClick={toggleSidebar}
-              className="p-1 cursor-pointer hover:bg-muted rounded"
-              title="Close Sidebar"
-              aria-label="Close Sidebar"
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={toggleSidebar}
+                  className="p-1 cursor-pointer hover:bg-muted rounded"
+                  title="Close Sidebar"
+                  aria-label="Close Sidebar"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>Close sidebar</TooltipContent>
+            </Tooltip>
           </div>
         </div>
         <div className="flex-1 overflow-y-auto">
