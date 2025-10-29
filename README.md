@@ -1007,44 +1007,94 @@ Bring EstateWise data, graphs, analytics, and utilities to MCP‑compatible clie
 
 - Location: `mcp/`
 - Transport: stdio (works with typical MCP launchers)
-- Tools (highlights):
-  - Properties: `properties.search`, `properties.searchAdvanced`, `properties.lookup`, `properties.byIds`, `properties.sample`
-  - Graph: `graph.similar`, `graph.explain`, `graph.neighborhood`, `graph.similarityBatch`, `graph.comparePairs`, `graph.pathMatrix`
-  - Charts & Analytics: `charts.priceHistogram`, `analytics.summarizeSearch`, `analytics.groupByZip`, `analytics.distributions`
-  - Map: `map.linkForZpids`, `map.buildLinkByQuery`
-  - Utilities & Finance: `util.extractZpids`, `util.zillowLink`, `util.summarize`, `util.parseGoal`, `finance.mortgage`, `finance.affordability`, `finance.schedule`
+- **Total Tools: 50+** spanning properties, graphs, analytics, market analysis, batch operations, monitoring, finance, and utilities
+
+### Tool Categories
+
+- **Properties**: `properties.search`, `properties.searchAdvanced`, `properties.lookup`, `properties.byIds`, `properties.sample`
+- **Graph**: `graph.similar`, `graph.explain`, `graph.neighborhood`, `graph.similarityBatch`, `graph.comparePairs`, `graph.pathMatrix`
+- **Charts & Analytics**: `charts.priceHistogram`, `analytics.summarizeSearch`, `analytics.groupByZip`, `analytics.distributions`, `analytics.pricePerSqft`
+- **Market Analysis**: `market.pricetrends`, `market.inventory`, `market.competitiveAnalysis`, `market.affordabilityIndex`
+- **Batch Operations**: `batch.compareProperties`, `batch.bulkSearch`, `batch.enrichProperties`, `batch.exportProperties`
+- **Monitoring**: `monitoring.stats`, `monitoring.toolUsage`, `monitoring.health`, `monitoring.reset`
+- **Map**: `map.linkForZpids`, `map.buildLinkByQuery`, `map.decodeLink`
+- **Utilities & Finance**: `util.extractZpids`, `util.zillowLink`, `util.summarize`, `util.parseGoal`, `util.address.parse`, `util.geo.distance`, `util.geo.center`, `finance.mortgage`, `finance.affordability`, `finance.schedule`, `finance.capRate`, `finance.rentVsBuy`
+- **Auth**: `auth.login`, `auth.signup`, `auth.verifyEmail`, `auth.resetPassword`
+- **Commute**: `commute.create`, `commute.list`, `commute.get`, `commute.update`, `commute.delete`
+- **System**: `system.config`, `system.time`, `system.health`, `system.tools`, `system.cache.clear`
+
+### Key Features
+
+✨ **Comprehensive Coverage**: 50+ tools covering every aspect of real estate research  
+📊 **Market Intelligence**: Advanced market analysis, competitive analysis, and affordability metrics  
+⚡ **Batch Processing**: Compare, enrich, and export multiple properties efficiently  
+📈 **Monitoring**: Built-in usage tracking, health checks, and performance metrics  
+🔒 **Type-Safe**: Full Zod validation on all tool inputs  
+💾 **Smart Caching**: LRU cache for GET requests with configurable TTL
+
+and more!
 
 ```mermaid
 flowchart LR
   Client[IDE or Assistant MCP Client] -- stdio --> Server[MCP Server]
-  Server -->|properties, graph, analytics, map, util, finance| API[Backend API]
+  Server -->|properties, graph, analytics, market, batch, monitoring| API[Backend API]
   Server -->|deep links| Frontend[Frontend map]
+  Server -->|metrics| Cache[(LRU Cache)]
 ```
 
-Env vars (in `mcp/.env`)
+### Environment Variables
+
+Configure in `mcp/.env` (copy from `.env.example`):
 - `API_BASE_URL` (default: `https://estatewise-backend.vercel.app`)
 - `FRONTEND_BASE_URL` (default: `https://estatewise.vercel.app`)
+- `MCP_CACHE_TTL_MS` (default: `30000`) – Cache TTL in milliseconds
+- `MCP_CACHE_MAX` (default: `200`) – Maximum cached GET responses
+- `MCP_DEBUG` (default: `false`) – Enable verbose debug logs
+
+### Quick Start
 
 Local development
-```
+```bash
 cd mcp
 npm install
 npm run dev
 ```
 
 Build & run
-```
+```bash
 cd mcp
 npm run build
 npm start
 ```
 
-Notes
+Test with example client
+```bash
+npm run client:dev  # List all tools
+npm run client:call -- properties.search '{"q":"Chapel Hill 3 bed","topK":5}'
+npm run client:call -- market.pricetrends '{"q":"Chapel Hill","topK":100}'
+npm run client:call -- batch.compareProperties '{"zpids":[1234567,2345678,3456789]}'
+npm run client:call -- monitoring.stats '{"detailed":true}'
+```
+
+### What's New
+
+**v0.2.0 Enhancements** (December 2024)
+- 🆕 **Market Analysis Tools**: Deep market insights with price trends, inventory analysis, competitive positioning, and affordability index
+- 🆕 **Batch Operations**: Efficiently compare, search, enrich, and export multiple properties
+- 🆕 **Monitoring Suite**: Comprehensive usage tracking, metrics, health checks, and performance monitoring
+- ⚡ **Automatic Monitoring**: All tool calls are automatically tracked for usage analytics
+- 📝 **Enhanced Documentation**: Detailed examples and use cases for all new tools
+- 🎯 **Backward Compatible**: All existing tools work exactly as before
+
+### Notes
+
 - Returns are text content blocks; JSON payloads are stringified for portability across clients.
 - Graph tools require the backend to have Neo4j configured; otherwise they may return 503 from the API.
+- Monitoring automatically tracks all tool usage without requiring manual instrumentation.
+- Cache can be cleared anytime via `system.cache.clear` or `monitoring.reset`.
 
 > [!TIP]
-> **For details and examples, see [mcp/README.md](mcp/README.md).**
+> **For comprehensive documentation, tool examples, and deployment guides, see [mcp/README.md](mcp/README.md).**
 
 ## Agentic AI Pipeline
 

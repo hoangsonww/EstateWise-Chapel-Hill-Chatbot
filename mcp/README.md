@@ -2,11 +2,13 @@
 
 ![MCP](https://img.shields.io/badge/MCP-Server-6E56CF?style=for-the-badge&logo=modelcontextprotocol) ![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white) ![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white) ![Zod](https://img.shields.io/badge/Zod-3068B7?style=for-the-badge&logo=zod&logoColor=white) ![LRU Cache](https://img.shields.io/badge/LRU%20Cache-FF6F61?style=for-the-badge&logo=redis&logoColor=white) ![MIT License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
 
-This package exposes EstateWise property, graph, analytics, finance, map, commute, auth, system, and utility tools over the Model Context Protocol (MCP). It lets MCP‑compatible clients (IDEs, assistants, agents) call tools like property search, graph similarity, commute profile CRUD, price/sqft analytics, mortgage math, and deep‑link generation via stdio.
+This package exposes EstateWise property, graph, analytics, finance, map, commute, auth, system, and utility tools over the Model Context Protocol (MCP). It lets MCP‑compatible clients (IDEs, assistants, agents) call tools like property search, graph similarity, commute profile CRUD, price/sqft analytics, mortgage math, market analysis, batch operations, and monitoring via stdio.
 
 - Location: `mcp/`
 - Transport: `stdio`
 - SDK: `@modelcontextprotocol/sdk`
+- **Version**: 0.2.0
+- **Tools**: 50+
 
 Works with any MCP client, such as IDE plugins (e.g., Claude Desktop) or agent frameworks (e.g., Agentic AI).
 
@@ -15,6 +17,35 @@ Works with any MCP client, such as IDE plugins (e.g., Claude Desktop) or agent f
 The MCP server wraps the existing EstateWise backend API and frontend map viewer to provide a rich set of tools for real estate research. It can be launched from any MCP‑compatible client, such as IDE plugins (e.g., Claude Desktop) or agent frameworks (e.g., Agentic AI).
 
 You can feel free to use this server with your own MCP client or the provided example client (`src/client.ts`). However, you will need to deploy your own MCP server instance if you no longer want to use everything locally.
+
+## 🆕 What's New in v0.2.0
+
+### Market Analysis Tools
+Gain deep insights into real estate markets with comprehensive analysis tools:
+- **Price Trends**: Statistical analysis of pricing patterns with quartiles and distributions
+- **Inventory Analysis**: Understand market composition by bedroom count, property type, and location
+- **Competitive Analysis**: Position properties against comparable listings
+- **Affordability Index**: Calculate affordability metrics based on income levels
+
+### Batch Operations
+Process multiple properties efficiently with powerful batch tools:
+- **Compare Properties**: Side-by-side comparison with rankings (best value, largest size, most bedrooms)
+- **Bulk Search**: Execute up to 5 searches in parallel with aggregated results
+- **Enrich Properties**: Add computed fields like price per sqft, age, financial estimates
+- **Export Properties**: Generate CSV or JSON exports with customizable fields
+
+### Monitoring & Metrics
+Track server performance and usage with built-in monitoring:
+- **Usage Statistics**: Detailed metrics on tool calls, success rates, and performance
+- **Tool-Specific Analytics**: Per-tool usage tracking with error rates
+- **Health Checks**: Memory usage, uptime, and system status monitoring
+- **Automatic Tracking**: All tool calls are automatically instrumented
+
+### Enhanced Documentation
+- Comprehensive examples for all new tools
+- Updated diagrams showing new tool categories
+- Detailed use cases and integration guides
+- Troubleshooting section expanded
 
 ## Quick Start
 
@@ -91,6 +122,24 @@ All tools validate inputs with Zod and return content blocks per MCP. For maximu
   - `analytics.groupByZip(q: string, topK?: number)` – Counts and median price by ZIP
   - `analytics.distributions(q: string, topK?: number, buckets?: number)` – Quartiles and histograms for price/sqft
   - `analytics.pricePerSqft(q: string, topK?: number, buckets?: number)` – Distribution and quantiles of $/sqft
+
+- Market Analysis (NEW)
+  - `market.pricetrends({ q, topK? })` – Analyze price trends and statistics for an area
+  - `market.inventory({ q, topK? })` – Current inventory levels by bedrooms, type, and location
+  - `market.competitiveAnalysis({ zpid, radius? })` – Compare a property to similar listings
+  - `market.affordabilityIndex({ q, medianIncome?, topK? })` – Calculate affordability metrics
+
+- Batch Operations (NEW)
+  - `batch.compareProperties({ zpids })` – Side-by-side comparison with rankings and metrics
+  - `batch.bulkSearch({ queries })` – Execute multiple searches in parallel (max 5)
+  - `batch.enrichProperties({ zpids, includeFinancials? })` – Add computed fields and estimates
+  - `batch.exportProperties({ zpids, format?, fields? })` – Export data as JSON or CSV
+
+- Monitoring (NEW)
+  - `monitoring.stats({ detailed? })` – Server usage statistics and metrics
+  - `monitoring.toolUsage({ toolName })` – Usage stats for a specific tool
+  - `monitoring.health()` – Comprehensive health check with memory and uptime
+  - `monitoring.reset({ confirm })` – Reset all monitoring metrics
 
 - Map
   - `map.linkForZpids(ids: Array<string | number>)` – Deep link to `/map` with zpids
@@ -316,6 +365,19 @@ npm run client:call -- analytics.distributions '{"q":"Chapel Hill 3 bed","bucket
 npm run client:call -- finance.schedule '{"price":650000,"apr":6.25,"years":30,"months":6}'
 npm run client:call -- graph.pathMatrix '{"zpids":[1234567,2345678,3456789]}'
 
+# New tools examples
+npm run client:call -- market.pricetrends '{"q":"Chapel Hill","topK":100}'
+npm run client:call -- market.inventory '{"q":"Chapel Hill 3 bed","topK":150}'
+npm run client:call -- market.competitiveAnalysis '{"zpid":1234567}'
+npm run client:call -- market.affordabilityIndex '{"q":"Chapel Hill","medianIncome":85000}'
+npm run client:call -- batch.compareProperties '{"zpids":[1234567,2345678,3456789]}'
+npm run client:call -- batch.bulkSearch '{"queries":[{"q":"Chapel Hill 3 bed","topK":20},{"q":"Durham 2 bed","topK":15}]}'
+npm run client:call -- batch.enrichProperties '{"zpids":[1234567,2345678],"includeFinancials":true}'
+npm run client:call -- batch.exportProperties '{"zpids":[1234567,2345678,3456789],"format":"csv"}'
+npm run client:call -- monitoring.stats '{"detailed":true}'
+npm run client:call -- monitoring.toolUsage '{"toolName":"properties.search"}'
+npm run client:call -- monitoring.health
+
 # More examples
 npm run client:call -- analytics.pricePerSqft '{"q":"Chapel Hill 3 bed","buckets":8}'
 npm run client:call -- system.tools
@@ -394,8 +456,10 @@ The project structure is as follows:
 ├─ src/
 │  ├─ core/
 │  │  ├─ config.ts     # Env + base URLs
-│  │  ├─ http.ts       # HTTP helpers (get/post/put/delete)
-│  │  └─ registry.ts   # Tool registration types/utilities
+│  │  ├─ http.ts       # HTTP helpers (get/post/put/delete) with caching
+│  │  ├─ cache.ts      # LRU cache implementation
+│  │  ├─ logger.ts     # Debug logging utilities
+│  │  └─ registry.ts   # Tool registration with automatic monitoring
 │  ├─ tools/
 │  │  ├─ index.ts          # registerAllTools aggregator
 │  │  ├─ properties.ts     # properties.* and charts.*
@@ -407,13 +471,66 @@ The project structure is as follows:
 │  │  ├─ conversations.ts  # conversations.* (token)
 │  │  ├─ auth.ts           # auth.*
 │  │  ├─ commute.ts        # commute.* (token)
-│  │  └─ system.ts         # system.*
+│  │  ├─ system.ts         # system.*
+│  │  ├─ monitoring.ts     # monitoring.* (NEW)
+│  │  ├─ batch.ts          # batch.* (NEW)
+│  │  └─ market.ts         # market.* (NEW)
 │  ├─ server.ts        # Entry: builds server and registers tools
 │  └─ client.ts        # Example stdio client (spawns dist/server.js)
 ├─ dist/               # Build output (tsc)
 ├─ package.json
 ├─ tsconfig.json
 └─ .env (local)
+```
+
+## Use Cases
+
+### Market Research
+```bash
+# Analyze market trends for an area
+npm run client:call -- market.pricetrends '{"q":"Chapel Hill","topK":150}'
+
+# Check current inventory distribution
+npm run client:call -- market.inventory '{"q":"Chapel Hill 3 bed","topK":200}'
+
+# Calculate affordability for median income
+npm run client:call -- market.affordabilityIndex '{"q":"Chapel Hill","medianIncome":85000}'
+```
+
+### Property Comparison
+```bash
+# Compare multiple properties side-by-side
+npm run client:call -- batch.compareProperties '{"zpids":[12345,67890,11111]}'
+
+# Perform competitive analysis for a listing
+npm run client:call -- market.competitiveAnalysis '{"zpid":12345}'
+
+# Enrich properties with financial estimates
+npm run client:call -- batch.enrichProperties '{"zpids":[12345,67890],"includeFinancials":true}'
+```
+
+### Batch Processing
+```bash
+# Execute multiple searches in parallel
+npm run client:call -- batch.bulkSearch '{"queries":[{"q":"Chapel Hill 3 bed"},{"q":"Durham 2 bed"}]}'
+
+# Export properties to CSV for analysis
+npm run client:call -- batch.exportProperties '{"zpids":[12345,67890,11111],"format":"csv","fields":["zpid","address","price","bedrooms","bathrooms"]}'
+```
+
+### Performance Monitoring
+```bash
+# Check server health and metrics
+npm run client:call -- monitoring.health
+
+# Get detailed usage statistics
+npm run client:call -- monitoring.stats '{"detailed":true}'
+
+# Track specific tool usage
+npm run client:call -- monitoring.toolUsage '{"toolName":"properties.search"}'
+
+# Reset metrics (requires confirmation)
+npm run client:call -- monitoring.reset '{"confirm":true}'
 ```
 
 ### Extending
@@ -475,6 +592,45 @@ The MCP server makes outbound HTTP requests to the configured backend API. Follo
 - Run in isolated environments if exposing to untrusted clients.
 - Validate and sanitize all inputs; tools use Zod for argument validation.
 - Log and monitor usage for anomalies.
+- Use monitoring tools to track unusual patterns or excessive requests.
+
+## Changelog
+
+### v0.2.0 (December 2024) - Market Intelligence & Monitoring Update
+
+**New Tool Categories**
+- ✨ **Market Analysis** (4 tools): `market.pricetrends`, `market.inventory`, `market.competitiveAnalysis`, `market.affordabilityIndex`
+- ✨ **Batch Operations** (4 tools): `batch.compareProperties`, `batch.bulkSearch`, `batch.enrichProperties`, `batch.exportProperties`
+- ✨ **Monitoring** (4 tools): `monitoring.stats`, `monitoring.toolUsage`, `monitoring.health`, `monitoring.reset`
+
+**Enhancements**
+- 📊 Automatic tool call tracking and metrics collection
+- 💾 Enhanced caching with configurable TTL and size
+- 📈 Performance monitoring with memory and uptime tracking
+- 🔍 Detailed usage analytics per tool
+- 📤 CSV export functionality for property data
+- 🎯 Competitive analysis and market positioning
+- 💰 Advanced affordability calculations
+- ⚡ Parallel bulk search with error handling
+
+**Documentation**
+- 📚 Comprehensive use case examples
+- 🔧 Updated directory structure
+- 📖 Enhanced troubleshooting guide
+- 🎨 New architecture diagrams
+
+**Breaking Changes**
+- ❌ None - All changes are backward compatible
+
+### v0.1.0 (September 2024) - Initial Release
+
+- Initial MCP server implementation
+- Core property search and lookup tools
+- Graph similarity and neighborhood analysis
+- Analytics and charts generation
+- Finance calculators and utilities
+- Authentication and commute profiles
+- System health and cache management
 
 ## License
 

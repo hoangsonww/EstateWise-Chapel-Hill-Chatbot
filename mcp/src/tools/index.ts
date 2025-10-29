@@ -10,6 +10,9 @@ import { conversationTools } from "./conversations.js";
 import { authTools } from "./auth.js";
 import { commuteTools } from "./commute.js";
 import { systemTools } from "./system.js";
+import { monitoringTools } from "./monitoring.js";
+import { batchTools } from "./batch.js";
+import { marketTools } from "./market.js";
 
 /** Register all domain tool modules with the MCP server. */
 export function registerAllTools(server: McpServer) {
@@ -24,5 +27,8 @@ export function registerAllTools(server: McpServer) {
     ...authTools,
     ...commuteTools,
     ...systemTools,
+    ...monitoringTools,
+    ...batchTools,
+    ...marketTools,
   ]);
 }
