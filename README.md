@@ -205,7 +205,10 @@ EstateWise is packed with both UI and AI features to enhance your home-finding e
   Engaging transitions and micro‑interactions powered by Framer Motion.
 
 - **Interactive Chat Interface**  
-  Enjoy a fully animated chat experience with Markdown‑formatted responses, collapsible expert views, and inline charts.
+  Enjoy a fully animated chat experience with Markdown‑formatted responses, collapsible expert views, inline charts, and **real-time streaming responses** powered by Server-Sent Events (SSE).
+  - **Streaming AI Responses:** Words appear in real-time as the AI generates them, providing an engaging and responsive user experience.
+  - **Automatic Retries:** Built-in retry logic with exponential backoff ensures reliable message delivery even with unstable connections.
+  - **Visual Feedback:** Loading indicators, animated cursors, and connection status updates keep users informed throughout the conversation.
 
 - **Responsive, Themeable UI**
 
@@ -867,6 +870,13 @@ Graph endpoints are available when Neo4j is configured; otherwise they respond w
 ### Chat
 
 - **POST** `/api/chat` – Send a chat message and receive an AI-generated response.
+  - **Query Parameter:** `?stream=true` – Enable real-time streaming of AI responses using Server-Sent Events (SSE).
+  - **Streaming Features:**
+    - Real-time text generation as the AI model produces tokens
+    - Automatic retry mechanism with exponential backoff (up to 3 retries)
+    - Connection loss detection and recovery
+    - Visual streaming indicators in the UI (animated cursor, loading states)
+    - Graceful fallback to non-streaming mode on errors
 - **POST** `/api/chat/rate` – Rate the AI's response (thumbs up or down).
 
 More endpoints can be found in the Swagger API documentation. Endpoints may be added or modified as the project evolves, so this may not be an exhaustive list of all available endpoints.

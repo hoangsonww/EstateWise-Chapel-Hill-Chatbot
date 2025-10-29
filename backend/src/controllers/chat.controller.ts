@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import mongoose from "mongoose";
 import Conversation, { IConversation } from "../models/Conversation.model";
-import { chatWithEstateWise } from "../services/geminiChat.service";
+import { chatWithEstateWise, chatWithEstateWiseStreaming } from "../services/geminiChat.service";
 import { AuthRequest } from "../middleware/auth.middleware";
 
 /**
@@ -15,6 +15,11 @@ import { AuthRequest } from "../middleware/auth.middleware";
  * @return A JSON response containing the chat response, expert views, and conversation ID.
  */
 export const chat = async (req: AuthRequest, res: Response) => {
+  const { stream } = req.query;
+  
+  if (stream === 'true') {
+    return chatStreaming(req, res);
+  }
   try {
     const {
       message,
@@ -243,3 +248,190 @@ function adjustWeightsInPlace(
   // 3) Re-enforce cluster analyst at 1 to avoid drift
   wts[CLUSTER] = 1;
 }
+
+/**
+ * Streaming chat endpoint using Server-Sent Events (SSE).
+ * Streams responses from the AI model as they are generated.
+ */
+export const chatStreaming = async (req: AuthRequest, res: Response) => {
+  try {
+    const {
+      message,
+      convoId,
+      history,
+      expertWeights: clientWeights = {},
+    } = req.body;
+
+    // Set up SSE headers
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
+    res.flushHeaders();
+
+    const sendEvent = (event: string, data: any) => {
+      res.write(`event: ${event}\n`);
+      res.write(`data: ${JSON.stringify(data)}\n\n`);
+    };
+
+    /* authenticated users */
+    if (req.user) {
+      const userId = new mongoose.Types.ObjectId(req.user.id);
+
+      let conversation: IConversation | null = null;
+      if (convoId) {
+        conversation = await Conversation.findOne({
+          _id: convoId,
+          user: userId,
+        });
+      }
+      if (!conversation) {
+        conversation = new Conversation({
+          user: userId,
+          title: "Untitled Conversation",
+          messages: [],
+          expertWeights: {
+            "Data Analyst": 1,
+            "Lifestyle Concierge": 1,
+            "Financial Advisor": 1,
+            "Neighborhood Expert": 1,
+            "Cluster Analyst": 1,
+          },
+        });
+        await conversation.save();
+      }
+
+      /* build full history (stored msgs + new one) */
+      const historyForGemini = [
+        ...conversation.messages.map((m) => ({
+          role: m.role,
+          parts: [{ text: m.text }],
+        })),
+        { role: "user", parts: [{ text: message }] },
+      ];
+
+      // run MoE pipeline with streaming
+      let fullText = "";
+      let expertViews: Record<string, string> = {};
+
+      try {
+        for await (const chunk of chatWithEstateWiseStreaming(
+          historyForGemini,
+          message,
+          {},
+          conversation.expertWeights,
+        )) {
+          if (chunk.type === 'token') {
+            fullText += chunk.token;
+            sendEvent('token', { token: chunk.token });
+          } else if (chunk.type === 'expertViews') {
+            expertViews = chunk.expertViews;
+          } else if (chunk.type === 'error') {
+            sendEvent('error', { error: chunk.error });
+            res.end();
+            return;
+          }
+        }
+
+        /* persist both msgs */
+        conversation.messages.push({
+          role: "user",
+          text: message,
+          timestamp: new Date(),
+        });
+        conversation.messages.push({
+          role: "model",
+          text: fullText,
+          timestamp: new Date(),
+        });
+        conversation.markModified("messages");
+        await conversation.save();
+
+        sendEvent('done', {
+          expertViews,
+          convoId: conversation._id,
+          expertWeights: conversation.expertWeights,
+        });
+      } catch (err) {
+        console.error("Streaming error:", err);
+        sendEvent('error', { error: 'Error processing chat request' });
+      }
+
+      res.end();
+      return;
+    }
+
+    // Guest users
+    const defaultWeights = {
+      "Data Analyst": 1,
+      "Lifestyle Concierge": 1,
+      "Financial Advisor": 1,
+      "Neighborhood Expert": 1,
+      "Cluster Analyst": 1,
+    };
+    const guestWeights: Record<string, number> = {
+      ...defaultWeights,
+      ...clientWeights,
+    };
+
+    const rawHistory = Array.isArray(history) ? history : [];
+    const normalizedHistory: Array<{
+      role: string;
+      parts: { text: string }[];
+    }> = rawHistory.map((msg: any) => {
+      if (
+        Array.isArray(msg.parts) &&
+        msg.parts.every((p: any) => typeof p.text === "string")
+      ) {
+        return { role: msg.role, parts: msg.parts };
+      }
+      return {
+        role: msg.role,
+        parts: [{ text: typeof msg.text === "string" ? msg.text : "" }],
+      };
+    });
+
+    const historyForGemini = [
+      ...normalizedHistory,
+      { role: "user", parts: [{ text: message }] },
+    ];
+
+    let fullText = "";
+    let expertViews: Record<string, string> = {};
+
+    try {
+      for await (const chunk of chatWithEstateWiseStreaming(
+        historyForGemini,
+        message,
+        {},
+        guestWeights,
+      )) {
+        if (chunk.type === 'token') {
+          fullText += chunk.token;
+          sendEvent('token', { token: chunk.token });
+        } else if (chunk.type === 'expertViews') {
+          expertViews = chunk.expertViews;
+        } else if (chunk.type === 'error') {
+          sendEvent('error', { error: chunk.error });
+          res.end();
+          return;
+        }
+      }
+
+      sendEvent('done', {
+        expertViews,
+        expertWeights: guestWeights,
+      });
+    } catch (err) {
+      console.error("Streaming error:", err);
+      sendEvent('error', { error: 'Error processing chat request' });
+    }
+
+    res.end();
+  } catch (err) {
+    console.error("Error processing chat request:", err);
+    res.write(`event: error\n`);
+    res.write(`data: ${JSON.stringify({ error: "Error processing chat request" })}\n\n`);
+    res.end();
+  }
+};

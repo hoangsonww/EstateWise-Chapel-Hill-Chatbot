@@ -642,12 +642,12 @@ const TopBar: React.FC<TopBarProps> = ({
           Hi {username}, welcome to EstateWise! 🏠
         </span>
       </div>
-      <div className="flex items-center gap-6 relative">
+      <div className="flex items-center gap-4">
         <Tooltip>
           <TooltipTrigger asChild>
             <Link
               href="/charts"
-              className="hover:text-primary"
+              className="inline-flex h-8 w-8 items-center justify-center hover:text-primary transition-colors"
               aria-label="Charts"
             >
               <BarChart3 className="w-5 h-5" />
@@ -659,7 +659,7 @@ const TopBar: React.FC<TopBarProps> = ({
           <TooltipTrigger asChild>
             <Link
               href="/insights"
-              className="hover:text-primary"
+              className="inline-flex h-8 w-8 items-center justify-center hover:text-primary transition-colors"
               aria-label="Insights"
             >
               <GitBranch className="w-5 h-5" />
@@ -669,7 +669,11 @@ const TopBar: React.FC<TopBarProps> = ({
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Link href="/map" className="hover:text-primary" aria-label="Map">
+            <Link
+              href="/map"
+              className="inline-flex h-8 w-8 items-center justify-center hover:text-primary transition-colors"
+              aria-label="Map"
+            >
               <MapPin className="w-5 h-5" />
             </Link>
           </TooltipTrigger>
@@ -687,45 +691,44 @@ const TopBar: React.FC<TopBarProps> = ({
           <>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button
+                <button
                   onClick={() => window.location.reload()}
-                  variant="outline"
-                  className="transition-none cursor-pointer p-2 h-9 w-9"
+                  className="inline-flex h-8 w-8 items-center justify-center hover:text-primary transition-colors cursor-pointer"
                   aria-label="New Conversation"
                   title="New Conversation"
                 >
                   <PlusCircle className="w-5 h-5" />
-                </Button>
+                </button>
               </TooltipTrigger>
               <TooltipContent>New conversation</TooltipContent>
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button
-                  variant="outline"
+                <button
                   onClick={() => {
                     document.cookie =
                       "estatewise_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
                     toast.success("Logged out successfully");
                     window.location.reload();
                   }}
-                  className="flex items-center gap-1 transition-none text-red-500 hover:bg-red-500/10 cursor-pointer"
+                  className="inline-flex h-8 w-8 items-center justify-center hover:text-red-600 transition-colors cursor-pointer"
                   title="Log Out"
+                  aria-label="Log Out"
                 >
                   <LogOut className="w-5 h-5" />
-                </Button>
+                </button>
               </TooltipTrigger>
               <TooltipContent>Sign out</TooltipContent>
             </Tooltip>
           </>
         ) : (
-          <div className="flex items-center gap-6">
+          <>
             <div className="relative">
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button
                     onClick={handleAuthIconClick}
-                    className="p-1 cursor-pointer hover:text-primary"
+                    className="inline-flex h-8 w-8 items-center justify-center hover:text-primary transition-colors cursor-pointer"
                     aria-label="User Menu"
                     title="User Menu"
                   >
@@ -761,23 +764,22 @@ const TopBar: React.FC<TopBarProps> = ({
             </div>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button
+                <button
                   onClick={() => {
                     localStorage.removeItem("estateWiseChat");
                     toast.success("Conversation deleted successfully");
                     window.location.reload();
                   }}
-                  variant="outline"
-                  className="transition-none text-red-500 hover:bg-red-500/10 cursor-pointer p-2 h-9 w-9"
+                  className="inline-flex h-8 w-8 items-center justify-center hover:text-red-600 transition-colors cursor-pointer"
                   aria-label="Delete Conversation"
                   title="Delete Conversation"
                 >
                   <Trash2 className="w-5 h-5" />
-                </Button>
+                </button>
               </TooltipTrigger>
               <TooltipContent>Delete conversation</TooltipContent>
             </Tooltip>
-          </div>
+          </>
         )}
       </div>
     </div>
@@ -1424,6 +1426,8 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   const [convLoading, setConvLoading] = useState(false);
   const latestMessageRef = useRef<HTMLDivElement>(null);
   const prevConvoId = useRef<string | null>(null);
+  const shouldAutoScroll = useRef(true);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const [inputHistory, setInputHistory] = useState<string[]>(() => {
     try {
       return JSON.parse(sessionStorage.getItem("inputHistory") || "[]");
@@ -1517,13 +1521,38 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
     };
   }, [loading]);
 
-  /* persist guest history + autoscroll */
+  /* persist guest history */
   useEffect(() => {
     if (!Cookies.get("estatewise_token")) {
       localStorage.setItem("estateWiseChat", JSON.stringify(messages));
     }
-    latestMessageRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  /* smarter autoscroll - only scroll if user is at bottom */
+  useEffect(() => {
+    if (!shouldAutoScroll.current) return;
+    
+    const scrollToBottom = () => {
+      latestMessageRef.current?.scrollIntoView({ behavior: "instant", block: "end" });
+    };
+    
+    scrollToBottom();
+  }, [messages]);
+
+  /* track if user manually scrolled away from bottom */
+  useEffect(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
+      shouldAutoScroll.current = isNearBottom;
+    };
+
+    container.addEventListener("scroll", handleScroll);
+    return () => container.removeEventListener("scroll", handleScroll);
+  }, []);
 
   /* ------------------------------------------------------------------ */
   /* helpers                                                            */
@@ -1550,92 +1579,195 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   };
 
   /**
-   * Send message to the API and update the chat history.
+   * Send message to the API and update the chat history with streaming support.
    */
   const handleSend = async () => {
     if (!userInput.trim() || loading) return;
     setLoading(true);
+    shouldAutoScroll.current = true; // Enable auto-scroll for new messages
+
+    const text = userInput;
+    setUserInput("");
+    
+    // Add user message immediately
+    setMessages((m) => [...m, { role: "user", text }]);
+    setInputHistory((h) => {
+      const next = [...h, text];
+      setHistoryIndex(next.length);
+      return next;
+    });
+
+    // Add placeholder for streaming AI response
+    const streamingMessageIndex = messages.length + 1;
+    setMessages((m) => [...m, { role: "model", text: "" }]);
+
+    let retryCount = 0;
+    const MAX_RETRIES = 3;
+    let streamedText = "";
+    let receivedExpertViews: Record<string, string> = {};
+    let receivedWeights: any = null;
+    let receivedConvoId: string | null = null;
+
+    const attemptStream = async (): Promise<boolean> => {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const body: any = { message: text };
+        if (isAuthed) {
+          if (!selectedConvoId) {
+            const c = await createNewConversation();
+            body.convoId = c._id;
+            receivedConvoId = c._id;
+          } else {
+            body.convoId = selectedConvoId;
+          }
+        } else {
+          const MAX_PAYLOAD_SIZE = 102_400;
+          const fullHistory = [...messages, { role: "user", text }];
+          body.history = [...fullHistory];
+          body.expertWeights = guestWeights;
+
+          let serialized = JSON.stringify(body);
+          while (
+            serialized.length > MAX_PAYLOAD_SIZE &&
+            body.history.length > 1
+          ) {
+            body.history.shift();
+            serialized = JSON.stringify(body);
+          }
+        }
+
+        const res = await fetch(`${API_BASE_URL}/api/chat?stream=true`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(isAuthed
+              ? { Authorization: `Bearer ${Cookies.get("estatewise_token")}` }
+              : {}),
+          },
+          body: JSON.stringify(body),
+        });
+
+        if (!res.ok) {
+          throw new Error("Stream request failed");
+        }
+
+        const reader = res.body?.getReader();
+        if (!reader) {
+          throw new Error("No reader available");
+        }
+
+        const decoder = new TextDecoder();
+        let buffer = "";
+
+        while (true) {
+          const { done, value } = await reader.read();
+          
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() || "";
+
+          for (const line of lines) {
+            if (!line.trim() || line.startsWith(":")) continue;
+
+            if (line.startsWith("event: ")) {
+              const eventType = line.slice(7).trim();
+              continue;
+            }
+
+            if (line.startsWith("data: ")) {
+              const data = line.slice(6);
+              try {
+                const parsed = JSON.parse(data);
+
+                if (parsed.token) {
+                  streamedText += parsed.token;
+                  setMessages((m) => {
+                    const updated = [...m];
+                    updated[streamingMessageIndex] = {
+                      role: "model",
+                      text: streamedText,
+                      expertViews: receivedExpertViews,
+                    };
+                    return updated;
+                  });
+                } else if (parsed.expertViews) {
+                  receivedExpertViews = parsed.expertViews;
+                  setMessages((m) => {
+                    const updated = [...m];
+                    updated[streamingMessageIndex] = {
+                      role: "model",
+                      text: streamedText,
+                      expertViews: parsed.expertViews,
+                    };
+                    return updated;
+                  });
+                } else if (parsed.expertWeights) {
+                  receivedWeights = parsed.expertWeights;
+                } else if (parsed.convoId) {
+                  receivedConvoId = parsed.convoId;
+                } else if (parsed.error) {
+                  throw new Error(parsed.error);
+                }
+              } catch (e) {
+                console.error("Error parsing SSE data:", e);
+              }
+            }
+          }
+        }
+
+        // Update guest weights if applicable
+        if (!isAuthed && receivedWeights) {
+          setGuestWeights(receivedWeights);
+          localStorage.setItem(
+            "estateWiseGuestWeights",
+            JSON.stringify(receivedWeights),
+          );
+        }
+
+        // Refresh conversations if needed
+        if (isAuthed && receivedConvoId && !selectedConvoId) {
+          const r = await fetch(`${API_BASE_URL}/api/conversations`, {
+            headers: {
+              Authorization: `Bearer ${Cookies.get("estatewise_token")}`,
+            },
+          });
+          if (r.ok) setLocalConvos(await r.json());
+        }
+
+        return true;
+      } catch (error: any) {
+        console.error(`Stream attempt ${retryCount + 1} failed:`, error);
+        
+        if (retryCount < MAX_RETRIES - 1) {
+          retryCount++;
+          toast.error(`Connection lost. Retrying (${retryCount}/${MAX_RETRIES})...`);
+          await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+          return attemptStream();
+        }
+        
+        return false;
+      }
+    };
 
     try {
-      const text = userInput;
-      setUserInput("");
-      setMessages((m) => [...m, { role: "user", text }]);
-      setInputHistory((h) => {
-        const next = [...h, text];
-        setHistoryIndex(next.length);
-        return next;
-      });
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const body: any = { message: text };
-      if (isAuthed) {
-        if (!selectedConvoId) {
-          const c = await createNewConversation();
-          body.convoId = c._id;
-        } else body.convoId = selectedConvoId;
-      } else {
-        // We're facing issues where the guest's conversation gets too long
-        // This overloads the backend (Vercel limits the payload size), so
-        // perhaps we only want to send as much as we can to the backend
-        const MAX_PAYLOAD_SIZE = 102_400;
-        // start with the full history
-        const fullHistory = [...messages, { role: "user", text }];
-        body.history = [...fullHistory];
-        body.expertWeights = guestWeights;
-
-        // now ensure JSON.stringify(body) is under limit
-        let serialized = JSON.stringify(body);
-        while (
-          serialized.length > MAX_PAYLOAD_SIZE &&
-          body.history.length > 1
-        ) {
-          // drop the oldest message
-          body.history.shift();
-          serialized = JSON.stringify(body);
-        }
-      }
-
-      const res = await fetch(`${API_BASE_URL}/api/chat`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(isAuthed
-            ? { Authorization: `Bearer ${Cookies.get("estatewise_token")}` }
-            : {}),
-        },
-        body: JSON.stringify(body),
-      });
-      if (!res.ok) throw new Error((await res.json()).error || "Error");
-
-      const data = await res.json();
-
-      setMessages((m) => [
-        ...m,
-        { role: "model", text: data.response, expertViews: data.expertViews },
-      ]);
-
-      if (!isAuthed && data.expertWeights) {
-        setGuestWeights(data.expertWeights);
-        localStorage.setItem(
-          "estateWiseGuestWeights",
-          JSON.stringify(data.expertWeights),
+      const success = await attemptStream();
+      
+      if (!success) {
+        toast.error(
+          "Failed to get response after multiple retries. Please try again.",
         );
+        // Remove the empty streaming message on failure
+        setMessages((m) => m.slice(0, -1));
       }
-
-      if (isAuthed && body.convoId && !selectedConvoId) {
-        const r = await fetch(`${API_BASE_URL}/api/conversations`, {
-          headers: {
-            Authorization: `Bearer ${Cookies.get("estatewise_token")}`,
-          },
-        });
-        if (r.ok) setLocalConvos(await r.json());
-      }
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       console.error("Error sending message:", error);
       toast.error(
-        "Error processing your message - our AI model is overloaded. Please try again later.",
+        "Error processing your message. Please try again.",
       );
+      // Remove the empty streaming message on error
+      setMessages((m) => m.slice(0, -1));
     } finally {
       setLoading(false);
     }
@@ -1766,6 +1898,9 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
     const downColor =
       ratings[idx] === "down" ? "text-red-600" : "hover:text-red-600";
 
+    // Determine if this is actively streaming (last message, is model, and loading)
+    const isStreaming = isLast && msg.role === "model" && loading && !msg.text;
+
     return (
       <motion.div
         ref={isLast ? latestMessageRef : undefined}
@@ -1781,13 +1916,32 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
               : "bg-muted"
           } max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg`}
         >
-          <ReactMarkdown
-            remarkPlugins={[remarkGfm, remarkMath]}
-            rehypePlugins={[rehypeKatex]}
-            components={markdownComponents}
-          >
-            {text.replace(/\\_/g, "_")}
-          </ReactMarkdown>
+          {isStreaming ? (
+            <div className="flex items-center gap-2 p-2 animate-pulse">
+              {(() => {
+                const { Icon, spin } = loadingPhases[phaseIdx];
+                return spin ? (
+                  <Icon className="w-5 h-5 animate-spin" />
+                ) : (
+                  <Icon className="w-5 h-5" />
+                );
+              })()}
+              <span className="font-medium">
+                {loadingPhases[phaseIdx].text}
+                <AnimatedDots resetKey={phaseIdx} />
+              </span>
+            </div>
+          ) : (
+            <>
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm, remarkMath]}
+                rehypePlugins={[rehypeKatex]}
+                components={markdownComponents}
+              >
+                {text.replace(/\\_/g, "_")}
+              </ReactMarkdown>
+            </>
+          )}
           {msg.role === "model" && (
             <div className="flex items-center justify-between mt-2 mb-1">
               {/* left cluster: map-all + dropdown */}
@@ -1911,6 +2065,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   return (
     <div className="flex flex-col h-full">
       <motion.div
+        ref={messagesContainerRef}
         className="relative overflow-y-auto space-y-2 p-4"
         style={{ height: "calc(100vh - 64px - 80px)" }}
         variants={containerVariants}
@@ -1940,7 +2095,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
             ))}
         </AnimatePresence>
 
-        {loading && (
+        {loading && messages.length === 0 && (
           <motion.div
             variants={bubbleVariants}
             initial="hidden"

@@ -302,15 +302,15 @@ export default function ChartsPage() {
                 Insights Dashboard
               </span>
             </div>
-            <nav className="ml-auto flex items-center gap-6 text-sm">
+            <nav className="ml-auto flex items-center gap-4 text-sm">
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Link
                     href="/chat"
-                    className="hover:text-primary"
+                    className="inline-flex h-8 w-8 items-center justify-center hover:text-primary transition-colors"
                     aria-label="Chat"
                   >
-                    <MessageCircleMore className="h-5 w-5" />
+                    <MessageCircleMore className="w-5 h-5" />
                   </Link>
                 </TooltipTrigger>
                 <TooltipContent>Chat</TooltipContent>
@@ -319,10 +319,10 @@ export default function ChartsPage() {
                 <TooltipTrigger asChild>
                   <Link
                     href="/insights"
-                    className="hover:text-primary"
+                    className="inline-flex h-8 w-8 items-center justify-center hover:text-primary transition-colors"
                     aria-label="Insights"
                   >
-                    <GitBranch className="h-5 w-5" />
+                    <GitBranch className="w-5 h-5" />
                   </Link>
                 </TooltipTrigger>
                 <TooltipContent>Insights</TooltipContent>
@@ -331,10 +331,10 @@ export default function ChartsPage() {
                 <TooltipTrigger asChild>
                   <Link
                     href="/map"
-                    className="hover:text-primary"
+                    className="inline-flex h-8 w-8 items-center justify-center hover:text-primary transition-colors"
                     aria-label="Map"
                   >
-                    <MapPin className="h-5 w-5" />
+                    <MapPin className="w-5 h-5" />
                   </Link>
                 </TooltipTrigger>
                 <TooltipContent>Map</TooltipContent>
