@@ -205,7 +205,10 @@ EstateWise is packed with both UI and AI features to enhance your home-finding e
   Engaging transitions and micro‑interactions powered by Framer Motion.
 
 - **Interactive Chat Interface**  
-  Enjoy a fully animated chat experience with Markdown‑formatted responses, collapsible expert views, and inline charts.
+  Enjoy a fully animated chat experience with Markdown‑formatted responses, collapsible expert views, inline charts, and **real-time streaming responses** powered by Server-Sent Events (SSE).
+  - **Streaming AI Responses:** Words appear in real-time as the AI generates them, providing an engaging and responsive user experience.
+  - **Automatic Retries:** Built-in retry logic with exponential backoff ensures reliable message delivery even with unstable connections.
+  - **Visual Feedback:** Loading indicators, animated cursors, and connection status updates keep users informed throughout the conversation.
 
 - **Responsive, Themeable UI**
 
@@ -867,6 +870,13 @@ Graph endpoints are available when Neo4j is configured; otherwise they respond w
 ### Chat
 
 - **POST** `/api/chat` – Send a chat message and receive an AI-generated response.
+  - **Query Parameter:** `?stream=true` – Enable real-time streaming of AI responses using Server-Sent Events (SSE).
+  - **Streaming Features:**
+    - Real-time text generation as the AI model produces tokens
+    - Automatic retry mechanism with exponential backoff (up to 3 retries)
+    - Connection loss detection and recovery
+    - Visual streaming indicators in the UI (animated cursor, loading states)
+    - Graceful fallback to non-streaming mode on errors
 - **POST** `/api/chat/rate` – Rate the AI's response (thumbs up or down).
 
 More endpoints can be found in the Swagger API documentation. Endpoints may be added or modified as the project evolves, so this may not be an exhaustive list of all available endpoints.
@@ -993,48 +1003,89 @@ This ensures that the application is always in a deployable state and that any i
 
 Bring EstateWise data, graphs, analytics, and utilities to MCP‑compatible clients (IDEs/assistants) via the `mcp/` package.
 
-![MCP](https://img.shields.io/badge/MCP-Server-6E56CF?style=for-the-badge&logo=modelcontextprotocol) ![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white) ![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white) ![Zod](https://img.shields.io/badge/Zod-3068B7?style=for-the-badge&logo=zod&logoColor=white)
+![MCP](https://img.shields.io/badge/Model_Context_Protocol-Server-6E56CF?style=for-the-badge&logo=modelcontextprotocol) ![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white) ![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white) ![Zod](https://img.shields.io/badge/Zod-3068B7?style=for-the-badge&logo=zod&logoColor=white)
 
 - Location: `mcp/`
 - Transport: stdio (works with typical MCP launchers)
-- Tools (highlights):
-  - Properties: `properties.search`, `properties.searchAdvanced`, `properties.lookup`, `properties.byIds`, `properties.sample`
-  - Graph: `graph.similar`, `graph.explain`, `graph.neighborhood`, `graph.similarityBatch`, `graph.comparePairs`, `graph.pathMatrix`
-  - Charts & Analytics: `charts.priceHistogram`, `analytics.summarizeSearch`, `analytics.groupByZip`, `analytics.distributions`
-  - Map: `map.linkForZpids`, `map.buildLinkByQuery`
-  - Utilities & Finance: `util.extractZpids`, `util.zillowLink`, `util.summarize`, `util.parseGoal`, `finance.mortgage`, `finance.affordability`, `finance.schedule`
+- **Total Tools: 50+** spanning properties, graphs, analytics, market analysis, batch operations, monitoring, finance, and utilities
+
+### Tool Categories
+
+- **Properties**: `properties.search`, `properties.searchAdvanced`, `properties.lookup`, `properties.byIds`, `properties.sample`
+- **Graph**: `graph.similar`, `graph.explain`, `graph.neighborhood`, `graph.similarityBatch`, `graph.comparePairs`, `graph.pathMatrix`
+- **Charts & Analytics**: `charts.priceHistogram`, `analytics.summarizeSearch`, `analytics.groupByZip`, `analytics.distributions`, `analytics.pricePerSqft`
+- **Market Analysis**: `market.pricetrends`, `market.inventory`, `market.competitiveAnalysis`, `market.affordabilityIndex`
+- **Batch Operations**: `batch.compareProperties`, `batch.bulkSearch`, `batch.enrichProperties`, `batch.exportProperties`
+- **Monitoring**: `monitoring.stats`, `monitoring.toolUsage`, `monitoring.health`, `monitoring.reset`
+- **MCP Token Management**: `mcp.token.generate`, `mcp.token.validate`, `mcp.token.revoke`, `mcp.token.refresh`, and more
+- **Map**: `map.linkForZpids`, `map.buildLinkByQuery`, `map.decodeLink`
+- **Utilities & Finance**: `util.extractZpids`, `util.zillowLink`, `util.summarize`, `util.parseGoal`, `util.address.parse`, `util.geo.distance`, `util.geo.center`, `finance.mortgage`, `finance.affordability`, `finance.schedule`, `finance.capRate`, `finance.rentVsBuy`
+- **Auth**: `auth.login`, `auth.signup`, `auth.verifyEmail`, `auth.resetPassword`
+- **Commute**: `commute.create`, `commute.list`, `commute.get`, `commute.update`, `commute.delete`
+- **System**: `system.config`, `system.time`, `system.health`, `system.tools`, `system.cache.clear`
+
+### Key Features
+
+✨ **Comprehensive Coverage**: 50+ tools covering every aspect of real estate research  
+📊 **Market Intelligence**: Advanced market analysis, competitive analysis, and affordability metrics  
+⚡ **Batch Processing**: Compare, enrich, and export multiple properties efficiently  
+📈 **Monitoring**: Built-in usage tracking, health checks, and performance metrics  
+🔒 **Type-Safe**: Full Zod validation on all tool inputs  
+💾 **Smart Caching**: LRU cache for GET requests with configurable TTL
+
+and more!
 
 ```mermaid
 flowchart LR
   Client[IDE or Assistant MCP Client] -- stdio --> Server[MCP Server]
-  Server -->|properties, graph, analytics, map, util, finance| API[Backend API]
+  Server -->|properties, graph, analytics, market, batch, monitoring| API[Backend API]
   Server -->|deep links| Frontend[Frontend map]
+  Server -->|metrics| Cache[(LRU Cache)]
 ```
 
-Env vars (in `mcp/.env`)
+### Environment Variables
+
+Configure in `mcp/.env` (copy from `.env.example`):
 - `API_BASE_URL` (default: `https://estatewise-backend.vercel.app`)
 - `FRONTEND_BASE_URL` (default: `https://estatewise.vercel.app`)
+- `MCP_CACHE_TTL_MS` (default: `30000`) – Cache TTL in milliseconds
+- `MCP_CACHE_MAX` (default: `200`) – Maximum cached GET responses
+- `MCP_DEBUG` (default: `false`) – Enable verbose debug logs
+
+### Quick Start
 
 Local development
-```
+```bash
 cd mcp
 npm install
 npm run dev
 ```
 
 Build & run
-```
+```bash
 cd mcp
 npm run build
 npm start
 ```
 
-Notes
+Test with example client
+```bash
+npm run client:dev  # List all tools
+npm run client:call -- properties.search '{"q":"Chapel Hill 3 bed","topK":5}'
+npm run client:call -- market.pricetrends '{"q":"Chapel Hill","topK":100}'
+npm run client:call -- batch.compareProperties '{"zpids":[1234567,2345678,3456789]}'
+npm run client:call -- monitoring.stats '{"detailed":true}'
+```
+
+### Notes
+
 - Returns are text content blocks; JSON payloads are stringified for portability across clients.
 - Graph tools require the backend to have Neo4j configured; otherwise they may return 503 from the API.
+- Monitoring automatically tracks all tool usage without requiring manual instrumentation.
+- Cache can be cleared anytime via `system.cache.clear` or `monitoring.reset`.
 
 > [!TIP]
-> **For details and examples, see [mcp/README.md](mcp/README.md).**
+> **For comprehensive documentation, tool examples, and deployment guides, see [mcp/README.md](mcp/README.md).**
 
 ## Agentic AI Pipeline
 

@@ -1,9 +1,9 @@
 {
   "name": "estatewise-mcp",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
-  "description": "MCP server exposing EstateWise graph and property tools",
+  "description": "MCP server exposing EstateWise graph, property, market analysis, batch operations, monitoring, and token management tools",
   "scripts": {
     "dev": "tsx src/server.ts",
     "start": "node dist/server.js",

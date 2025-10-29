@@ -723,12 +723,12 @@ export default function InsightsPage() {
                 Insights & Tools
               </span>
             </div>
-            <nav className="ml-auto flex items-center gap-6 text-sm">
+            <nav className="ml-auto flex items-center gap-4 text-sm">
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Link
                     href="/chat"
-                    className="hover:text-primary"
+                    className="inline-flex h-8 w-8 items-center justify-center hover:text-primary transition-colors"
                     aria-label="Chat"
                   >
                     <MessageCircleMore className="w-5 h-5" />
@@ -740,7 +740,7 @@ export default function InsightsPage() {
                 <TooltipTrigger asChild>
                   <Link
                     href="/charts"
-                    className="hover:text-primary"
+                    className="inline-flex h-8 w-8 items-center justify-center hover:text-primary transition-colors"
                     aria-label="Charts"
                   >
                     <BarChart3 className="w-5 h-5" />
@@ -752,7 +752,7 @@ export default function InsightsPage() {
                 <TooltipTrigger asChild>
                   <Link
                     href="/map"
-                    className="hover:text-primary"
+                    className="inline-flex h-8 w-8 items-center justify-center hover:text-primary transition-colors"
                     aria-label="Map"
                   >
                     <MapPin className="w-5 h-5" />
