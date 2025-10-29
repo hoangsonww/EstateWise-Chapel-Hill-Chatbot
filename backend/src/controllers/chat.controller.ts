@@ -1,7 +1,10 @@
 import { Request, Response } from "express";
 import mongoose from "mongoose";
 import Conversation, { IConversation } from "../models/Conversation.model";
-import { chatWithEstateWise, chatWithEstateWiseStreaming } from "../services/geminiChat.service";
+import {
+  chatWithEstateWise,
+  chatWithEstateWiseStreaming,
+} from "../services/geminiChat.service";
 import { AuthRequest } from "../middleware/auth.middleware";
 
 /**
@@ -16,8 +19,8 @@ import { AuthRequest } from "../middleware/auth.middleware";
  */
 export const chat = async (req: AuthRequest, res: Response) => {
   const { stream } = req.query;
-  
-  if (stream === 'true') {
+
+  if (stream === "true") {
     return chatStreaming(req, res);
   }
   try {
@@ -263,10 +266,10 @@ export const chatStreaming = async (req: AuthRequest, res: Response) => {
     } = req.body;
 
     // Set up SSE headers
-    res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
-    res.setHeader('X-Accel-Buffering', 'no');
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+    res.setHeader("X-Accel-Buffering", "no");
     res.flushHeaders();
 
     const sendEvent = (event: string, data: any) => {
@@ -321,13 +324,13 @@ export const chatStreaming = async (req: AuthRequest, res: Response) => {
           {},
           conversation.expertWeights,
         )) {
-          if (chunk.type === 'token') {
+          if (chunk.type === "token") {
             fullText += chunk.token;
-            sendEvent('token', { token: chunk.token });
-          } else if (chunk.type === 'expertViews') {
+            sendEvent("token", { token: chunk.token });
+          } else if (chunk.type === "expertViews") {
             expertViews = chunk.expertViews;
-          } else if (chunk.type === 'error') {
-            sendEvent('error', { error: chunk.error });
+          } else if (chunk.type === "error") {
+            sendEvent("error", { error: chunk.error });
             res.end();
             return;
           }
@@ -347,14 +350,14 @@ export const chatStreaming = async (req: AuthRequest, res: Response) => {
         conversation.markModified("messages");
         await conversation.save();
 
-        sendEvent('done', {
+        sendEvent("done", {
           expertViews,
           convoId: conversation._id,
           expertWeights: conversation.expertWeights,
         });
       } catch (err) {
         console.error("Streaming error:", err);
-        sendEvent('error', { error: 'Error processing chat request' });
+        sendEvent("error", { error: "Error processing chat request" });
       }
 
       res.end();
@@ -406,32 +409,34 @@ export const chatStreaming = async (req: AuthRequest, res: Response) => {
         {},
         guestWeights,
       )) {
-        if (chunk.type === 'token') {
+        if (chunk.type === "token") {
           fullText += chunk.token;
-          sendEvent('token', { token: chunk.token });
-        } else if (chunk.type === 'expertViews') {
+          sendEvent("token", { token: chunk.token });
+        } else if (chunk.type === "expertViews") {
           expertViews = chunk.expertViews;
-        } else if (chunk.type === 'error') {
-          sendEvent('error', { error: chunk.error });
+        } else if (chunk.type === "error") {
+          sendEvent("error", { error: chunk.error });
           res.end();
           return;
         }
       }
 
-      sendEvent('done', {
+      sendEvent("done", {
         expertViews,
         expertWeights: guestWeights,
       });
     } catch (err) {
       console.error("Streaming error:", err);
-      sendEvent('error', { error: 'Error processing chat request' });
+      sendEvent("error", { error: "Error processing chat request" });
     }
 
     res.end();
   } catch (err) {
     console.error("Error processing chat request:", err);
     res.write(`event: error\n`);
-    res.write(`data: ${JSON.stringify({ error: "Error processing chat request" })}\n\n`);
+    res.write(
+      `data: ${JSON.stringify({ error: "Error processing chat request" })}\n\n`,
+    );
     res.end();
   }
 };

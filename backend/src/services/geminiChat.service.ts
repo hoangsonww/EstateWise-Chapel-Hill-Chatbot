@@ -528,7 +528,10 @@ export async function* chatWithEstateWiseStreaming(
 
   const apiKey = process.env.GOOGLE_AI_API_KEY;
   if (!apiKey) {
-    yield { type: "error", error: "Missing GOOGLE_AI_API_KEY in environment variables" };
+    yield {
+      type: "error",
+      error: "Missing GOOGLE_AI_API_KEY in environment variables",
+    };
     return;
   }
 
@@ -590,10 +593,15 @@ export async function* chatWithEstateWiseStreaming(
         ),
       );
 
-      const { clusters: clusterAssignments } = kmeans(normalized, CLUSTER_COUNT);
+      const { clusters: clusterAssignments } = kmeans(
+        normalized,
+        CLUSTER_COUNT,
+      );
 
       const clusterContext = rawResults
-        .map((r, i) => `- Property ID ${r.id}: cluster ${clusterAssignments[i]}`)
+        .map(
+          (r, i) => `- Property ID ${r.id}: cluster ${clusterAssignments[i]}`,
+        )
         .join("\n");
 
       let graphContext = "";
@@ -853,7 +861,7 @@ export async function* chatWithEstateWiseStreaming(
 
     try {
       const result = await mergerChat.sendMessageStream(message);
-      
+
       for await (const chunk of result.stream) {
         const chunkText = chunk.text();
         if (chunkText) {
@@ -875,7 +883,7 @@ export async function* chatWithEstateWiseStreaming(
         weights[b.name] > weights[a.name] ? b : a,
       );
       yield { type: "token" as const, token: best.text };
-      
+
       const expertViews: Record<string, string> = {};
       expertResults.forEach((r) => {
         expertViews[r.name] = r.text;

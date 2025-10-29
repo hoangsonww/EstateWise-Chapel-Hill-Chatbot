@@ -11,7 +11,10 @@ export default function Document() {
           name="description"
           content="EstateWise - Your intelligent estate assistant providing personalized property recommendations in Chapel Hill."
         />
-        <meta name="keywords" content="Real Estate, AI, Chapel Hill, Property Recommendations, EstateWise" />
+        <meta
+          name="keywords"
+          content="Real Estate, AI, Chapel Hill, Property Recommendations, EstateWise"
+        />
         <meta name="author" content="Son Nguyen" />
         <meta name="robots" content="index, follow" />
         <meta name="theme-color" content="#faf9f2" />

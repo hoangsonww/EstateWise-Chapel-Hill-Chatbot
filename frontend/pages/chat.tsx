@@ -1556,11 +1556,14 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   /* smarter autoscroll - only scroll if user is at bottom */
   useEffect(() => {
     if (!shouldAutoScroll.current) return;
-    
+
     const scrollToBottom = () => {
-      latestMessageRef.current?.scrollIntoView({ behavior: "instant", block: "end" });
+      latestMessageRef.current?.scrollIntoView({
+        behavior: "instant",
+        block: "end",
+      });
     };
-    
+
     scrollToBottom();
   }, [messages]);
 
@@ -1613,7 +1616,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
 
     const text = userInput;
     setUserInput("");
-    
+
     // Add user message immediately
     setMessages((m) => [...m, { role: "user", text }]);
     setInputHistory((h) => {
@@ -1686,7 +1689,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
 
         while (true) {
           const { done, value } = await reader.read();
-          
+
           if (done) break;
 
           buffer += decoder.decode(value, { stream: true });
@@ -1764,21 +1767,25 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
         return true;
       } catch (error: any) {
         console.error(`Stream attempt ${retryCount + 1} failed:`, error);
-        
+
         if (retryCount < MAX_RETRIES - 1) {
           retryCount++;
-          toast.error(`Connection lost. Retrying (${retryCount}/${MAX_RETRIES})...`);
-          await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+          toast.error(
+            `Connection lost. Retrying (${retryCount}/${MAX_RETRIES})...`,
+          );
+          await new Promise((resolve) =>
+            setTimeout(resolve, 1000 * retryCount),
+          );
           return attemptStream();
         }
-        
+
         return false;
       }
     };
 
     try {
       const success = await attemptStream();
-      
+
       if (!success) {
         toast.error(
           "Failed to get response after multiple retries. Please try again.",
@@ -1788,9 +1795,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
       }
     } catch (error: any) {
       console.error("Error sending message:", error);
-      toast.error(
-        "Error processing your message. Please try again.",
-      );
+      toast.error("Error processing your message. Please try again.");
       // Remove the empty streaming message on error
       setMessages((m) => m.slice(0, -1));
     } finally {
