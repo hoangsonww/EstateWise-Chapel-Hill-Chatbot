@@ -491,10 +491,11 @@ const markdownComponents = {
     }
 
     return (
-      <span className="inline-flex items-center gap-1 align-middle">
+      <span className="inline-flex items-center gap-1 align-middle flex-wrap max-w-full">
         <a
           href={href}
-          className="inline-block bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm font-medium hover:bg-blue-200 max-w-full break-words"
+          className="inline-block bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm font-medium hover:bg-blue-200 break-all"
+          style={{ maxWidth: zpid ? "calc(100% - 2rem)" : "100%" }}
           target="_blank"
           rel="noopener noreferrer"
           {...props}
@@ -508,7 +509,7 @@ const markdownComponents = {
                 asChild
                 variant="ghost"
                 size="icon"
-                className="h-7 w-7 ml-0.5"
+                className="h-7 w-7 ml-0.5 flex-shrink-0"
                 aria-label="View this property on the map"
                 title="View this property on the map"
               >
