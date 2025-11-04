@@ -17,7 +17,6 @@ export type {
   BranchCondition,
   ErrorRecoveryStrategy,
   ValidationResult,
-  Pipeline,
   CacheEntry,
   ExecutionStrategy,
 } from "./types.js";
@@ -215,6 +214,16 @@ export {
   type UserInputConfig,
   type NotificationService,
 } from "./workflows.js";
+
+// Integration
+export {
+  createOrchestratorPipeline,
+  createHybridPipeline,
+  createAgentPipeline,
+  createStreamingPipeline,
+  orchestratorToPipeline,
+  runAgentsAsPipeline,
+} from "./integration.js";
 
 // Convenience exports for common workflows
 export const PipelineSystem = {

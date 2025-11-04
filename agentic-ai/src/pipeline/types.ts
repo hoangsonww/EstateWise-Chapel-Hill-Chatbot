@@ -116,13 +116,13 @@ export interface PipelineMiddleware<TState = Record<string, unknown>> {
   /** Called before each stage */
   onStageStart?(
     context: PipelineContext<unknown, TState>,
-    stage: PipelineStage
+    stage: PipelineStage<unknown, unknown, TState>
   ): Promise<void>;
 
   /** Called after each stage */
   onStageComplete?(
     context: PipelineContext<unknown, TState>,
-    stage: PipelineStage,
+    stage: PipelineStage<unknown, unknown, TState>,
     result: StageResult
   ): Promise<void>;
 
@@ -130,7 +130,7 @@ export interface PipelineMiddleware<TState = Record<string, unknown>> {
   onError?(
     context: PipelineContext<unknown, TState>,
     error: Error,
-    stage?: PipelineStage
+    stage?: PipelineStage<unknown, unknown, TState>
   ): Promise<void>;
 }
 

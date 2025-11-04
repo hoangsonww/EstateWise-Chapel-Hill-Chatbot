@@ -356,29 +356,29 @@ export class Pipeline<TInput = unknown, TOutput = unknown, TState = Record<strin
 
   private async callMiddleware(
     hook: 'onPipelineStart',
-    context: PipelineContext
+    context: PipelineContext<unknown, TState>
   ): Promise<void>;
   private async callMiddleware(
     hook: 'onPipelineComplete',
-    context: PipelineContext,
+    context: PipelineContext<unknown, TState>,
     result: PipelineResult
   ): Promise<void>;
   private async callMiddleware(
     hook: 'onStageStart',
-    context: PipelineContext,
-    stage: PipelineStage
+    context: PipelineContext<unknown, TState>,
+    stage: PipelineStage<unknown, unknown, TState>
   ): Promise<void>;
   private async callMiddleware(
     hook: 'onStageComplete',
-    context: PipelineContext,
-    stage: PipelineStage,
+    context: PipelineContext<unknown, TState>,
+    stage: PipelineStage<unknown, unknown, TState>,
     result: StageResult
   ): Promise<void>;
   private async callMiddleware(
     hook: 'onError',
-    context: PipelineContext,
+    context: PipelineContext<unknown, TState>,
     error: Error,
-    stage?: PipelineStage
+    stage?: PipelineStage<unknown, unknown, TState>
   ): Promise<void>;
   private async callMiddleware(
     hook: keyof PipelineMiddleware,
