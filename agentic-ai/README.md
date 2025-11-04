@@ -29,7 +29,7 @@ In addition to being the CLI, this agentic pipeline is also being used in our ma
 - [Use With Your Own Clients](#use-with-your-own-clients)
   - [LangChain + LangGraph Runtime](#langchain--langgraph-runtime)
   - [CrewAI Runtime](#crewai-runtime)
-- [Enterprise Pipeline System](#enterprise-pipeline-system) ⭐ NEW
+- [Enterprise Pipeline System](#enterprise-pipeline-system)
   - [Overview](#pipeline-overview)
   - [Quick Start](#pipeline-quick-start)
   - [Core Features](#core-pipeline-features)
@@ -123,6 +123,7 @@ See [Enterprise Pipeline System](#enterprise-pipeline-system) section below for 
 - **Docker Compose** – `docker-compose.yaml` launches the orchestrator with all dependencies.
 - **Kubernetes** – Manifests under [`k8s/`](k8s) deploy the CLI (with embedded MCP server) to a cluster.
 
+> [!TIP]
 > Refer to [DEPLOYMENT.md](DEPLOYMENT.md) for end-to-end instructions, environment variables, and integration tips.
 
 ```mermaid
