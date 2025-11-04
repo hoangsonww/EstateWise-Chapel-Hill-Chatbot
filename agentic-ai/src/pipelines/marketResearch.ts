@@ -99,29 +99,33 @@ export function createMarketResearchPipeline(options?: {
 
   // Add middleware
   if (options?.enableLogging !== false) {
-    builder.use(createLoggingMiddleware({ level: 'info' }));
+    builder.use(createLoggingMiddleware({ logLevel: 'info' }));
   }
 
   if (options?.enableMetrics !== false) {
-    builder.use(createMetricsMiddleware());
+    builder.use(createMetricsMiddleware({
+      onMetrics: (metrics) => {
+        console.log('[Market Research Metrics]', metrics);
+      }
+    }));
   }
 
-  builder.use(createPerformanceMiddleware({ warnThreshold: 15000 }));
+  builder.use(createPerformanceMiddleware({ slowThreshold: 15000 }));
 
   if (options?.enableCaching) {
     builder.use(
       createCachingMiddleware({
         ttl: 600000, // 10 minutes
-        keyGenerator: (context) => `market-research:${context.input.goal}`,
+        keyGenerator: (context) => `market-research:${(context.input as MarketResearchInput).goal}`,
       })
     );
   }
 
   // Build pipeline stages
   return builder
-    .stage(createGoalParserStage())
-    .stage(createPropertySearchStage())
-    .stage(createDedupeRankStage())
+    .addStage(createGoalParserStage())
+    .addStage(createPropertySearchStage())
+    .addStage(createDedupeRankStage())
     .conditional(
       (context) => (context.input as MarketResearchInput).groupByZip !== false,
       createGroupByZipStage()
@@ -132,24 +136,24 @@ export function createMarketResearchPipeline(options?: {
     )
     .conditional(
       (context) => (context.input as MarketResearchInput).includeGraph !== false,
-      createGraphAnalysisStage({ analysisType: 'patterns' })
+      createGraphAnalysisStage()
     )
-    .stage(createMapLinkStage())
-    .stage(createReportGenerationStage())
-    .transform(async (context) => {
+    .addStage(createMapLinkStage())
+    .addStage(createReportGenerationStage())
+    .stage('format-result', async (context) => {
       const state = context.state as AgentPipelineState;
       const input = context.input as MarketResearchInput;
 
       const result: MarketResearchResult = {
-        properties: state.properties || [],
+        properties: state.propertyResults || [],
         analytics: input.includeAnalytics !== false ? state.analytics : undefined,
-        graphData: input.includeGraph !== false ? state.graphData : undefined,
+        graphData: input.includeGraph !== false ? state.graphResults : undefined,
         zipGroups: input.groupByZip !== false ? state.zipGroups : undefined,
         mapLink: state.mapLink,
         report: state.report || '',
         metrics: {
           totalTime: Date.now() - context.metadata.startTime,
-          propertiesFound: state.properties?.length || 0,
+          propertiesFound: state.propertyResults?.length || 0,
           analyticsGenerated: !!state.analytics,
         },
       };
@@ -218,23 +222,23 @@ export function createQuickMarketOverviewPipeline() {
   return createPipeline<MarketResearchInput, AgentPipelineState>()
     .withName('quick-market-overview')
     .withDescription('Fast market overview with essential metrics')
-    .use(createLoggingMiddleware({ level: 'warn' }))
-    .stage(createGoalParserStage())
-    .stage(createPropertySearchStage({ maxResults: 20 }))
-    .stage(createGroupByZipStage())
-    .stage(createAnalyticsSummaryStage())
-    .stage(createReportGenerationStage())
-    .transform(async (context) => {
+    .use(createLoggingMiddleware({ logLevel: 'warn' }))
+    .addStage(createGoalParserStage())
+    .addStage(createPropertySearchStage({ maxResults: 20 }))
+    .addStage(createGroupByZipStage())
+    .addStage(createAnalyticsSummaryStage())
+    .addStage(createReportGenerationStage())
+    .stage('format-result', async (context) => {
       const state = context.state as AgentPipelineState;
 
       return {
-        properties: state.properties || [],
+        properties: state.propertyResults || [],
         analytics: state.analytics,
         zipGroups: state.zipGroups,
         report: state.report,
         metrics: {
           totalTime: Date.now() - context.metadata.startTime,
-          propertiesFound: state.properties?.length || 0,
+          propertiesFound: state.propertyResults?.length || 0,
           analyticsGenerated: !!state.analytics,
         },
       };
@@ -251,30 +255,34 @@ export function createDeepMarketAnalysisPipeline() {
   return createPipeline<MarketResearchInput, AgentPipelineState>()
     .withName('deep-market-analysis')
     .withDescription('In-depth market analysis with comprehensive insights')
-    .use(createLoggingMiddleware({ level: 'info' }))
-    .use(createMetricsMiddleware())
-    .use(createPerformanceMiddleware({ warnThreshold: 30000 }))
-    .stage(createGoalParserStage())
-    .stage(createPropertySearchStage())
-    .stage(createDedupeRankStage())
-    .stage(createGroupByZipStage())
-    .stage(createAnalyticsSummaryStage())
-    .stage(createGraphAnalysisStage({ analysisType: 'all', maxDepth: 3 }))
-    .stage(createMapLinkStage())
-    .stage(createReportGenerationStage())
-    .transform(async (context) => {
+    .use(createLoggingMiddleware({ logLevel: 'info' }))
+    .use(createMetricsMiddleware({
+      onMetrics: (metrics) => {
+        console.log('[Deep Market Analysis Metrics]', metrics);
+      }
+    }))
+    .use(createPerformanceMiddleware({ slowThreshold: 30000 }))
+    .addStage(createGoalParserStage())
+    .addStage(createPropertySearchStage())
+    .addStage(createDedupeRankStage())
+    .addStage(createGroupByZipStage())
+    .addStage(createAnalyticsSummaryStage())
+    .addStage(createGraphAnalysisStage())
+    .addStage(createMapLinkStage())
+    .addStage(createReportGenerationStage())
+    .stage('format-result', async (context) => {
       const state = context.state as AgentPipelineState;
 
       return {
-        properties: state.properties || [],
+        properties: state.propertyResults || [],
         analytics: state.analytics,
-        graphData: state.graphData,
+        graphData: state.graphResults,
         zipGroups: state.zipGroups,
         mapLink: state.mapLink,
         report: state.report,
         metrics: {
           totalTime: Date.now() - context.metadata.startTime,
-          propertiesFound: state.properties?.length || 0,
+          propertiesFound: state.propertyResults?.length || 0,
           analyticsGenerated: !!state.analytics,
         },
       };

@@ -509,3 +509,42 @@ export function createContextEnrichmentMiddleware(options: {
     },
   };
 }
+
+/**
+ * Caching middleware for pipeline results
+ */
+export function createCachingMiddleware<TState = Record<string, unknown>>(options: {
+  ttl?: number;
+  keyGenerator?: (context: PipelineContext<unknown, TState>) => string;
+}): PipelineMiddleware<TState> {
+  const cache = new Map<string, { value: any; expiresAt: number }>();
+  const ttl = options.ttl || 300000; // Default 5 minutes
+
+  return {
+    name: 'caching',
+    onPipelineStart: async (context) => {
+      const key = options.keyGenerator
+        ? options.keyGenerator(context)
+        : `pipeline-cache:${JSON.stringify(context.input)}`;
+
+      const cached = cache.get(key);
+      if (cached && cached.expiresAt > Date.now()) {
+        // Cache hit - store in context metadata
+        (context.metadata as any).cacheHit = true;
+        (context.metadata as any).cachedValue = cached.value;
+      }
+    },
+    onPipelineComplete: async (context, result) => {
+      if (result.success && !(context.metadata as any).cacheHit) {
+        const key = options.keyGenerator
+          ? options.keyGenerator(context)
+          : `pipeline-cache:${JSON.stringify(context.input)}`;
+
+        cache.set(key, {
+          value: result.output,
+          expiresAt: Date.now() + ttl,
+        });
+      }
+    },
+  };
+}

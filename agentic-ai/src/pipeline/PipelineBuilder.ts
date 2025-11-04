@@ -25,6 +25,22 @@ export class PipelineBuilder<TInput = unknown, TOutput = unknown, TState = Recor
   }
 
   /**
+   * Set the pipeline name
+   */
+  withName(name: string): this {
+    this.pipeline.options.name = name;
+    return this;
+  }
+
+  /**
+   * Set the pipeline description
+   */
+  withDescription(description: string): this {
+    this.pipeline.options.description = description;
+    return this;
+  }
+
+  /**
    * Add a stage to the pipeline
    */
   addStage(stage: PipelineStage<unknown, unknown, TState>): this {
@@ -83,6 +99,28 @@ export class PipelineBuilder<TInput = unknown, TOutput = unknown, TState = Recor
         if (shouldExecute) {
           const conditionalPipeline = conditionalBuilder.build();
           const result = await conditionalPipeline.execute(context.input, context.signal);
+          return result.output;
+        }
+        return null;
+      },
+    });
+
+    return this.addStage(conditionalStage as PipelineStage<unknown, unknown, TState>);
+  }
+
+  /**
+   * Add a conditional stage - simpler version that executes a single stage if condition is met
+   */
+  conditional(
+    condition: (context: PipelineContext<unknown, TState>) => Promise<boolean> | boolean,
+    stage: PipelineStage<unknown, unknown, TState>
+  ): this {
+    const conditionalStage = new Stage({
+      name: `conditional-${stage.name}`,
+      execute: async (context) => {
+        const shouldExecute = await condition(context as PipelineContext<unknown, TState>);
+        if (shouldExecute) {
+          const result = await stage.execute(context as PipelineContext<unknown, TState>);
           return result.output;
         }
         return null;

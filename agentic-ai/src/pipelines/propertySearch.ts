@@ -64,43 +64,48 @@ export function createPropertySearchPipeline(options?: {
 
   // Add middleware
   if (options?.enableLogging !== false) {
-    builder.use(createLoggingMiddleware({ level: 'info' }));
+    builder.use(createLoggingMiddleware({ logLevel: 'info' }));
   }
 
   if (options?.enableMetrics !== false) {
-    builder.use(createMetricsMiddleware());
+    builder.use(createMetricsMiddleware({
+      onMetrics: (metrics) => {
+        console.log('[Pipeline Metrics]', metrics);
+      }
+    }));
   }
 
   if (options?.enablePerformance !== false) {
-    builder.use(createPerformanceMiddleware({ warnThreshold: 5000 }));
+    builder.use(createPerformanceMiddleware({ slowThreshold: 5000 }));
   }
 
   if (options?.enableCaching) {
     builder.use(
       createCachingMiddleware({
         ttl: 300000, // 5 minutes
-        keyGenerator: (context) => `property-search:${context.input.goal}`,
+        keyGenerator: (context) => `property-search:${(context.input as PropertySearchInput).goal}`,
       })
     );
   }
 
   // Build pipeline stages
   return builder
-    .stage(createGoalParserStage())
-    .stage(createPropertySearchStage({ maxResults: options?.maxResults }))
-    .stage(createDedupeRankStage())
+    .addStage(createGoalParserStage())
+    .addStage(createPropertySearchStage({ maxResults: options?.maxResults }))
+    .addStage(createDedupeRankStage())
     .conditional((context) => {
       const state = context.state as AgentPipelineState;
-      return (context.input as PropertySearchInput).includeMap !== false && state.properties.length > 0;
+      const input = context.input as PropertySearchInput;
+      return input.includeMap !== false && (state.zpids?.length || 0) > 0;
     }, createMapLinkStage())
-    .transform(async (context) => {
+    .stage('format-result', async (context) => {
       const state = context.state as AgentPipelineState;
       const result: PropertySearchResult = {
-        properties: state.properties || [],
+        properties: state.propertyResults || [],
         mapLink: state.mapLink,
         metrics: {
-          totalFound: state.properties?.length || 0,
-          duplicatesRemoved: state.duplicatesRemoved || 0,
+          totalFound: state.propertyResults?.length || 0,
+          duplicatesRemoved: 0,
           searchTime: Date.now() - context.metadata.startTime,
         },
       };
@@ -116,15 +121,15 @@ export function createQuickPropertySearchPipeline() {
   return createPipeline<PropertySearchInput, AgentPipelineState>()
     .withName('quick-property-search')
     .withDescription('Fast property search without advanced features')
-    .use(createLoggingMiddleware({ level: 'warn' }))
-    .stage(createGoalParserStage())
-    .stage(createPropertySearchStage({ maxResults: 10 }))
-    .transform(async (context) => {
+    .use(createLoggingMiddleware({ logLevel: 'warn' }))
+    .addStage(createGoalParserStage())
+    .addStage(createPropertySearchStage({ maxResults: 10 }))
+    .stage('format-result', async (context) => {
       const state = context.state as AgentPipelineState;
       return {
-        properties: state.properties || [],
+        properties: state.propertyResults || [],
         metrics: {
-          totalFound: state.properties?.length || 0,
+          totalFound: state.propertyResults?.length || 0,
           duplicatesRemoved: 0,
           searchTime: Date.now() - context.metadata.startTime,
         },
@@ -140,24 +145,28 @@ export function createAdvancedPropertySearchPipeline() {
   return createPipeline<PropertySearchInput, AgentPipelineState>()
     .withName('advanced-property-search')
     .withDescription('Property search with parallel graph and analytics analysis')
-    .use(createLoggingMiddleware({ level: 'info' }))
-    .use(createMetricsMiddleware())
-    .use(createPerformanceMiddleware({ warnThreshold: 10000 }))
-    .stage(createGoalParserStage())
-    .stage(createPropertySearchStage())
-    .stage(createDedupeRankStage())
+    .use(createLoggingMiddleware({ logLevel: 'info' }))
+    .use(createMetricsMiddleware({
+      onMetrics: (metrics) => {
+        console.log('[Advanced Pipeline Metrics]', metrics);
+      }
+    }))
+    .use(createPerformanceMiddleware({ slowThreshold: 10000 }))
+    .addStage(createGoalParserStage())
+    .addStage(createPropertySearchStage())
+    .addStage(createDedupeRankStage())
     // Parallel analysis stages would go here
-    .stage(createMapLinkStage())
-    .transform(async (context) => {
+    .addStage(createMapLinkStage())
+    .stage('format-result', async (context) => {
       const state = context.state as AgentPipelineState;
       return {
-        properties: state.properties || [],
+        properties: state.propertyResults || [],
         mapLink: state.mapLink,
         analytics: state.analytics,
-        graphData: state.graphData,
+        graphData: state.graphResults,
         metrics: {
-          totalFound: state.properties?.length || 0,
-          duplicatesRemoved: state.duplicatesRemoved || 0,
+          totalFound: state.propertyResults?.length || 0,
+          duplicatesRemoved: 0,
           searchTime: Date.now() - context.metadata.startTime,
         },
       };

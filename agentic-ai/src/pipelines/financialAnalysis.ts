@@ -79,11 +79,15 @@ export function createFinancialAnalysisPipeline(options?: {
 
   // Add middleware
   if (options?.enableLogging !== false) {
-    builder.use(createLoggingMiddleware({ level: 'info' }));
+    builder.use(createLoggingMiddleware({ logLevel: 'info' }));
   }
 
   if (options?.enableMetrics !== false) {
-    builder.use(createMetricsMiddleware());
+    builder.use(createMetricsMiddleware({
+      onMetrics: (metrics) => {
+        console.log('[Financial Analysis Metrics]', metrics);
+      }
+    }));
   }
 
   if (options?.enableValidation !== false) {
@@ -95,12 +99,9 @@ export function createFinancialAnalysisPipeline(options?: {
             !financialInput.goal &&
             (!financialInput.propertyPrice || financialInput.propertyPrice <= 0)
           ) {
-            return {
-              valid: false,
-              errors: ['Either goal or propertyPrice must be provided'],
-            };
+            return false;
           }
-          return { valid: true };
+          return true;
         },
       })
     );
@@ -110,25 +111,26 @@ export function createFinancialAnalysisPipeline(options?: {
   return builder
     .conditional(
       (context) => !!(context.input as FinancialAnalysisInput).goal,
-      createPipeline()
-        .stage(createGoalParserStage())
-        .stage(createPropertySearchStage({ maxResults: 5 }))
-        .build()
+      createGoalParserStage()
     )
-    .stage(createMortgageCalculationStage())
-    .stage(createAffordabilityCalculationStage())
+    .conditional(
+      (context) => !!(context.input as FinancialAnalysisInput).goal,
+      createPropertySearchStage({ maxResults: 5 })
+    )
+    .addStage(createMortgageCalculationStage())
+    .addStage(createAffordabilityCalculationStage())
     .conditional(
       (context) => (context.input as FinancialAnalysisInput).includeReport !== false,
       createReportGenerationStage()
     )
-    .transform(async (context) => {
+    .stage('format-result', async (context) => {
       const state = context.state as AgentPipelineState;
       const input = context.input as FinancialAnalysisInput;
 
       const result: FinancialAnalysisResult = {
         mortgage: state.mortgage,
         affordability: state.affordability,
-        properties: state.properties?.map((p: any) => ({
+        properties: state.propertyResults?.map((p: any) => ({
           zpid: p.zpid,
           address: p.address,
           price: p.price,
@@ -138,7 +140,7 @@ export function createFinancialAnalysisPipeline(options?: {
         report: state.report,
         metrics: {
           analysisTime: Date.now() - context.metadata.startTime,
-          propertiesAnalyzed: state.properties?.length || 0,
+          propertiesAnalyzed: state.propertyResults?.length || 0,
         },
       };
 
@@ -154,23 +156,20 @@ export function createMortgageCalculatorPipeline() {
   return createPipeline<FinancialAnalysisInput, AgentPipelineState>()
     .withName('mortgage-calculator')
     .withDescription('Calculate mortgage payments and total costs')
-    .use(createLoggingMiddleware({ level: 'warn' }))
+    .use(createLoggingMiddleware({ logLevel: 'warn' }))
     .use(
       createValidationMiddleware({
         validateInput: (input) => {
           const financialInput = input as FinancialAnalysisInput;
           if (!financialInput.propertyPrice || financialInput.propertyPrice <= 0) {
-            return {
-              valid: false,
-              errors: ['propertyPrice must be a positive number'],
-            };
+            return false;
           }
-          return { valid: true };
+          return true;
         },
       })
     )
-    .stage(createMortgageCalculationStage())
-    .transform(async (context) => {
+    .addStage(createMortgageCalculationStage())
+    .stage('format-result', async (context) => {
       const state = context.state as AgentPipelineState;
       return {
         mortgage: state.mortgage,
@@ -190,23 +189,20 @@ export function createAffordabilityCheckerPipeline() {
   return createPipeline<FinancialAnalysisInput, AgentPipelineState>()
     .withName('affordability-checker')
     .withDescription('Check property affordability based on income and debts')
-    .use(createLoggingMiddleware({ level: 'info' }))
+    .use(createLoggingMiddleware({ logLevel: 'info' }))
     .use(
       createValidationMiddleware({
         validateInput: (input) => {
           const financialInput = input as FinancialAnalysisInput;
           if (!financialInput.annualIncome || financialInput.annualIncome <= 0) {
-            return {
-              valid: false,
-              errors: ['annualIncome must be a positive number'],
-            };
+            return false;
           }
-          return { valid: true };
+          return true;
         },
       })
     )
-    .stage(createAffordabilityCalculationStage())
-    .transform(async (context) => {
+    .addStage(createAffordabilityCalculationStage())
+    .stage('format-result', async (context) => {
       const state = context.state as AgentPipelineState;
       return {
         affordability: state.affordability,
@@ -226,24 +222,28 @@ export function createInvestmentAnalysisPipeline() {
   return createPipeline<FinancialAnalysisInput, AgentPipelineState>()
     .withName('investment-analysis')
     .withDescription('Comprehensive property investment analysis')
-    .use(createLoggingMiddleware({ level: 'info' }))
-    .use(createMetricsMiddleware())
-    .stage(createGoalParserStage())
-    .stage(createPropertySearchStage())
-    .stage(createMortgageCalculationStage())
-    .stage(createAffordabilityCalculationStage())
-    .stage(createReportGenerationStage())
-    .transform(async (context) => {
+    .use(createLoggingMiddleware({ logLevel: 'info' }))
+    .use(createMetricsMiddleware({
+      onMetrics: (metrics) => {
+        console.log('[Investment Analysis Metrics]', metrics);
+      }
+    }))
+    .addStage(createGoalParserStage())
+    .addStage(createPropertySearchStage())
+    .addStage(createMortgageCalculationStage())
+    .addStage(createAffordabilityCalculationStage())
+    .addStage(createReportGenerationStage())
+    .stage('format-result', async (context) => {
       const state = context.state as AgentPipelineState;
       return {
-        properties: state.properties,
+        properties: state.propertyResults,
         mortgage: state.mortgage,
         affordability: state.affordability,
         report: state.report,
         investment: state.investment,
         metrics: {
           analysisTime: Date.now() - context.metadata.startTime,
-          propertiesAnalyzed: state.properties?.length || 0,
+          propertiesAnalyzed: state.propertyResults?.length || 0,
         },
       };
     })

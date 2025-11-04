@@ -41,6 +41,7 @@ import {
   createCircuitBreakerMiddleware,
   createTracingMiddleware,
   createContextEnrichmentMiddleware,
+  createCachingMiddleware,
 } from "./middleware.js";
 
 export {
@@ -55,6 +56,7 @@ export {
   createCircuitBreakerMiddleware,
   createTracingMiddleware,
   createContextEnrichmentMiddleware,
+  createCachingMiddleware,
 };
 
 // Agent stages
@@ -328,7 +330,7 @@ import {
   MultiLevelCache,
   CacheWarmer,
   type Cache,
-  type CacheEntry as AdvancedCacheEntry,
+  type CacheEntry as CachingCacheEntry,
   type CacheStats,
 } from "./caching.js";
 
@@ -339,7 +341,7 @@ export {
   MultiLevelCache,
   CacheWarmer,
   type Cache,
-  type CacheEntry as AdvancedCacheEntry,
+  type CachingCacheEntry,
   type CacheStats,
 };
 
@@ -418,6 +420,7 @@ export const PipelineSystem = {
     circuitBreaker: createCircuitBreakerMiddleware,
     tracing: createTracingMiddleware,
     contextEnrichment: createContextEnrichmentMiddleware,
+    caching: createCachingMiddleware,
   },
 
   // Templates

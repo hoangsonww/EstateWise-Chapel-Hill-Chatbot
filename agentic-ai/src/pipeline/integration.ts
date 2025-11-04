@@ -7,7 +7,8 @@
 
 import { AgentOrchestrator } from "../orchestrator/AgentOrchestrator.js";
 import { ToolClient } from "../mcp/ToolClient.js";
-import { createPipeline, createStage } from "./PipelineBuilder.js";
+import { createPipeline } from "./PipelineBuilder.js";
+import { createStage } from "./Stage.js";
 import { createLoggingMiddleware, createMetricsMiddleware } from "./middleware.js";
 import { PipelineMonitor, createMonitoringMiddleware } from "./monitoring.js";
 import type { Agent, AgentContext, AgentMessage } from "../core/types.js";

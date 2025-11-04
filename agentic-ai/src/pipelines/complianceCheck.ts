@@ -92,19 +92,23 @@ export function createComplianceCheckPipeline(options?: {
 
   // Add middleware
   if (options?.enableLogging !== false) {
-    builder.use(createLoggingMiddleware({ level: 'info' }));
+    builder.use(createLoggingMiddleware({ logLevel: 'info' }));
   }
 
   if (options?.enableMetrics !== false) {
-    builder.use(createMetricsMiddleware());
+    builder.use(createMetricsMiddleware({
+      onMetrics: (metrics) => {
+        console.log('[Compliance Check Metrics]', metrics);
+      }
+    }));
   }
 
   if (options?.enableAudit) {
     builder.use(
       createAuditMiddleware({
-        includeInput: true,
-        includeOutput: true,
-        includeErrors: true,
+        onAudit: (event) => {
+          console.log('[Compliance Audit]', event);
+        }
       })
     );
   }
@@ -118,12 +122,9 @@ export function createComplianceCheckPipeline(options?: {
           !complianceInput.propertyId &&
           !complianceInput.propertyAddress
         ) {
-          return {
-            valid: false,
-            errors: ['One of goal, propertyId, or propertyAddress must be provided'],
-          };
+          return false;
         }
-        return { valid: true };
+        return true;
       },
     })
   );
@@ -132,17 +133,18 @@ export function createComplianceCheckPipeline(options?: {
   return builder
     .conditional(
       (context) => !!(context.input as ComplianceCheckInput).goal,
-      createPipeline()
-        .stage(createGoalParserStage())
-        .stage(createPropertySearchStage({ maxResults: 1 }))
-        .build()
+      createGoalParserStage()
     )
-    .stage(createComplianceCheckStage({ strictMode: options?.strictMode }))
+    .conditional(
+      (context) => !!(context.input as ComplianceCheckInput).goal,
+      createPropertySearchStage({ maxResults: 1 })
+    )
+    .addStage(createComplianceCheckStage())
     .conditional(
       (context) => (context.input as ComplianceCheckInput).includeReport !== false,
       createReportGenerationStage()
     )
-    .transform(async (context) => {
+    .stage('format-result', async (context) => {
       const state = context.state as AgentPipelineState;
       const input = context.input as ComplianceCheckInput;
 
@@ -160,12 +162,12 @@ export function createComplianceCheckPipeline(options?: {
           environmental: false,
           safety: false,
         },
-        property: state.properties?.[0]
+        property: state.propertyResults?.[0]
           ? {
-              zpid: state.properties[0].zpid,
-              address: state.properties[0].address,
-              zoning: state.properties[0].zoning,
-              jurisdiction: state.properties[0].jurisdiction,
+              zpid: state.propertyResults[0].zpid,
+              address: state.propertyResults[0].address,
+              zoning: state.propertyResults[0].zoning,
+              jurisdiction: state.propertyResults[0].jurisdiction,
             }
           : undefined,
         report: state.report,
@@ -190,16 +192,17 @@ export function createZoningCheckPipeline() {
   return createPipeline<ComplianceCheckInput, AgentPipelineState>()
     .withName('zoning-check')
     .withDescription('Quick zoning compliance verification')
-    .use(createLoggingMiddleware({ level: 'warn' }))
+    .use(createLoggingMiddleware({ logLevel: 'warn' }))
     .conditional(
       (context) => !!(context.input as ComplianceCheckInput).goal,
-      createPipeline()
-        .stage(createGoalParserStage())
-        .stage(createPropertySearchStage({ maxResults: 1 }))
-        .build()
+      createGoalParserStage()
     )
-    .stage(createComplianceCheckStage({ checksToPerform: ['zoning'] }))
-    .transform(async (context) => {
+    .conditional(
+      (context) => !!(context.input as ComplianceCheckInput).goal,
+      createPropertySearchStage({ maxResults: 1 })
+    )
+    .addStage(createComplianceCheckStage())
+    .stage('format-result', async (context) => {
       const state = context.state as AgentPipelineState;
       const zoningIssues =
         state.complianceIssues?.filter((i: ComplianceIssue) => i.category === 'zoning') || [];
@@ -207,7 +210,7 @@ export function createZoningCheckPipeline() {
       return {
         compliant: zoningIssues.filter((i: ComplianceIssue) => i.severity === 'critical').length === 0,
         issues: zoningIssues,
-        property: state.properties?.[0],
+        property: state.propertyResults?.[0],
         metrics: {
           checkTime: Date.now() - context.metadata.startTime,
           checksPerformed: 1,
@@ -226,17 +229,22 @@ export function createDisclosureVerificationPipeline() {
   return createPipeline<ComplianceCheckInput, AgentPipelineState>()
     .withName('disclosure-verification')
     .withDescription('Verify required property disclosures')
-    .use(createLoggingMiddleware({ level: 'info' }))
-    .use(createAuditMiddleware({ includeInput: true, includeOutput: true }))
+    .use(createLoggingMiddleware({ logLevel: 'info' }))
+    .use(createAuditMiddleware({
+      onAudit: (event) => {
+        console.log('[Disclosure Audit]', event);
+      }
+    }))
     .conditional(
       (context) => !!(context.input as ComplianceCheckInput).goal,
-      createPipeline()
-        .stage(createGoalParserStage())
-        .stage(createPropertySearchStage({ maxResults: 1 }))
-        .build()
+      createGoalParserStage()
     )
-    .stage(createComplianceCheckStage({ checksToPerform: ['disclosures'] }))
-    .transform(async (context) => {
+    .conditional(
+      (context) => !!(context.input as ComplianceCheckInput).goal,
+      createPropertySearchStage({ maxResults: 1 })
+    )
+    .addStage(createComplianceCheckStage())
+    .stage('format-result', async (context) => {
       const state = context.state as AgentPipelineState;
       const disclosureIssues =
         state.complianceIssues?.filter((i: ComplianceIssue) => i.category === 'disclosure') || [];
@@ -244,7 +252,7 @@ export function createDisclosureVerificationPipeline() {
       return {
         compliant: disclosureIssues.filter((i: ComplianceIssue) => i.severity === 'critical').length === 0,
         issues: disclosureIssues,
-        property: state.properties?.[0],
+        property: state.propertyResults?.[0],
         metrics: {
           checkTime: Date.now() - context.metadata.startTime,
           checksPerformed: 1,
@@ -263,24 +271,28 @@ export function createRegulatoryCompliancePipeline() {
   return createPipeline<ComplianceCheckInput, AgentPipelineState>()
     .withName('regulatory-compliance')
     .withDescription('Comprehensive regulatory compliance verification')
-    .use(createLoggingMiddleware({ level: 'info' }))
-    .use(createMetricsMiddleware())
-    .use(createAuditMiddleware({ includeInput: true, includeOutput: true, includeErrors: true }))
+    .use(createLoggingMiddleware({ logLevel: 'info' }))
+    .use(createMetricsMiddleware({
+      onMetrics: (metrics) => {
+        console.log('[Regulatory Compliance Metrics]', metrics);
+      }
+    }))
+    .use(createAuditMiddleware({
+      onAudit: (event) => {
+        console.log('[Regulatory Audit]', event);
+      }
+    }))
     .conditional(
       (context) => !!(context.input as ComplianceCheckInput).goal,
-      createPipeline()
-        .stage(createGoalParserStage())
-        .stage(createPropertySearchStage({ maxResults: 1 }))
-        .build()
+      createGoalParserStage()
     )
-    .stage(
-      createComplianceCheckStage({
-        strictMode: true,
-        checksToPerform: ['zoning', 'legal', 'disclosures', 'environmental', 'safety'],
-      })
+    .conditional(
+      (context) => !!(context.input as ComplianceCheckInput).goal,
+      createPropertySearchStage({ maxResults: 1 })
     )
-    .stage(createReportGenerationStage())
-    .transform(async (context) => {
+    .addStage(createComplianceCheckStage())
+    .addStage(createReportGenerationStage())
+    .stage('format-result', async (context) => {
       const state = context.state as AgentPipelineState;
       const issues: ComplianceIssue[] = state.complianceIssues || [];
 
@@ -288,7 +300,7 @@ export function createRegulatoryCompliancePipeline() {
         compliant: !issues.some((i) => i.severity === 'critical'),
         issues,
         checks: state.complianceChecks,
-        property: state.properties?.[0],
+        property: state.propertyResults?.[0],
         report: state.report,
         auditTrail: state.auditTrail,
         metrics: {
