@@ -124,7 +124,7 @@ export async function example4_ParallelExecution() {
 
   const pipeline = createPipeline({ name: 'parallel-example' })
     .withLogging({ logLevel: 'info' })
-    .addStage(createParallelStage('fetch-all', [stage1, stage2, stage3]))
+    .addStage(createParallelStage('fetch-all', [stage1 as any, stage2 as any, stage3 as any]))
     .stage('process-results', async (context) => {
       console.log('All data fetched:', context.state['fetch-all']);
       return 'Processing complete';
@@ -243,11 +243,11 @@ export async function example7_PipelineComposition() {
   const processPipeline = createPipeline({ name: 'processing' })
     .stage('transform', async (context) => {
       console.log('Transforming...');
-      return { ...context.input, transformed: true };
+      return { ...(context.input as object), transformed: true };
     })
     .stage('enrich', async (context) => {
       console.log('Enriching...');
-      return { ...context.state.transform, enriched: true };
+      return { ...(context.state.transform as object), enriched: true };
     })
     .build();
 

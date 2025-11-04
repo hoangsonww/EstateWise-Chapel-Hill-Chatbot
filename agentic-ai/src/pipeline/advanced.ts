@@ -141,7 +141,7 @@ export function createBranchStage<TState = Record<string, unknown>>(
           // Execute this branch's stages
           let lastOutput: unknown;
           for (const stage of branch.stages) {
-            const result = await stage.execute(context);
+            const result = await stage.execute(context as any);
             if (!result.success) {
               throw result.error || new Error(`Branch stage ${stage.name} failed`);
             }
@@ -203,9 +203,9 @@ export function createErrorRecoveryStage<TInput = unknown, TOutput = unknown, TS
           }
 
           // Stage failed - check if recoverable
-          if (result.error && strategy.isRecoverable(result.error, context)) {
+          if (result.error && strategy.isRecoverable(result.error, context as any)) {
             // Attempt recovery
-            const recoveryResult = await strategy.recover(result.error, context, stage);
+            const recoveryResult = await strategy.recover(result.error, context as any, stage);
             if (recoveryResult.success && recoveryResult.output !== undefined) {
               return recoveryResult.output as TOutput;
             }
@@ -217,8 +217,8 @@ export function createErrorRecoveryStage<TInput = unknown, TOutput = unknown, TS
           const err = error instanceof Error ? error : new Error(String(error));
           attempts++;
 
-          if (strategy.isRecoverable(err, context) && attempts < maxAttempts) {
-            const recoveryResult = await strategy.recover(err, context, stage);
+          if (strategy.isRecoverable(err, context as any) && attempts < maxAttempts) {
+            const recoveryResult = await strategy.recover(err, context as any, stage);
             if (recoveryResult.success && recoveryResult.output !== undefined) {
               return recoveryResult.output as TOutput;
             }
@@ -289,7 +289,7 @@ export function createFallbackStrategy<TState = Record<string, unknown>>(
     isRecoverable: () => true,
     recover: async (error, context) => {
       // Execute fallback stage
-      return fallbackStage.execute(context);
+      return fallbackStage.execute(context as any);
     },
   };
 }
@@ -318,7 +318,7 @@ export function createDynamicPipeline<TInput = unknown, TOutput = unknown, TStat
     'dynamic-execution',
     async (context) => {
       // Generate stages dynamically
-      const stages = await stageFactory(context.input as TInput, context);
+      const stages = await stageFactory(context.input as TInput, context as any);
 
       // Execute stages sequentially
       let lastOutput: unknown;

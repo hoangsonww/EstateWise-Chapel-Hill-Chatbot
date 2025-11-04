@@ -171,7 +171,7 @@ export function createTransformStage<TState = Record<string, unknown>>(
     name,
     execute: async (context) => {
       const updates = await transform(context.state);
-      Object.assign(context.state, updates);
+      Object.assign(context.state as object, updates);
       return updates;
     },
     ...options,

@@ -79,7 +79,7 @@ export class PipelineBuilder<TInput = unknown, TOutput = unknown, TState = Recor
     const conditionalStage = new Stage({
       name: 'conditional',
       execute: async (context) => {
-        const shouldExecute = await condition(context);
+        const shouldExecute = await condition(context as PipelineContext<unknown, TState>);
         if (shouldExecute) {
           const conditionalPipeline = conditionalBuilder.build();
           const result = await conditionalPipeline.execute(context.input, context.signal);
@@ -89,7 +89,7 @@ export class PipelineBuilder<TInput = unknown, TOutput = unknown, TState = Recor
       },
     });
 
-    return this.addStage(conditionalStage);
+    return this.addStage(conditionalStage as PipelineStage<unknown, unknown, TState>);
   }
 
   /**
@@ -100,11 +100,11 @@ export class PipelineBuilder<TInput = unknown, TOutput = unknown, TState = Recor
       name: 'branch',
       execute: async (context) => {
         for (const branch of branches) {
-          const shouldTake = await branch.condition(context);
+          const shouldTake = await branch.condition(context as PipelineContext<unknown, TState>);
           if (shouldTake) {
             // Execute branch stages
             for (const stage of branch.stages) {
-              const result = await stage.execute(context);
+              const result = await stage.execute(context as PipelineContext<unknown, TState>);
               if (!result.success || !result.continue) {
                 return result.output;
               }
@@ -116,7 +116,7 @@ export class PipelineBuilder<TInput = unknown, TOutput = unknown, TState = Recor
       },
     });
 
-    return this.addStage(branchStage);
+    return this.addStage(branchStage as PipelineStage<unknown, unknown, TState>);
   }
 
   /**
@@ -141,7 +141,7 @@ export class PipelineBuilder<TInput = unknown, TOutput = unknown, TState = Recor
         for (let i = 0; i < stages.length; i += maxConcurrency) {
           const batch = stages.slice(i, i + maxConcurrency);
           const batchResults = await Promise.all(
-            batch.map((stage) => stage.execute(context))
+            batch.map((stage) => stage.execute(context as PipelineContext<unknown, TState>))
           );
           results.push(...batchResults);
         }
@@ -150,7 +150,7 @@ export class PipelineBuilder<TInput = unknown, TOutput = unknown, TState = Recor
       },
     });
 
-    return this.addStage(parallelStage);
+    return this.addStage(parallelStage as PipelineStage<unknown, unknown, TState>);
   }
 
   /**
@@ -292,7 +292,7 @@ export class PipelineBuilder<TInput = unknown, TOutput = unknown, TState = Recor
       onError: async (context, error, stage) => {
         if (retries < (options.maxRetries ?? 3)) {
           retries++;
-          await options.onError(error, context);
+          await options.onError(error, context as any);
         }
       },
     };

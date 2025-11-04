@@ -193,6 +193,7 @@ export class PipelineWorker extends EventEmitter {
    * Start processing work items
    */
   async start(): Promise<void> {
+    if (this.status.status === 'offline') return;
     this.status.status = 'idle';
     this.emit('started');
 
