@@ -62,6 +62,7 @@ export interface StageResult<TOutput = unknown> {
     duration: number;
     toolCalls?: ToolCall[];
     tokensUsed?: number;
+    attempts?: number;
     [key: string]: unknown;
   };
 }
@@ -110,7 +111,7 @@ export interface PipelineMiddleware<TState = Record<string, unknown>> {
   /** Called after pipeline completes */
   onPipelineComplete?(
     context: PipelineContext<unknown, TState>,
-    result: PipelineResult<unknown>
+    result: PipelineResult<unknown, TState>
   ): Promise<void>;
 
   /** Called before each stage */
@@ -137,7 +138,7 @@ export interface PipelineMiddleware<TState = Record<string, unknown>> {
 /**
  * Final result of pipeline execution
  */
-export interface PipelineResult<TOutput = unknown> {
+export interface PipelineResult<TOutput = unknown, TState = Record<string, unknown>> {
   /** Whether the pipeline succeeded */
   success: boolean;
 
@@ -148,7 +149,7 @@ export interface PipelineResult<TOutput = unknown> {
   error?: Error;
 
   /** Execution context */
-  context: PipelineContext;
+  context: PipelineContext<unknown, TState>;
 
   /** Results from each stage */
   stageResults: Map<string, StageResult>;
@@ -323,14 +324,14 @@ export interface Pipeline<TInput = unknown, TOutput = unknown, TState = Record<s
   middleware: PipelineMiddleware<TState>[];
 
   /** Execute the pipeline */
-  execute(input: TInput, signal?: AbortSignal): Promise<PipelineResult<TOutput>>;
+  execute(input: TInput, signal?: AbortSignal): Promise<PipelineResult<TOutput, TState>>;
 
   /** Execute with streaming events */
   executeStream(
     input: TInput,
     onEvent: (event: PipelineEvent) => void,
     signal?: AbortSignal
-  ): Promise<PipelineResult<TOutput>>;
+  ): Promise<PipelineResult<TOutput, TState>>;
 
   /** Add a stage to the pipeline */
   addStage(stage: PipelineStage<unknown, unknown, TState>): Pipeline<TInput, TOutput, TState>;

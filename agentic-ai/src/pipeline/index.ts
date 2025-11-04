@@ -21,13 +21,15 @@ export type {
   ExecutionStrategy,
 } from "./types.js";
 
-// Core classes
-export { Stage, createStage, createTransformStage, createConditionalStage, createParallelStage } from "./Stage.js";
-export { Pipeline } from "./Pipeline.js";
-export { PipelineBuilder, createPipeline, createPipelineFromFunction } from "./PipelineBuilder.js";
+// Core classes - import for local use and re-export
+import { Stage, createStage, createTransformStage, createConditionalStage, createParallelStage as createParallelStageFromStage } from "./Stage.js";
+import { Pipeline } from "./Pipeline.js";
+import { PipelineBuilder, createPipeline, createPipelineFromFunction } from "./PipelineBuilder.js";
 
-// Middleware
-export {
+export { Stage, createStage, createTransformStage, createConditionalStage, createParallelStageFromStage as createParallelStage, Pipeline, PipelineBuilder, createPipeline, createPipelineFromFunction };
+
+// Middleware - import for local use and re-export
+import {
   createLoggingMiddleware,
   createMetricsMiddleware,
   createPerformanceMiddleware,
@@ -40,6 +42,20 @@ export {
   createTracingMiddleware,
   createContextEnrichmentMiddleware,
 } from "./middleware.js";
+
+export {
+  createLoggingMiddleware,
+  createMetricsMiddleware,
+  createPerformanceMiddleware,
+  createErrorRecoveryMiddleware,
+  createValidationMiddleware,
+  createRateLimitMiddleware,
+  createAuditMiddleware,
+  createTimeoutMiddleware,
+  createCircuitBreakerMiddleware,
+  createTracingMiddleware,
+  createContextEnrichmentMiddleware,
+};
 
 // Agent stages
 export {
@@ -58,8 +74,8 @@ export {
   type AgentPipelineState,
 } from "./stages/AgentStages.js";
 
-// Templates
-export {
+// Templates - import for local use and re-export
+import {
   createPropertySearchPipeline,
   createMarketResearchPipeline,
   createFinancialAnalysisPipeline,
@@ -71,8 +87,20 @@ export {
   type TemplateOptions,
 } from "./templates.js";
 
-// Advanced features
 export {
+  createPropertySearchPipeline,
+  createMarketResearchPipeline,
+  createFinancialAnalysisPipeline,
+  createQuickLookupPipeline,
+  createGraphAnalysisPipeline,
+  createParallelSearchPipeline,
+  getPipelineTemplate,
+  listPipelineTemplates,
+  type TemplateOptions,
+};
+
+// Advanced features - import for local use and re-export
+import {
   composePipelines,
   createParallelStage as createAdvancedParallelStage,
   createBranchStage,
@@ -86,8 +114,22 @@ export {
   createReduceStage,
 } from "./advanced.js";
 
-// Monitoring
 export {
+  composePipelines,
+  createAdvancedParallelStage,
+  createBranchStage,
+  createErrorRecoveryStage,
+  createRetryStrategy,
+  createFallbackStrategy,
+  createDynamicPipeline,
+  createLoopStage,
+  createMapStage,
+  createFilterStage,
+  createReduceStage,
+};
+
+// Monitoring - import for local use and re-export
+import {
   PipelineMonitor,
   PipelineEventStream,
   PipelineHealthChecker,
@@ -95,8 +137,16 @@ export {
   type ExecutionTrace,
 } from "./monitoring.js";
 
-// State Persistence
 export {
+  PipelineMonitor,
+  PipelineEventStream,
+  PipelineHealthChecker,
+  createMonitoringMiddleware,
+  type ExecutionTrace,
+};
+
+// State Persistence - import for local use and re-export
+import {
   CheckpointManager,
   SnapshotManager,
   FileStateStorage,
@@ -110,8 +160,22 @@ export {
   type StateStorage,
 } from "./persistence.js";
 
-// Distributed Execution
 export {
+  CheckpointManager,
+  SnapshotManager,
+  FileStateStorage,
+  MemoryStateStorage,
+  RedisStateStorage,
+  createCheckpointMiddleware,
+  createSnapshotMiddleware,
+  resumeFromCheckpoint,
+  type Checkpoint,
+  type StateSnapshot,
+  type StateStorage,
+};
+
+// Distributed Execution - import for local use and re-export
+import {
   PipelineWorker,
   WorkerPool,
   LoadBalancer,
@@ -124,8 +188,21 @@ export {
   type MessageQueue,
 } from "./distributed.js";
 
-// Scheduling
 export {
+  PipelineWorker,
+  WorkerPool,
+  LoadBalancer,
+  DistributedPipelineExecutor,
+  InMemoryQueue,
+  PriorityQueue,
+  createDistributedMiddleware,
+  type WorkItem,
+  type WorkerStatus,
+  type MessageQueue,
+};
+
+// Scheduling - import for local use and re-export
+import {
   PipelineScheduler,
   DelayedExecutor,
   RecurringExecutor,
@@ -136,8 +213,19 @@ export {
   type CronExpression,
 } from "./scheduler.js";
 
-// Testing
 export {
+  PipelineScheduler,
+  DelayedExecutor,
+  RecurringExecutor,
+  DependencyGraph,
+  CronParser,
+  type ScheduleConfig,
+  type ScheduledExecution,
+  type CronExpression,
+};
+
+// Testing - import for local use and re-export
+import {
   MockStage,
   SpyStage,
   Assertions,
@@ -149,8 +237,20 @@ export {
   type SuiteResult,
 } from "./testing.js";
 
-// Optimization
 export {
+  MockStage,
+  SpyStage,
+  Assertions,
+  TestRunner,
+  TestHelpers,
+  type TestCase,
+  type TestSuite,
+  type TestResult,
+  type SuiteResult,
+};
+
+// Optimization - import for local use and re-export
+import {
   PipelineOptimizer,
   ResourceTracker,
   PerformanceBudget,
@@ -159,8 +259,17 @@ export {
   type OptimizationRecommendation,
 } from "./optimization.js";
 
-// Plugins
 export {
+  PipelineOptimizer,
+  ResourceTracker,
+  PerformanceBudget,
+  type PerformanceProfile,
+  type BottleneckAnalysis,
+  type OptimizationRecommendation,
+};
+
+// Plugins - import for local use and re-export
+import {
   PluginRegistry,
   GenericExtensionPoint,
   PluginAwarePipelineBuilder,
@@ -174,8 +283,22 @@ export {
   type ExtensionPoint,
 } from "./plugins.js";
 
-// Visualization
 export {
+  PluginRegistry,
+  GenericExtensionPoint,
+  PluginAwarePipelineBuilder,
+  NotificationPlugin,
+  MetricsAggregationPlugin,
+  WebhookPlugin,
+  PluginLoader,
+  type Plugin,
+  type PluginMetadata,
+  type PluginHooks,
+  type ExtensionPoint,
+};
+
+// Visualization - import for local use and re-export
+import {
   PipelineDAGBuilder,
   TimelineVisualizer,
   DashboardGenerator,
@@ -186,8 +309,19 @@ export {
   type DashboardData,
 } from "./visualization.js";
 
-// Advanced Caching
 export {
+  PipelineDAGBuilder,
+  TimelineVisualizer,
+  DashboardGenerator,
+  FlowDiagramGenerator,
+  type DAGGraph,
+  type DAGNode,
+  type DAGEdge,
+  type DashboardData,
+};
+
+// Advanced Caching - import for local use and re-export
+import {
   L1Cache,
   L2Cache,
   L3Cache,
@@ -198,8 +332,19 @@ export {
   type CacheStats,
 } from "./caching.js";
 
-// Workflows
 export {
+  L1Cache,
+  L2Cache,
+  L3Cache,
+  MultiLevelCache,
+  CacheWarmer,
+  type Cache,
+  type CacheEntry as AdvancedCacheEntry,
+  type CacheStats,
+};
+
+// Workflows - import for local use and re-export
+import {
   ApprovalManager,
   ApprovalGateStage,
   UserInputManager,
@@ -214,6 +359,22 @@ export {
   type UserInputConfig,
   type NotificationService,
 } from "./workflows.js";
+
+export {
+  ApprovalManager,
+  ApprovalGateStage,
+  UserInputManager,
+  UserInputStage,
+  ConsoleNotificationService,
+  EmailNotificationService,
+  createApprovalMiddleware,
+  createUserInputMiddleware,
+  type ApprovalRequest,
+  type ApprovalResponse,
+  type ApprovalGateConfig,
+  type UserInputConfig,
+  type NotificationService,
+};
 
 // Integration
 export {
@@ -237,7 +398,7 @@ export const PipelineSystem = {
   stage: createStage,
   transformStage: createTransformStage,
   conditionalStage: createConditionalStage,
-  parallelStage: createParallelStage,
+  parallelStage: createParallelStageFromStage,
   branchStage: createBranchStage,
   loopStage: createLoopStage,
   mapStage: createMapStage,

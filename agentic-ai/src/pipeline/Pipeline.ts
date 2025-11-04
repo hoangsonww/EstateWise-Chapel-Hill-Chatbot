@@ -83,7 +83,7 @@ export class Pipeline<TInput = unknown, TOutput = unknown, TState = Record<strin
     return this;
   }
 
-  async execute(input: TInput, signal?: AbortSignal): Promise<PipelineResult<TOutput>> {
+  async execute(input: TInput, signal?: AbortSignal): Promise<PipelineResult<TOutput, TState>> {
     return this.executeInternal(input, signal);
   }
 
@@ -91,7 +91,7 @@ export class Pipeline<TInput = unknown, TOutput = unknown, TState = Record<strin
     input: TInput,
     onEvent: (event: PipelineEvent) => void,
     signal?: AbortSignal
-  ): Promise<PipelineResult<TOutput>> {
+  ): Promise<PipelineResult<TOutput, TState>> {
     return this.executeInternal(input, signal, onEvent);
   }
 
@@ -99,7 +99,7 @@ export class Pipeline<TInput = unknown, TOutput = unknown, TState = Record<strin
     input: TInput,
     signal?: AbortSignal,
     onEvent?: (event: PipelineEvent) => void
-  ): Promise<PipelineResult<TOutput>> {
+  ): Promise<PipelineResult<TOutput, TState>> {
     const executionId = randomUUID();
     const startTime = Date.now();
     this.executionCount++;
@@ -224,7 +224,7 @@ export class Pipeline<TInput = unknown, TOutput = unknown, TState = Record<strin
     }
 
     // Build result
-    const result: PipelineResult<TOutput> = {
+    const result: PipelineResult<TOutput, TState> = {
       success: !pipelineError,
       output: finalOutput,
       error: pipelineError,
@@ -265,8 +265,8 @@ export class Pipeline<TInput = unknown, TOutput = unknown, TState = Record<strin
   }
 
   private async executeStage(
-    stage: PipelineStage,
-    context: PipelineContext,
+    stage: PipelineStage<unknown, unknown, TState>,
+    context: PipelineContext<unknown, TState>,
     onEvent?: (event: PipelineEvent) => void
   ): Promise<StageResult> {
     const startTime = Date.now();
@@ -361,7 +361,7 @@ export class Pipeline<TInput = unknown, TOutput = unknown, TState = Record<strin
   private async callMiddleware(
     hook: 'onPipelineComplete',
     context: PipelineContext<unknown, TState>,
-    result: PipelineResult
+    result: PipelineResult<unknown, TState>
   ): Promise<void>;
   private async callMiddleware(
     hook: 'onStageStart',
