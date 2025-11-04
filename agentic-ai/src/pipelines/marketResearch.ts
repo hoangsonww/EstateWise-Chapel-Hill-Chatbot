@@ -147,10 +147,10 @@ export function createMarketResearchPipeline(options?: {
       const result: MarketResearchResult = {
         properties: state.propertyResults || [],
         analytics: input.includeAnalytics !== false ? state.analytics : undefined,
-        graphData: input.includeGraph !== false ? state.graphResults : undefined,
-        zipGroups: input.groupByZip !== false ? state.zipGroups : undefined,
+        graphData: input.includeGraph !== false ? (state.graphResults as any) : undefined,
+        zipGroups: input.groupByZip !== false ? (state.zipGroups as any) : undefined,
         mapLink: state.mapLink,
-        report: state.report || '',
+        report: (state.report as string) || '',
         metrics: {
           totalTime: Date.now() - context.metadata.startTime,
           propertiesFound: state.propertyResults?.length || 0,
@@ -185,7 +185,7 @@ export async function runMarketResearchPipeline(
     throw new Error(`Market research failed: ${result.error?.message}`);
   }
 
-  return result.output as MarketResearchResult;
+  return result.output as unknown as MarketResearchResult;
 }
 
 /**
@@ -224,7 +224,7 @@ export function createQuickMarketOverviewPipeline() {
     .withDescription('Fast market overview with essential metrics')
     .use(createLoggingMiddleware({ logLevel: 'warn' }))
     .addStage(createGoalParserStage())
-    .addStage(createPropertySearchStage({ maxResults: 20 }))
+    .addStage(createPropertySearchStage())
     .addStage(createGroupByZipStage())
     .addStage(createAnalyticsSummaryStage())
     .addStage(createReportGenerationStage())

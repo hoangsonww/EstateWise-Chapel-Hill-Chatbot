@@ -219,7 +219,7 @@ export class SpyStage<TInput = unknown, TOutput = unknown> implements PipelineSt
       duration,
     });
 
-    return result;
+    return result as StageResult<TOutput>;
   }
 
   reset(): void {

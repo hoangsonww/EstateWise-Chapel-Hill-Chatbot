@@ -108,7 +108,7 @@ export class Pipeline<TInput = unknown, TOutput = unknown, TState = Record<strin
     if (this.options.enableCaching) {
       const cachedResult = this.getFromCache(input);
       if (cachedResult) {
-        return cachedResult as PipelineResult<TOutput>;
+        return cachedResult as PipelineResult<TOutput, TState>;
       }
     }
 
@@ -290,7 +290,7 @@ export class Pipeline<TInput = unknown, TOutput = unknown, TState = Record<strin
 
     try {
       if (timeout) {
-        result = await this.executeWithTimeout(stage, context, timeout);
+        result = await this.executeWithTimeout(stage as any, context as any, timeout);
       } else {
         result = await stage.execute(context);
       }
@@ -441,7 +441,7 @@ export class Pipeline<TInput = unknown, TOutput = unknown, TState = Record<strin
     return entry.value as PipelineResult<TOutput>;
   }
 
-  private addToCache(input: TInput, result: PipelineResult<TOutput>): void {
+  private addToCache(input: TInput, result: PipelineResult<TOutput, TState>): void {
     const cacheKey = this.getCacheKey(input);
     const ttl = this.options.cacheTTL ?? 3600000;
 

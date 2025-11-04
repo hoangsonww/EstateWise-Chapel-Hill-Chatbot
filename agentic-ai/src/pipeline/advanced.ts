@@ -205,7 +205,7 @@ export function createErrorRecoveryStage<TInput = unknown, TOutput = unknown, TS
           // Stage failed - check if recoverable
           if (result.error && strategy.isRecoverable(result.error, context as any)) {
             // Attempt recovery
-            const recoveryResult = await strategy.recover(result.error, context as any, stage);
+            const recoveryResult = await strategy.recover(result.error, context as any, stage as any);
             if (recoveryResult.success && recoveryResult.output !== undefined) {
               return recoveryResult.output as TOutput;
             }
@@ -218,7 +218,7 @@ export function createErrorRecoveryStage<TInput = unknown, TOutput = unknown, TS
           attempts++;
 
           if (strategy.isRecoverable(err, context as any) && attempts < maxAttempts) {
-            const recoveryResult = await strategy.recover(err, context as any, stage);
+            const recoveryResult = await strategy.recover(err, context as any, stage as any);
             if (recoveryResult.success && recoveryResult.output !== undefined) {
               return recoveryResult.output as TOutput;
             }

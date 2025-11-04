@@ -137,7 +137,7 @@ export function createComplianceCheckPipeline(options?: {
     )
     .conditional(
       (context) => !!(context.input as ComplianceCheckInput).goal,
-      createPropertySearchStage({ maxResults: 1 })
+      createPropertySearchStage()
     )
     .addStage(createComplianceCheckStage())
     .conditional(
@@ -148,14 +148,14 @@ export function createComplianceCheckPipeline(options?: {
       const state = context.state as AgentPipelineState;
       const input = context.input as ComplianceCheckInput;
 
-      const issues: ComplianceIssue[] = state.complianceIssues || [];
+      const issues: ComplianceIssue[] = Array.isArray(state.complianceIssues) ? state.complianceIssues : [];
       const criticalIssues = issues.filter((i) => i.severity === 'critical').length;
       const warnings = issues.filter((i) => i.severity === 'warning').length;
 
       const result: ComplianceCheckResult = {
         compliant: criticalIssues === 0 && (!options?.strictMode || warnings === 0),
         issues,
-        checks: state.complianceChecks || {
+        checks: (state.complianceChecks as any) || {
           zoning: false,
           legalRequirements: false,
           disclosures: false,
@@ -170,7 +170,7 @@ export function createComplianceCheckPipeline(options?: {
               jurisdiction: state.propertyResults[0].jurisdiction,
             }
           : undefined,
-        report: state.report,
+        report: (state.report as string) || undefined,
         auditTrail: input.auditTrail ? (state.auditTrail as any) : undefined,
         metrics: {
           checkTime: Date.now() - context.metadata.startTime,
@@ -199,13 +199,13 @@ export function createZoningCheckPipeline() {
     )
     .conditional(
       (context) => !!(context.input as ComplianceCheckInput).goal,
-      createPropertySearchStage({ maxResults: 1 })
+      createPropertySearchStage()
     )
     .addStage(createComplianceCheckStage())
     .stage('format-result', async (context) => {
       const state = context.state as AgentPipelineState;
-      const zoningIssues =
-        state.complianceIssues?.filter((i: ComplianceIssue) => i.category === 'zoning') || [];
+      const allIssues = Array.isArray(state.complianceIssues) ? state.complianceIssues : [];
+      const zoningIssues = allIssues.filter((i: ComplianceIssue) => i.category === 'zoning');
 
       return {
         compliant: zoningIssues.filter((i: ComplianceIssue) => i.severity === 'critical').length === 0,
@@ -241,13 +241,13 @@ export function createDisclosureVerificationPipeline() {
     )
     .conditional(
       (context) => !!(context.input as ComplianceCheckInput).goal,
-      createPropertySearchStage({ maxResults: 1 })
+      createPropertySearchStage()
     )
     .addStage(createComplianceCheckStage())
     .stage('format-result', async (context) => {
       const state = context.state as AgentPipelineState;
-      const disclosureIssues =
-        state.complianceIssues?.filter((i: ComplianceIssue) => i.category === 'disclosure') || [];
+      const allIssues = Array.isArray(state.complianceIssues) ? state.complianceIssues : [];
+      const disclosureIssues = allIssues.filter((i: ComplianceIssue) => i.category === 'disclosure');
 
       return {
         compliant: disclosureIssues.filter((i: ComplianceIssue) => i.severity === 'critical').length === 0,
@@ -288,21 +288,21 @@ export function createRegulatoryCompliancePipeline() {
     )
     .conditional(
       (context) => !!(context.input as ComplianceCheckInput).goal,
-      createPropertySearchStage({ maxResults: 1 })
+      createPropertySearchStage()
     )
     .addStage(createComplianceCheckStage())
     .addStage(createReportGenerationStage())
     .stage('format-result', async (context) => {
       const state = context.state as AgentPipelineState;
-      const issues: ComplianceIssue[] = state.complianceIssues || [];
+      const issues: ComplianceIssue[] = Array.isArray(state.complianceIssues) ? state.complianceIssues : [];
 
       return {
         compliant: !issues.some((i) => i.severity === 'critical'),
         issues,
-        checks: state.complianceChecks,
+        checks: (state.complianceChecks as any) || {},
         property: state.propertyResults?.[0],
-        report: state.report,
-        auditTrail: state.auditTrail,
+        report: (state.report as string) || undefined,
+        auditTrail: (state.auditTrail as any) || undefined,
         metrics: {
           checkTime: Date.now() - context.metadata.startTime,
           checksPerformed: Object.values(state.complianceChecks || {}).filter(Boolean).length,
@@ -333,7 +333,7 @@ export async function runComplianceCheck(
     throw new Error(`Compliance check failed: ${result.error?.message}`);
   }
 
-  return result.output as ComplianceCheckResult;
+  return result.output as unknown as ComplianceCheckResult;
 }
 
 /**

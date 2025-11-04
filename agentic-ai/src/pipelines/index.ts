@@ -83,57 +83,70 @@ export {
   type ComprehensiveAnalysisResult,
 } from './compositeWorkflows.js';
 
+// Import for use in this file
+import {
+  createComprehensiveAnalysisPipeline,
+  createInvestmentWorkflowPipeline,
+  createDecisionSupportWorkflow,
+  runComprehensiveAnalysis,
+  runInvestmentWorkflow,
+  runDecisionSupport,
+} from './compositeWorkflows.js';
+
 /**
  * Convenience object for accessing all pipelines
  */
 export const Pipelines = {
   // Property Search
   propertySearch: {
-    create: createPropertySearchPipeline,
-    createQuick: createQuickPropertySearchPipeline,
-    createAdvanced: createAdvancedPropertySearchPipeline,
-    run: runPropertySearch,
+    create: () => import('./propertySearch.js').then(m => m.createPropertySearchPipeline),
+    createQuick: () => import('./propertySearch.js').then(m => m.createQuickPropertySearchPipeline),
+    createAdvanced: () => import('./propertySearch.js').then(m => m.createAdvancedPropertySearchPipeline),
+    run: (goal: string, options?: any) => import('./propertySearch.js').then(m => m.runPropertySearch(goal, options)),
   },
 
   // Financial Analysis
   financial: {
-    create: createFinancialAnalysisPipeline,
-    createMortgageCalculator: createMortgageCalculatorPipeline,
-    createAffordabilityChecker: createAffordabilityCheckerPipeline,
-    createInvestmentAnalysis: createInvestmentAnalysisPipeline,
-    run: runFinancialAnalysis,
-    calculateMortgage,
-    checkAffordability,
+    create: () => import('./financialAnalysis.js').then(m => m.createFinancialAnalysisPipeline),
+    createMortgageCalculator: () => import('./financialAnalysis.js').then(m => m.createMortgageCalculatorPipeline),
+    createAffordabilityChecker: () => import('./financialAnalysis.js').then(m => m.createAffordabilityCheckerPipeline),
+    createInvestmentAnalysis: () => import('./financialAnalysis.js').then(m => m.createInvestmentAnalysisPipeline),
+    run: (input: any) => import('./financialAnalysis.js').then(m => m.runFinancialAnalysis(input)),
+    calculateMortgage: (price: number, downPayment: number, interestRate: number, years: number) =>
+      import('./financialAnalysis.js').then(m => m.calculateMortgage(price, downPayment, interestRate, years)),
+    checkAffordability: (annualIncome: number, monthlyDebts: number) =>
+      import('./financialAnalysis.js').then(m => m.checkAffordability(annualIncome, monthlyDebts)),
   },
 
   // Compliance
   compliance: {
-    create: createComplianceCheckPipeline,
-    createZoningCheck: createZoningCheckPipeline,
-    createDisclosureVerification: createDisclosureVerificationPipeline,
-    createRegulatoryCompliance: createRegulatoryCompliancePipeline,
-    run: runComplianceCheck,
-    checkZoning,
+    create: () => import('./complianceCheck.js').then(m => m.createComplianceCheckPipeline),
+    createZoningCheck: () => import('./complianceCheck.js').then(m => m.createZoningCheckPipeline),
+    createDisclosureVerification: () => import('./complianceCheck.js').then(m => m.createDisclosureVerificationPipeline),
+    createRegulatoryCompliance: () => import('./complianceCheck.js').then(m => m.createRegulatoryCompliancePipeline),
+    run: (input: any) => import('./complianceCheck.js').then(m => m.runComplianceCheck(input)),
+    checkZoning: (address: string) => import('./complianceCheck.js').then(m => m.checkZoning(address)),
   },
 
   // Graph Analysis
   graph: {
-    create: createGraphAnalysisPipeline,
-    createRelationshipDiscovery: createRelationshipDiscoveryPipeline,
-    createPatternMatching: createPatternMatchingPipeline,
-    createNetworkClustering: createNetworkClusteringPipeline,
-    run: runGraphAnalysis,
-    discoverRelationships,
-    findPatterns,
+    create: () => import('./graphAnalysis.js').then(m => m.createGraphAnalysisPipeline),
+    createRelationshipDiscovery: () => import('./graphAnalysis.js').then(m => m.createRelationshipDiscoveryPipeline),
+    createPatternMatching: () => import('./graphAnalysis.js').then(m => m.createPatternMatchingPipeline),
+    createNetworkClustering: () => import('./graphAnalysis.js').then(m => m.createNetworkClusteringPipeline),
+    run: (input: any) => import('./graphAnalysis.js').then(m => m.runGraphAnalysis(input)),
+    discoverRelationships: (propertyIds: string[]) =>
+      import('./graphAnalysis.js').then(m => m.discoverRelationships(propertyIds)),
+    findPatterns: (goal: string) => import('./graphAnalysis.js').then(m => m.findPatterns(goal)),
   },
 
   // Market Research
   marketResearch: {
-    create: createMarketResearchPipeline,
-    createQuickOverview: createQuickMarketOverviewPipeline,
-    createDeepAnalysis: createDeepMarketAnalysisPipeline,
-    run: runMarketResearchPipeline,
-    runLegacy: runMarketResearch, // For backward compatibility
+    create: () => import('./marketResearch.js').then(m => m.createMarketResearchPipeline),
+    createQuickOverview: () => import('./marketResearch.js').then(m => m.createQuickMarketOverviewPipeline),
+    createDeepAnalysis: () => import('./marketResearch.js').then(m => m.createDeepMarketAnalysisPipeline),
+    run: (goal: any) => import('./marketResearch.js').then(m => m.runMarketResearchPipeline(goal)),
+    runLegacy: (goal: any) => import('./marketResearch.js').then(m => m.runMarketResearch(goal)),
   },
 
   // Composite Workflows
@@ -141,9 +154,9 @@ export const Pipelines = {
     createComprehensiveAnalysis: createComprehensiveAnalysisPipeline,
     createInvestmentWorkflow: createInvestmentWorkflowPipeline,
     createDecisionSupport: createDecisionSupportWorkflow,
-    runComprehensiveAnalysis,
-    runInvestmentWorkflow,
-    runDecisionSupport,
+    runComprehensiveAnalysis: runComprehensiveAnalysis,
+    runInvestmentWorkflow: runInvestmentWorkflow,
+    runDecisionSupport: runDecisionSupport,
   },
 };
 
@@ -152,22 +165,40 @@ export const Pipelines = {
  */
 export const QuickPipelines = {
   /** Quick property search - fast and simple */
-  searchProperties: runPropertySearch,
+  searchProperties: async (goal: string, options?: any) => {
+    const { runPropertySearch } = await import('./propertySearch.js');
+    return runPropertySearch(goal, options);
+  },
 
   /** Calculate mortgage payments */
-  calculateMortgage,
+  calculateMortgage: async (price: number, downPayment: number, interestRate: number, years: number) => {
+    const { calculateMortgage } = await import('./financialAnalysis.js');
+    return calculateMortgage(price, downPayment, interestRate, years);
+  },
 
   /** Check if property is affordable */
-  checkAffordability,
+  checkAffordability: async (annualIncome: number, monthlyDebts: number) => {
+    const { checkAffordability } = await import('./financialAnalysis.js');
+    return checkAffordability(annualIncome, monthlyDebts);
+  },
 
   /** Check zoning compliance */
-  checkZoning,
+  checkZoning: async (address: string) => {
+    const { checkZoning } = await import('./complianceCheck.js');
+    return checkZoning(address);
+  },
 
   /** Run market research */
-  marketResearch: runMarketResearchPipeline,
+  marketResearch: async (goal: any) => {
+    const { runMarketResearchPipeline } = await import('./marketResearch.js');
+    return runMarketResearchPipeline(goal);
+  },
 
   /** Run comprehensive analysis */
-  comprehensiveAnalysis: runComprehensiveAnalysis,
+  comprehensiveAnalysis: async (input: any) => {
+    const { runComprehensiveAnalysis } = await import('./compositeWorkflows.js');
+    return runComprehensiveAnalysis(input);
+  },
 };
 
 /**
@@ -177,35 +208,45 @@ export const PipelineTemplates = {
   /**
    * First-time homebuyer workflow
    */
-  firstTimeHomeBuyer: () =>
-    createComprehensiveAnalysisPipeline({
+  firstTimeHomeBuyer: () => {
+    return createComprehensiveAnalysisPipeline({
       enableParallel: true,
       enableCaching: true,
-    }),
+    });
+  },
 
   /**
    * Real estate investor workflow
    */
-  investor: () => createInvestmentWorkflowPipeline(),
+  investor: () => {
+    return createInvestmentWorkflowPipeline();
+  },
 
   /**
    * Quick property lookup
    */
-  quickLookup: () => createQuickPropertySearchPipeline(),
+  quickLookup: async () => {
+    const { createQuickPropertySearchPipeline } = await import('./propertySearch.js');
+    return createQuickPropertySearchPipeline();
+  },
 
   /**
    * Detailed market analysis
    */
-  marketAnalysis: () => createDeepMarketAnalysisPipeline(),
+  marketAnalysis: async () => {
+    const { createDeepMarketAnalysisPipeline } = await import('./marketResearch.js');
+    return createDeepMarketAnalysisPipeline();
+  },
 
   /**
    * Compliance-focused workflow
    */
-  complianceFocused: () =>
-    createComprehensiveAnalysisPipeline({
+  complianceFocused: () => {
+    return createComprehensiveAnalysisPipeline({
       enableParallel: false,
       enableCaching: false,
-    }),
+    });
+  },
 };
 
 // Re-export commonly used types from the enterprise pipeline system

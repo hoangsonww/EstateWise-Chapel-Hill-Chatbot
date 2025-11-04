@@ -115,7 +115,7 @@ export function createFinancialAnalysisPipeline(options?: {
     )
     .conditional(
       (context) => !!(context.input as FinancialAnalysisInput).goal,
-      createPropertySearchStage({ maxResults: 5 })
+      createPropertySearchStage()
     )
     .addStage(createMortgageCalculationStage())
     .addStage(createAffordabilityCalculationStage())
@@ -137,7 +137,7 @@ export function createFinancialAnalysisPipeline(options?: {
           monthlyPayment: p.monthlyPayment,
           isAffordable: p.isAffordable,
         })),
-        report: state.report,
+        report: (state.report as string) || undefined,
         metrics: {
           analysisTime: Date.now() - context.metadata.startTime,
           propertiesAnalyzed: state.propertyResults?.length || 0,
@@ -239,7 +239,7 @@ export function createInvestmentAnalysisPipeline() {
         properties: state.propertyResults,
         mortgage: state.mortgage,
         affordability: state.affordability,
-        report: state.report,
+        report: (state.report as string) || undefined,
         investment: state.investment,
         metrics: {
           analysisTime: Date.now() - context.metadata.startTime,
@@ -264,7 +264,7 @@ export async function runFinancialAnalysis(
     throw new Error(`Financial analysis failed: ${result.error?.message}`);
   }
 
-  return result.output as FinancialAnalysisResult;
+  return result.output as unknown as FinancialAnalysisResult;
 }
 
 /**
@@ -289,7 +289,7 @@ export async function calculateMortgage(
     throw new Error(`Mortgage calculation failed: ${result.error?.message}`);
   }
 
-  return (result.output as FinancialAnalysisResult).mortgage;
+  return (result.output as unknown as FinancialAnalysisResult).mortgage;
 }
 
 /**
@@ -312,5 +312,5 @@ export async function checkAffordability(
     throw new Error(`Affordability check failed: ${result.error?.message}`);
   }
 
-  return (result.output as FinancialAnalysisResult).affordability;
+  return (result.output as unknown as FinancialAnalysisResult).affordability;
 }

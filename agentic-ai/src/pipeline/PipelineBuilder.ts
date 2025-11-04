@@ -142,7 +142,7 @@ export class PipelineBuilder<TInput = unknown, TOutput = unknown, TState = Recor
           if (shouldTake) {
             // Execute branch stages
             for (const stage of branch.stages) {
-              const result = await stage.execute(context as PipelineContext<unknown, TState>);
+              const result = await stage.execute(context as any);
               if (!result.success || !result.continue) {
                 return result.output;
               }

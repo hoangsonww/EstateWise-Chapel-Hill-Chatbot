@@ -105,7 +105,8 @@ export class PipelineOptimizer {
     const stageProfiles = new Map<string, StagePerformanceProfile>();
     const totalTime = metrics.averageDuration;
 
-    for (const [stageName, stageMetrics] of metrics.stageMetrics.entries()) {
+    for (const stageMetric of metrics.stages) {
+      const stageName = stageMetric.name;
       // Collect stage durations from traces
       const stageDurations: number[] = [];
       for (const trace of traces) {
@@ -117,12 +118,12 @@ export class PipelineOptimizer {
 
       const profile: StagePerformanceProfile = {
         stageName,
-        averageDuration: stageMetrics.averageDuration,
+        averageDuration: stageMetric.averageDuration,
         minDuration: Math.min(...stageDurations, Infinity),
         maxDuration: Math.max(...stageDurations, -Infinity),
-        successRate: stageMetrics.successRate,
-        retryRate: stageMetrics.retries / Math.max(stageMetrics.executions, 1),
-        percentOfTotalTime: (stageMetrics.averageDuration / totalTime) * 100,
+        successRate: stageMetric.successRate,
+        retryRate: 0, // Retry info not available in flattened metrics
+        percentOfTotalTime: totalTime > 0 ? (stageMetric.averageDuration / totalTime) * 100 : 0,
       };
 
       stageProfiles.set(stageName, profile);

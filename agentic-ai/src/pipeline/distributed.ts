@@ -193,12 +193,10 @@ export class PipelineWorker extends EventEmitter {
    * Start processing work items
    */
   async start(): Promise<void> {
-    if (this.status.status !== 'idle' && this.status.status !== 'processing') {
-      this.status.status = 'idle';
-    }
+    this.status.status = 'idle';
     this.emit('started');
 
-    while (this.status.status !== 'offline') {
+    while (this.status.status === 'idle' || this.status.status === 'processing' || this.status.status === 'busy') {
       try {
         await this.processNextItem();
         await this.delay(100); // Small delay between tasks

@@ -56,6 +56,7 @@ export function createPropertySearchPipeline(options?: {
   enableLogging?: boolean;
   enableMetrics?: boolean;
   enableCaching?: boolean;
+  enablePerformance?: boolean;
   maxResults?: number;
 }) {
   const builder = createPipeline<PropertySearchInput, AgentPipelineState>()
@@ -91,8 +92,8 @@ export function createPropertySearchPipeline(options?: {
   // Build pipeline stages
   return builder
     .addStage(createGoalParserStage())
-    .addStage(createPropertySearchStage({ maxResults: options?.maxResults }))
-    .addStage(createDedupeRankStage())
+    .addStage(createPropertySearchStage())
+    .addStage(createDedupeRankStage({ maxResults: options?.maxResults }))
     .conditional((context) => {
       const state = context.state as AgentPipelineState;
       const input = context.input as PropertySearchInput;
@@ -123,7 +124,8 @@ export function createQuickPropertySearchPipeline() {
     .withDescription('Fast property search without advanced features')
     .use(createLoggingMiddleware({ logLevel: 'warn' }))
     .addStage(createGoalParserStage())
-    .addStage(createPropertySearchStage({ maxResults: 10 }))
+    .addStage(createPropertySearchStage())
+    .addStage(createDedupeRankStage({ maxResults: 10 }))
     .stage('format-result', async (context) => {
       const state = context.state as AgentPipelineState;
       return {
@@ -198,5 +200,5 @@ export async function runPropertySearch(
     throw new Error(`Property search failed: ${result.error?.message}`);
   }
 
-  return result.output as PropertySearchResult;
+  return result.output as unknown as PropertySearchResult;
 }
