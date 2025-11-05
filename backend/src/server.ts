@@ -11,6 +11,7 @@ import conversationRoutes from "./routes/conversation.routes";
 import propertyRoutes from "./routes/property.routes";
 import commuteProfileRoutes from "./routes/commute-profile.routes";
 import graphRoutes from "./routes/graph.routes";
+import forumRoutes from "./routes/forum.routes";
 import { errorHandler } from "./middleware/error.middleware";
 import cookieParser from "cookie-parser";
 import * as trpcExpress from "@trpc/server/adapters/express";
@@ -143,6 +144,7 @@ app.use("/api/conversations", conversationRoutes);
 app.use("/api/properties", propertyRoutes);
 app.use("/api/commute-profiles", commuteProfileRoutes);
 app.use("/api/graph", graphRoutes);
+app.use("/api/forum", forumRoutes);
 
 // tRPC endpoint - non-blocking, optional alternative API
 app.use(

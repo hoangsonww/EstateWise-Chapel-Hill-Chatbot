@@ -76,7 +76,7 @@
     "jest": "^30.0.4",
     "jsonwebtoken": "^9.0.2",
     "node-mocks-http": "^1.17.2",
-    "ts-jest": "^29.4.0",
+    "ts-jest": "^29.4.5",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.0.4"
   }

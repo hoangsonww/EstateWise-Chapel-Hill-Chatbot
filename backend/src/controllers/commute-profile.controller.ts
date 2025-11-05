@@ -14,9 +14,12 @@ const commuteProfileService = new CommuteProfileService();
  * POST /api/commute-profiles
  */
 export const createCommuteProfile = async (req: AuthRequest, res: Response) => {
+  if (!req.user) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
   // Create profile
   const profile = await commuteProfileService.createProfile(
-    req.user?.id,
+    req.user.id,
     req.body as CreateCommuteProfileDto,
   );
 
@@ -28,9 +31,12 @@ export const createCommuteProfile = async (req: AuthRequest, res: Response) => {
  * GET /api/commute-profiles
  */
 export const getCommuteProfiles = async (req: AuthRequest, res: Response) => {
+  if (!req.user) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
   // Get profiles
   const profiles = await commuteProfileService.getProfilesByUserId(
-    req.user?.id,
+    req.user.id,
   );
 
   res.json(profiles);
@@ -46,8 +52,11 @@ export const getCommuteProfileById = async (
 ) => {
   const id = req.params?.id;
 
+  if (!req.user) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
   // Get profile
-  const profile = await commuteProfileService.getProfileById(id, req.user?.id);
+  const profile = await commuteProfileService.getProfileById(id, req.user.id);
 
   res.json(profile);
 };
@@ -59,10 +68,13 @@ export const getCommuteProfileById = async (
 export const updateCommuteProfile = async (req: AuthRequest, res: Response) => {
   const id = req.params?.id;
 
+  if (!req.user) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
   // Update profile
   const profile = await commuteProfileService.updateProfile(
     id,
-    req.user?.id,
+    req.user.id,
     req.body as UpdateCommuteProfileDto,
   );
 
@@ -76,8 +88,11 @@ export const updateCommuteProfile = async (req: AuthRequest, res: Response) => {
 export const deleteCommuteProfile = async (req: AuthRequest, res: Response) => {
   const id = req.params?.id;
 
+  if (!req.user) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
   // Delete profile
-  await commuteProfileService.deleteProfile(id, req.user?.id);
+  await commuteProfileService.deleteProfile(id, req.user.id);
 
   res.json({ message: "Commute profile deleted successfully" });
 };
