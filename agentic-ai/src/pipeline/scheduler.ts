@@ -5,8 +5,8 @@
  * delayed execution, and recurring pipeline runs.
  */
 
-import { EventEmitter } from 'events';
-import type { Pipeline, PipelineResult } from './types.js';
+import { EventEmitter } from "events";
+import type { Pipeline, PipelineResult } from "./types.js";
 
 /**
  * Schedule configuration
@@ -45,7 +45,7 @@ export interface ScheduledExecution {
   scheduledTime: number;
   executionTime?: number;
   completionTime?: number;
-  status: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
+  status: "pending" | "running" | "completed" | "failed" | "cancelled";
   result?: PipelineResult;
   error?: Error;
   attempt: number;
@@ -161,7 +161,9 @@ export class CronParser {
   static parse(cronString: string): CronExpression {
     const parts = cronString.trim().split(/\s+/);
     if (parts.length !== 5) {
-      throw new Error('Invalid cron expression. Expected 5 parts: minute hour day month weekday');
+      throw new Error(
+        "Invalid cron expression. Expected 5 parts: minute hour day month weekday",
+      );
     }
 
     return {
@@ -195,7 +197,10 @@ export class CronParser {
   /**
    * Get next execution time
    */
-  static getNextExecution(cron: CronExpression, after: Date = new Date()): Date {
+  static getNextExecution(
+    cron: CronExpression,
+    after: Date = new Date(),
+  ): Date {
     const next = new Date(after);
     next.setSeconds(0);
     next.setMilliseconds(0);
@@ -208,27 +213,30 @@ export class CronParser {
       }
     }
 
-    throw new Error('Could not find next execution time within 1 year');
+    throw new Error("Could not find next execution time within 1 year");
   }
 
-  private static matchField(field: number | string | undefined, value: number): boolean {
-    if (field === undefined || field === '*') return true;
-    if (typeof field === 'number') return field === value;
+  private static matchField(
+    field: number | string | undefined,
+    value: number,
+  ): boolean {
+    if (field === undefined || field === "*") return true;
+    if (typeof field === "number") return field === value;
 
     // Handle ranges (e.g., "1-5")
-    if (field.includes('-')) {
-      const [start, end] = field.split('-').map(Number);
+    if (field.includes("-")) {
+      const [start, end] = field.split("-").map(Number);
       return value >= start && value <= end;
     }
 
     // Handle lists (e.g., "1,3,5")
-    if (field.includes(',')) {
-      return field.split(',').map(Number).includes(value);
+    if (field.includes(",")) {
+      return field.split(",").map(Number).includes(value);
     }
 
     // Handle step values (e.g., "*/5")
-    if (field.includes('/')) {
-      const [, step] = field.split('/').map(Number);
+    if (field.includes("/")) {
+      const [, step] = field.split("/").map(Number);
       return value % step === 0;
     }
 
@@ -247,9 +255,11 @@ export class PipelineScheduler extends EventEmitter {
   private checkInterval: NodeJS.Timeout | null = null;
   private completedPipelines = new Set<string>();
 
-  constructor(private options?: {
-    checkIntervalMs?: number;
-  }) {
+  constructor(
+    private options?: {
+      checkIntervalMs?: number;
+    },
+  ) {
     super();
   }
 
@@ -263,7 +273,7 @@ export class PipelineScheduler extends EventEmitter {
     }
 
     // Parse cron if string
-    if (typeof config.schedule === 'string') {
+    if (typeof config.schedule === "string") {
       try {
         config.schedule = CronParser.parse(config.schedule);
       } catch (error) {
@@ -284,7 +294,7 @@ export class PipelineScheduler extends EventEmitter {
     }
 
     this.schedules.set(config.id, config);
-    this.emit('schedule-added', config);
+    this.emit("schedule-added", config);
   }
 
   /**
@@ -294,7 +304,7 @@ export class PipelineScheduler extends EventEmitter {
     const config = this.schedules.get(scheduleId);
     if (config) {
       this.schedules.delete(scheduleId);
-      this.emit('schedule-removed', scheduleId);
+      this.emit("schedule-removed", scheduleId);
     }
   }
 
@@ -308,7 +318,7 @@ export class PipelineScheduler extends EventEmitter {
     }
 
     Object.assign(config, updates);
-    this.emit('schedule-updated', scheduleId);
+    this.emit("schedule-updated", scheduleId);
   }
 
   /**
@@ -331,7 +341,7 @@ export class PipelineScheduler extends EventEmitter {
       this.checkSchedules();
     }, interval);
 
-    this.emit('started');
+    this.emit("started");
   }
 
   /**
@@ -343,7 +353,7 @@ export class PipelineScheduler extends EventEmitter {
       clearInterval(this.checkInterval);
       this.checkInterval = null;
     }
-    this.emit('stopped');
+    this.emit("stopped");
   }
 
   /**
@@ -365,7 +375,10 @@ export class PipelineScheduler extends EventEmitter {
   /**
    * Execute a scheduled pipeline
    */
-  async executeSchedule(scheduleId: string, force = false): Promise<ScheduledExecution> {
+  async executeSchedule(
+    scheduleId: string,
+    force = false,
+  ): Promise<ScheduledExecution> {
     const config = this.schedules.get(scheduleId);
     if (!config) {
       throw new Error(`Schedule ${scheduleId} not found`);
@@ -379,7 +392,9 @@ export class PipelineScheduler extends EventEmitter {
     if (config.dependencies && config.dependencies.length > 0) {
       for (const depId of config.dependencies) {
         if (!this.completedPipelines.has(depId)) {
-          throw new Error(`Dependency ${depId} not completed for ${scheduleId}`);
+          throw new Error(
+            `Dependency ${depId} not completed for ${scheduleId}`,
+          );
         }
       }
     }
@@ -388,12 +403,12 @@ export class PipelineScheduler extends EventEmitter {
       id: `exec-${scheduleId}-${Date.now()}`,
       scheduleId,
       scheduledTime: Date.now(),
-      status: 'pending',
+      status: "pending",
       attempt: 0,
     };
 
     this.executions.set(execution.id, execution);
-    this.emit('execution-scheduled', execution);
+    this.emit("execution-scheduled", execution);
 
     // Execute with retries
     const maxRetries = config.maxRetries || 0;
@@ -401,24 +416,24 @@ export class PipelineScheduler extends EventEmitter {
 
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       execution.attempt = attempt + 1;
-      execution.status = 'running';
+      execution.status = "running";
       execution.executionTime = Date.now();
 
       try {
-        this.emit('execution-started', execution);
+        this.emit("execution-started", execution);
 
         const result = await this.executeWithTimeout(
           config.pipeline,
           config.input,
-          config.timeout
+          config.timeout,
         );
 
-        execution.status = 'completed';
+        execution.status = "completed";
         execution.completionTime = Date.now();
         execution.result = result;
 
         this.completedPipelines.add(scheduleId);
-        this.emit('execution-completed', execution);
+        this.emit("execution-completed", execution);
 
         return execution;
       } catch (error) {
@@ -426,16 +441,16 @@ export class PipelineScheduler extends EventEmitter {
         execution.error = lastError;
 
         if (attempt < maxRetries && config.retryOnFailure) {
-          this.emit('execution-retry', { execution, attempt: attempt + 1 });
+          this.emit("execution-retry", { execution, attempt: attempt + 1 });
           await this.delay(Math.min(1000 * Math.pow(2, attempt), 30000)); // Exponential backoff
         }
       }
     }
 
     // All retries failed
-    execution.status = 'failed';
+    execution.status = "failed";
     execution.completionTime = Date.now();
-    this.emit('execution-failed', execution);
+    this.emit("execution-failed", execution);
 
     throw lastError!;
   }
@@ -446,7 +461,7 @@ export class PipelineScheduler extends EventEmitter {
   private async executeWithTimeout(
     pipeline: Pipeline,
     input: unknown,
-    timeout?: number
+    timeout?: number,
   ): Promise<PipelineResult> {
     if (!timeout) {
       return pipeline.execute(input);
@@ -455,7 +470,10 @@ export class PipelineScheduler extends EventEmitter {
     return Promise.race([
       pipeline.execute(input),
       new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Pipeline execution timeout')), timeout)
+        setTimeout(
+          () => reject(new Error("Pipeline execution timeout")),
+          timeout,
+        ),
       ),
     ]);
   }
@@ -486,7 +504,7 @@ export class PipelineScheduler extends EventEmitter {
    */
   getExecutionsForSchedule(scheduleId: string): ScheduledExecution[] {
     return Array.from(this.executions.values()).filter(
-      e => e.scheduleId === scheduleId
+      (e) => e.scheduleId === scheduleId,
     );
   }
 
@@ -522,7 +540,7 @@ export class PipelineScheduler extends EventEmitter {
   }
 
   private delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }
 
@@ -540,7 +558,7 @@ export class DelayedExecutor {
     pipeline: Pipeline,
     input: unknown,
     delayMs: number,
-    callback?: (result: PipelineResult) => void
+    callback?: (result: PipelineResult) => void,
   ): void {
     // Clear existing timer if any
     this.cancel(id);
@@ -550,7 +568,7 @@ export class DelayedExecutor {
         const result = await pipeline.execute(input);
         if (callback) callback(result);
       } catch (error) {
-        console.error('Delayed execution failed:', error);
+        console.error("Delayed execution failed:", error);
       } finally {
         this.timers.delete(id);
       }
@@ -601,7 +619,7 @@ export class RecurringExecutor extends EventEmitter {
       maxExecutions?: number;
       onExecution?: (result: PipelineResult, count: number) => void;
       onError?: (error: Error, count: number) => void;
-    }
+    },
   ): void {
     // Clear existing interval if any
     this.cancel(id);
@@ -612,32 +630,32 @@ export class RecurringExecutor extends EventEmitter {
     const execute = async () => {
       if (count >= maxExecutions) {
         this.cancel(id);
-        this.emit('completed', { id, totalExecutions: count });
+        this.emit("completed", { id, totalExecutions: count });
         return;
       }
 
       count++;
 
       try {
-        this.emit('execution-start', { id, count });
+        this.emit("execution-start", { id, count });
         const result = await pipeline.execute(input);
         if (options?.onExecution) {
           options.onExecution(result, count);
         }
-        this.emit('execution-complete', { id, count, result });
+        this.emit("execution-complete", { id, count, result });
       } catch (error) {
         const err = error instanceof Error ? error : new Error(String(error));
         if (options?.onError) {
           options.onError(err, count);
         }
-        this.emit('execution-error', { id, count, error: err });
+        this.emit("execution-error", { id, count, error: err });
       }
     };
 
     const timer = setInterval(execute, intervalMs);
     this.intervals.set(id, timer);
 
-    this.emit('scheduled', { id, intervalMs, maxExecutions });
+    this.emit("scheduled", { id, intervalMs, maxExecutions });
   }
 
   /**
@@ -648,7 +666,7 @@ export class RecurringExecutor extends EventEmitter {
     if (timer) {
       clearInterval(timer);
       this.intervals.delete(id);
-      this.emit('cancelled', { id });
+      this.emit("cancelled", { id });
       return true;
     }
     return false;
@@ -660,7 +678,7 @@ export class RecurringExecutor extends EventEmitter {
   cancelAll(): void {
     for (const [id, timer] of this.intervals.entries()) {
       clearInterval(timer);
-      this.emit('cancelled', { id });
+      this.emit("cancelled", { id });
     }
     this.intervals.clear();
   }

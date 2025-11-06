@@ -9,7 +9,10 @@ import { AgentOrchestrator } from "../orchestrator/AgentOrchestrator.js";
 import { ToolClient } from "../mcp/ToolClient.js";
 import { createPipeline } from "./PipelineBuilder.js";
 import { createStage } from "./Stage.js";
-import { createLoggingMiddleware, createMetricsMiddleware } from "./middleware.js";
+import {
+  createLoggingMiddleware,
+  createMetricsMiddleware,
+} from "./middleware.js";
 import { PipelineMonitor, createMonitoringMiddleware } from "./monitoring.js";
 import type { Agent, AgentContext, AgentMessage } from "../core/types.js";
 import type { AgentPipelineState } from "./stages/AgentStages.js";
@@ -22,14 +25,15 @@ export function createOrchestratorPipeline(
   options?: {
     rounds?: number;
     enableMonitoring?: boolean;
-  }
+  },
 ) {
   const rounds = options?.rounds ?? 4;
   const monitor = options?.enableMonitoring ? new PipelineMonitor() : undefined;
 
   const pipeline = createPipeline<string, AgentMessage[], AgentPipelineState>({
-    name: 'orchestrator-pipeline',
-    description: 'Pipeline wrapping AgentOrchestrator for round-based execution',
+    name: "orchestrator-pipeline",
+    description:
+      "Pipeline wrapping AgentOrchestrator for round-based execution",
     defaultTimeout: 300000, // 5 minutes
   });
 
@@ -39,14 +43,14 @@ export function createOrchestratorPipeline(
   }
 
   pipeline
-    .withLogging({ logLevel: 'info' })
+    .withLogging({ logLevel: "info" })
     .withMetrics({
       onMetrics: (metrics) => {
         console.log(`Orchestrator completed in ${metrics.duration}ms`);
       },
     })
     .stage(
-      'orchestrate',
+      "orchestrate",
       async (context) => {
         const goal = String(context.input);
         const messages = await orchestrator.run(goal, rounds);
@@ -58,10 +62,10 @@ export function createOrchestratorPipeline(
         return messages;
       },
       {
-        description: 'Execute AgentOrchestrator',
+        description: "Execute AgentOrchestrator",
         timeout: 300000,
         retryable: false,
-      }
+      },
     );
 
   const built = pipeline.build();
@@ -80,22 +84,22 @@ export function createHybridPipeline(
   toolClient: ToolClient,
   options?: {
     rounds?: number;
-  }
+  },
 ) {
   const rounds = options?.rounds ?? 3;
 
   const pipeline = createPipeline<string, string, AgentPipelineState>({
-    name: 'hybrid-pipeline',
-    description: 'Hybrid pipeline combining orchestrator with custom stages',
+    name: "hybrid-pipeline",
+    description: "Hybrid pipeline combining orchestrator with custom stages",
   });
 
   pipeline
-    .withLogging({ logLevel: 'info' })
+    .withLogging({ logLevel: "info" })
 
     // Stage 1: Quick pre-processing
-    .stage('preprocess', async (context) => {
+    .stage("preprocess", async (context) => {
       const goal = String(context.input);
-      console.log('Preprocessing goal:', goal);
+      console.log("Preprocessing goal:", goal);
 
       // Store goal in state
       context.state.goal = goal;
@@ -105,7 +109,7 @@ export function createHybridPipeline(
 
     // Stage 2: Run orchestrator
     .stage(
-      'orchestrate',
+      "orchestrate",
       async (context) => {
         const goal = context.state.goal;
         const messages = await orchestrator.run(goal, rounds);
@@ -116,24 +120,24 @@ export function createHybridPipeline(
         return messages;
       },
       {
-        description: 'Run AgentOrchestrator',
+        description: "Run AgentOrchestrator",
         timeout: 180000,
-      }
+      },
     )
 
     // Stage 3: Post-processing
-    .stage('postprocess', async (context) => {
+    .stage("postprocess", async (context) => {
       const messages = context.state.orchestrate as AgentMessage[];
 
       // Find reporter message
-      const reporterMsg = messages.find((m) => m.from === 'reporter');
+      const reporterMsg = messages.find((m) => m.from === "reporter");
 
       if (reporterMsg) {
         return reporterMsg.content;
       }
 
       // Fallback: combine all messages
-      return messages.map((m) => `[${m.from}] ${m.content}`).join('\n\n');
+      return messages.map((m) => `[${m.from}] ${m.content}`).join("\n\n");
     });
 
   return pipeline.build();
@@ -144,14 +148,14 @@ export function createHybridPipeline(
  */
 export function createAgentPipeline(agents: Agent[], toolClient: ToolClient) {
   const pipeline = createPipeline<string, string, AgentPipelineState>({
-    name: 'agent-pipeline',
-    description: 'Sequential execution of individual agents',
+    name: "agent-pipeline",
+    description: "Sequential execution of individual agents",
   });
 
-  pipeline.withLogging({ logLevel: 'info' });
+  pipeline.withLogging({ logLevel: "info" });
 
   // Initialize context
-  pipeline.stage('initialize', async (context) => {
+  pipeline.stage("initialize", async (context) => {
     context.state.goal = String(context.input);
     context.state.history = [];
     return { initialized: true };
@@ -186,14 +190,14 @@ export function createAgentPipeline(agents: Agent[], toolClient: ToolClient) {
         timeout: 60000,
         retryable: true,
         maxRetries: 2,
-      }
+      },
     );
   }
 
   // Final stage: format output
-  pipeline.stage('format-output', async (context) => {
+  pipeline.stage("format-output", async (context) => {
     const history = context.state.history as AgentMessage[];
-    return history.map((m) => `**${m.from}**: ${m.content}`).join('\n\n');
+    return history.map((m) => `**${m.from}**: ${m.content}`).join("\n\n");
   });
 
   return pipeline.build();
@@ -204,26 +208,26 @@ export function createAgentPipeline(agents: Agent[], toolClient: ToolClient) {
  */
 export function createStreamingPipeline(
   orchestrator: AgentOrchestrator,
-  onEvent: (event: any) => void
+  onEvent: (event: any) => void,
 ) {
   const pipeline = createPipeline<string, AgentMessage[]>({
-    name: 'streaming-pipeline',
+    name: "streaming-pipeline",
     enableStreaming: true,
   });
 
   pipeline
-    .withLogging({ logLevel: 'debug' })
-    .stage('orchestrate-stream', async (context) => {
+    .withLogging({ logLevel: "debug" })
+    .stage("orchestrate-stream", async (context) => {
       const messages: AgentMessage[] = [];
 
       // Use orchestrator's stream method if available
-      if (typeof (orchestrator as any).runStream === 'function') {
+      if (typeof (orchestrator as any).runStream === "function") {
         await (orchestrator as any).runStream(
           context.input,
           4,
           (event: any) => {
             onEvent(event);
-          }
+          },
         );
       } else {
         // Fallback to regular execution
@@ -241,7 +245,7 @@ export function createStreamingPipeline(
  * Example: Run hybrid pipeline
  */
 export async function exampleHybridPipeline() {
-  console.log('\n=== Hybrid Pipeline Example ===\n');
+  console.log("\n=== Hybrid Pipeline Example ===\n");
 
   // Setup (would be real instances in production)
   const toolClient = new ToolClient();
@@ -255,19 +259,19 @@ export async function exampleHybridPipeline() {
   });
 
   const result = await pipeline.execute(
-    'Find 3 bedroom homes in Chapel Hill under $500k'
+    "Find 3 bedroom homes in Chapel Hill under $500k",
   );
 
-  console.log('Result:', result.output);
-  console.log('Duration:', result.metrics.totalDuration, 'ms');
-  console.log('Stages:', result.metrics.stageCount);
+  console.log("Result:", result.output);
+  console.log("Duration:", result.metrics.totalDuration, "ms");
+  console.log("Stages:", result.metrics.stageCount);
 }
 
 /**
  * Example: Orchestrator pipeline with monitoring
  */
 export async function exampleOrchestratorPipeline() {
-  console.log('\n=== Orchestrator Pipeline with Monitoring ===\n');
+  console.log("\n=== Orchestrator Pipeline with Monitoring ===\n");
 
   const orchestrator = new AgentOrchestrator();
   // Register agents...
@@ -277,18 +281,19 @@ export async function exampleOrchestratorPipeline() {
     enableMonitoring: true,
   });
 
-  const result = await pipeline.execute(
-    'Find investment properties in Durham'
-  );
+  const result = await pipeline.execute("Find investment properties in Durham");
 
   if (monitor) {
-    console.log('\nMetrics:');
-    const metrics = monitor.getMetrics('orchestrator-pipeline');
-    console.log('- Success rate:', (metrics!.successRate * 100).toFixed(1) + '%');
-    console.log('- Avg duration:', metrics!.averageDuration.toFixed(0) + 'ms');
+    console.log("\nMetrics:");
+    const metrics = monitor.getMetrics("orchestrator-pipeline");
+    console.log(
+      "- Success rate:",
+      (metrics!.successRate * 100).toFixed(1) + "%",
+    );
+    console.log("- Avg duration:", metrics!.averageDuration.toFixed(0) + "ms");
 
-    console.log('\nVisualization:');
-    console.log(monitor.visualizeFlow('orchestrator-pipeline'));
+    console.log("\nVisualization:");
+    console.log(monitor.visualizeFlow("orchestrator-pipeline"));
   }
 }
 
@@ -296,27 +301,29 @@ export async function exampleOrchestratorPipeline() {
  * Example: Compare pipeline vs traditional orchestrator
  */
 export async function exampleComparisonBenchmark() {
-  console.log('\n=== Performance Comparison ===\n');
+  console.log("\n=== Performance Comparison ===\n");
 
   const orchestrator = new AgentOrchestrator();
-  const goal = 'Find 3 bed homes in Chapel Hill';
+  const goal = "Find 3 bed homes in Chapel Hill";
 
   // Traditional orchestrator
-  console.log('Running traditional orchestrator...');
+  console.log("Running traditional orchestrator...");
   const start1 = Date.now();
   const messages1 = await orchestrator.run(goal, 4);
   const duration1 = Date.now() - start1;
   console.log(`Traditional: ${duration1}ms, ${messages1.length} messages`);
 
   // Pipeline-wrapped orchestrator
-  console.log('\nRunning pipeline-wrapped orchestrator...');
+  console.log("\nRunning pipeline-wrapped orchestrator...");
   const { pipeline } = createOrchestratorPipeline(orchestrator, { rounds: 4 });
   const start2 = Date.now();
   const result2 = await pipeline.execute(goal);
   const duration2 = Date.now() - start2;
-  console.log(`Pipeline: ${duration2}ms, ${(result2.output as AgentMessage[]).length} messages`);
+  console.log(
+    `Pipeline: ${duration2}ms, ${(result2.output as AgentMessage[]).length} messages`,
+  );
 
-  console.log('\nOverhead:', (duration2 - duration1), 'ms');
+  console.log("\nOverhead:", duration2 - duration1, "ms");
 }
 
 /**
@@ -330,7 +337,7 @@ export function orchestratorToPipeline(
     enableCaching?: boolean;
     enableMonitoring?: boolean;
     enableMetrics?: boolean;
-  }
+  },
 ) {
   return createOrchestratorPipeline(orchestrator, {
     rounds: options?.rounds,
@@ -348,7 +355,7 @@ export async function runAgentsAsPipeline(
   options?: {
     enableLogging?: boolean;
     enableMetrics?: boolean;
-  }
+  },
 ) {
   const pipeline = createAgentPipeline(agents, toolClient);
 
@@ -356,9 +363,9 @@ export async function runAgentsAsPipeline(
     pipeline.addMiddleware(
       createMetricsMiddleware({
         onMetrics: (metrics) => {
-          console.log('Agent pipeline metrics:', metrics);
+          console.log("Agent pipeline metrics:", metrics);
         },
-      })
+      }),
     );
   }
 

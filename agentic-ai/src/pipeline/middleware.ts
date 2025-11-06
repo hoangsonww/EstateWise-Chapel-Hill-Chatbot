@@ -17,51 +17,53 @@ import type {
  * Logging middleware with configurable log levels
  */
 export function createLoggingMiddleware(options?: {
-  logLevel?: 'debug' | 'info' | 'warn' | 'error';
+  logLevel?: "debug" | "info" | "warn" | "error";
   logger?: Console;
   includeContext?: boolean;
 }): PipelineMiddleware {
   const logger = options?.logger ?? console;
-  const logLevel = options?.logLevel ?? 'info';
+  const logLevel = options?.logLevel ?? "info";
   const includeContext = options?.includeContext ?? false;
 
   return {
-    name: 'logging',
+    name: "logging",
     onPipelineStart: async (context) => {
-      if (logLevel === 'debug' || logLevel === 'info') {
+      if (logLevel === "debug" || logLevel === "info") {
         logger.log(
           `🚀 [Pipeline Start] Execution ID: ${context.executionId}${
-            includeContext ? `, Input: ${JSON.stringify(context.input)}` : ''
-          }`
+            includeContext ? `, Input: ${JSON.stringify(context.input)}` : ""
+          }`,
         );
       }
     },
     onPipelineComplete: async (context, result) => {
-      const emoji = result.success ? '✅' : '❌';
-      if (logLevel === 'debug' || logLevel === 'info') {
+      const emoji = result.success ? "✅" : "❌";
+      if (logLevel === "debug" || logLevel === "info") {
         logger.log(
-          `${emoji} [Pipeline Complete] ${context.executionId} - Success: ${result.success}, Duration: ${result.metrics.totalDuration}ms, Stages: ${result.metrics.successfulStages}/${result.metrics.stageCount}`
+          `${emoji} [Pipeline Complete] ${context.executionId} - Success: ${result.success}, Duration: ${result.metrics.totalDuration}ms, Stages: ${result.metrics.successfulStages}/${result.metrics.stageCount}`,
         );
       }
     },
     onStageStart: async (context, stage) => {
-      if (logLevel === 'debug') {
-        logger.log(`  ▶️  [Stage Start] ${stage.name} - ${stage.description || ''}`);
+      if (logLevel === "debug") {
+        logger.log(
+          `  ▶️  [Stage Start] ${stage.name} - ${stage.description || ""}`,
+        );
       }
     },
     onStageComplete: async (context, stage, result) => {
-      if (logLevel === 'debug') {
-        const emoji = result.success ? '✓' : '✗';
+      if (logLevel === "debug") {
+        const emoji = result.success ? "✓" : "✗";
         logger.log(
-          `  ${emoji} [Stage Complete] ${stage.name} - Duration: ${result.metadata?.duration}ms`
+          `  ${emoji} [Stage Complete] ${stage.name} - Duration: ${result.metadata?.duration}ms`,
         );
       }
     },
     onError: async (context, error, stage) => {
-      if (logLevel === 'error' || logLevel === 'warn' || logLevel === 'info') {
+      if (logLevel === "error" || logLevel === "warn" || logLevel === "info") {
         logger.error(
-          `❌ [Error] ${stage ? `Stage "${stage.name}"` : 'Pipeline'}: ${error.message}`,
-          error
+          `❌ [Error] ${stage ? `Stage "${stage.name}"` : "Pipeline"}: ${error.message}`,
+          error,
         );
       }
     },
@@ -95,7 +97,7 @@ export function createMetricsMiddleware(options: {
   }> = [];
 
   return {
-    name: 'metrics',
+    name: "metrics",
     onPipelineStart: async () => {
       stageMetrics.length = 0; // Reset for new execution
     },
@@ -131,7 +133,7 @@ export function createPerformanceMiddleware(options?: {
   const slowThreshold = options?.slowThreshold ?? 5000; // 5 seconds
 
   return {
-    name: 'performance',
+    name: "performance",
     onStageComplete: async (context, stage, result) => {
       const duration = result.metadata?.duration ?? 0;
       if (duration > slowThreshold && options?.onSlowStage) {
@@ -139,7 +141,10 @@ export function createPerformanceMiddleware(options?: {
       }
     },
     onPipelineComplete: async (context, result) => {
-      if (result.metrics.totalDuration > slowThreshold * 2 && options?.onSlowPipeline) {
+      if (
+        result.metrics.totalDuration > slowThreshold * 2 &&
+        options?.onSlowPipeline
+      ) {
         options.onSlowPipeline(result.metrics.totalDuration);
       }
     },
@@ -160,7 +165,7 @@ export function createErrorRecoveryMiddleware(options: {
   let retryCount = 0;
 
   return {
-    name: 'error-recovery',
+    name: "error-recovery",
     onPipelineStart: async () => {
       retryCount = 0;
     },
@@ -177,7 +182,7 @@ export function createErrorRecoveryMiddleware(options: {
 
         // Exponential backoff
         await new Promise((resolve) =>
-          setTimeout(resolve, retryDelay * Math.pow(2, retryCount - 1))
+          setTimeout(resolve, retryDelay * Math.pow(2, retryCount - 1)),
         );
       }
     },
@@ -190,26 +195,28 @@ export function createErrorRecoveryMiddleware(options: {
 export function createValidationMiddleware(options: {
   validateInput?: (input: unknown) => Promise<boolean> | boolean;
   validateOutput?: (output: unknown) => Promise<boolean> | boolean;
-  onValidationError?: (type: 'input' | 'output', error: Error) => void;
+  onValidationError?: (type: "input" | "output", error: Error) => void;
 }): PipelineMiddleware {
   return {
-    name: 'validation',
+    name: "validation",
     onPipelineStart: async (context) => {
       if (options.validateInput) {
         try {
           const isValid = await options.validateInput(context.input);
           if (!isValid) {
-            const error = new Error('Input validation failed');
+            const error = new Error("Input validation failed");
             if (options.onValidationError) {
-              options.onValidationError('input', error);
+              options.onValidationError("input", error);
             }
             throw error;
           }
         } catch (error) {
           const validationError =
-            error instanceof Error ? error : new Error('Input validation error');
+            error instanceof Error
+              ? error
+              : new Error("Input validation error");
           if (options.onValidationError) {
-            options.onValidationError('input', validationError);
+            options.onValidationError("input", validationError);
           }
           throw validationError;
         }
@@ -220,17 +227,19 @@ export function createValidationMiddleware(options: {
         try {
           const isValid = await options.validateOutput(result.output);
           if (!isValid) {
-            const error = new Error('Output validation failed');
+            const error = new Error("Output validation failed");
             if (options.onValidationError) {
-              options.onValidationError('output', error);
+              options.onValidationError("output", error);
             }
             throw error;
           }
         } catch (error) {
           const validationError =
-            error instanceof Error ? error : new Error('Output validation error');
+            error instanceof Error
+              ? error
+              : new Error("Output validation error");
           if (options.onValidationError) {
-            options.onValidationError('output', validationError);
+            options.onValidationError("output", validationError);
           }
           throw validationError;
         }
@@ -250,7 +259,7 @@ export function createRateLimitMiddleware(options: {
   const requests: number[] = [];
 
   return {
-    name: 'rate-limit',
+    name: "rate-limit",
     onPipelineStart: async () => {
       const now = Date.now();
       const windowStart = now - options.windowMs;
@@ -266,7 +275,7 @@ export function createRateLimitMiddleware(options: {
           options.onRateLimitExceeded();
         }
         throw new Error(
-          `Rate limit exceeded: ${options.maxRequestsPerWindow} requests per ${options.windowMs}ms`
+          `Rate limit exceeded: ${options.maxRequestsPerWindow} requests per ${options.windowMs}ms`,
         );
       }
 
@@ -280,7 +289,12 @@ export function createRateLimitMiddleware(options: {
  */
 export function createAuditMiddleware(options: {
   onAudit: (event: {
-    type: 'pipeline-start' | 'pipeline-complete' | 'stage-start' | 'stage-complete' | 'error';
+    type:
+      | "pipeline-start"
+      | "pipeline-complete"
+      | "stage-start"
+      | "stage-complete"
+      | "error";
     timestamp: number;
     executionId: string;
     stageName?: string;
@@ -290,10 +304,10 @@ export function createAuditMiddleware(options: {
   getUserId?: () => string;
 }): PipelineMiddleware {
   return {
-    name: 'audit',
+    name: "audit",
     onPipelineStart: async (context) => {
       await options.onAudit({
-        type: 'pipeline-start',
+        type: "pipeline-start",
         timestamp: Date.now(),
         executionId: context.executionId,
         userId: options.getUserId?.(),
@@ -302,7 +316,7 @@ export function createAuditMiddleware(options: {
     },
     onPipelineComplete: async (context, result) => {
       await options.onAudit({
-        type: 'pipeline-complete',
+        type: "pipeline-complete",
         timestamp: Date.now(),
         executionId: context.executionId,
         userId: options.getUserId?.(),
@@ -315,7 +329,7 @@ export function createAuditMiddleware(options: {
     },
     onStageStart: async (context, stage) => {
       await options.onAudit({
-        type: 'stage-start',
+        type: "stage-start",
         timestamp: Date.now(),
         executionId: context.executionId,
         stageName: stage.name,
@@ -325,7 +339,7 @@ export function createAuditMiddleware(options: {
     },
     onStageComplete: async (context, stage, result) => {
       await options.onAudit({
-        type: 'stage-complete',
+        type: "stage-complete",
         timestamp: Date.now(),
         executionId: context.executionId,
         stageName: stage.name,
@@ -335,7 +349,7 @@ export function createAuditMiddleware(options: {
     },
     onError: async (context, error, stage) => {
       await options.onAudit({
-        type: 'error',
+        type: "error",
         timestamp: Date.now(),
         executionId: context.executionId,
         stageName: stage?.name,
@@ -356,7 +370,7 @@ export function createTimeoutMiddleware(options: {
   let timeoutId: NodeJS.Timeout | undefined;
 
   return {
-    name: 'timeout',
+    name: "timeout",
     onPipelineStart: async (context) => {
       timeoutId = setTimeout(() => {
         if (options.onTimeout) {
@@ -390,7 +404,7 @@ export function createCircuitBreakerMiddleware(options: {
   let circuitOpen = false;
 
   return {
-    name: 'circuit-breaker',
+    name: "circuit-breaker",
     onPipelineStart: async () => {
       // Check if circuit should be reset
       if (circuitOpen && Date.now() - lastFailureTime > options.resetTimeout) {
@@ -403,7 +417,7 @@ export function createCircuitBreakerMiddleware(options: {
 
       // Reject if circuit is open
       if (circuitOpen) {
-        throw new Error('Circuit breaker is open - too many failures');
+        throw new Error("Circuit breaker is open - too many failures");
       }
     },
     onPipelineComplete: async (context, result) => {
@@ -438,17 +452,17 @@ export function createTracingMiddleware(options: {
     timestamp: number;
     duration?: number;
     tags?: Record<string, string>;
-    status: 'success' | 'error';
+    status: "success" | "error";
   }) => void | Promise<void>;
 }): PipelineMiddleware {
   const spans = new Map<string, { timestamp: number; name: string }>();
 
   return {
-    name: 'tracing',
+    name: "tracing",
     onPipelineStart: async (context) => {
-      spans.set('pipeline', {
+      spans.set("pipeline", {
         timestamp: Date.now(),
-        name: 'pipeline-execution',
+        name: "pipeline-execution",
       });
     },
     onStageStart: async (context, stage) => {
@@ -471,13 +485,13 @@ export function createTracingMiddleware(options: {
             service: options.serviceName,
             stage: stage.name,
           },
-          status: result.success ? 'success' : 'error',
+          status: result.success ? "success" : "error",
         });
         spans.delete(stage.name);
       }
     },
     onPipelineComplete: async (context, result) => {
-      const span = spans.get('pipeline');
+      const span = spans.get("pipeline");
       if (span) {
         await options.onSpan({
           traceId: context.executionId,
@@ -488,9 +502,9 @@ export function createTracingMiddleware(options: {
           tags: {
             service: options.serviceName,
           },
-          status: result.success ? 'success' : 'error',
+          status: result.success ? "success" : "error",
         });
-        spans.delete('pipeline');
+        spans.delete("pipeline");
       }
     },
   };
@@ -503,7 +517,7 @@ export function createContextEnrichmentMiddleware(options: {
   enrich: (context: PipelineContext) => Promise<void> | void;
 }): PipelineMiddleware {
   return {
-    name: 'context-enrichment',
+    name: "context-enrichment",
     onPipelineStart: async (context) => {
       await options.enrich(context);
     },
@@ -513,7 +527,9 @@ export function createContextEnrichmentMiddleware(options: {
 /**
  * Caching middleware for pipeline results
  */
-export function createCachingMiddleware<TState = Record<string, unknown>>(options: {
+export function createCachingMiddleware<
+  TState = Record<string, unknown>,
+>(options: {
   ttl?: number;
   keyGenerator?: (context: PipelineContext<unknown, TState>) => string;
 }): PipelineMiddleware<TState> {
@@ -521,7 +537,7 @@ export function createCachingMiddleware<TState = Record<string, unknown>>(option
   const ttl = options.ttl || 300000; // Default 5 minutes
 
   return {
-    name: 'caching',
+    name: "caching",
     onPipelineStart: async (context) => {
       const key = options.keyGenerator
         ? options.keyGenerator(context)

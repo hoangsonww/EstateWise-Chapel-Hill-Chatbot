@@ -25,11 +25,12 @@ export function composePipelines<TInput = unknown, TOutput = unknown>(
   options?: {
     name?: string;
     description?: string;
-  }
+  },
 ): Pipeline<TInput, TOutput> {
   const builder = createPipeline<TInput, TOutput>({
-    name: options?.name || 'composed-pipeline',
-    description: options?.description || 'Composed pipeline from multiple pipelines',
+    name: options?.name || "composed-pipeline",
+    description:
+      options?.description || "Composed pipeline from multiple pipelines",
   });
 
   // Create a stage for each pipeline
@@ -40,17 +41,20 @@ export function composePipelines<TInput = unknown, TOutput = unknown>(
       async (context) => {
         const result = await pipeline.execute(
           i === 0 ? context.input : context.state,
-          context.signal
+          context.signal,
         );
         if (!result.success) {
-          throw result.error || new Error(`Pipeline ${pipeline.options.name} failed`);
+          throw (
+            result.error ||
+            new Error(`Pipeline ${pipeline.options.name} failed`)
+          );
         }
         return result.output;
       },
       {
         description: `Execute ${pipeline.options.name}`,
         timeout: pipeline.options.defaultTimeout,
-      }
+      },
     );
   }
 
@@ -68,11 +72,12 @@ export function createParallelStage<TState = Record<string, unknown>>(
     maxConcurrency?: number;
     continueOnError?: boolean;
     timeout?: number;
-  }
+  },
 ): Stage<unknown, Array<StageResult>, TState> {
   return new Stage({
     name,
-    description: options?.description || `Parallel execution of ${stages.length} stages`,
+    description:
+      options?.description || `Parallel execution of ${stages.length} stages`,
     execute: async (context: PipelineContext<unknown, TState>) => {
       const maxConcurrency = options?.maxConcurrency ?? stages.length;
       const results: StageResult[] = [];
@@ -83,16 +88,17 @@ export function createParallelStage<TState = Record<string, unknown>>(
         const batch = stages.slice(i, i + maxConcurrency);
 
         const batchResults = await Promise.allSettled(
-          batch.map((stage) => stage.execute(context))
+          batch.map((stage) => stage.execute(context)),
         );
 
         for (const result of batchResults) {
-          if (result.status === 'fulfilled') {
+          if (result.status === "fulfilled") {
             results.push(result.value);
           } else {
-            const error = result.reason instanceof Error
-              ? result.reason
-              : new Error(String(result.reason));
+            const error =
+              result.reason instanceof Error
+                ? result.reason
+                : new Error(String(result.reason));
             errors.push(error);
             results.push({
               success: false,
@@ -106,7 +112,7 @@ export function createParallelStage<TState = Record<string, unknown>>(
       // If any stage failed and continueOnError is false, throw
       if (errors.length > 0 && !options?.continueOnError) {
         throw new Error(
-          `Parallel execution failed: ${errors.map((e) => e.message).join(', ')}`
+          `Parallel execution failed: ${errors.map((e) => e.message).join(", ")}`,
         );
       }
 
@@ -127,11 +133,13 @@ export function createBranchStage<TState = Record<string, unknown>>(
   options?: {
     description?: string;
     timeout?: number;
-  }
+  },
 ): Stage<unknown, unknown, TState> {
   return new Stage({
     name,
-    description: options?.description || `Conditional branch with ${branches.length} conditions`,
+    description:
+      options?.description ||
+      `Conditional branch with ${branches.length} conditions`,
     execute: async (context: PipelineContext<unknown, TState>) => {
       // Evaluate branches in order
       for (const branch of branches) {
@@ -143,7 +151,9 @@ export function createBranchStage<TState = Record<string, unknown>>(
           for (const stage of branch.stages) {
             const result = await stage.execute(context as any);
             if (!result.success) {
-              throw result.error || new Error(`Branch stage ${stage.name} failed`);
+              throw (
+                result.error || new Error(`Branch stage ${stage.name} failed`)
+              );
             }
             if (!result.continue) {
               return result.output;
@@ -160,7 +170,10 @@ export function createBranchStage<TState = Record<string, unknown>>(
         for (const stage of defaultBranch) {
           const result = await stage.execute(context);
           if (!result.success) {
-            throw result.error || new Error(`Default branch stage ${stage.name} failed`);
+            throw (
+              result.error ||
+              new Error(`Default branch stage ${stage.name} failed`)
+            );
           }
           if (!result.continue) {
             return result.output;
@@ -180,13 +193,17 @@ export function createBranchStage<TState = Record<string, unknown>>(
 /**
  * Create an error recovery stage that wraps another stage with recovery logic
  */
-export function createErrorRecoveryStage<TInput = unknown, TOutput = unknown, TState = Record<string, unknown>>(
+export function createErrorRecoveryStage<
+  TInput = unknown,
+  TOutput = unknown,
+  TState = Record<string, unknown>,
+>(
   stage: PipelineStage<TInput, TOutput, TState>,
   strategy: ErrorRecoveryStrategy,
   options?: {
     description?: string;
     timeout?: number;
-  }
+  },
 ): Stage<TInput, TOutput, TState> {
   return new Stage({
     name: `${stage.name}-with-recovery`,
@@ -203,9 +220,16 @@ export function createErrorRecoveryStage<TInput = unknown, TOutput = unknown, TS
           }
 
           // Stage failed - check if recoverable
-          if (result.error && strategy.isRecoverable(result.error, context as any)) {
+          if (
+            result.error &&
+            strategy.isRecoverable(result.error, context as any)
+          ) {
             // Attempt recovery
-            const recoveryResult = await strategy.recover(result.error, context as any, stage as any);
+            const recoveryResult = await strategy.recover(
+              result.error,
+              context as any,
+              stage as any,
+            );
             if (recoveryResult.success && recoveryResult.output !== undefined) {
               return recoveryResult.output as TOutput;
             }
@@ -217,8 +241,15 @@ export function createErrorRecoveryStage<TInput = unknown, TOutput = unknown, TS
           const err = error instanceof Error ? error : new Error(String(error));
           attempts++;
 
-          if (strategy.isRecoverable(err, context as any) && attempts < maxAttempts) {
-            const recoveryResult = await strategy.recover(err, context as any, stage as any);
+          if (
+            strategy.isRecoverable(err, context as any) &&
+            attempts < maxAttempts
+          ) {
+            const recoveryResult = await strategy.recover(
+              err,
+              context as any,
+              stage as any,
+            );
             if (recoveryResult.success && recoveryResult.output !== undefined) {
               return recoveryResult.output as TOutput;
             }
@@ -249,16 +280,18 @@ export function createRetryStrategy(options?: {
   const maxDelay = options?.maxDelay ?? 30000;
 
   return {
-    name: 'retry-strategy',
+    name: "retry-strategy",
     maxAttempts,
     isRecoverable: (error) => {
       if (options?.shouldRetry) {
         return options.shouldRetry(error);
       }
       // Default: retry on network/timeout errors
-      return error.message.includes('timeout') ||
-             error.message.includes('network') ||
-             error.message.includes('ECONNREFUSED');
+      return (
+        error.message.includes("timeout") ||
+        error.message.includes("network") ||
+        error.message.includes("ECONNREFUSED")
+      );
     },
     recover: async (error, context, stage) => {
       // Calculate delay with exponential backoff
@@ -281,10 +314,10 @@ export function createRetryStrategy(options?: {
  * Create a fallback strategy that uses alternative logic on failure
  */
 export function createFallbackStrategy<TState = Record<string, unknown>>(
-  fallbackStage: PipelineStage<unknown, unknown, TState>
+  fallbackStage: PipelineStage<unknown, unknown, TState>,
 ): ErrorRecoveryStrategy {
   return {
-    name: 'fallback-strategy',
+    name: "fallback-strategy",
     maxAttempts: 1,
     isRecoverable: () => true,
     recover: async (error, context) => {
@@ -297,28 +330,35 @@ export function createFallbackStrategy<TState = Record<string, unknown>>(
 /**
  * Create a dynamic pipeline that constructs stages at runtime
  */
-export function createDynamicPipeline<TInput = unknown, TOutput = unknown, TState = Record<string, unknown>>(
+export function createDynamicPipeline<
+  TInput = unknown,
+  TOutput = unknown,
+  TState = Record<string, unknown>,
+>(
   name: string,
   stageFactory: (
     input: TInput,
-    context: PipelineContext<TInput, TState>
+    context: PipelineContext<TInput, TState>,
   ) => Promise<PipelineStage<unknown, unknown, TState>[]>,
   options?: {
     description?: string;
     timeout?: number;
-  }
+  },
 ): Pipeline<TInput, TOutput, TState> {
   const builder = createPipeline<TInput, TOutput, TState>({
     name,
-    description: options?.description || 'Dynamic pipeline',
+    description: options?.description || "Dynamic pipeline",
     defaultTimeout: options?.timeout,
   });
 
   builder.stage(
-    'dynamic-execution',
+    "dynamic-execution",
     async (context) => {
       // Generate stages dynamically
-      const stages = await stageFactory(context.input as TInput, context as any);
+      const stages = await stageFactory(
+        context.input as TInput,
+        context as any,
+      );
 
       // Execute stages sequentially
       let lastOutput: unknown;
@@ -336,9 +376,9 @@ export function createDynamicPipeline<TInput = unknown, TOutput = unknown, TStat
       return lastOutput;
     },
     {
-      description: 'Execute dynamically generated stages',
+      description: "Execute dynamically generated stages",
       timeout: options?.timeout,
-    }
+    },
   );
 
   return builder.build();
@@ -350,12 +390,15 @@ export function createDynamicPipeline<TInput = unknown, TOutput = unknown, TStat
 export function createLoopStage<TState = Record<string, unknown>>(
   name: string,
   stage: PipelineStage<unknown, unknown, TState>,
-  condition: (context: PipelineContext<unknown, TState>, iteration: number) => Promise<boolean> | boolean,
+  condition: (
+    context: PipelineContext<unknown, TState>,
+    iteration: number,
+  ) => Promise<boolean> | boolean,
   options?: {
     description?: string;
     maxIterations?: number;
     timeout?: number;
-  }
+  },
 ): Stage<unknown, unknown[], TState> {
   return new Stage({
     name,
@@ -393,15 +436,25 @@ export function createLoopStage<TState = Record<string, unknown>>(
 /**
  * Create a map stage that applies a function to each item in a collection
  */
-export function createMapStage<TItem, TResult, TState = Record<string, unknown>>(
+export function createMapStage<
+  TItem,
+  TResult,
+  TState = Record<string, unknown>,
+>(
   name: string,
-  getItems: (context: PipelineContext<unknown, TState>) => TItem[] | Promise<TItem[]>,
-  mapper: (item: TItem, index: number, context: PipelineContext<unknown, TState>) => Promise<TResult>,
+  getItems: (
+    context: PipelineContext<unknown, TState>,
+  ) => TItem[] | Promise<TItem[]>,
+  mapper: (
+    item: TItem,
+    index: number,
+    context: PipelineContext<unknown, TState>,
+  ) => Promise<TResult>,
   options?: {
     description?: string;
     maxConcurrency?: number;
     timeout?: number;
-  }
+  },
 ): Stage<unknown, TResult[], TState> {
   return new Stage({
     name,
@@ -415,7 +468,7 @@ export function createMapStage<TItem, TResult, TState = Record<string, unknown>>
       for (let i = 0; i < items.length; i += maxConcurrency) {
         const batch = items.slice(i, i + maxConcurrency);
         const batchResults = await Promise.all(
-          batch.map((item, idx) => mapper(item, i + idx, context))
+          batch.map((item, idx) => mapper(item, i + idx, context)),
         );
         results.push(...batchResults);
       }
@@ -432,12 +485,18 @@ export function createMapStage<TItem, TResult, TState = Record<string, unknown>>
  */
 export function createFilterStage<TItem, TState = Record<string, unknown>>(
   name: string,
-  getItems: (context: PipelineContext<unknown, TState>) => TItem[] | Promise<TItem[]>,
-  predicate: (item: TItem, index: number, context: PipelineContext<unknown, TState>) => Promise<boolean> | boolean,
+  getItems: (
+    context: PipelineContext<unknown, TState>,
+  ) => TItem[] | Promise<TItem[]>,
+  predicate: (
+    item: TItem,
+    index: number,
+    context: PipelineContext<unknown, TState>,
+  ) => Promise<boolean> | boolean,
   options?: {
     description?: string;
     timeout?: number;
-  }
+  },
 ): Stage<unknown, TItem[], TState> {
   return new Stage({
     name,
@@ -463,20 +522,26 @@ export function createFilterStage<TItem, TState = Record<string, unknown>>(
 /**
  * Create a reduce stage that reduces a collection to a single value
  */
-export function createReduceStage<TItem, TResult, TState = Record<string, unknown>>(
+export function createReduceStage<
+  TItem,
+  TResult,
+  TState = Record<string, unknown>,
+>(
   name: string,
-  getItems: (context: PipelineContext<unknown, TState>) => TItem[] | Promise<TItem[]>,
+  getItems: (
+    context: PipelineContext<unknown, TState>,
+  ) => TItem[] | Promise<TItem[]>,
   reducer: (
     accumulator: TResult,
     item: TItem,
     index: number,
-    context: PipelineContext<unknown, TState>
+    context: PipelineContext<unknown, TState>,
   ) => Promise<TResult> | TResult,
   initialValue: TResult,
   options?: {
     description?: string;
     timeout?: number;
-  }
+  },
 ): Stage<unknown, TResult, TState> {
   return new Stage({
     name,

@@ -11,9 +11,9 @@ import type {
   PipelineContext,
   StageResult,
   PipelineResult,
-} from './types.js';
-import { Stage, createStage } from './Stage.js';
-import { createPipeline } from './PipelineBuilder.js';
+} from "./types.js";
+import { Stage, createStage } from "./Stage.js";
+import { createPipeline } from "./PipelineBuilder.js";
 
 /**
  * Test assertion result
@@ -78,7 +78,9 @@ export interface SuiteResult {
 /**
  * Mock stage for testing
  */
-export class MockStage<TInput = unknown, TOutput = unknown> implements PipelineStage {
+export class MockStage<TInput = unknown, TOutput = unknown>
+  implements PipelineStage
+{
   public readonly name: string;
   public readonly description?: string;
   public readonly retryable: boolean = false;
@@ -90,7 +92,9 @@ export class MockStage<TInput = unknown, TOutput = unknown> implements PipelineS
     timestamp: number;
   }> = [];
 
-  private mockFn: (context: PipelineContext<TInput>) => Promise<TOutput> | TOutput;
+  private mockFn: (
+    context: PipelineContext<TInput>,
+  ) => Promise<TOutput> | TOutput;
 
   constructor(
     name: string,
@@ -100,7 +104,7 @@ export class MockStage<TInput = unknown, TOutput = unknown> implements PipelineS
       retryable?: boolean;
       maxRetries?: number;
       timeout?: number;
-    }
+    },
   ) {
     this.name = name;
     this.mockFn = mockFn;
@@ -110,7 +114,9 @@ export class MockStage<TInput = unknown, TOutput = unknown> implements PipelineS
     this.timeout = options?.timeout;
   }
 
-  async execute(context: PipelineContext<TInput>): Promise<StageResult<TOutput>> {
+  async execute(
+    context: PipelineContext<TInput>,
+  ): Promise<StageResult<TOutput>> {
     this.calls.push({
       context: JSON.parse(JSON.stringify(context)),
       timestamp: Date.now(),
@@ -177,7 +183,9 @@ export class MockStage<TInput = unknown, TOutput = unknown> implements PipelineS
 /**
  * Spy stage that wraps another stage
  */
-export class SpyStage<TInput = unknown, TOutput = unknown> implements PipelineStage {
+export class SpyStage<TInput = unknown, TOutput = unknown>
+  implements PipelineStage
+{
   public calls: Array<{
     context: PipelineContext;
     result: StageResult;
@@ -207,7 +215,9 @@ export class SpyStage<TInput = unknown, TOutput = unknown> implements PipelineSt
     return this.wrappedStage.timeout;
   }
 
-  async execute(context: PipelineContext<TInput>): Promise<StageResult<TOutput>> {
+  async execute(
+    context: PipelineContext<TInput>,
+  ): Promise<StageResult<TOutput>> {
     const startTime = Date.now();
     const result = await this.wrappedStage.execute(context);
     const duration = Date.now() - startTime;
@@ -239,21 +249,31 @@ export class SpyStage<TInput = unknown, TOutput = unknown> implements PipelineSt
  * Assertion helpers
  */
 export class Assertions {
-  static assertEquals(actual: unknown, expected: unknown, message?: string): AssertionResult {
+  static assertEquals(
+    actual: unknown,
+    expected: unknown,
+    message?: string,
+  ): AssertionResult {
     const passed = JSON.stringify(actual) === JSON.stringify(expected);
     return {
       passed,
-      message: message || (passed ? 'Values are equal' : 'Values are not equal'),
+      message:
+        message || (passed ? "Values are equal" : "Values are not equal"),
       expected,
       actual,
     };
   }
 
-  static assertNotEquals(actual: unknown, expected: unknown, message?: string): AssertionResult {
+  static assertNotEquals(
+    actual: unknown,
+    expected: unknown,
+    message?: string,
+  ): AssertionResult {
     const passed = JSON.stringify(actual) !== JSON.stringify(expected);
     return {
       passed,
-      message: message || (passed ? 'Values are not equal' : 'Values are equal'),
+      message:
+        message || (passed ? "Values are not equal" : "Values are equal"),
       expected,
       actual,
     };
@@ -262,7 +282,7 @@ export class Assertions {
   static assertTrue(value: boolean, message?: string): AssertionResult {
     return {
       passed: value === true,
-      message: message || (value ? 'Value is true' : 'Value is not true'),
+      message: message || (value ? "Value is true" : "Value is not true"),
       expected: true,
       actual: value,
     };
@@ -271,7 +291,7 @@ export class Assertions {
   static assertFalse(value: boolean, message?: string): AssertionResult {
     return {
       passed: value === false,
-      message: message || (!value ? 'Value is false' : 'Value is not false'),
+      message: message || (!value ? "Value is false" : "Value is not false"),
       expected: false,
       actual: value,
     };
@@ -280,7 +300,8 @@ export class Assertions {
   static assertNull(value: unknown, message?: string): AssertionResult {
     return {
       passed: value === null,
-      message: message || (value === null ? 'Value is null' : 'Value is not null'),
+      message:
+        message || (value === null ? "Value is null" : "Value is not null"),
       expected: null,
       actual: value,
     };
@@ -289,8 +310,9 @@ export class Assertions {
   static assertNotNull(value: unknown, message?: string): AssertionResult {
     return {
       passed: value !== null,
-      message: message || (value !== null ? 'Value is not null' : 'Value is null'),
-      expected: 'not null',
+      message:
+        message || (value !== null ? "Value is not null" : "Value is null"),
+      expected: "not null",
       actual: value,
     };
   }
@@ -298,7 +320,9 @@ export class Assertions {
   static assertUndefined(value: unknown, message?: string): AssertionResult {
     return {
       passed: value === undefined,
-      message: message || (value === undefined ? 'Value is undefined' : 'Value is not undefined'),
+      message:
+        message ||
+        (value === undefined ? "Value is undefined" : "Value is not undefined"),
       expected: undefined,
       actual: value,
     };
@@ -307,51 +331,73 @@ export class Assertions {
   static assertDefined(value: unknown, message?: string): AssertionResult {
     return {
       passed: value !== undefined,
-      message: message || (value !== undefined ? 'Value is defined' : 'Value is undefined'),
-      expected: 'defined',
+      message:
+        message ||
+        (value !== undefined ? "Value is defined" : "Value is undefined"),
+      expected: "defined",
       actual: value,
     };
   }
 
-  static assertContains(haystack: unknown[], needle: unknown, message?: string): AssertionResult {
-    const passed = haystack.some(item => JSON.stringify(item) === JSON.stringify(needle));
+  static assertContains(
+    haystack: unknown[],
+    needle: unknown,
+    message?: string,
+  ): AssertionResult {
+    const passed = haystack.some(
+      (item) => JSON.stringify(item) === JSON.stringify(needle),
+    );
     return {
       passed,
-      message: message || (passed ? 'Array contains value' : 'Array does not contain value'),
+      message:
+        message ||
+        (passed ? "Array contains value" : "Array does not contain value"),
       expected: needle,
       actual: haystack,
     };
   }
 
-  static assertMatches(value: string, pattern: RegExp, message?: string): AssertionResult {
+  static assertMatches(
+    value: string,
+    pattern: RegExp,
+    message?: string,
+  ): AssertionResult {
     const passed = pattern.test(value);
     return {
       passed,
-      message: message || (passed ? 'String matches pattern' : 'String does not match pattern'),
+      message:
+        message ||
+        (passed ? "String matches pattern" : "String does not match pattern"),
       expected: pattern,
       actual: value,
     };
   }
 
-  static assertThrows(fn: () => unknown, errorPattern?: string | RegExp): AssertionResult {
+  static assertThrows(
+    fn: () => unknown,
+    errorPattern?: string | RegExp,
+  ): AssertionResult {
     try {
       fn();
       return {
         passed: false,
-        message: 'Function did not throw',
-        expected: 'error',
-        actual: 'no error',
+        message: "Function did not throw",
+        expected: "error",
+        actual: "no error",
       };
     } catch (error) {
       if (errorPattern) {
         const message = error instanceof Error ? error.message : String(error);
-        const matches = typeof errorPattern === 'string'
-          ? message.includes(errorPattern)
-          : errorPattern.test(message);
+        const matches =
+          typeof errorPattern === "string"
+            ? message.includes(errorPattern)
+            : errorPattern.test(message);
 
         return {
           passed: matches,
-          message: matches ? 'Error matches pattern' : 'Error does not match pattern',
+          message: matches
+            ? "Error matches pattern"
+            : "Error does not match pattern",
           expected: errorPattern,
           actual: message,
         };
@@ -359,8 +405,8 @@ export class Assertions {
 
       return {
         passed: true,
-        message: 'Function threw error',
-        expected: 'error',
+        message: "Function threw error",
+        expected: "error",
         actual: error,
       };
     }
@@ -376,7 +422,7 @@ export class TestRunner {
    */
   static async runTest(
     pipeline: Pipeline,
-    testCase: TestCase
+    testCase: TestCase,
   ): Promise<TestResult> {
     const assertions: AssertionResult[] = [];
     const startTime = Date.now();
@@ -398,8 +444,8 @@ export class TestRunner {
           Assertions.assertEquals(
             result.success,
             testCase.expectedSuccess,
-            'Pipeline success status'
-          )
+            "Pipeline success status",
+          ),
         );
       }
 
@@ -408,32 +454,32 @@ export class TestRunner {
           Assertions.assertEquals(
             result.output,
             testCase.expectedOutput,
-            'Pipeline output'
-          )
+            "Pipeline output",
+          ),
         );
       }
 
       if (testCase.expectedError) {
         const hasError = result.error !== undefined;
         assertions.push(
-          Assertions.assertTrue(hasError, 'Pipeline should have error')
+          Assertions.assertTrue(hasError, "Pipeline should have error"),
         );
 
         if (hasError && result.error) {
-          if (typeof testCase.expectedError === 'string') {
+          if (typeof testCase.expectedError === "string") {
             assertions.push(
               Assertions.assertTrue(
                 result.error.message.includes(testCase.expectedError),
-                'Error message matches'
-              )
+                "Error message matches",
+              ),
             );
           } else {
             assertions.push(
               Assertions.assertMatches(
                 result.error.message,
                 testCase.expectedError,
-                'Error message matches pattern'
-              )
+                "Error message matches pattern",
+              ),
             );
           }
         }
@@ -444,7 +490,7 @@ export class TestRunner {
         await testCase.teardown();
       }
 
-      const allPassed = assertions.every(a => a.passed);
+      const allPassed = assertions.every((a) => a.passed);
 
       return {
         testName: testCase.name,
@@ -497,10 +543,10 @@ export class TestRunner {
         await suite.afterAll();
       }
     } catch (error) {
-      console.error('Suite execution error:', error);
+      console.error("Suite execution error:", error);
     }
 
-    const passedTests = results.filter(r => r.passed).length;
+    const passedTests = results.filter((r) => r.passed).length;
 
     return {
       suiteName: suite.name,
@@ -518,12 +564,12 @@ export class TestRunner {
   private static async executeWithTimeout(
     pipeline: Pipeline,
     input: unknown,
-    timeout: number
+    timeout: number,
   ): Promise<PipelineResult> {
     return Promise.race([
       pipeline.execute(input),
       new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Test timeout')), timeout)
+        setTimeout(() => reject(new Error("Test timeout")), timeout),
       ),
     ]);
   }
@@ -534,15 +580,17 @@ export class TestRunner {
   static formatResult(result: SuiteResult): string {
     const lines: string[] = [];
 
-    lines.push(`\n${'='.repeat(60)}`);
+    lines.push(`\n${"=".repeat(60)}`);
     lines.push(`Test Suite: ${result.suiteName}`);
-    lines.push(`${'='.repeat(60)}`);
-    lines.push(`Total: ${result.totalTests} | Passed: ${result.passedTests} | Failed: ${result.failedTests}`);
+    lines.push(`${"=".repeat(60)}`);
+    lines.push(
+      `Total: ${result.totalTests} | Passed: ${result.passedTests} | Failed: ${result.failedTests}`,
+    );
     lines.push(`Duration: ${result.duration}ms`);
-    lines.push('');
+    lines.push("");
 
     for (const testResult of result.results) {
-      const icon = testResult.passed ? '✓' : '✗';
+      const icon = testResult.passed ? "✓" : "✗";
       lines.push(`${icon} ${testResult.testName} (${testResult.duration}ms)`);
 
       if (!testResult.passed) {
@@ -560,12 +608,16 @@ export class TestRunner {
       }
     }
 
-    lines.push('');
-    lines.push(`${'='.repeat(60)}`);
-    lines.push(result.failedTests === 0 ? '✓ All tests passed!' : `✗ ${result.failedTests} test(s) failed`);
-    lines.push(`${'='.repeat(60)}\n`);
+    lines.push("");
+    lines.push(`${"=".repeat(60)}`);
+    lines.push(
+      result.failedTests === 0
+        ? "✓ All tests passed!"
+        : `✗ ${result.failedTests} test(s) failed`,
+    );
+    lines.push(`${"=".repeat(60)}\n`);
 
-    return lines.join('\n');
+    return lines.join("\n");
   }
 }
 
@@ -578,7 +630,7 @@ export const TestHelpers = {
    */
   mockStage: <TInput = unknown, TOutput = unknown>(
     name: string,
-    fn: (context: PipelineContext<TInput>) => Promise<TOutput> | TOutput
+    fn: (context: PipelineContext<TInput>) => Promise<TOutput> | TOutput,
   ) => new MockStage(name, fn),
 
   /**
@@ -599,7 +651,7 @@ export const TestHelpers = {
    */
   delayStage: (name: string, delayMs: number) =>
     createStage(name, async () => {
-      await new Promise(resolve => setTimeout(resolve, delayMs));
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
       return { delayed: true };
     }),
 

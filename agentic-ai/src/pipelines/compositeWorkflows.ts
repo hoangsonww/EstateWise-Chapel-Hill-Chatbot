@@ -26,12 +26,12 @@ import {
   createCachingMiddleware,
   createCircuitBreakerMiddleware,
   type AgentPipelineState,
-} from '../pipeline/index.js';
+} from "../pipeline/index.js";
 
-import type { PropertySearchInput } from './propertySearch.js';
-import type { FinancialAnalysisInput } from './financialAnalysis.js';
-import type { ComplianceCheckInput } from './complianceCheck.js';
-import type { GraphAnalysisInput } from './graphAnalysis.js';
+import type { PropertySearchInput } from "./propertySearch.js";
+import type { FinancialAnalysisInput } from "./financialAnalysis.js";
+import type { ComplianceCheckInput } from "./complianceCheck.js";
+import type { GraphAnalysisInput } from "./graphAnalysis.js";
 
 /**
  * Comprehensive analysis input
@@ -111,27 +111,39 @@ export function createComprehensiveAnalysisPipeline(options?: {
   enableParallel?: boolean;
   enableCaching?: boolean;
 }) {
-  const builder = createPipeline<ComprehensiveAnalysisInput, AgentPipelineState>()
-    .withName('comprehensive-analysis')
-    .withDescription('Complete property analysis with search, financial, compliance, and graph analysis');
+  const builder = createPipeline<
+    ComprehensiveAnalysisInput,
+    AgentPipelineState
+  >()
+    .withName("comprehensive-analysis")
+    .withDescription(
+      "Complete property analysis with search, financial, compliance, and graph analysis",
+    );
 
   // Add middleware
-  builder.use(createLoggingMiddleware({ logLevel: 'info' }));
-  builder.use(createMetricsMiddleware({ onMetrics: (metrics) => { console.log('[Metrics]', metrics); } }));
+  builder.use(createLoggingMiddleware({ logLevel: "info" }));
+  builder.use(
+    createMetricsMiddleware({
+      onMetrics: (metrics) => {
+        console.log("[Metrics]", metrics);
+      },
+    }),
+  );
   builder.use(createPerformanceMiddleware({ slowThreshold: 15000 }));
   builder.use(
     createCircuitBreakerMiddleware({
       failureThreshold: 5,
       resetTimeout: 300000,
-    })
+    }),
   );
 
   if (options?.enableCaching) {
     builder.use(
       createCachingMiddleware({
         ttl: 600000, // 10 minutes
-        keyGenerator: (context) => `comprehensive:${(context.input as any)?.goal || 'default'}`,
-      })
+        keyGenerator: (context) =>
+          `comprehensive:${(context.input as any)?.goal || "default"}`,
+      }),
     );
   }
 
@@ -145,34 +157,41 @@ export function createComprehensiveAnalysisPipeline(options?: {
   builder
     .conditional(
       (context) => !!(context.input as ComprehensiveAnalysisInput).budget,
-      createMortgageCalculationStage()
+      createMortgageCalculationStage(),
     )
     .conditional(
       (context) => !!(context.input as ComprehensiveAnalysisInput).budget,
-      createAffordabilityCalculationStage()
-    )
-    .conditional(
-      (context) => (context.input as ComprehensiveAnalysisInput).preferences?.includeGraph !== false,
-      createGraphAnalysisStage()
-    )
-    .conditional(
-      (context) => (context.input as ComprehensiveAnalysisInput).preferences?.includeGraph !== false,
-      createAnalyticsSummaryStage()
+      createAffordabilityCalculationStage(),
     )
     .conditional(
       (context) =>
-        (context.input as ComprehensiveAnalysisInput).preferences?.includeCompliance !== false,
-      createComplianceCheckStage()
+        (context.input as ComprehensiveAnalysisInput).preferences
+          ?.includeGraph !== false,
+      createGraphAnalysisStage(),
+    )
+    .conditional(
+      (context) =>
+        (context.input as ComprehensiveAnalysisInput).preferences
+          ?.includeGraph !== false,
+      createAnalyticsSummaryStage(),
+    )
+    .conditional(
+      (context) =>
+        (context.input as ComprehensiveAnalysisInput).preferences
+          ?.includeCompliance !== false,
+      createComplianceCheckStage(),
     );
 
   // Phase 3: Map and report generation
   return builder
     .conditional(
-      (context) => (context.input as ComprehensiveAnalysisInput).preferences?.includeMap !== false,
-      createMapLinkStage()
+      (context) =>
+        (context.input as ComprehensiveAnalysisInput).preferences
+          ?.includeMap !== false,
+      createMapLinkStage(),
     )
     .addStage(createReportGenerationStage())
-    .stage('format-result', async (context) => {
+    .stage("format-result", async (context) => {
       const state = context.state as AgentPipelineState;
       const input = context.input as ComprehensiveAnalysisInput;
 
@@ -192,24 +211,30 @@ export function createComprehensiveAnalysisPipeline(options?: {
               recommendations: state.affordability?.recommendations || [],
             }
           : undefined,
-        compliance: input.preferences?.includeCompliance !== false
-          ? {
-              allCompliant: !(state.complianceIssues as any[])?.some((i: any) => i.severity === 'critical'),
-              issuesFound: (state.complianceIssues as any[])?.length || 0,
-              criticalIssues:
-                (state.complianceIssues as any[])?.filter((i: any) => i.severity === 'critical').length || 0,
-            }
-          : undefined,
-        graph: input.preferences?.includeGraph !== false
-          ? {
-              insights: (state.graphResults as any)?.insights || [],
-              patterns: (state.graphResults as any)?.patterns?.length || 0,
-              clusters: (state.graphResults as any)?.clusters?.length || 0,
-            }
-          : undefined,
+        compliance:
+          input.preferences?.includeCompliance !== false
+            ? {
+                allCompliant: !(state.complianceIssues as any[])?.some(
+                  (i: any) => i.severity === "critical",
+                ),
+                issuesFound: (state.complianceIssues as any[])?.length || 0,
+                criticalIssues:
+                  (state.complianceIssues as any[])?.filter(
+                    (i: any) => i.severity === "critical",
+                  ).length || 0,
+              }
+            : undefined,
+        graph:
+          input.preferences?.includeGraph !== false
+            ? {
+                insights: (state.graphResults as any)?.insights || [],
+                patterns: (state.graphResults as any)?.patterns?.length || 0,
+                clusters: (state.graphResults as any)?.clusters?.length || 0,
+              }
+            : undefined,
         analytics: state.analytics,
         mapLink: state.mapLink,
-        report: (state.report as any) || '',
+        report: (state.report as any) || "",
         metrics: {
           totalTime: Date.now() - context.metadata.startTime,
           propertiesAnalyzed: (state.propertyResults as any[])?.length || 0,
@@ -230,10 +255,16 @@ export function createComprehensiveAnalysisPipeline(options?: {
  */
 export function createInvestmentWorkflowPipeline() {
   return createPipeline<ComprehensiveAnalysisInput, AgentPipelineState>()
-    .withName('investment-workflow')
-    .withDescription('Investment property analysis with ROI and market trends')
-    .use(createLoggingMiddleware({ logLevel: 'info' }))
-    .use(createMetricsMiddleware({ onMetrics: (metrics) => { console.log('[Metrics]', metrics); } }))
+    .withName("investment-workflow")
+    .withDescription("Investment property analysis with ROI and market trends")
+    .use(createLoggingMiddleware({ logLevel: "info" }))
+    .use(
+      createMetricsMiddleware({
+        onMetrics: (metrics) => {
+          console.log("[Metrics]", metrics);
+        },
+      }),
+    )
     .use(createPerformanceMiddleware({ slowThreshold: 20000 }))
     .addStage(createGoalParserStage())
     .addStage(createPropertySearchStage())
@@ -243,7 +274,7 @@ export function createInvestmentWorkflowPipeline() {
     .addStage(createGraphAnalysisStage())
     .addStage(createAnalyticsSummaryStage())
     .addStage(createReportGenerationStage())
-    .stage('format-result', async (context) => {
+    .stage("format-result", async (context) => {
       const state = context.state as AgentPipelineState;
 
       return {
@@ -277,10 +308,16 @@ export function createInvestmentWorkflowPipeline() {
  */
 export function createDecisionSupportWorkflow() {
   return createPipeline<ComprehensiveAnalysisInput, AgentPipelineState>()
-    .withName('decision-support')
-    .withDescription('Comprehensive decision support for property selection')
-    .use(createLoggingMiddleware({ logLevel: 'info' }))
-    .use(createMetricsMiddleware({ onMetrics: (metrics) => { console.log('[Metrics]', metrics); } }))
+    .withName("decision-support")
+    .withDescription("Comprehensive decision support for property selection")
+    .use(createLoggingMiddleware({ logLevel: "info" }))
+    .use(
+      createMetricsMiddleware({
+        onMetrics: (metrics) => {
+          console.log("[Metrics]", metrics);
+        },
+      }),
+    )
     .addStage(createGoalParserStage())
     .addStage(createPropertySearchStage())
     .addStage(createDedupeRankStage())
@@ -289,7 +326,7 @@ export function createDecisionSupportWorkflow() {
     .addStage(createComplianceCheckStage())
     .addStage(createMapLinkStage())
     .addStage(createReportGenerationStage())
-    .stage('format-result', async (context) => {
+    .stage("format-result", async (context) => {
       const state = context.state as AgentPipelineState;
 
       return {
@@ -311,7 +348,7 @@ export function createDecisionSupportWorkflow() {
  * Run comprehensive analysis
  */
 export async function runComprehensiveAnalysis(
-  input: ComprehensiveAnalysisInput
+  input: ComprehensiveAnalysisInput,
 ): Promise<ComprehensiveAnalysisResult> {
   const pipeline = createComprehensiveAnalysisPipeline({
     enableParallel: input.options?.parallelExecution !== false,
@@ -332,7 +369,7 @@ export async function runComprehensiveAnalysis(
  */
 export async function runInvestmentWorkflow(
   goal: string,
-  budget: ComprehensiveAnalysisInput['budget']
+  budget: ComprehensiveAnalysisInput["budget"],
 ): Promise<any> {
   const pipeline = createInvestmentWorkflowPipeline();
 
@@ -350,7 +387,7 @@ export async function runInvestmentWorkflow(
  */
 export async function runDecisionSupport(
   goal: string,
-  budget?: ComprehensiveAnalysisInput['budget']
+  budget?: ComprehensiveAnalysisInput["budget"],
 ): Promise<any> {
   const pipeline = createDecisionSupportWorkflow();
 

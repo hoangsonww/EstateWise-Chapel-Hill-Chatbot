@@ -5,10 +5,10 @@
  * checkpointing, rollback, and distributed state support.
  */
 
-import { writeFile, readFile, mkdir } from 'fs/promises';
-import { existsSync } from 'fs';
-import { join } from 'path';
-import type { PipelineContext, PipelineResult } from './types.js';
+import { writeFile, readFile, mkdir } from "fs/promises";
+import { existsSync } from "fs";
+import { join } from "path";
+import type { PipelineContext, PipelineResult } from "./types.js";
 
 /**
  * Checkpoint data structure
@@ -50,14 +50,14 @@ export interface StateStorage {
  * File-based state storage
  */
 export class FileStateStorage implements StateStorage {
-  constructor(private basePath: string = './.pipeline-state') {}
+  constructor(private basePath: string = "./.pipeline-state") {}
 
   async save(key: string, data: unknown): Promise<void> {
     if (!existsSync(this.basePath)) {
       await mkdir(this.basePath, { recursive: true });
     }
     const filePath = join(this.basePath, `${key}.json`);
-    await writeFile(filePath, JSON.stringify(data, null, 2), 'utf-8');
+    await writeFile(filePath, JSON.stringify(data, null, 2), "utf-8");
   }
 
   async load(key: string): Promise<unknown | null> {
@@ -65,14 +65,14 @@ export class FileStateStorage implements StateStorage {
     if (!existsSync(filePath)) {
       return null;
     }
-    const content = await readFile(filePath, 'utf-8');
+    const content = await readFile(filePath, "utf-8");
     return JSON.parse(content);
   }
 
   async delete(key: string): Promise<void> {
     const filePath = join(this.basePath, `${key}.json`);
     if (existsSync(filePath)) {
-      const fs = await import('fs/promises');
+      const fs = await import("fs/promises");
       await fs.unlink(filePath);
     }
   }
@@ -86,17 +86,17 @@ export class FileStateStorage implements StateStorage {
     if (!existsSync(this.basePath)) {
       return [];
     }
-    const fs = await import('fs/promises');
+    const fs = await import("fs/promises");
     const files = await fs.readdir(this.basePath);
-    const jsonFiles = files.filter(f => f.endsWith('.json'));
+    const jsonFiles = files.filter((f) => f.endsWith(".json"));
 
     if (prefix) {
       return jsonFiles
-        .filter(f => f.startsWith(prefix))
-        .map(f => f.replace('.json', ''));
+        .filter((f) => f.startsWith(prefix))
+        .map((f) => f.replace(".json", ""));
     }
 
-    return jsonFiles.map(f => f.replace('.json', ''));
+    return jsonFiles.map((f) => f.replace(".json", ""));
   }
 }
 
@@ -125,7 +125,7 @@ export class MemoryStateStorage implements StateStorage {
   async list(prefix?: string): Promise<string[]> {
     const keys = Array.from(this.store.keys());
     if (prefix) {
-      return keys.filter(k => k.startsWith(prefix));
+      return keys.filter((k) => k.startsWith(prefix));
     }
     return keys;
   }
@@ -163,7 +163,7 @@ export class RedisStateStorage implements StateStorage {
   }
 
   async list(prefix?: string): Promise<string[]> {
-    const pattern = prefix ? `${prefix}*` : '*';
+    const pattern = prefix ? `${prefix}*` : "*";
     return await this.client.keys(pattern);
   }
 }
@@ -194,7 +194,7 @@ export class CheckpointManager {
     pipelineName: string,
     context: PipelineContext,
     completedStages: string[],
-    currentStage?: string
+    currentStage?: string,
   ): Promise<Checkpoint> {
     const checkpoint: Checkpoint = {
       id: `checkpoint-${executionId}-${Date.now()}`,
@@ -205,8 +205,8 @@ export class CheckpointManager {
       completedStages: [...completedStages],
       currentStage,
       metadata: {
-        version: '1.0',
-        nodeId: process.env.NODE_ID || 'local',
+        version: "1.0",
+        nodeId: process.env.NODE_ID || "local",
       },
     };
 
@@ -220,7 +220,9 @@ export class CheckpointManager {
    * Restore pipeline state from checkpoint
    */
   async restoreCheckpoint(checkpointId: string): Promise<Checkpoint | null> {
-    const checkpoint = await this.storage.load(checkpointId) as Checkpoint | null;
+    const checkpoint = (await this.storage.load(
+      checkpointId,
+    )) as Checkpoint | null;
     return checkpoint;
   }
 
@@ -232,7 +234,7 @@ export class CheckpointManager {
     const checkpoints: Checkpoint[] = [];
 
     for (const key of keys) {
-      const checkpoint = await this.storage.load(key) as Checkpoint;
+      const checkpoint = (await this.storage.load(key)) as Checkpoint;
       if (checkpoint) {
         checkpoints.push(checkpoint);
       }
@@ -275,14 +277,16 @@ export class CheckpointManager {
    */
   private serializeContext(context: PipelineContext): PipelineContext {
     // Deep clone to avoid reference issues
-    return JSON.parse(JSON.stringify({
-      executionId: context.executionId,
-      input: context.input,
-      state: context.state,
-      blackboard: context.blackboard,
-      messages: context.messages,
-      metadata: context.metadata,
-    }));
+    return JSON.parse(
+      JSON.stringify({
+        executionId: context.executionId,
+        input: context.input,
+        state: context.state,
+        blackboard: context.blackboard,
+        messages: context.messages,
+        metadata: context.metadata,
+      }),
+    );
   }
 }
 
@@ -304,7 +308,7 @@ export class SnapshotManager {
     executionId: string,
     state: Record<string, unknown>,
     blackboard: any,
-    messages: any[]
+    messages: any[],
   ): StateSnapshot {
     const snapshot: StateSnapshot = {
       id: `snapshot-${Date.now()}`,
@@ -336,7 +340,7 @@ export class SnapshotManager {
     const snapshots = this.snapshots.get(executionId);
     if (!snapshots) return null;
 
-    return snapshots.find(s => s.id === snapshotId) || null;
+    return snapshots.find((s) => s.id === snapshotId) || null;
   }
 
   /**
@@ -359,7 +363,10 @@ export class SnapshotManager {
   /**
    * Rollback to a specific snapshot
    */
-  rollbackTo(executionId: string, snapshotId: string): {
+  rollbackTo(
+    executionId: string,
+    snapshotId: string,
+  ): {
     state: Record<string, unknown>;
     blackboard: any;
     messages: any[];
@@ -397,33 +404,34 @@ export function createCheckpointMiddleware(
   options?: {
     checkpointInterval?: number;
     checkpointOnStageComplete?: boolean;
-  }
+  },
 ) {
   const checkpointInterval = options?.checkpointInterval || 30000;
   const checkpointOnStageComplete = options?.checkpointOnStageComplete ?? true;
   const lastCheckpointTime = new Map<string, number>();
 
   return {
-    name: 'checkpointing',
+    name: "checkpointing",
     onPipelineStart: async (context: PipelineContext) => {
       lastCheckpointTime.set(context.executionId, Date.now());
     },
-    onStageComplete: async (context: PipelineContext, stage: any, result: any) => {
-      const pipelineName = (context.metadata as any).pipelineName || 'unknown';
+    onStageComplete: async (
+      context: PipelineContext,
+      stage: any,
+      result: any,
+    ) => {
+      const pipelineName = (context.metadata as any).pipelineName || "unknown";
       const lastTime = lastCheckpointTime.get(context.executionId) || 0;
       const now = Date.now();
 
       // Checkpoint if interval elapsed or if enabled on stage complete
-      if (
-        checkpointOnStageComplete ||
-        now - lastTime >= checkpointInterval
-      ) {
+      if (checkpointOnStageComplete || now - lastTime >= checkpointInterval) {
         await checkpointManager.createCheckpoint(
           context.executionId,
           pipelineName,
           context,
           context.metadata.completedStages,
-          context.metadata.currentStage
+          context.metadata.currentStage,
         );
         lastCheckpointTime.set(context.executionId, now);
       }
@@ -439,14 +447,14 @@ export function createCheckpointMiddleware(
  */
 export function createSnapshotMiddleware(snapshotManager: SnapshotManager) {
   return {
-    name: 'snapshots',
+    name: "snapshots",
     onStageStart: async (context: PipelineContext) => {
       // Create snapshot before each stage
       snapshotManager.createSnapshot(
         context.executionId,
         context.state,
         context.blackboard,
-        context.messages
+        context.messages,
       );
     },
     onPipelineComplete: async (context: PipelineContext) => {
@@ -455,7 +463,7 @@ export function createSnapshotMiddleware(snapshotManager: SnapshotManager) {
         context.executionId,
         context.state,
         context.blackboard,
-        context.messages
+        context.messages,
       );
     },
   };
@@ -467,7 +475,7 @@ export function createSnapshotMiddleware(snapshotManager: SnapshotManager) {
 export async function resumeFromCheckpoint(
   checkpointId: string,
   checkpointManager: CheckpointManager,
-  pipeline: any
+  pipeline: any,
 ): Promise<any> {
   const checkpoint = await checkpointManager.restoreCheckpoint(checkpointId);
   if (!checkpoint) {
@@ -477,11 +485,11 @@ export async function resumeFromCheckpoint(
   // Find stages that haven't completed
   const allStages = pipeline.stages;
   const remainingStages = allStages.filter(
-    (stage: any) => !checkpoint.completedStages.includes(stage.name)
+    (stage: any) => !checkpoint.completedStages.includes(stage.name),
   );
 
   // Create a new pipeline with only remaining stages
-  const { createPipeline } = await import('./PipelineBuilder.js');
+  const { createPipeline } = await import("./PipelineBuilder.js");
   const resumePipeline = createPipeline({
     name: `${checkpoint.pipelineName}-resume`,
   });

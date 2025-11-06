@@ -16,7 +16,7 @@ import {
   createAuditMiddleware,
   createValidationMiddleware,
   type AgentPipelineState,
-} from '../pipeline/index.js';
+} from "../pipeline/index.js";
 
 /**
  * Compliance check input
@@ -25,7 +25,7 @@ export interface ComplianceCheckInput {
   goal?: string;
   propertyId?: string;
   propertyAddress?: string;
-  transactionType?: 'buy' | 'sell' | 'rent' | 'lease';
+  transactionType?: "buy" | "sell" | "rent" | "lease";
   jurisdiction?: string;
   includeReport?: boolean;
   auditTrail?: boolean;
@@ -35,8 +35,14 @@ export interface ComplianceCheckInput {
  * Compliance issue
  */
 export interface ComplianceIssue {
-  severity: 'critical' | 'warning' | 'info';
-  category: 'zoning' | 'legal' | 'disclosure' | 'environmental' | 'safety' | 'other';
+  severity: "critical" | "warning" | "info";
+  category:
+    | "zoning"
+    | "legal"
+    | "disclosure"
+    | "environmental"
+    | "safety"
+    | "other";
   description: string;
   recommendation?: string;
   regulation?: string;
@@ -87,29 +93,33 @@ export function createComplianceCheckPipeline(options?: {
   strictMode?: boolean;
 }) {
   const builder = createPipeline<ComplianceCheckInput, AgentPipelineState>()
-    .withName('compliance-check')
-    .withDescription('Verify regulatory compliance for real estate transactions');
+    .withName("compliance-check")
+    .withDescription(
+      "Verify regulatory compliance for real estate transactions",
+    );
 
   // Add middleware
   if (options?.enableLogging !== false) {
-    builder.use(createLoggingMiddleware({ logLevel: 'info' }));
+    builder.use(createLoggingMiddleware({ logLevel: "info" }));
   }
 
   if (options?.enableMetrics !== false) {
-    builder.use(createMetricsMiddleware({
-      onMetrics: (metrics) => {
-        console.log('[Compliance Check Metrics]', metrics);
-      }
-    }));
+    builder.use(
+      createMetricsMiddleware({
+        onMetrics: (metrics) => {
+          console.log("[Compliance Check Metrics]", metrics);
+        },
+      }),
+    );
   }
 
   if (options?.enableAudit) {
     builder.use(
       createAuditMiddleware({
         onAudit: (event) => {
-          console.log('[Compliance Audit]', event);
-        }
-      })
+          console.log("[Compliance Audit]", event);
+        },
+      }),
     );
   }
 
@@ -126,34 +136,40 @@ export function createComplianceCheckPipeline(options?: {
         }
         return true;
       },
-    })
+    }),
   );
 
   // Build pipeline stages
   return builder
     .conditional(
       (context) => !!(context.input as ComplianceCheckInput).goal,
-      createGoalParserStage()
+      createGoalParserStage(),
     )
     .conditional(
       (context) => !!(context.input as ComplianceCheckInput).goal,
-      createPropertySearchStage()
+      createPropertySearchStage(),
     )
     .addStage(createComplianceCheckStage())
     .conditional(
-      (context) => (context.input as ComplianceCheckInput).includeReport !== false,
-      createReportGenerationStage()
+      (context) =>
+        (context.input as ComplianceCheckInput).includeReport !== false,
+      createReportGenerationStage(),
     )
-    .stage('format-result', async (context) => {
+    .stage("format-result", async (context) => {
       const state = context.state as AgentPipelineState;
       const input = context.input as ComplianceCheckInput;
 
-      const issues: ComplianceIssue[] = Array.isArray(state.complianceIssues) ? state.complianceIssues : [];
-      const criticalIssues = issues.filter((i) => i.severity === 'critical').length;
-      const warnings = issues.filter((i) => i.severity === 'warning').length;
+      const issues: ComplianceIssue[] = Array.isArray(state.complianceIssues)
+        ? state.complianceIssues
+        : [];
+      const criticalIssues = issues.filter(
+        (i) => i.severity === "critical",
+      ).length;
+      const warnings = issues.filter((i) => i.severity === "warning").length;
 
       const result: ComplianceCheckResult = {
-        compliant: criticalIssues === 0 && (!options?.strictMode || warnings === 0),
+        compliant:
+          criticalIssues === 0 && (!options?.strictMode || warnings === 0),
         issues,
         checks: (state.complianceChecks as any) || {
           zoning: false,
@@ -174,7 +190,9 @@ export function createComplianceCheckPipeline(options?: {
         auditTrail: input.auditTrail ? (state.auditTrail as any) : undefined,
         metrics: {
           checkTime: Date.now() - context.metadata.startTime,
-          checksPerformed: Object.values(state.complianceChecks || {}).filter(Boolean).length,
+          checksPerformed: Object.values(state.complianceChecks || {}).filter(
+            Boolean,
+          ).length,
           criticalIssues,
           warnings,
         },
@@ -190,32 +208,42 @@ export function createComplianceCheckPipeline(options?: {
  */
 export function createZoningCheckPipeline() {
   return createPipeline<ComplianceCheckInput, AgentPipelineState>()
-    .withName('zoning-check')
-    .withDescription('Quick zoning compliance verification')
-    .use(createLoggingMiddleware({ logLevel: 'warn' }))
+    .withName("zoning-check")
+    .withDescription("Quick zoning compliance verification")
+    .use(createLoggingMiddleware({ logLevel: "warn" }))
     .conditional(
       (context) => !!(context.input as ComplianceCheckInput).goal,
-      createGoalParserStage()
+      createGoalParserStage(),
     )
     .conditional(
       (context) => !!(context.input as ComplianceCheckInput).goal,
-      createPropertySearchStage()
+      createPropertySearchStage(),
     )
     .addStage(createComplianceCheckStage())
-    .stage('format-result', async (context) => {
+    .stage("format-result", async (context) => {
       const state = context.state as AgentPipelineState;
-      const allIssues = Array.isArray(state.complianceIssues) ? state.complianceIssues : [];
-      const zoningIssues = allIssues.filter((i: ComplianceIssue) => i.category === 'zoning');
+      const allIssues = Array.isArray(state.complianceIssues)
+        ? state.complianceIssues
+        : [];
+      const zoningIssues = allIssues.filter(
+        (i: ComplianceIssue) => i.category === "zoning",
+      );
 
       return {
-        compliant: zoningIssues.filter((i: ComplianceIssue) => i.severity === 'critical').length === 0,
+        compliant:
+          zoningIssues.filter((i: ComplianceIssue) => i.severity === "critical")
+            .length === 0,
         issues: zoningIssues,
         property: state.propertyResults?.[0],
         metrics: {
           checkTime: Date.now() - context.metadata.startTime,
           checksPerformed: 1,
-          criticalIssues: zoningIssues.filter((i: ComplianceIssue) => i.severity === 'critical').length,
-          warnings: zoningIssues.filter((i: ComplianceIssue) => i.severity === 'warning').length,
+          criticalIssues: zoningIssues.filter(
+            (i: ComplianceIssue) => i.severity === "critical",
+          ).length,
+          warnings: zoningIssues.filter(
+            (i: ComplianceIssue) => i.severity === "warning",
+          ).length,
         },
       };
     })
@@ -227,37 +255,50 @@ export function createZoningCheckPipeline() {
  */
 export function createDisclosureVerificationPipeline() {
   return createPipeline<ComplianceCheckInput, AgentPipelineState>()
-    .withName('disclosure-verification')
-    .withDescription('Verify required property disclosures')
-    .use(createLoggingMiddleware({ logLevel: 'info' }))
-    .use(createAuditMiddleware({
-      onAudit: (event) => {
-        console.log('[Disclosure Audit]', event);
-      }
-    }))
-    .conditional(
-      (context) => !!(context.input as ComplianceCheckInput).goal,
-      createGoalParserStage()
+    .withName("disclosure-verification")
+    .withDescription("Verify required property disclosures")
+    .use(createLoggingMiddleware({ logLevel: "info" }))
+    .use(
+      createAuditMiddleware({
+        onAudit: (event) => {
+          console.log("[Disclosure Audit]", event);
+        },
+      }),
     )
     .conditional(
       (context) => !!(context.input as ComplianceCheckInput).goal,
-      createPropertySearchStage()
+      createGoalParserStage(),
+    )
+    .conditional(
+      (context) => !!(context.input as ComplianceCheckInput).goal,
+      createPropertySearchStage(),
     )
     .addStage(createComplianceCheckStage())
-    .stage('format-result', async (context) => {
+    .stage("format-result", async (context) => {
       const state = context.state as AgentPipelineState;
-      const allIssues = Array.isArray(state.complianceIssues) ? state.complianceIssues : [];
-      const disclosureIssues = allIssues.filter((i: ComplianceIssue) => i.category === 'disclosure');
+      const allIssues = Array.isArray(state.complianceIssues)
+        ? state.complianceIssues
+        : [];
+      const disclosureIssues = allIssues.filter(
+        (i: ComplianceIssue) => i.category === "disclosure",
+      );
 
       return {
-        compliant: disclosureIssues.filter((i: ComplianceIssue) => i.severity === 'critical').length === 0,
+        compliant:
+          disclosureIssues.filter(
+            (i: ComplianceIssue) => i.severity === "critical",
+          ).length === 0,
         issues: disclosureIssues,
         property: state.propertyResults?.[0],
         metrics: {
           checkTime: Date.now() - context.metadata.startTime,
           checksPerformed: 1,
-          criticalIssues: disclosureIssues.filter((i: ComplianceIssue) => i.severity === 'critical').length,
-          warnings: disclosureIssues.filter((i: ComplianceIssue) => i.severity === 'warning').length,
+          criticalIssues: disclosureIssues.filter(
+            (i: ComplianceIssue) => i.severity === "critical",
+          ).length,
+          warnings: disclosureIssues.filter(
+            (i: ComplianceIssue) => i.severity === "warning",
+          ).length,
         },
       };
     })
@@ -269,35 +310,41 @@ export function createDisclosureVerificationPipeline() {
  */
 export function createRegulatoryCompliancePipeline() {
   return createPipeline<ComplianceCheckInput, AgentPipelineState>()
-    .withName('regulatory-compliance')
-    .withDescription('Comprehensive regulatory compliance verification')
-    .use(createLoggingMiddleware({ logLevel: 'info' }))
-    .use(createMetricsMiddleware({
-      onMetrics: (metrics) => {
-        console.log('[Regulatory Compliance Metrics]', metrics);
-      }
-    }))
-    .use(createAuditMiddleware({
-      onAudit: (event) => {
-        console.log('[Regulatory Audit]', event);
-      }
-    }))
-    .conditional(
-      (context) => !!(context.input as ComplianceCheckInput).goal,
-      createGoalParserStage()
+    .withName("regulatory-compliance")
+    .withDescription("Comprehensive regulatory compliance verification")
+    .use(createLoggingMiddleware({ logLevel: "info" }))
+    .use(
+      createMetricsMiddleware({
+        onMetrics: (metrics) => {
+          console.log("[Regulatory Compliance Metrics]", metrics);
+        },
+      }),
+    )
+    .use(
+      createAuditMiddleware({
+        onAudit: (event) => {
+          console.log("[Regulatory Audit]", event);
+        },
+      }),
     )
     .conditional(
       (context) => !!(context.input as ComplianceCheckInput).goal,
-      createPropertySearchStage()
+      createGoalParserStage(),
+    )
+    .conditional(
+      (context) => !!(context.input as ComplianceCheckInput).goal,
+      createPropertySearchStage(),
     )
     .addStage(createComplianceCheckStage())
     .addStage(createReportGenerationStage())
-    .stage('format-result', async (context) => {
+    .stage("format-result", async (context) => {
       const state = context.state as AgentPipelineState;
-      const issues: ComplianceIssue[] = Array.isArray(state.complianceIssues) ? state.complianceIssues : [];
+      const issues: ComplianceIssue[] = Array.isArray(state.complianceIssues)
+        ? state.complianceIssues
+        : [];
 
       return {
-        compliant: !issues.some((i) => i.severity === 'critical'),
+        compliant: !issues.some((i) => i.severity === "critical"),
         issues,
         checks: (state.complianceChecks as any) || {},
         property: state.propertyResults?.[0],
@@ -305,9 +352,12 @@ export function createRegulatoryCompliancePipeline() {
         auditTrail: (state.auditTrail as any) || undefined,
         metrics: {
           checkTime: Date.now() - context.metadata.startTime,
-          checksPerformed: Object.values(state.complianceChecks || {}).filter(Boolean).length,
-          criticalIssues: issues.filter((i) => i.severity === 'critical').length,
-          warnings: issues.filter((i) => i.severity === 'warning').length,
+          checksPerformed: Object.values(state.complianceChecks || {}).filter(
+            Boolean,
+          ).length,
+          criticalIssues: issues.filter((i) => i.severity === "critical")
+            .length,
+          warnings: issues.filter((i) => i.severity === "warning").length,
         },
       };
     })
@@ -318,7 +368,7 @@ export function createRegulatoryCompliancePipeline() {
  * Run a compliance check
  */
 export async function runComplianceCheck(
-  input: ComplianceCheckInput
+  input: ComplianceCheckInput,
 ): Promise<ComplianceCheckResult> {
   const pipeline = createComplianceCheckPipeline({
     enableLogging: true,
@@ -341,7 +391,7 @@ export async function runComplianceCheck(
  */
 export async function checkZoning(
   propertyAddress: string,
-  jurisdiction?: string
+  jurisdiction?: string,
 ): Promise<{ compliant: boolean; issues: ComplianceIssue[] }> {
   const pipeline = createZoningCheckPipeline();
 

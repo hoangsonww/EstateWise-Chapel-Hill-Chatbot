@@ -5,20 +5,22 @@
  * retry logic, timeout handling, and validation.
  */
 
-import type {
-  PipelineStage,
-  PipelineContext,
-  StageResult,
-} from "./types.js";
+import type { PipelineStage, PipelineContext, StageResult } from "./types.js";
 
 /**
  * Configuration for creating a stage
  */
-export interface StageConfig<TInput = unknown, TOutput = unknown, TState = Record<string, unknown>> {
+export interface StageConfig<
+  TInput = unknown,
+  TOutput = unknown,
+  TState = Record<string, unknown>,
+> {
   name: string;
   description?: string;
   execute: (context: PipelineContext<TInput, TState>) => Promise<TOutput>;
-  validate?: (context: PipelineContext<TInput, TState>) => Promise<boolean> | boolean;
+  validate?: (
+    context: PipelineContext<TInput, TState>,
+  ) => Promise<boolean> | boolean;
   cleanup?: (context: PipelineContext<TInput, TState>) => Promise<void>;
   retryable?: boolean;
   maxRetries?: number;
@@ -29,8 +31,11 @@ export interface StageConfig<TInput = unknown, TOutput = unknown, TState = Recor
 /**
  * Base implementation of a pipeline stage
  */
-export class Stage<TInput = unknown, TOutput = unknown, TState = Record<string, unknown>>
-  implements PipelineStage<TInput, TOutput, TState>
+export class Stage<
+  TInput = unknown,
+  TOutput = unknown,
+  TState = Record<string, unknown>,
+> implements PipelineStage<TInput, TOutput, TState>
 {
   public readonly name: string;
   public readonly description?: string;
@@ -38,9 +43,15 @@ export class Stage<TInput = unknown, TOutput = unknown, TState = Record<string, 
   public readonly maxRetries: number;
   public readonly timeout?: number;
 
-  private readonly executeImpl: (context: PipelineContext<TInput, TState>) => Promise<TOutput>;
-  private readonly validateImpl?: (context: PipelineContext<TInput, TState>) => Promise<boolean> | boolean;
-  private readonly cleanupImpl?: (context: PipelineContext<TInput, TState>) => Promise<void>;
+  private readonly executeImpl: (
+    context: PipelineContext<TInput, TState>,
+  ) => Promise<TOutput>;
+  private readonly validateImpl?: (
+    context: PipelineContext<TInput, TState>,
+  ) => Promise<boolean> | boolean;
+  private readonly cleanupImpl?: (
+    context: PipelineContext<TInput, TState>,
+  ) => Promise<void>;
   private readonly retryDelay: number;
 
   constructor(config: StageConfig<TInput, TOutput, TState>) {
@@ -55,7 +66,9 @@ export class Stage<TInput = unknown, TOutput = unknown, TState = Record<string, 
     this.retryDelay = config.retryDelay ?? 1000;
   }
 
-  async execute(context: PipelineContext<TInput, TState>): Promise<StageResult<TOutput>> {
+  async execute(
+    context: PipelineContext<TInput, TState>,
+  ): Promise<StageResult<TOutput>> {
     const startTime = Date.now();
     let attempts = 0;
     let lastError: Error | undefined;
@@ -64,7 +77,7 @@ export class Stage<TInput = unknown, TOutput = unknown, TState = Record<string, 
       try {
         // Check abort signal
         if (context.signal?.aborted) {
-          throw new Error('Pipeline execution aborted');
+          throw new Error("Pipeline execution aborted");
         }
 
         // Execute with timeout if specified
@@ -120,7 +133,7 @@ export class Stage<TInput = unknown, TOutput = unknown, TState = Record<string, 
 
   private async executeWithTimeout(
     context: PipelineContext<TInput, TState>,
-    timeout: number
+    timeout: number,
   ): Promise<TOutput> {
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
@@ -147,10 +160,16 @@ export class Stage<TInput = unknown, TOutput = unknown, TState = Record<string, 
 /**
  * Create a simple stage with just an execution function
  */
-export function createStage<TInput = unknown, TOutput = unknown, TState = Record<string, unknown>>(
+export function createStage<
+  TInput = unknown,
+  TOutput = unknown,
+  TState = Record<string, unknown>,
+>(
   name: string,
   execute: (context: PipelineContext<TInput, TState>) => Promise<TOutput>,
-  options?: Partial<Omit<StageConfig<TInput, TOutput, TState>, 'name' | 'execute'>>
+  options?: Partial<
+    Omit<StageConfig<TInput, TOutput, TState>, "name" | "execute">
+  >,
 ): Stage<TInput, TOutput, TState> {
   return new Stage({
     name,
@@ -165,7 +184,9 @@ export function createStage<TInput = unknown, TOutput = unknown, TState = Record
 export function createTransformStage<TState = Record<string, unknown>>(
   name: string,
   transform: (state: TState) => Promise<Partial<TState>> | Partial<TState>,
-  options?: Partial<Omit<StageConfig<unknown, unknown, TState>, 'name' | 'execute'>>
+  options?: Partial<
+    Omit<StageConfig<unknown, unknown, TState>, "name" | "execute">
+  >,
 ): Stage<unknown, unknown, TState> {
   return new Stage({
     name,
@@ -181,11 +202,19 @@ export function createTransformStage<TState = Record<string, unknown>>(
 /**
  * Create a conditional stage that only executes if condition is met
  */
-export function createConditionalStage<TInput = unknown, TOutput = unknown, TState = Record<string, unknown>>(
+export function createConditionalStage<
+  TInput = unknown,
+  TOutput = unknown,
+  TState = Record<string, unknown>,
+>(
   name: string,
-  condition: (context: PipelineContext<TInput, TState>) => Promise<boolean> | boolean,
+  condition: (
+    context: PipelineContext<TInput, TState>,
+  ) => Promise<boolean> | boolean,
   execute: (context: PipelineContext<TInput, TState>) => Promise<TOutput>,
-  options?: Partial<Omit<StageConfig<TInput, TOutput, TState>, 'name' | 'execute'>>
+  options?: Partial<
+    Omit<StageConfig<TInput, TOutput, TState>, "name" | "execute">
+  >,
 ): Stage<TInput, TOutput, TState> {
   return new Stage({
     name,
@@ -203,10 +232,18 @@ export function createConditionalStage<TInput = unknown, TOutput = unknown, TSta
 /**
  * Create a parallel stage that executes multiple operations concurrently
  */
-export function createParallelStage<TInput = unknown, TOutput = unknown, TState = Record<string, unknown>>(
+export function createParallelStage<
+  TInput = unknown,
+  TOutput = unknown,
+  TState = Record<string, unknown>,
+>(
   name: string,
-  operations: Array<(context: PipelineContext<TInput, TState>) => Promise<unknown>>,
-  options?: Partial<Omit<StageConfig<TInput, TOutput, TState>, 'name' | 'execute'>>
+  operations: Array<
+    (context: PipelineContext<TInput, TState>) => Promise<unknown>
+  >,
+  options?: Partial<
+    Omit<StageConfig<TInput, TOutput, TState>, "name" | "execute">
+  >,
 ): Stage<TInput, TOutput[], TState> {
   return new Stage({
     name,

@@ -5,8 +5,8 @@
  * and automatic parameter tuning for optimal execution.
  */
 
-import type { Pipeline, PipelineMetrics, PipelineResult } from './types.js';
-import { PipelineMonitor } from './monitoring.js';
+import type { Pipeline, PipelineMetrics, PipelineResult } from "./types.js";
+import { PipelineMonitor } from "./monitoring.js";
 
 /**
  * Performance profile for a pipeline
@@ -39,8 +39,14 @@ export interface StagePerformanceProfile {
  * Optimization recommendation
  */
 export interface OptimizationRecommendation {
-  type: 'parallelization' | 'caching' | 'timeout' | 'retry' | 'ordering' | 'removal';
-  priority: 'high' | 'medium' | 'low';
+  type:
+    | "parallelization"
+    | "caching"
+    | "timeout"
+    | "retry"
+    | "ordering"
+    | "removal";
+  priority: "high" | "medium" | "low";
   target: string; // stage name or pipeline name
   recommendation: string;
   expectedImprovement: string;
@@ -86,8 +92,8 @@ export class PipelineOptimizer {
 
     // Calculate durations
     const durations = traces
-      .filter(t => t.duration !== undefined)
-      .map(t => t.duration!)
+      .filter((t) => t.duration !== undefined)
+      .map((t) => t.duration!)
       .sort((a, b) => a - b);
 
     const p50 = this.percentile(durations, 50);
@@ -95,11 +101,13 @@ export class PipelineOptimizer {
     const p99 = this.percentile(durations, 99);
 
     // Calculate throughput
-    const timespan = Math.max(...traces.map(t => t.endTime || 0)) -
-      Math.min(...traces.map(t => t.startTime));
-    const throughput = timespan > 0
-      ? (traces.length / timespan) * 60000 // per minute
-      : 0;
+    const timespan =
+      Math.max(...traces.map((t) => t.endTime || 0)) -
+      Math.min(...traces.map((t) => t.startTime));
+    const throughput =
+      timespan > 0
+        ? (traces.length / timespan) * 60000 // per minute
+        : 0;
 
     // Stage profiles
     const stageProfiles = new Map<string, StagePerformanceProfile>();
@@ -110,7 +118,7 @@ export class PipelineOptimizer {
       // Collect stage durations from traces
       const stageDurations: number[] = [];
       for (const trace of traces) {
-        const stageExec = trace.stages.find(s => s.name === stageName);
+        const stageExec = trace.stages.find((s) => s.name === stageName);
         if (stageExec && stageExec.duration) {
           stageDurations.push(stageExec.duration);
         }
@@ -123,7 +131,8 @@ export class PipelineOptimizer {
         maxDuration: Math.max(...stageDurations, -Infinity),
         successRate: stageMetric.successRate,
         retryRate: 0, // Retry info not available in flattened metrics
-        percentOfTotalTime: totalTime > 0 ? (stageMetric.averageDuration / totalTime) * 100 : 0,
+        percentOfTotalTime:
+          totalTime > 0 ? (stageMetric.averageDuration / totalTime) * 100 : 0,
       };
 
       stageProfiles.set(stageName, profile);
@@ -150,13 +159,14 @@ export class PipelineOptimizer {
 
     // Find stages that take significant time
     const bottlenecks = Array.from(profile.stageProfiles.values())
-      .filter(s => s.percentOfTotalTime > 20)
-      .map(s => ({
+      .filter((s) => s.percentOfTotalTime > 20)
+      .map((s) => ({
         stageName: s.stageName,
         impact: s.percentOfTotalTime / 100,
-        reason: s.percentOfTotalTime > 50
-          ? 'Dominates execution time'
-          : 'Significant contributor to execution time',
+        reason:
+          s.percentOfTotalTime > 50
+            ? "Dominates execution time"
+            : "Significant contributor to execution time",
       }))
       .sort((a, b) => b.impact - a.impact);
 
@@ -170,16 +180,16 @@ export class PipelineOptimizer {
       potentialSpeedup: number;
     }> = [];
 
-    const independentStages = Array.from(profile.stageProfiles.values())
-      .filter(s => s.percentOfTotalTime > 10 && s.percentOfTotalTime < 30);
+    const independentStages = Array.from(profile.stageProfiles.values()).filter(
+      (s) => s.percentOfTotalTime > 10 && s.percentOfTotalTime < 30,
+    );
 
     if (independentStages.length >= 2) {
       parallelizationOpportunities.push({
-        stages: independentStages.map(s => s.stageName),
-        potentialSpeedup: independentStages.reduce(
-          (sum, s) => sum + s.averageDuration,
-          0
-        ) / Math.max(...independentStages.map(s => s.averageDuration)),
+        stages: independentStages.map((s) => s.stageName),
+        potentialSpeedup:
+          independentStages.reduce((sum, s) => sum + s.averageDuration, 0) /
+          Math.max(...independentStages.map((s) => s.averageDuration)),
       });
     }
 
@@ -204,11 +214,11 @@ export class PipelineOptimizer {
     for (const [stageName, stageProfile] of profile.stageProfiles.entries()) {
       if (stageProfile.averageDuration > 5000) {
         recommendations.push({
-          type: 'caching',
-          priority: 'high',
+          type: "caching",
+          priority: "high",
           target: stageName,
           recommendation: `Enable caching for ${stageName} (avg: ${stageProfile.averageDuration}ms)`,
-          expectedImprovement: 'Up to 100% reduction in repeated executions',
+          expectedImprovement: "Up to 100% reduction in repeated executions",
         });
       }
     }
@@ -217,10 +227,10 @@ export class PipelineOptimizer {
     for (const opp of bottlenecks.parallelizationOpportunities) {
       if (opp.potentialSpeedup > 1.5) {
         recommendations.push({
-          type: 'parallelization',
-          priority: 'high',
-          target: opp.stages.join(', '),
-          recommendation: `Parallelize stages: ${opp.stages.join(', ')}`,
+          type: "parallelization",
+          priority: "high",
+          target: opp.stages.join(", "),
+          recommendation: `Parallelize stages: ${opp.stages.join(", ")}`,
           expectedImprovement: `${((opp.potentialSpeedup - 1) * 100).toFixed(0)}% faster`,
         });
       }
@@ -230,11 +240,11 @@ export class PipelineOptimizer {
     for (const [stageName, stageProfile] of profile.stageProfiles.entries()) {
       if (stageProfile.retryRate > 0.3) {
         recommendations.push({
-          type: 'retry',
-          priority: 'medium',
+          type: "retry",
+          priority: "medium",
           target: stageName,
           recommendation: `High retry rate (${(stageProfile.retryRate * 100).toFixed(0)}%) for ${stageName}. Consider increasing timeout or improving reliability.`,
-          expectedImprovement: 'Reduced retry overhead',
+          expectedImprovement: "Reduced retry overhead",
         });
       }
     }
@@ -244,11 +254,11 @@ export class PipelineOptimizer {
       const variance = stageProfile.maxDuration - stageProfile.minDuration;
       if (variance > stageProfile.averageDuration * 2) {
         recommendations.push({
-          type: 'timeout',
-          priority: 'low',
+          type: "timeout",
+          priority: "low",
           target: stageName,
           recommendation: `High variance in ${stageName} execution time. Consider dynamic timeout based on input.`,
-          expectedImprovement: 'Better timeout handling',
+          expectedImprovement: "Better timeout handling",
         });
       }
     }
@@ -257,11 +267,11 @@ export class PipelineOptimizer {
     for (const [stageName, stageProfile] of profile.stageProfiles.entries()) {
       if (stageProfile.successRate < 0.5) {
         recommendations.push({
-          type: 'removal',
-          priority: 'high',
+          type: "removal",
+          priority: "high",
           target: stageName,
           recommendation: `Stage ${stageName} has low success rate (${(stageProfile.successRate * 100).toFixed(0)}%). Consider removing or fixing.`,
-          expectedImprovement: 'Improved overall success rate',
+          expectedImprovement: "Improved overall success rate",
         });
       }
     }
@@ -312,7 +322,7 @@ export class PipelineOptimizer {
     // (In reality, would need dependency analysis)
     const stages = Array.from(profile.stageProfiles.values())
       .sort((a, b) => a.averageDuration - b.averageDuration)
-      .map(s => s.stageName);
+      .map((s) => s.stageName);
 
     return stages;
   }
@@ -339,7 +349,7 @@ export class PipelineOptimizer {
 
     // Confidence based on variance
     const variance = profile.p99Duration - profile.p50Duration;
-    const confidence = Math.max(0, Math.min(1, 1 - (variance / predicted)));
+    const confidence = Math.max(0, Math.min(1, 1 - variance / predicted));
 
     // Range based on p95 and p99
     const range: [number, number] = [
@@ -457,11 +467,14 @@ export class ResourceTracker {
  * Performance budget enforcer
  */
 export class PerformanceBudget {
-  private budgets = new Map<string, {
-    maxDuration: number;
-    maxMemory?: number;
-    maxCpu?: number;
-  }>();
+  private budgets = new Map<
+    string,
+    {
+      maxDuration: number;
+      maxMemory?: number;
+      maxCpu?: number;
+    }
+  >();
 
   /**
    * Set performance budget for a pipeline
@@ -472,7 +485,7 @@ export class PerformanceBudget {
       maxDuration: number;
       maxMemory?: number;
       maxCpu?: number;
-    }
+    },
   ): void {
     this.budgets.set(pipelineName, budget);
   }
@@ -486,7 +499,7 @@ export class PerformanceBudget {
     resourceStats?: {
       cpu: { total: number };
       memory: { peak: number };
-    }
+    },
   ): {
     withinBudget: boolean;
     violations: string[];
@@ -501,7 +514,7 @@ export class PerformanceBudget {
     // Check duration
     if (result.metrics.totalDuration > budget.maxDuration) {
       violations.push(
-        `Duration exceeded: ${result.metrics.totalDuration}ms > ${budget.maxDuration}ms`
+        `Duration exceeded: ${result.metrics.totalDuration}ms > ${budget.maxDuration}ms`,
       );
     }
 
@@ -509,7 +522,7 @@ export class PerformanceBudget {
     if (budget.maxMemory && resourceStats?.memory) {
       if (resourceStats.memory.peak > budget.maxMemory) {
         violations.push(
-          `Memory exceeded: ${resourceStats.memory.peak}MB > ${budget.maxMemory}MB`
+          `Memory exceeded: ${resourceStats.memory.peak}MB > ${budget.maxMemory}MB`,
         );
       }
     }
@@ -518,7 +531,7 @@ export class PerformanceBudget {
     if (budget.maxCpu && resourceStats?.cpu) {
       if (resourceStats.cpu.total > budget.maxCpu) {
         violations.push(
-          `CPU exceeded: ${resourceStats.cpu.total}s > ${budget.maxCpu}s`
+          `CPU exceeded: ${resourceStats.cpu.total}s > ${budget.maxCpu}s`,
         );
       }
     }

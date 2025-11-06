@@ -1,6 +1,6 @@
 {
   "permissions": {
-    "allow": ["Bash(npm run:*)", "Bash(curl:*)"],
+    "allow": ["Bash(npm run:*)", "Bash(curl:*)", "Bash(npx tsc:*)"],
     "deny": [],
     "ask": []
   }

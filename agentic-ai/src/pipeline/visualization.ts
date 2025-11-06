@@ -5,8 +5,8 @@
  * and interactive dashboards for monitoring.
  */
 
-import type { Pipeline, PipelineStage, PipelineResult } from './types.js';
-import type { ExecutionTrace } from './monitoring.js';
+import type { Pipeline, PipelineStage, PipelineResult } from "./types.js";
+import type { ExecutionTrace } from "./monitoring.js";
 
 /**
  * DAG node representing a stage
@@ -14,7 +14,7 @@ import type { ExecutionTrace } from './monitoring.js';
 export interface DAGNode {
   id: string;
   label: string;
-  type: 'stage' | 'start' | 'end' | 'conditional' | 'parallel';
+  type: "stage" | "start" | "end" | "conditional" | "parallel";
   metadata?: Record<string, unknown>;
   stats?: {
     averageDuration: number;
@@ -59,18 +59,18 @@ export class PipelineDAGBuilder {
 
     // Start node
     nodes.push({
-      id: 'start',
-      label: 'Start',
-      type: 'start',
+      id: "start",
+      label: "Start",
+      type: "start",
     });
 
     // Add stage nodes
-    let previousNodeId = 'start';
+    let previousNodeId = "start";
     for (const stage of pipeline.stages) {
       nodes.push({
         id: stage.name,
         label: stage.description || stage.name,
-        type: 'stage',
+        type: "stage",
         metadata: {
           retryable: stage.retryable,
           maxRetries: stage.maxRetries,
@@ -89,14 +89,14 @@ export class PipelineDAGBuilder {
 
     // End node
     nodes.push({
-      id: 'end',
-      label: 'End',
-      type: 'end',
+      id: "end",
+      label: "End",
+      type: "end",
     });
 
     edges.push({
       from: previousNodeId,
-      to: 'end',
+      to: "end",
     });
 
     return {
@@ -115,7 +115,7 @@ export class PipelineDAGBuilder {
   static toMermaid(dag: DAGGraph): string {
     const lines: string[] = [];
 
-    lines.push('graph TD');
+    lines.push("graph TD");
 
     // Add nodes
     for (const node of dag.nodes) {
@@ -125,11 +125,11 @@ export class PipelineDAGBuilder {
 
     // Add edges
     for (const edge of dag.edges) {
-      const label = edge.label ? `|${edge.label}|` : '';
+      const label = edge.label ? `|${edge.label}|` : "";
       lines.push(`  ${edge.from} -->${label} ${edge.to}`);
     }
 
-    return lines.join('\n');
+    return lines.join("\n");
   }
 
   /**
@@ -138,9 +138,9 @@ export class PipelineDAGBuilder {
   static toDOT(dag: DAGGraph): string {
     const lines: string[] = [];
 
-    lines.push('digraph Pipeline {');
-    lines.push('  rankdir=TB;');
-    lines.push('  node [shape=box, style=rounded];');
+    lines.push("digraph Pipeline {");
+    lines.push("  rankdir=TB;");
+    lines.push("  node [shape=box, style=rounded];");
 
     // Add nodes
     for (const node of dag.nodes) {
@@ -150,13 +150,13 @@ export class PipelineDAGBuilder {
 
     // Add edges
     for (const edge of dag.edges) {
-      const label = edge.label ? `, label="${edge.label}"` : '';
+      const label = edge.label ? `, label="${edge.label}"` : "";
       lines.push(`  ${edge.from} -> ${edge.to}${label};`);
     }
 
-    lines.push('}');
+    lines.push("}");
 
-    return lines.join('\n');
+    return lines.join("\n");
   }
 
   /**
@@ -168,15 +168,15 @@ export class PipelineDAGBuilder {
 
   private static getMermaidShape(type: string): [string, string] {
     switch (type) {
-      case 'start':
-      case 'end':
-        return ['([', '])'];
-      case 'conditional':
-        return ['{', '}'];
-      case 'parallel':
-        return ['[[', ']]'];
+      case "start":
+      case "end":
+        return ["([", "])"];
+      case "conditional":
+        return ["{", "}"];
+      case "parallel":
+        return ["[[", "]]"];
       default:
-        return ['[', ']'];
+        return ["[", "]"];
     }
   }
 
@@ -184,21 +184,21 @@ export class PipelineDAGBuilder {
     const attrs: string[] = [];
 
     switch (node.type) {
-      case 'start':
-      case 'end':
-        attrs.push('shape=circle');
-        attrs.push('style=filled');
-        attrs.push('fillcolor=lightgreen');
+      case "start":
+      case "end":
+        attrs.push("shape=circle");
+        attrs.push("style=filled");
+        attrs.push("fillcolor=lightgreen");
         break;
-      case 'conditional':
-        attrs.push('shape=diamond');
+      case "conditional":
+        attrs.push("shape=diamond");
         break;
-      case 'parallel':
-        attrs.push('shape=parallelogram');
+      case "parallel":
+        attrs.push("shape=parallelogram");
         break;
     }
 
-    return attrs.length > 0 ? ', ' + attrs.join(', ') : '';
+    return attrs.length > 0 ? ", " + attrs.join(", ") : "";
   }
 }
 
@@ -212,14 +212,24 @@ export class TimelineVisualizer {
   static createTimeline(trace: ExecutionTrace): string {
     const lines: string[] = [];
 
-    lines.push('\n╔══════════════════════════════════════════════════════════════╗');
+    lines.push(
+      "\n╔══════════════════════════════════════════════════════════════╗",
+    );
     lines.push(`║ Pipeline: ${trace.pipelineName.padEnd(49)} ║`);
-    lines.push(`║ Execution ID: ${trace.executionId.substring(0, 45).padEnd(45)} ║`);
-    lines.push(`║ Duration: ${String(trace.duration || 0) + 'ms'.padEnd(49)} ║`);
-    lines.push('╠══════════════════════════════════════════════════════════════╣');
+    lines.push(
+      `║ Execution ID: ${trace.executionId.substring(0, 45).padEnd(45)} ║`,
+    );
+    lines.push(
+      `║ Duration: ${String(trace.duration || 0) + "ms".padEnd(49)} ║`,
+    );
+    lines.push(
+      "╠══════════════════════════════════════════════════════════════╣",
+    );
 
     if (trace.stages.length === 0) {
-      lines.push('║ No stages executed                                          ║');
+      lines.push(
+        "║ No stages executed                                          ║",
+      );
     } else {
       const totalDuration = trace.duration || 1;
 
@@ -227,13 +237,15 @@ export class TimelineVisualizer {
         const duration = stage.duration || 0;
         const percentage = (duration / totalDuration) * 100;
         const barLength = Math.round((percentage / 100) * 40);
-        const bar = '█'.repeat(barLength).padEnd(40);
-        const status = stage.success ? '✓' : '✗';
+        const bar = "█".repeat(barLength).padEnd(40);
+        const status = stage.success ? "✓" : "✗";
 
-        lines.push('║──────────────────────────────────────────────────────────────║');
+        lines.push(
+          "║──────────────────────────────────────────────────────────────║",
+        );
         lines.push(`║ ${status} ${stage.name.padEnd(56)} ║`);
         lines.push(`║   [${bar}] ${percentage.toFixed(1)}%  ║`);
-        lines.push(`║   Duration: ${String(duration) + 'ms'.padEnd(48)} ║`);
+        lines.push(`║   Duration: ${String(duration) + "ms".padEnd(48)} ║`);
 
         if (stage.attempts && stage.attempts > 1) {
           lines.push(`║   Attempts: ${String(stage.attempts).padEnd(48)} ║`);
@@ -241,9 +253,11 @@ export class TimelineVisualizer {
       }
     }
 
-    lines.push('╚══════════════════════════════════════════════════════════════╝\n');
+    lines.push(
+      "╚══════════════════════════════════════════════════════════════╝\n",
+    );
 
-    return lines.join('\n');
+    return lines.join("\n");
   }
 
   /**
@@ -301,17 +315,18 @@ export class DashboardGenerator {
    */
   static generateDashboard(
     pipelineName: string,
-    traces: ExecutionTrace[]
+    traces: ExecutionTrace[],
   ): DashboardData {
     if (traces.length === 0) {
       return this.emptyDashboard();
     }
 
     // Overview
-    const successCount = traces.filter(t => t.success).length;
+    const successCount = traces.filter((t) => t.success).length;
     const totalDuration = traces.reduce((sum, t) => sum + (t.duration || 0), 0);
-    const timespan = Math.max(...traces.map(t => t.endTime || 0)) -
-      Math.min(...traces.map(t => t.startTime));
+    const timespan =
+      Math.max(...traces.map((t) => t.endTime || 0)) -
+      Math.min(...traces.map((t) => t.startTime));
 
     const overview = {
       totalExecutions: traces.length,
@@ -321,21 +336,22 @@ export class DashboardGenerator {
     };
 
     // Recent executions
-    const recentExecutions = traces
-      .slice(-10)
-      .map(t => ({
-        id: t.executionId,
-        timestamp: t.startTime,
-        duration: t.duration || 0,
-        success: t.success || false,
-      }));
+    const recentExecutions = traces.slice(-10).map((t) => ({
+      id: t.executionId,
+      timestamp: t.startTime,
+      duration: t.duration || 0,
+      success: t.success || false,
+    }));
 
     // Stage performance
-    const stageStats = new Map<string, {
-      totalDuration: number;
-      executions: number;
-      successes: number;
-    }>();
+    const stageStats = new Map<
+      string,
+      {
+        totalDuration: number;
+        executions: number;
+        successes: number;
+      }
+    >();
 
     for (const trace of traces) {
       for (const stage of trace.stages) {
@@ -354,16 +370,18 @@ export class DashboardGenerator {
       }
     }
 
-    const stagePerformance = Array.from(stageStats.entries()).map(([name, stats]) => ({
-      name,
-      averageDuration: stats.totalDuration / stats.executions,
-      successRate: stats.successes / stats.executions,
-      percentOfTotal: (stats.totalDuration / totalDuration) * 100,
-    }));
+    const stagePerformance = Array.from(stageStats.entries()).map(
+      ([name, stats]) => ({
+        name,
+        averageDuration: stats.totalDuration / stats.executions,
+        successRate: stats.successes / stats.executions,
+        percentOfTotal: (stats.totalDuration / totalDuration) * 100,
+      }),
+    );
 
     // Trends (last 20 executions)
     const recentTraces = traces.slice(-20);
-    const durationTrend = recentTraces.map(t => ({
+    const durationTrend = recentTraces.map((t) => ({
       timestamp: t.startTime,
       value: t.duration || 0,
     }));
@@ -371,7 +389,8 @@ export class DashboardGenerator {
     const successRateTrend: Array<{ timestamp: number; value: number }> = [];
     for (let i = 0; i < recentTraces.length; i++) {
       const window = recentTraces.slice(Math.max(0, i - 4), i + 1);
-      const windowSuccessRate = window.filter(t => t.success).length / window.length;
+      const windowSuccessRate =
+        window.filter((t) => t.success).length / window.length;
       successRateTrend.push({
         timestamp: recentTraces[i].startTime,
         value: windowSuccessRate,
@@ -392,25 +411,50 @@ export class DashboardGenerator {
   /**
    * Generate ASCII dashboard
    */
-  static generateASCIIDashboard(data: DashboardData, pipelineName: string): string {
+  static generateASCIIDashboard(
+    data: DashboardData,
+    pipelineName: string,
+  ): string {
     const lines: string[] = [];
 
-    lines.push('\n╔════════════════════════════════════════════════════════════════════╗');
+    lines.push(
+      "\n╔════════════════════════════════════════════════════════════════════╗",
+    );
     lines.push(`║ Pipeline Dashboard: ${pipelineName.padEnd(44)} ║`);
-    lines.push('╠════════════════════════════════════════════════════════════════════╣');
+    lines.push(
+      "╠════════════════════════════════════════════════════════════════════╣",
+    );
 
     // Overview
-    lines.push('║ OVERVIEW                                                           ║');
-    lines.push('║────────────────────────────────────────────────────────────────────║');
-    lines.push(`║ Total Executions:    ${String(data.overview.totalExecutions).padEnd(44)} ║`);
-    lines.push(`║ Success Rate:        ${(data.overview.successRate * 100).toFixed(1) + '%'.padEnd(44)} ║`);
-    lines.push(`║ Average Duration:    ${data.overview.averageDuration.toFixed(0) + 'ms'.padEnd(44)} ║`);
-    lines.push(`║ Throughput:          ${data.overview.throughput.toFixed(2) + ' exec/min'.padEnd(44)} ║`);
+    lines.push(
+      "║ OVERVIEW                                                           ║",
+    );
+    lines.push(
+      "║────────────────────────────────────────────────────────────────────║",
+    );
+    lines.push(
+      `║ Total Executions:    ${String(data.overview.totalExecutions).padEnd(44)} ║`,
+    );
+    lines.push(
+      `║ Success Rate:        ${(data.overview.successRate * 100).toFixed(1) + "%".padEnd(44)} ║`,
+    );
+    lines.push(
+      `║ Average Duration:    ${data.overview.averageDuration.toFixed(0) + "ms".padEnd(44)} ║`,
+    );
+    lines.push(
+      `║ Throughput:          ${data.overview.throughput.toFixed(2) + " exec/min".padEnd(44)} ║`,
+    );
 
     // Top stages
-    lines.push('╠════════════════════════════════════════════════════════════════════╣');
-    lines.push('║ TOP STAGES BY DURATION                                             ║');
-    lines.push('║────────────────────────────────────────────────────────────────────║');
+    lines.push(
+      "╠════════════════════════════════════════════════════════════════════╣",
+    );
+    lines.push(
+      "║ TOP STAGES BY DURATION                                             ║",
+    );
+    lines.push(
+      "║────────────────────────────────────────────────────────────────────║",
+    );
 
     const topStages = data.stagePerformance
       .sort((a, b) => b.averageDuration - a.averageDuration)
@@ -418,26 +462,38 @@ export class DashboardGenerator {
 
     for (const stage of topStages) {
       const name = stage.name.substring(0, 20).padEnd(20);
-      const duration = String(stage.averageDuration.toFixed(0)) + 'ms';
-      const percent = stage.percentOfTotal.toFixed(1) + '%';
-      lines.push(`║ ${name} ${duration.padStart(10)} (${percent.padStart(6)})     ║`);
+      const duration = String(stage.averageDuration.toFixed(0)) + "ms";
+      const percent = stage.percentOfTotal.toFixed(1) + "%";
+      lines.push(
+        `║ ${name} ${duration.padStart(10)} (${percent.padStart(6)})     ║`,
+      );
     }
 
     // Recent executions
-    lines.push('╠════════════════════════════════════════════════════════════════════╣');
-    lines.push('║ RECENT EXECUTIONS                                                  ║');
-    lines.push('║────────────────────────────────────────────────────────────────────║');
+    lines.push(
+      "╠════════════════════════════════════════════════════════════════════╣",
+    );
+    lines.push(
+      "║ RECENT EXECUTIONS                                                  ║",
+    );
+    lines.push(
+      "║────────────────────────────────────────────────────────────────────║",
+    );
 
     for (const exec of data.recentExecutions.slice(-5)) {
-      const status = exec.success ? '✓' : '✗';
-      const duration = String(exec.duration) + 'ms';
+      const status = exec.success ? "✓" : "✗";
+      const duration = String(exec.duration) + "ms";
       const time = new Date(exec.timestamp).toLocaleTimeString();
-      lines.push(`║ ${status} ${time.padEnd(15)} ${duration.padStart(10)}                        ║`);
+      lines.push(
+        `║ ${status} ${time.padEnd(15)} ${duration.padStart(10)}                        ║`,
+      );
     }
 
-    lines.push('╚════════════════════════════════════════════════════════════════════╝\n');
+    lines.push(
+      "╚════════════════════════════════════════════════════════════════════╝\n",
+    );
 
-    return lines.join('\n');
+    return lines.join("\n");
   }
 
   /**
@@ -454,14 +510,16 @@ export class DashboardGenerator {
     const lines: string[] = [];
 
     // Stage performance
-    lines.push('Stage,Average Duration (ms),Success Rate (%),Percent of Total (%)');
+    lines.push(
+      "Stage,Average Duration (ms),Success Rate (%),Percent of Total (%)",
+    );
     for (const stage of data.stagePerformance) {
       lines.push(
-        `${stage.name},${stage.averageDuration.toFixed(2)},${(stage.successRate * 100).toFixed(2)},${stage.percentOfTotal.toFixed(2)}`
+        `${stage.name},${stage.averageDuration.toFixed(2)},${(stage.successRate * 100).toFixed(2)},${stage.percentOfTotal.toFixed(2)}`,
       );
     }
 
-    return lines.join('\n');
+    return lines.join("\n");
   }
 
   private static emptyDashboard(): DashboardData {
@@ -493,31 +551,33 @@ export class FlowDiagramGenerator {
     const lines: string[] = [];
     const maxWidth = 60;
 
-    lines.push('┌' + '─'.repeat(maxWidth) + '┐');
-    lines.push('│' + dag.metadata?.pipelineName.padEnd(maxWidth) + '│');
-    lines.push('├' + '─'.repeat(maxWidth) + '┤');
+    lines.push("┌" + "─".repeat(maxWidth) + "┐");
+    lines.push("│" + dag.metadata?.pipelineName.padEnd(maxWidth) + "│");
+    lines.push("├" + "─".repeat(maxWidth) + "┤");
 
     for (let i = 0; i < dag.nodes.length; i++) {
       const node = dag.nodes[i];
 
-      if (node.type === 'start' || node.type === 'end') {
-        const centered = node.label.padStart((maxWidth + node.label.length) / 2);
-        lines.push('│' + centered.padEnd(maxWidth) + '│');
+      if (node.type === "start" || node.type === "end") {
+        const centered = node.label.padStart(
+          (maxWidth + node.label.length) / 2,
+        );
+        lines.push("│" + centered.padEnd(maxWidth) + "│");
       } else {
         const box = `┌─ ${node.label} ─┐`;
         const centered = box.padStart((maxWidth + box.length) / 2);
-        lines.push('│' + centered.padEnd(maxWidth) + '│');
+        lines.push("│" + centered.padEnd(maxWidth) + "│");
       }
 
       if (i < dag.nodes.length - 1) {
-        const arrow = '↓';
+        const arrow = "↓";
         const centered = arrow.padStart(maxWidth / 2);
-        lines.push('│' + centered.padEnd(maxWidth) + '│');
+        lines.push("│" + centered.padEnd(maxWidth) + "│");
       }
     }
 
-    lines.push('└' + '─'.repeat(maxWidth) + '┘');
+    lines.push("└" + "─".repeat(maxWidth) + "┘");
 
-    return lines.join('\n');
+    return lines.join("\n");
   }
 }

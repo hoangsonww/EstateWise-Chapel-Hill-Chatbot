@@ -11,11 +11,14 @@ import conversationRoutes from "./routes/conversation.routes";
 import propertyRoutes from "./routes/property.routes";
 import commuteProfileRoutes from "./routes/commute-profile.routes";
 import graphRoutes from "./routes/graph.routes";
+import postRoutes from "./routes/post.routes";
+import commentRoutes from "./routes/comment.routes";
 import { errorHandler } from "./middleware/error.middleware";
 import cookieParser from "cookie-parser";
 import * as trpcExpress from "@trpc/server/adapters/express";
 import { appRouter } from "./trpc/routers";
 import { createContext } from "./trpc/trpc";
+import { runForumSeeding } from "./scripts/seedForumPosts";
 
 // ─── Winston Logger Setup ────────────────────────────────────────────────────
 import winston from "winston";
@@ -143,6 +146,8 @@ app.use("/api/conversations", conversationRoutes);
 app.use("/api/properties", propertyRoutes);
 app.use("/api/commute-profiles", commuteProfileRoutes);
 app.use("/api/graph", graphRoutes);
+app.use("/api/posts", postRoutes);
+app.use("/api/comments", commentRoutes);
 
 // tRPC endpoint - non-blocking, optional alternative API
 app.use(
@@ -255,6 +260,10 @@ db.on("reconnected", () => {
 db.once("open", () => {
   logger.info("📡 MongoDB connection open");
   mongoConnectionGauge.set(1);
+
+  // Seed forum posts non-blocking
+  runForumSeeding();
+
   // Only start listening after DB is open
   app.listen(PORT, () => {
     logger.info(`🏠 EstateWise backend listening on port ${PORT}`);

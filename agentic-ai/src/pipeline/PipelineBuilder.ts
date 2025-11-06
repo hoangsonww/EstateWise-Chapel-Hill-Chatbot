@@ -17,7 +17,11 @@ import type {
 /**
  * Fluent builder for constructing pipelines
  */
-export class PipelineBuilder<TInput = unknown, TOutput = unknown, TState = Record<string, unknown>> {
+export class PipelineBuilder<
+  TInput = unknown,
+  TOutput = unknown,
+  TState = Record<string, unknown>,
+> {
   private pipeline: Pipeline<TInput, TOutput, TState>;
 
   constructor(options: Partial<PipelineOptions> = {}) {
@@ -59,7 +63,7 @@ export class PipelineBuilder<TInput = unknown, TOutput = unknown, TState = Recor
       retryable?: boolean;
       maxRetries?: number;
       timeout?: number;
-    }
+    },
   ): this {
     const stage = createStage(name, execute, options);
     return this.addStage(stage);
@@ -76,7 +80,7 @@ export class PipelineBuilder<TInput = unknown, TOutput = unknown, TState = Recor
       retryable?: boolean;
       maxRetries?: number;
       timeout?: number;
-    }
+    },
   ): this {
     const stage = createTransformStage(name, transform, options);
     return this.addStage(stage);
@@ -86,48 +90,67 @@ export class PipelineBuilder<TInput = unknown, TOutput = unknown, TState = Recor
    * Add a conditional stage that only executes if condition is met
    */
   when(
-    condition: (context: PipelineContext<unknown, TState>) => Promise<boolean> | boolean,
-    configurePipeline: (builder: PipelineBuilder<unknown, unknown, TState>) => void
+    condition: (
+      context: PipelineContext<unknown, TState>,
+    ) => Promise<boolean> | boolean,
+    configurePipeline: (
+      builder: PipelineBuilder<unknown, unknown, TState>,
+    ) => void,
   ): this {
     const conditionalBuilder = new PipelineBuilder<unknown, unknown, TState>();
     configurePipeline(conditionalBuilder);
 
     const conditionalStage = new Stage({
-      name: 'conditional',
+      name: "conditional",
       execute: async (context) => {
-        const shouldExecute = await condition(context as PipelineContext<unknown, TState>);
+        const shouldExecute = await condition(
+          context as PipelineContext<unknown, TState>,
+        );
         if (shouldExecute) {
           const conditionalPipeline = conditionalBuilder.build();
-          const result = await conditionalPipeline.execute(context.input, context.signal);
+          const result = await conditionalPipeline.execute(
+            context.input,
+            context.signal,
+          );
           return result.output;
         }
         return null;
       },
     });
 
-    return this.addStage(conditionalStage as PipelineStage<unknown, unknown, TState>);
+    return this.addStage(
+      conditionalStage as PipelineStage<unknown, unknown, TState>,
+    );
   }
 
   /**
    * Add a conditional stage - simpler version that executes a single stage if condition is met
    */
   conditional(
-    condition: (context: PipelineContext<unknown, TState>) => Promise<boolean> | boolean,
-    stage: PipelineStage<unknown, unknown, TState>
+    condition: (
+      context: PipelineContext<unknown, TState>,
+    ) => Promise<boolean> | boolean,
+    stage: PipelineStage<unknown, unknown, TState>,
   ): this {
     const conditionalStage = new Stage({
       name: `conditional-${stage.name}`,
       execute: async (context) => {
-        const shouldExecute = await condition(context as PipelineContext<unknown, TState>);
+        const shouldExecute = await condition(
+          context as PipelineContext<unknown, TState>,
+        );
         if (shouldExecute) {
-          const result = await stage.execute(context as PipelineContext<unknown, TState>);
+          const result = await stage.execute(
+            context as PipelineContext<unknown, TState>,
+          );
           return result.output;
         }
         return null;
       },
     });
 
-    return this.addStage(conditionalStage as PipelineStage<unknown, unknown, TState>);
+    return this.addStage(
+      conditionalStage as PipelineStage<unknown, unknown, TState>,
+    );
   }
 
   /**
@@ -135,10 +158,12 @@ export class PipelineBuilder<TInput = unknown, TOutput = unknown, TState = Recor
    */
   branch(branches: BranchCondition<TState>[]): this {
     const branchStage = new Stage({
-      name: 'branch',
+      name: "branch",
       execute: async (context) => {
         for (const branch of branches) {
-          const shouldTake = await branch.condition(context as PipelineContext<unknown, TState>);
+          const shouldTake = await branch.condition(
+            context as PipelineContext<unknown, TState>,
+          );
           if (shouldTake) {
             // Execute branch stages
             for (const stage of branch.stages) {
@@ -154,7 +179,9 @@ export class PipelineBuilder<TInput = unknown, TOutput = unknown, TState = Recor
       },
     });
 
-    return this.addStage(branchStage as PipelineStage<unknown, unknown, TState>);
+    return this.addStage(
+      branchStage as PipelineStage<unknown, unknown, TState>,
+    );
   }
 
   /**
@@ -166,7 +193,7 @@ export class PipelineBuilder<TInput = unknown, TOutput = unknown, TState = Recor
     options?: {
       description?: string;
       maxConcurrency?: number;
-    }
+    },
   ): this {
     const parallelStage = new Stage({
       name,
@@ -179,7 +206,9 @@ export class PipelineBuilder<TInput = unknown, TOutput = unknown, TState = Recor
         for (let i = 0; i < stages.length; i += maxConcurrency) {
           const batch = stages.slice(i, i + maxConcurrency);
           const batchResults = await Promise.all(
-            batch.map((stage) => stage.execute(context as PipelineContext<unknown, TState>))
+            batch.map((stage) =>
+              stage.execute(context as PipelineContext<unknown, TState>),
+            ),
           );
           results.push(...batchResults);
         }
@@ -188,7 +217,9 @@ export class PipelineBuilder<TInput = unknown, TOutput = unknown, TState = Recor
       },
     });
 
-    return this.addStage(parallelStage as PipelineStage<unknown, unknown, TState>);
+    return this.addStage(
+      parallelStage as PipelineStage<unknown, unknown, TState>,
+    );
   }
 
   /**
@@ -203,42 +234,42 @@ export class PipelineBuilder<TInput = unknown, TOutput = unknown, TState = Recor
    * Add logging middleware
    */
   withLogging(options?: {
-    logLevel?: 'debug' | 'info' | 'warn' | 'error';
+    logLevel?: "debug" | "info" | "warn" | "error";
     logger?: Console;
   }): this {
     const logger = options?.logger ?? console;
-    const logLevel = options?.logLevel ?? 'info';
+    const logLevel = options?.logLevel ?? "info";
 
     const loggingMiddleware: PipelineMiddleware<TState> = {
-      name: 'logging',
+      name: "logging",
       onPipelineStart: async (context) => {
-        if (logLevel === 'debug' || logLevel === 'info') {
+        if (logLevel === "debug" || logLevel === "info") {
           logger.log(`[Pipeline] Starting execution ${context.executionId}`);
         }
       },
       onPipelineComplete: async (context, result) => {
-        if (logLevel === 'debug' || logLevel === 'info') {
+        if (logLevel === "debug" || logLevel === "info") {
           logger.log(
-            `[Pipeline] Completed execution ${context.executionId} - Success: ${result.success}, Duration: ${result.metrics.totalDuration}ms`
+            `[Pipeline] Completed execution ${context.executionId} - Success: ${result.success}, Duration: ${result.metrics.totalDuration}ms`,
           );
         }
       },
       onStageStart: async (context, stage) => {
-        if (logLevel === 'debug') {
+        if (logLevel === "debug") {
           logger.log(`[Stage] Starting ${stage.name}`);
         }
       },
       onStageComplete: async (context, stage, result) => {
-        if (logLevel === 'debug') {
+        if (logLevel === "debug") {
           logger.log(
-            `[Stage] Completed ${stage.name} - Success: ${result.success}, Duration: ${result.metadata?.duration}ms`
+            `[Stage] Completed ${stage.name} - Success: ${result.success}, Duration: ${result.metadata?.duration}ms`,
           );
         }
       },
       onError: async (context, error, stage) => {
-        if (logLevel === 'error' || logLevel === 'warn') {
+        if (logLevel === "error" || logLevel === "warn") {
           logger.error(
-            `[Error] ${stage ? `Stage ${stage.name}` : 'Pipeline'}: ${error.message}`
+            `[Error] ${stage ? `Stage ${stage.name}` : "Pipeline"}: ${error.message}`,
           );
         }
       },
@@ -250,11 +281,9 @@ export class PipelineBuilder<TInput = unknown, TOutput = unknown, TState = Recor
   /**
    * Add metrics collection middleware
    */
-  withMetrics(options?: {
-    onMetrics?: (metrics: any) => void;
-  }): this {
+  withMetrics(options?: { onMetrics?: (metrics: any) => void }): this {
     const metricsMiddleware: PipelineMiddleware<TState> = {
-      name: 'metrics',
+      name: "metrics",
       onPipelineComplete: async (context, result) => {
         if (options?.onMetrics) {
           options.onMetrics({
@@ -274,9 +303,7 @@ export class PipelineBuilder<TInput = unknown, TOutput = unknown, TState = Recor
   /**
    * Add caching middleware
    */
-  withCaching(options?: {
-    ttl?: number;
-  }): this {
+  withCaching(options?: { ttl?: number }): this {
     // Caching is built into the Pipeline class
     // This method just updates the options
     this.pipeline.options.enableCaching = true;
@@ -294,12 +321,12 @@ export class PipelineBuilder<TInput = unknown, TOutput = unknown, TState = Recor
     validateOutput?: (output: unknown) => Promise<boolean> | boolean;
   }): this {
     const validationMiddleware: PipelineMiddleware<TState> = {
-      name: 'validation',
+      name: "validation",
       onPipelineStart: async (context) => {
         if (options?.validateInput) {
           const isValid = await options.validateInput(context.input);
           if (!isValid) {
-            throw new Error('Input validation failed');
+            throw new Error("Input validation failed");
           }
         }
       },
@@ -307,7 +334,7 @@ export class PipelineBuilder<TInput = unknown, TOutput = unknown, TState = Recor
         if (options?.validateOutput && result.success) {
           const isValid = await options.validateOutput(result.output);
           if (!isValid) {
-            throw new Error('Output validation failed');
+            throw new Error("Output validation failed");
           }
         }
       },
@@ -326,7 +353,7 @@ export class PipelineBuilder<TInput = unknown, TOutput = unknown, TState = Recor
     let retries = 0;
 
     const errorRecoveryMiddleware: PipelineMiddleware<TState> = {
-      name: 'error-recovery',
+      name: "error-recovery",
       onError: async (context, error, stage) => {
         if (retries < (options.maxRetries ?? 3)) {
           retries++;
@@ -348,7 +375,7 @@ export class PipelineBuilder<TInput = unknown, TOutput = unknown, TState = Recor
     const requests: number[] = [];
 
     const rateLimitMiddleware: PipelineMiddleware<TState> = {
-      name: 'rate-limit',
+      name: "rate-limit",
       onPipelineStart: async (context) => {
         const now = Date.now();
         const windowStart = now - options.windowMs;
@@ -360,7 +387,7 @@ export class PipelineBuilder<TInput = unknown, TOutput = unknown, TState = Recor
 
         // Check limit
         if (requests.length >= options.maxRequestsPerWindow) {
-          throw new Error('Rate limit exceeded');
+          throw new Error("Rate limit exceeded");
         }
 
         requests.push(now);
@@ -382,10 +409,10 @@ export class PipelineBuilder<TInput = unknown, TOutput = unknown, TState = Recor
     }) => Promise<void> | void;
   }): this {
     const auditMiddleware: PipelineMiddleware<TState> = {
-      name: 'audit',
+      name: "audit",
       onPipelineStart: async (context) => {
         await options.onAudit({
-          type: 'pipeline-start',
+          type: "pipeline-start",
           timestamp: Date.now(),
           executionId: context.executionId,
           data: { input: context.input },
@@ -393,7 +420,7 @@ export class PipelineBuilder<TInput = unknown, TOutput = unknown, TState = Recor
       },
       onPipelineComplete: async (context, result) => {
         await options.onAudit({
-          type: 'pipeline-complete',
+          type: "pipeline-complete",
           timestamp: Date.now(),
           executionId: context.executionId,
           data: {
@@ -428,7 +455,7 @@ export class PipelineBuilder<TInput = unknown, TOutput = unknown, TState = Recor
   async runStream(
     input: TInput,
     onEvent: (event: any) => void,
-    signal?: AbortSignal
+    signal?: AbortSignal,
   ) {
     return this.pipeline.executeStream(input, onEvent, signal);
   }
@@ -437,8 +464,12 @@ export class PipelineBuilder<TInput = unknown, TOutput = unknown, TState = Recor
 /**
  * Create a new pipeline builder
  */
-export function createPipeline<TInput = unknown, TOutput = unknown, TState = Record<string, unknown>>(
-  options: Partial<PipelineOptions> = {}
+export function createPipeline<
+  TInput = unknown,
+  TOutput = unknown,
+  TState = Record<string, unknown>,
+>(
+  options: Partial<PipelineOptions> = {},
 ): PipelineBuilder<TInput, TOutput, TState> {
   return new PipelineBuilder<TInput, TOutput, TState>(options);
 }
@@ -448,10 +479,10 @@ export function createPipeline<TInput = unknown, TOutput = unknown, TState = Rec
  */
 export function createPipelineFromFunction<TInput, TOutput>(
   name: string,
-  fn: (input: TInput) => Promise<TOutput>
+  fn: (input: TInput) => Promise<TOutput>,
 ): Pipeline<TInput, TOutput> {
   return createPipeline<TInput, TOutput>({ name })
-    .stage('execute', async (context) => {
+    .stage("execute", async (context) => {
       return fn(context.input as TInput);
     })
     .build();

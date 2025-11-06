@@ -37,7 +37,7 @@ import {
   createPerformanceMiddleware,
   createCachingMiddleware,
   type AgentPipelineState,
-} from '../pipeline/index.js';
+} from "../pipeline/index.js";
 
 /**
  * Market research input
@@ -94,20 +94,24 @@ export function createMarketResearchPipeline(options?: {
   enableGraph?: boolean;
 }) {
   const builder = createPipeline<MarketResearchInput, AgentPipelineState>()
-    .withName('market-research')
-    .withDescription('Comprehensive market research with analytics and insights');
+    .withName("market-research")
+    .withDescription(
+      "Comprehensive market research with analytics and insights",
+    );
 
   // Add middleware
   if (options?.enableLogging !== false) {
-    builder.use(createLoggingMiddleware({ logLevel: 'info' }));
+    builder.use(createLoggingMiddleware({ logLevel: "info" }));
   }
 
   if (options?.enableMetrics !== false) {
-    builder.use(createMetricsMiddleware({
-      onMetrics: (metrics) => {
-        console.log('[Market Research Metrics]', metrics);
-      }
-    }));
+    builder.use(
+      createMetricsMiddleware({
+        onMetrics: (metrics) => {
+          console.log("[Market Research Metrics]", metrics);
+        },
+      }),
+    );
   }
 
   builder.use(createPerformanceMiddleware({ slowThreshold: 15000 }));
@@ -116,8 +120,9 @@ export function createMarketResearchPipeline(options?: {
     builder.use(
       createCachingMiddleware({
         ttl: 600000, // 10 minutes
-        keyGenerator: (context) => `market-research:${(context.input as MarketResearchInput).goal}`,
-      })
+        keyGenerator: (context) =>
+          `market-research:${(context.input as MarketResearchInput).goal}`,
+      }),
     );
   }
 
@@ -128,29 +133,36 @@ export function createMarketResearchPipeline(options?: {
     .addStage(createDedupeRankStage())
     .conditional(
       (context) => (context.input as MarketResearchInput).groupByZip !== false,
-      createGroupByZipStage()
+      createGroupByZipStage(),
     )
     .conditional(
-      (context) => (context.input as MarketResearchInput).includeAnalytics !== false,
-      createAnalyticsSummaryStage()
+      (context) =>
+        (context.input as MarketResearchInput).includeAnalytics !== false,
+      createAnalyticsSummaryStage(),
     )
     .conditional(
-      (context) => (context.input as MarketResearchInput).includeGraph !== false,
-      createGraphAnalysisStage()
+      (context) =>
+        (context.input as MarketResearchInput).includeGraph !== false,
+      createGraphAnalysisStage(),
     )
     .addStage(createMapLinkStage())
     .addStage(createReportGenerationStage())
-    .stage('format-result', async (context) => {
+    .stage("format-result", async (context) => {
       const state = context.state as AgentPipelineState;
       const input = context.input as MarketResearchInput;
 
       const result: MarketResearchResult = {
         properties: state.propertyResults || [],
-        analytics: input.includeAnalytics !== false ? state.analytics : undefined,
-        graphData: input.includeGraph !== false ? (state.graphResults as any) : undefined,
-        zipGroups: input.groupByZip !== false ? (state.zipGroups as any) : undefined,
+        analytics:
+          input.includeAnalytics !== false ? state.analytics : undefined,
+        graphData:
+          input.includeGraph !== false
+            ? (state.graphResults as any)
+            : undefined,
+        zipGroups:
+          input.groupByZip !== false ? (state.zipGroups as any) : undefined,
         mapLink: state.mapLink,
-        report: (state.report as string) || '',
+        report: (state.report as string) || "",
         metrics: {
           totalTime: Date.now() - context.metadata.startTime,
           propertiesFound: state.propertyResults?.length || 0,
@@ -169,7 +181,7 @@ export function createMarketResearchPipeline(options?: {
  * This is the recommended approach for new code.
  */
 export async function runMarketResearchPipeline(
-  input: MarketResearchInput
+  input: MarketResearchInput,
 ): Promise<MarketResearchResult> {
   const pipeline = createMarketResearchPipeline({
     enableLogging: true,
@@ -220,15 +232,15 @@ export async function runMarketResearch(goal: string) {
  */
 export function createQuickMarketOverviewPipeline() {
   return createPipeline<MarketResearchInput, AgentPipelineState>()
-    .withName('quick-market-overview')
-    .withDescription('Fast market overview with essential metrics')
-    .use(createLoggingMiddleware({ logLevel: 'warn' }))
+    .withName("quick-market-overview")
+    .withDescription("Fast market overview with essential metrics")
+    .use(createLoggingMiddleware({ logLevel: "warn" }))
     .addStage(createGoalParserStage())
     .addStage(createPropertySearchStage())
     .addStage(createGroupByZipStage())
     .addStage(createAnalyticsSummaryStage())
     .addStage(createReportGenerationStage())
-    .stage('format-result', async (context) => {
+    .stage("format-result", async (context) => {
       const state = context.state as AgentPipelineState;
 
       return {
@@ -253,14 +265,16 @@ export function createQuickMarketOverviewPipeline() {
  */
 export function createDeepMarketAnalysisPipeline() {
   return createPipeline<MarketResearchInput, AgentPipelineState>()
-    .withName('deep-market-analysis')
-    .withDescription('In-depth market analysis with comprehensive insights')
-    .use(createLoggingMiddleware({ logLevel: 'info' }))
-    .use(createMetricsMiddleware({
-      onMetrics: (metrics) => {
-        console.log('[Deep Market Analysis Metrics]', metrics);
-      }
-    }))
+    .withName("deep-market-analysis")
+    .withDescription("In-depth market analysis with comprehensive insights")
+    .use(createLoggingMiddleware({ logLevel: "info" }))
+    .use(
+      createMetricsMiddleware({
+        onMetrics: (metrics) => {
+          console.log("[Deep Market Analysis Metrics]", metrics);
+        },
+      }),
+    )
     .use(createPerformanceMiddleware({ slowThreshold: 30000 }))
     .addStage(createGoalParserStage())
     .addStage(createPropertySearchStage())
@@ -270,7 +284,7 @@ export function createDeepMarketAnalysisPipeline() {
     .addStage(createGraphAnalysisStage())
     .addStage(createMapLinkStage())
     .addStage(createReportGenerationStage())
-    .stage('format-result', async (context) => {
+    .stage("format-result", async (context) => {
       const state = context.state as AgentPipelineState;
 
       return {

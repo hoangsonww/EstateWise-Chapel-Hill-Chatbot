@@ -22,11 +22,31 @@ export type {
 } from "./types.js";
 
 // Core classes - import for local use and re-export
-import { Stage, createStage, createTransformStage, createConditionalStage, createParallelStage as createParallelStageFromStage } from "./Stage.js";
+import {
+  Stage,
+  createStage,
+  createTransformStage,
+  createConditionalStage,
+  createParallelStage as createParallelStageFromStage,
+} from "./Stage.js";
 import { Pipeline } from "./Pipeline.js";
-import { PipelineBuilder, createPipeline, createPipelineFromFunction } from "./PipelineBuilder.js";
+import {
+  PipelineBuilder,
+  createPipeline,
+  createPipelineFromFunction,
+} from "./PipelineBuilder.js";
 
-export { Stage, createStage, createTransformStage, createConditionalStage, createParallelStageFromStage as createParallelStage, Pipeline, PipelineBuilder, createPipeline, createPipelineFromFunction };
+export {
+  Stage,
+  createStage,
+  createTransformStage,
+  createConditionalStage,
+  createParallelStageFromStage as createParallelStage,
+  Pipeline,
+  PipelineBuilder,
+  createPipeline,
+  createPipelineFromFunction,
+};
 
 // Middleware - import for local use and re-export
 import {

@@ -33,12 +33,15 @@ export interface AgentPipelineState {
 /**
  * Create a stage from an existing agent
  */
-export function createAgentStage(agent: Agent, options?: {
-  description?: string;
-  retryable?: boolean;
-  maxRetries?: number;
-  timeout?: number;
-}): Stage<unknown, AgentMessage, AgentPipelineState> {
+export function createAgentStage(
+  agent: Agent,
+  options?: {
+    description?: string;
+    retryable?: boolean;
+    maxRetries?: number;
+    timeout?: number;
+  },
+): Stage<unknown, AgentMessage, AgentPipelineState> {
   return new Stage({
     name: agent.role,
     description: options?.description || `Execute ${agent.role} agent`,
@@ -76,7 +79,7 @@ export function createGoalParserStage(options?: {
   timeout?: number;
 }): Stage<string, any, AgentPipelineState> {
   return createStage(
-    'parse-goal',
+    "parse-goal",
     async (context) => {
       const goal = String(context.input);
       context.state.goal = goal;
@@ -113,10 +116,12 @@ export function createGoalParserStage(options?: {
       }
 
       // Extract price
-      const priceMatch = goal.match(/\$?\s*(\d+(?:,\d{3})*(?:k|K)?)\s*(?:max|under|below)?/);
+      const priceMatch = goal.match(
+        /\$?\s*(\d+(?:,\d{3})*(?:k|K)?)\s*(?:max|under|below)?/,
+      );
       if (priceMatch) {
-        let price = parseInt(priceMatch[1].replace(/,/g, ''), 10);
-        if (priceMatch[1].toLowerCase().includes('k')) {
+        let price = parseInt(priceMatch[1].replace(/,/g, ""), 10);
+        if (priceMatch[1].toLowerCase().includes("k")) {
           price *= 1000;
         }
         parsed.price = price;
@@ -129,7 +134,7 @@ export function createGoalParserStage(options?: {
       }
 
       // Common city names
-      const cities = ['Chapel Hill', 'Durham', 'Raleigh', 'Cary', 'Carrboro'];
+      const cities = ["Chapel Hill", "Durham", "Raleigh", "Cary", "Carrboro"];
       for (const city of cities) {
         if (goal.toLowerCase().includes(city.toLowerCase())) {
           parsed.city = city;
@@ -142,7 +147,7 @@ export function createGoalParserStage(options?: {
       if (stateMatch) {
         parsed.state = stateMatch[1];
       } else if (parsed.city) {
-        parsed.state = 'NC'; // Default to NC for Triangle cities
+        parsed.state = "NC"; // Default to NC for Triangle cities
       }
 
       context.state.parsed = parsed;
@@ -156,10 +161,10 @@ export function createGoalParserStage(options?: {
       return parsed;
     },
     {
-      description: 'Parse goal and extract structured filters',
+      description: "Parse goal and extract structured filters",
       timeout: options?.timeout ?? 5000,
       retryable: false,
-    }
+    },
   );
 }
 
@@ -171,13 +176,13 @@ export function createPropertySearchStage(options?: {
   timeout?: number;
 }): Stage<unknown, any, AgentPipelineState> {
   return createStage(
-    'property-search',
+    "property-search",
     async (context) => {
       const parsed = context.state.parsed;
       const toolClient = options?.toolClient;
 
       if (!toolClient) {
-        throw new Error('ToolClient is required for property search');
+        throw new Error("ToolClient is required for property search");
       }
 
       // Build search parameters
@@ -191,7 +196,10 @@ export function createPropertySearchStage(options?: {
       if (parsed?.price) searchParams.maxPrice = parsed.price;
 
       // Call search tool
-      const results = await toolClient.callTool('properties.search', searchParams);
+      const results = await toolClient.callTool(
+        "properties.search",
+        searchParams,
+      );
 
       context.state.propertyResults = results;
 
@@ -205,11 +213,11 @@ export function createPropertySearchStage(options?: {
       return results;
     },
     {
-      description: 'Search for properties based on filters',
+      description: "Search for properties based on filters",
       timeout: options?.timeout ?? 30000,
       retryable: true,
       maxRetries: 2,
-    }
+    },
   );
 }
 
@@ -221,7 +229,7 @@ export function createAnalyticsSummaryStage(options?: {
   timeout?: number;
 }): Stage<unknown, any, AgentPipelineState> {
   return createStage(
-    'analytics-summary',
+    "analytics-summary",
     async (context) => {
       const toolClient = options?.toolClient;
       const zpids = context.state.zpids || context.blackboard.zpids;
@@ -230,7 +238,9 @@ export function createAnalyticsSummaryStage(options?: {
         return null;
       }
 
-      const summary = await toolClient.callTool('analytics.summarizeSearch', { zpids });
+      const summary = await toolClient.callTool("analytics.summarizeSearch", {
+        zpids,
+      });
 
       context.state.analytics = {
         ...context.state.analytics,
@@ -241,11 +251,11 @@ export function createAnalyticsSummaryStage(options?: {
       return summary;
     },
     {
-      description: 'Generate analytics summary for search results',
+      description: "Generate analytics summary for search results",
       timeout: options?.timeout ?? 20000,
       retryable: true,
       maxRetries: 2,
-    }
+    },
   );
 }
 
@@ -257,7 +267,7 @@ export function createGroupByZipStage(options?: {
   timeout?: number;
 }): Stage<unknown, any, AgentPipelineState> {
   return createStage(
-    'group-by-zip',
+    "group-by-zip",
     async (context) => {
       const toolClient = options?.toolClient;
       const zpids = context.state.zpids || context.blackboard.zpids;
@@ -266,7 +276,9 @@ export function createGroupByZipStage(options?: {
         return null;
       }
 
-      const groups = await toolClient.callTool('analytics.groupByZip', { zpids });
+      const groups = await toolClient.callTool("analytics.groupByZip", {
+        zpids,
+      });
 
       context.state.analytics = {
         ...context.state.analytics,
@@ -277,11 +289,11 @@ export function createGroupByZipStage(options?: {
       return groups;
     },
     {
-      description: 'Group properties by ZIP code',
+      description: "Group properties by ZIP code",
       timeout: options?.timeout ?? 15000,
       retryable: true,
       maxRetries: 2,
-    }
+    },
   );
 }
 
@@ -292,7 +304,7 @@ export function createDedupeRankStage(options?: {
   maxResults?: number;
 }): Stage<unknown, number[], AgentPipelineState> {
   return createStage(
-    'dedupe-rank',
+    "dedupe-rank",
     async (context) => {
       const zpids = context.state.zpids || context.blackboard.zpids || [];
       const maxResults = options?.maxResults ?? 100;
@@ -309,10 +321,10 @@ export function createDedupeRankStage(options?: {
       return rankedZpids;
     },
     {
-      description: 'Deduplicate and rank ZPIDs',
+      description: "Deduplicate and rank ZPIDs",
       timeout: 5000,
       retryable: false,
-    }
+    },
   );
 }
 
@@ -324,17 +336,20 @@ export function createGraphAnalysisStage(options?: {
   timeout?: number;
 }): Stage<unknown, any, AgentPipelineState> {
   return createStage(
-    'graph-analysis',
+    "graph-analysis",
     async (context) => {
       const toolClient = options?.toolClient;
-      const zpids = context.state.rankedZpids || context.state.zpids || context.blackboard.zpids;
+      const zpids =
+        context.state.rankedZpids ||
+        context.state.zpids ||
+        context.blackboard.zpids;
 
       if (!toolClient || !zpids || zpids.length === 0) {
         return null;
       }
 
       // Run graph analysis (similarities, relationships)
-      const results = await toolClient.callTool('graph.similar', {
+      const results = await toolClient.callTool("graph.similar", {
         zpids: zpids.slice(0, 10), // Limit to first 10 for performance
       });
 
@@ -343,11 +358,11 @@ export function createGraphAnalysisStage(options?: {
       return results;
     },
     {
-      description: 'Analyze property relationships in knowledge graph',
+      description: "Analyze property relationships in knowledge graph",
       timeout: options?.timeout ?? 30000,
       retryable: true,
       maxRetries: 2,
-    }
+    },
   );
 }
 
@@ -359,16 +374,19 @@ export function createMapLinkStage(options?: {
   timeout?: number;
 }): Stage<unknown, string, AgentPipelineState> {
   return createStage(
-    'map-link',
+    "map-link",
     async (context) => {
       const toolClient = options?.toolClient;
-      const zpids = context.state.rankedZpids || context.state.zpids || context.blackboard.zpids;
+      const zpids =
+        context.state.rankedZpids ||
+        context.state.zpids ||
+        context.blackboard.zpids;
 
       if (!toolClient || !zpids || zpids.length === 0) {
-        return '';
+        return "";
       }
 
-      const mapLink = await toolClient.callTool('map.linkForZpids', {
+      const mapLink = await toolClient.callTool("map.linkForZpids", {
         zpids: zpids.slice(0, 50), // Limit for URL length
       });
 
@@ -378,11 +396,11 @@ export function createMapLinkStage(options?: {
       return mapLink;
     },
     {
-      description: 'Generate map deep link for properties',
+      description: "Generate map deep link for properties",
       timeout: options?.timeout ?? 10000,
       retryable: true,
       maxRetries: 2,
-    }
+    },
   );
 }
 
@@ -394,7 +412,7 @@ export function createMortgageCalculationStage(options?: {
   timeout?: number;
 }): Stage<unknown, any, AgentPipelineState> {
   return createStage(
-    'mortgage-calculation',
+    "mortgage-calculation",
     async (context) => {
       const toolClient = options?.toolClient;
       const parsed = context.state.parsed;
@@ -409,7 +427,10 @@ export function createMortgageCalculationStage(options?: {
         years: parsed.years || 30,
       };
 
-      const mortgage = await toolClient.callTool('finance.mortgage', mortgageParams);
+      const mortgage = await toolClient.callTool(
+        "finance.mortgage",
+        mortgageParams,
+      );
 
       context.state.mortgage = mortgage;
       context.blackboard.mortgage = mortgage;
@@ -417,11 +438,11 @@ export function createMortgageCalculationStage(options?: {
       return mortgage;
     },
     {
-      description: 'Calculate mortgage payments',
+      description: "Calculate mortgage payments",
       timeout: options?.timeout ?? 10000,
       retryable: true,
       maxRetries: 2,
-    }
+    },
   );
 }
 
@@ -434,7 +455,7 @@ export function createAffordabilityCalculationStage(options?: {
   defaultIncome?: number;
 }): Stage<unknown, any, AgentPipelineState> {
   return createStage(
-    'affordability-calculation',
+    "affordability-calculation",
     async (context) => {
       const toolClient = options?.toolClient;
 
@@ -448,7 +469,10 @@ export function createAffordabilityCalculationStage(options?: {
         downPayment: 0.2,
       };
 
-      const affordability = await toolClient.callTool('finance.affordability', affordabilityParams);
+      const affordability = await toolClient.callTool(
+        "finance.affordability",
+        affordabilityParams,
+      );
 
       context.state.affordability = affordability;
       context.blackboard.affordability = affordability;
@@ -456,31 +480,35 @@ export function createAffordabilityCalculationStage(options?: {
       return affordability;
     },
     {
-      description: 'Calculate affordability estimates',
+      description: "Calculate affordability estimates",
       timeout: options?.timeout ?? 10000,
       retryable: true,
       maxRetries: 2,
-    }
+    },
   );
 }
 
 /**
  * Stage for compliance checks
  */
-export function createComplianceCheckStage(): Stage<unknown, any, AgentPipelineState> {
+export function createComplianceCheckStage(): Stage<
+  unknown,
+  any,
+  AgentPipelineState
+> {
   return createStage(
-    'compliance-check',
+    "compliance-check",
     async (context) => {
       const issues: string[] = [];
 
       // Check for required data
       if (!context.state.zpids || context.state.zpids.length === 0) {
-        issues.push('No properties found');
+        issues.push("No properties found");
       }
 
       // Check for excessive results
       if (context.state.zpids && context.state.zpids.length > 1000) {
-        issues.push('Too many results - consider refining search');
+        issues.push("Too many results - consider refining search");
       }
 
       const compliance = {
@@ -494,19 +522,23 @@ export function createComplianceCheckStage(): Stage<unknown, any, AgentPipelineS
       return compliance;
     },
     {
-      description: 'Run compliance and sanity checks',
+      description: "Run compliance and sanity checks",
       timeout: 5000,
       retryable: false,
-    }
+    },
   );
 }
 
 /**
  * Stage for generating final report
  */
-export function createReportGenerationStage(): Stage<unknown, string, AgentPipelineState> {
+export function createReportGenerationStage(): Stage<
+  unknown,
+  string,
+  AgentPipelineState
+> {
   return createStage(
-    'generate-report',
+    "generate-report",
     async (context) => {
       const parts: string[] = [];
 
@@ -522,31 +554,31 @@ export function createReportGenerationStage(): Stage<unknown, string, AgentPipel
         if (p.beds) parts.push(`- Bedrooms: ${p.beds}`);
         if (p.baths) parts.push(`- Bathrooms: ${p.baths}`);
         if (p.price) parts.push(`- Max Price: $${p.price.toLocaleString()}`);
-        parts.push('');
+        parts.push("");
       }
 
       if (context.state.propertyResults) {
         parts.push(`\n## Results`);
         parts.push(`Found ${context.state.propertyResults.length} properties`);
-        parts.push('');
+        parts.push("");
       }
 
       if (context.state.analytics?.summary) {
         parts.push(`\n## Market Analytics`);
         parts.push(JSON.stringify(context.state.analytics.summary, null, 2));
-        parts.push('');
+        parts.push("");
       }
 
       if (context.state.mapLink) {
         parts.push(`\n## Map`);
         parts.push(`[View on Map](${context.state.mapLink})`);
-        parts.push('');
+        parts.push("");
       }
 
       if (context.state.mortgage) {
         parts.push(`\n## Mortgage Estimate`);
         parts.push(JSON.stringify(context.state.mortgage, null, 2));
-        parts.push('');
+        parts.push("");
       }
 
       if (context.state.compliance && !context.state.compliance.ok) {
@@ -554,15 +586,15 @@ export function createReportGenerationStage(): Stage<unknown, string, AgentPipel
         context.state.compliance.issues.forEach((issue: string) => {
           parts.push(`- ${issue}`);
         });
-        parts.push('');
+        parts.push("");
       }
 
-      return parts.join('\n');
+      return parts.join("\n");
     },
     {
-      description: 'Generate final report',
+      description: "Generate final report",
       timeout: 10000,
       retryable: false,
-    }
+    },
   );
 }
