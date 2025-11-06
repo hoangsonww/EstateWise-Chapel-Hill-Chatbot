@@ -219,7 +219,10 @@ export default function ForumsPage() {
                   className="flex items-center gap-2 text-foreground hover:text-primary transition-colors"
                 >
                   <MessageCircle className="w-6 h-6 text-primary" />
-                  <h1 className="text-xl font-bold">Community Forums</h1>
+                  <h1 className="text-xl font-bold">
+                    <span className="md:hidden">Forums</span>
+                    <span className="hidden md:inline">Community Forums</span>
+                  </h1>
                 </Link>
               </div>
 
