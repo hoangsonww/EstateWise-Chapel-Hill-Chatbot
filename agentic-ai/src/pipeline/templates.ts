@@ -19,7 +19,10 @@ import {
   createReportGenerationStage,
   type AgentPipelineState,
 } from "./stages/AgentStages.js";
-import { createLoggingMiddleware, createMetricsMiddleware } from "./middleware.js";
+import {
+  createLoggingMiddleware,
+  createMetricsMiddleware,
+} from "./middleware.js";
 import type { Pipeline } from "./types.js";
 
 export interface TemplateOptions {
@@ -27,7 +30,7 @@ export interface TemplateOptions {
   enableLogging?: boolean;
   enableMetrics?: boolean;
   onMetrics?: (metrics: any) => void;
-  logLevel?: 'debug' | 'info' | 'warn' | 'error';
+  logLevel?: "debug" | "info" | "warn" | "error";
 }
 
 /**
@@ -38,11 +41,11 @@ export interface TemplateOptions {
  * - Generate report
  */
 export function createPropertySearchPipeline(
-  options: TemplateOptions = {}
+  options: TemplateOptions = {},
 ): Pipeline<string, string, AgentPipelineState> {
   const builder = createPipeline<string, string, AgentPipelineState>({
-    name: 'property-search',
-    description: 'Basic property search pipeline',
+    name: "property-search",
+    description: "Basic property search pipeline",
     defaultTimeout: 60000,
     enableCaching: true,
     cacheTTL: 300000, // 5 minutes
@@ -52,8 +55,8 @@ export function createPropertySearchPipeline(
   if (options.enableLogging !== false) {
     builder.use(
       createLoggingMiddleware({
-        logLevel: options.logLevel || 'info',
-      })
+        logLevel: options.logLevel || "info",
+      }),
     );
   }
 
@@ -61,7 +64,7 @@ export function createPropertySearchPipeline(
     builder.use(
       createMetricsMiddleware({
         onMetrics: options.onMetrics,
-      })
+      }),
     );
   }
 
@@ -89,11 +92,11 @@ export function createPropertySearchPipeline(
  * - Generate report
  */
 export function createMarketResearchPipeline(
-  options: TemplateOptions = {}
+  options: TemplateOptions = {},
 ): Pipeline<string, string, AgentPipelineState> {
   const builder = createPipeline<string, string, AgentPipelineState>({
-    name: 'market-research',
-    description: 'Comprehensive market research pipeline',
+    name: "market-research",
+    description: "Comprehensive market research pipeline",
     defaultTimeout: 120000,
     enableCaching: true,
     cacheTTL: 600000, // 10 minutes
@@ -103,8 +106,8 @@ export function createMarketResearchPipeline(
   if (options.enableLogging !== false) {
     builder.use(
       createLoggingMiddleware({
-        logLevel: options.logLevel || 'info',
-      })
+        logLevel: options.logLevel || "info",
+      }),
     );
   }
 
@@ -112,7 +115,7 @@ export function createMarketResearchPipeline(
     builder.use(
       createMetricsMiddleware({
         onMetrics: options.onMetrics,
-      })
+      }),
     );
   }
 
@@ -142,11 +145,11 @@ export function createMarketResearchPipeline(
  * - Generate report
  */
 export function createFinancialAnalysisPipeline(
-  options: TemplateOptions & { defaultIncome?: number } = {}
+  options: TemplateOptions & { defaultIncome?: number } = {},
 ): Pipeline<string, string, AgentPipelineState> {
   const builder = createPipeline<string, string, AgentPipelineState>({
-    name: 'financial-analysis',
-    description: 'Financial analysis pipeline with mortgage and affordability',
+    name: "financial-analysis",
+    description: "Financial analysis pipeline with mortgage and affordability",
     defaultTimeout: 90000,
     enableCaching: true,
     cacheTTL: 300000, // 5 minutes
@@ -156,8 +159,8 @@ export function createFinancialAnalysisPipeline(
   if (options.enableLogging !== false) {
     builder.use(
       createLoggingMiddleware({
-        logLevel: options.logLevel || 'info',
-      })
+        logLevel: options.logLevel || "info",
+      }),
     );
   }
 
@@ -165,7 +168,7 @@ export function createFinancialAnalysisPipeline(
     builder.use(
       createMetricsMiddleware({
         onMetrics: options.onMetrics,
-      })
+      }),
     );
   }
 
@@ -173,12 +176,14 @@ export function createFinancialAnalysisPipeline(
   builder
     .addStage(createGoalParserStage())
     .addStage(createPropertySearchStage({ toolClient: options.toolClient }))
-    .addStage(createMortgageCalculationStage({ toolClient: options.toolClient }))
+    .addStage(
+      createMortgageCalculationStage({ toolClient: options.toolClient }),
+    )
     .addStage(
       createAffordabilityCalculationStage({
         toolClient: options.toolClient,
         defaultIncome: options.defaultIncome,
-      })
+      }),
     )
     .addStage(createAnalyticsSummaryStage({ toolClient: options.toolClient }))
     .addStage(createDedupeRankStage({ maxResults: 50 }))
@@ -195,11 +200,11 @@ export function createFinancialAnalysisPipeline(
  * - Generate report
  */
 export function createQuickLookupPipeline(
-  options: TemplateOptions = {}
+  options: TemplateOptions = {},
 ): Pipeline<string, string, AgentPipelineState> {
   const builder = createPipeline<string, string, AgentPipelineState>({
-    name: 'quick-lookup',
-    description: 'Quick property lookup by ZPID',
+    name: "quick-lookup",
+    description: "Quick property lookup by ZPID",
     defaultTimeout: 30000,
     enableCaching: true,
     cacheTTL: 3600000, // 1 hour
@@ -209,8 +214,8 @@ export function createQuickLookupPipeline(
   if (options.enableLogging !== false) {
     builder.use(
       createLoggingMiddleware({
-        logLevel: options.logLevel || 'info',
-      })
+        logLevel: options.logLevel || "info",
+      }),
     );
   }
 
@@ -218,7 +223,7 @@ export function createQuickLookupPipeline(
     builder.use(
       createMetricsMiddleware({
         onMetrics: options.onMetrics,
-      })
+      }),
     );
   }
 
@@ -240,11 +245,11 @@ export function createQuickLookupPipeline(
  * - Generate report
  */
 export function createGraphAnalysisPipeline(
-  options: TemplateOptions = {}
+  options: TemplateOptions = {},
 ): Pipeline<string, string, AgentPipelineState> {
   const builder = createPipeline<string, string, AgentPipelineState>({
-    name: 'graph-analysis',
-    description: 'Property relationship and similarity analysis',
+    name: "graph-analysis",
+    description: "Property relationship and similarity analysis",
     defaultTimeout: 90000,
     enableCaching: true,
     cacheTTL: 600000, // 10 minutes
@@ -254,8 +259,8 @@ export function createGraphAnalysisPipeline(
   if (options.enableLogging !== false) {
     builder.use(
       createLoggingMiddleware({
-        logLevel: options.logLevel || 'info',
-      })
+        logLevel: options.logLevel || "info",
+      }),
     );
   }
 
@@ -263,7 +268,7 @@ export function createGraphAnalysisPipeline(
     builder.use(
       createMetricsMiddleware({
         onMetrics: options.onMetrics,
-      })
+      }),
     );
   }
 
@@ -289,11 +294,11 @@ export function createGraphAnalysisPipeline(
  * - Generate report
  */
 export function createParallelSearchPipeline(
-  options: TemplateOptions & { searchCriteria?: Array<any> } = {}
+  options: TemplateOptions & { searchCriteria?: Array<any> } = {},
 ): Pipeline<string, string, AgentPipelineState> {
   const builder = createPipeline<string, string, AgentPipelineState>({
-    name: 'parallel-search',
-    description: 'Parallel property search with multiple criteria',
+    name: "parallel-search",
+    description: "Parallel property search with multiple criteria",
     defaultTimeout: 120000,
     maxConcurrency: 3,
     enableCaching: true,
@@ -304,8 +309,8 @@ export function createParallelSearchPipeline(
   if (options.enableLogging !== false) {
     builder.use(
       createLoggingMiddleware({
-        logLevel: options.logLevel || 'info',
-      })
+        logLevel: options.logLevel || "info",
+      }),
     );
   }
 
@@ -313,7 +318,7 @@ export function createParallelSearchPipeline(
     builder.use(
       createMetricsMiddleware({
         onMetrics: options.onMetrics,
-      })
+      }),
     );
   }
 
@@ -334,20 +339,20 @@ export function createParallelSearchPipeline(
  */
 export function getPipelineTemplate(
   name: string,
-  options: TemplateOptions = {}
+  options: TemplateOptions = {},
 ): Pipeline<string, string, AgentPipelineState> | null {
   switch (name) {
-    case 'property-search':
+    case "property-search":
       return createPropertySearchPipeline(options);
-    case 'market-research':
+    case "market-research":
       return createMarketResearchPipeline(options);
-    case 'financial-analysis':
+    case "financial-analysis":
       return createFinancialAnalysisPipeline(options);
-    case 'quick-lookup':
+    case "quick-lookup":
       return createQuickLookupPipeline(options);
-    case 'graph-analysis':
+    case "graph-analysis":
       return createGraphAnalysisPipeline(options);
-    case 'parallel-search':
+    case "parallel-search":
       return createParallelSearchPipeline(options);
     default:
       return null;
@@ -364,67 +369,74 @@ export function listPipelineTemplates(): Array<{
 }> {
   return [
     {
-      name: 'property-search',
-      description: 'Basic property search pipeline',
-      stages: ['parse-goal', 'property-search', 'dedupe-rank', 'compliance-check', 'generate-report'],
-    },
-    {
-      name: 'market-research',
-      description: 'Comprehensive market research pipeline',
+      name: "property-search",
+      description: "Basic property search pipeline",
       stages: [
-        'parse-goal',
-        'property-search',
-        'analytics-summary',
-        'group-by-zip',
-        'dedupe-rank',
-        'graph-analysis',
-        'map-link',
-        'compliance-check',
-        'generate-report',
+        "parse-goal",
+        "property-search",
+        "dedupe-rank",
+        "compliance-check",
+        "generate-report",
       ],
     },
     {
-      name: 'financial-analysis',
-      description: 'Financial analysis pipeline with mortgage and affordability',
+      name: "market-research",
+      description: "Comprehensive market research pipeline",
       stages: [
-        'parse-goal',
-        'property-search',
-        'mortgage-calculation',
-        'affordability-calculation',
-        'analytics-summary',
-        'dedupe-rank',
-        'compliance-check',
-        'generate-report',
+        "parse-goal",
+        "property-search",
+        "analytics-summary",
+        "group-by-zip",
+        "dedupe-rank",
+        "graph-analysis",
+        "map-link",
+        "compliance-check",
+        "generate-report",
       ],
     },
     {
-      name: 'quick-lookup',
-      description: 'Quick property lookup by ZPID',
-      stages: ['parse-goal', 'map-link', 'generate-report'],
-    },
-    {
-      name: 'graph-analysis',
-      description: 'Property relationship and similarity analysis',
+      name: "financial-analysis",
+      description:
+        "Financial analysis pipeline with mortgage and affordability",
       stages: [
-        'parse-goal',
-        'property-search',
-        'dedupe-rank',
-        'graph-analysis',
-        'map-link',
-        'compliance-check',
-        'generate-report',
+        "parse-goal",
+        "property-search",
+        "mortgage-calculation",
+        "affordability-calculation",
+        "analytics-summary",
+        "dedupe-rank",
+        "compliance-check",
+        "generate-report",
       ],
     },
     {
-      name: 'parallel-search',
-      description: 'Parallel property search with multiple criteria',
+      name: "quick-lookup",
+      description: "Quick property lookup by ZPID",
+      stages: ["parse-goal", "map-link", "generate-report"],
+    },
+    {
+      name: "graph-analysis",
+      description: "Property relationship and similarity analysis",
       stages: [
-        'parse-goal',
-        'property-search',
-        'dedupe-rank',
-        'analytics-summary',
-        'compliance-check',
-        'generate-report',
+        "parse-goal",
+        "property-search",
+        "dedupe-rank",
+        "graph-analysis",
+        "map-link",
+        "compliance-check",
+        "generate-report",
+      ],
+    },
+    {
+      name: "parallel-search",
+      description: "Parallel property search with multiple criteria",
+      stages: [
+        "parse-goal",
+        "property-search",
+        "dedupe-rank",
+        "analytics-summary",
+        "compliance-check",
+        "generate-report",
       ],
     },
   ];

@@ -17,7 +17,7 @@ import {
   createPerformanceMiddleware,
   createCachingMiddleware,
   type AgentPipelineState,
-} from '../pipeline/index.js';
+} from "../pipeline/index.js";
 
 /**
  * Graph analysis input
@@ -25,7 +25,12 @@ import {
 export interface GraphAnalysisInput {
   goal?: string;
   propertyIds?: string[];
-  analysisType?: 'relationships' | 'patterns' | 'clustering' | 'centrality' | 'all';
+  analysisType?:
+    | "relationships"
+    | "patterns"
+    | "clustering"
+    | "centrality"
+    | "all";
   maxDepth?: number;
   includeVisualization?: boolean;
   includeReport?: boolean;
@@ -36,7 +41,14 @@ export interface GraphAnalysisInput {
  */
 export interface GraphNode {
   id: string;
-  type: 'property' | 'owner' | 'agent' | 'developer' | 'neighborhood' | 'school' | 'amenity';
+  type:
+    | "property"
+    | "owner"
+    | "agent"
+    | "developer"
+    | "neighborhood"
+    | "school"
+    | "amenity";
   label: string;
   properties: Record<string, unknown>;
 }
@@ -47,7 +59,14 @@ export interface GraphNode {
 export interface GraphEdge {
   from: string;
   to: string;
-  type: 'owns' | 'near' | 'similar' | 'managed_by' | 'developed_by' | 'services' | 'connected';
+  type:
+    | "owns"
+    | "near"
+    | "similar"
+    | "managed_by"
+    | "developed_by"
+    | "services"
+    | "connected";
   weight?: number;
   properties?: Record<string, unknown>;
 }
@@ -78,7 +97,7 @@ export interface GraphAnalysisResult {
   centrality?: Array<{
     nodeId: string;
     score: number;
-    type: 'degree' | 'betweenness' | 'closeness' | 'eigenvector';
+    type: "degree" | "betweenness" | "closeness" | "eigenvector";
   }>;
   insights: string[];
   visualization?: {
@@ -103,19 +122,27 @@ export function createGraphAnalysisPipeline(options?: {
   enableMetrics?: boolean;
   enableCaching?: boolean;
   enablePerformance?: boolean;
-  analysisType?: GraphAnalysisInput['analysisType'];
+  analysisType?: GraphAnalysisInput["analysisType"];
 }) {
   const builder = createPipeline<GraphAnalysisInput, AgentPipelineState>()
-    .withName('graph-analysis')
-    .withDescription('Analyze property relationships and patterns using graph database');
+    .withName("graph-analysis")
+    .withDescription(
+      "Analyze property relationships and patterns using graph database",
+    );
 
   // Add middleware
   if (options?.enableLogging !== false) {
-    builder.use(createLoggingMiddleware({ logLevel: 'info' }));
+    builder.use(createLoggingMiddleware({ logLevel: "info" }));
   }
 
   if (options?.enableMetrics !== false) {
-    builder.use(createMetricsMiddleware({ onMetrics: (metrics) => { console.log('[Metrics]', metrics); } }));
+    builder.use(
+      createMetricsMiddleware({
+        onMetrics: (metrics) => {
+          console.log("[Metrics]", metrics);
+        },
+      }),
+    );
   }
 
   if (options?.enablePerformance !== false) {
@@ -128,9 +155,9 @@ export function createGraphAnalysisPipeline(options?: {
         ttl: 600000, // 10 minutes
         keyGenerator: (context) => {
           const input = context.input as GraphAnalysisInput;
-          return `graph-analysis:${input.analysisType || 'all'}:${input.propertyIds?.join(',') || input.goal}`;
+          return `graph-analysis:${input.analysisType || "all"}:${input.propertyIds?.join(",") || input.goal}`;
         },
-      })
+      }),
     );
   }
 
@@ -138,19 +165,20 @@ export function createGraphAnalysisPipeline(options?: {
   return builder
     .conditional(
       (context) => !!(context.input as GraphAnalysisInput).goal,
-      createGoalParserStage()
+      createGoalParserStage(),
     )
     .conditional(
       (context) => !!(context.input as GraphAnalysisInput).goal,
-      createPropertySearchStage()
+      createPropertySearchStage(),
     )
     .addStage(createGraphAnalysisStage())
     .addStage(createAnalyticsSummaryStage())
     .conditional(
-      (context) => (context.input as GraphAnalysisInput).includeReport !== false,
-      createReportGenerationStage()
+      (context) =>
+        (context.input as GraphAnalysisInput).includeReport !== false,
+      createReportGenerationStage(),
     )
-    .stage('format-result', async (context) => {
+    .stage("format-result", async (context) => {
       const state = context.state as AgentPipelineState;
       const input = context.input as GraphAnalysisInput;
 
@@ -188,20 +216,26 @@ export function createGraphAnalysisPipeline(options?: {
  */
 export function createRelationshipDiscoveryPipeline() {
   return createPipeline<GraphAnalysisInput, AgentPipelineState>()
-    .withName('relationship-discovery')
-    .withDescription('Discover relationships between properties and entities')
-    .use(createLoggingMiddleware({ logLevel: 'info' }))
-    .use(createMetricsMiddleware({ onMetrics: (metrics) => { console.log('[Metrics]', metrics); } }))
-    .conditional(
-      (context) => !!(context.input as GraphAnalysisInput).goal,
-      createGoalParserStage()
+    .withName("relationship-discovery")
+    .withDescription("Discover relationships between properties and entities")
+    .use(createLoggingMiddleware({ logLevel: "info" }))
+    .use(
+      createMetricsMiddleware({
+        onMetrics: (metrics) => {
+          console.log("[Metrics]", metrics);
+        },
+      }),
     )
     .conditional(
       (context) => !!(context.input as GraphAnalysisInput).goal,
-      createPropertySearchStage()
+      createGoalParserStage(),
+    )
+    .conditional(
+      (context) => !!(context.input as GraphAnalysisInput).goal,
+      createPropertySearchStage(),
     )
     .addStage(createGraphAnalysisStage())
-    .stage('format-result', async (context) => {
+    .stage("format-result", async (context) => {
       const state = context.state as AgentPipelineState;
       const graphData = (state.graphResults as any) || {};
 
@@ -225,26 +259,32 @@ export function createRelationshipDiscoveryPipeline() {
  */
 export function createPatternMatchingPipeline() {
   return createPipeline<GraphAnalysisInput, AgentPipelineState>()
-    .withName('pattern-matching')
-    .withDescription('Identify common patterns in property data')
-    .use(createLoggingMiddleware({ logLevel: 'info' }))
-    .use(createMetricsMiddleware({ onMetrics: (metrics) => { console.log('[Metrics]', metrics); } }))
+    .withName("pattern-matching")
+    .withDescription("Identify common patterns in property data")
+    .use(createLoggingMiddleware({ logLevel: "info" }))
+    .use(
+      createMetricsMiddleware({
+        onMetrics: (metrics) => {
+          console.log("[Metrics]", metrics);
+        },
+      }),
+    )
     .use(
       createCachingMiddleware({
         ttl: 900000, // 15 minutes - patterns change slowly
-      })
+      }),
     )
     .conditional(
       (context) => !!(context.input as GraphAnalysisInput).goal,
-      createGoalParserStage()
+      createGoalParserStage(),
     )
     .conditional(
       (context) => !!(context.input as GraphAnalysisInput).goal,
-      createPropertySearchStage()
+      createPropertySearchStage(),
     )
     .addStage(createGraphAnalysisStage())
     .addStage(createAnalyticsSummaryStage())
-    .stage('format-result', async (context) => {
+    .stage("format-result", async (context) => {
       const state = context.state as AgentPipelineState;
       const graphData = (state.graphResults as any) || {};
 
@@ -268,22 +308,28 @@ export function createPatternMatchingPipeline() {
  */
 export function createNetworkClusteringPipeline() {
   return createPipeline<GraphAnalysisInput, AgentPipelineState>()
-    .withName('network-clustering')
-    .withDescription('Cluster properties based on network characteristics')
-    .use(createLoggingMiddleware({ logLevel: 'info' }))
-    .use(createMetricsMiddleware({ onMetrics: (metrics) => { console.log('[Metrics]', metrics); } }))
-    .conditional(
-      (context) => !!(context.input as GraphAnalysisInput).goal,
-      createGoalParserStage()
+    .withName("network-clustering")
+    .withDescription("Cluster properties based on network characteristics")
+    .use(createLoggingMiddleware({ logLevel: "info" }))
+    .use(
+      createMetricsMiddleware({
+        onMetrics: (metrics) => {
+          console.log("[Metrics]", metrics);
+        },
+      }),
     )
     .conditional(
       (context) => !!(context.input as GraphAnalysisInput).goal,
-      createPropertySearchStage()
+      createGoalParserStage(),
+    )
+    .conditional(
+      (context) => !!(context.input as GraphAnalysisInput).goal,
+      createPropertySearchStage(),
     )
     .addStage(createGraphAnalysisStage())
     .addStage(createAnalyticsSummaryStage())
     .addStage(createReportGenerationStage())
-    .stage('format-result', async (context) => {
+    .stage("format-result", async (context) => {
       const state = context.state as AgentPipelineState;
       const graphData = (state.graphResults as any) || {};
 
@@ -307,13 +353,13 @@ export function createNetworkClusteringPipeline() {
  * Run a graph analysis
  */
 export async function runGraphAnalysis(
-  input: GraphAnalysisInput
+  input: GraphAnalysisInput,
 ): Promise<GraphAnalysisResult> {
   const pipeline = createGraphAnalysisPipeline({
     enableLogging: true,
     enableMetrics: true,
     enableCaching: true,
-    analysisType: input.analysisType || 'all',
+    analysisType: input.analysisType || "all",
   });
 
   const result = await pipeline.execute(input);
@@ -329,7 +375,7 @@ export async function runGraphAnalysis(
  * Discover relationships
  */
 export async function discoverRelationships(
-  propertyIds: string[]
+  propertyIds: string[],
 ): Promise<{ nodes: GraphNode[]; edges: GraphEdge[]; insights: string[] }> {
   const pipeline = createRelationshipDiscoveryPipeline();
 
@@ -351,7 +397,7 @@ export async function discoverRelationships(
  * Find patterns
  */
 export async function findPatterns(
-  goal: string
+  goal: string,
 ): Promise<{ patterns: GraphPattern[]; insights: string[] }> {
   const pipeline = createPatternMatchingPipeline();
 

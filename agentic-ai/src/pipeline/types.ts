@@ -4,12 +4,20 @@
  * Core type definitions for the enhanced pipeline system with assembly line design pattern.
  */
 
-import type { AgentMessage, Blackboard, Role, ToolCall } from "../core/types.js";
+import type {
+  AgentMessage,
+  Blackboard,
+  Role,
+  ToolCall,
+} from "../core/types.js";
 
 /**
  * Pipeline execution context - carries data through all stages
  */
-export interface PipelineContext<TInput = unknown, TState = Record<string, unknown>> {
+export interface PipelineContext<
+  TInput = unknown,
+  TState = Record<string, unknown>,
+> {
   /** Unique execution ID for this pipeline run */
   executionId: string;
 
@@ -70,7 +78,11 @@ export interface StageResult<TOutput = unknown> {
 /**
  * A single stage in the pipeline assembly line
  */
-export interface PipelineStage<TInput = unknown, TOutput = unknown, TState = Record<string, unknown>> {
+export interface PipelineStage<
+  TInput = unknown,
+  TOutput = unknown,
+  TState = Record<string, unknown>,
+> {
   /** Unique stage identifier */
   name: string;
 
@@ -79,7 +91,7 @@ export interface PipelineStage<TInput = unknown, TOutput = unknown, TState = Rec
 
   /** Execute the stage */
   execute(
-    context: PipelineContext<TInput, TState>
+    context: PipelineContext<TInput, TState>,
   ): Promise<StageResult<TOutput>>;
 
   /** Optional validation before execution */
@@ -111,34 +123,37 @@ export interface PipelineMiddleware<TState = Record<string, unknown>> {
   /** Called after pipeline completes */
   onPipelineComplete?(
     context: PipelineContext<unknown, TState>,
-    result: PipelineResult<unknown, TState>
+    result: PipelineResult<unknown, TState>,
   ): Promise<void>;
 
   /** Called before each stage */
   onStageStart?(
     context: PipelineContext<unknown, TState>,
-    stage: PipelineStage<unknown, unknown, TState>
+    stage: PipelineStage<unknown, unknown, TState>,
   ): Promise<void>;
 
   /** Called after each stage */
   onStageComplete?(
     context: PipelineContext<unknown, TState>,
     stage: PipelineStage<unknown, unknown, TState>,
-    result: StageResult
+    result: StageResult,
   ): Promise<void>;
 
   /** Called on any error */
   onError?(
     context: PipelineContext<unknown, TState>,
     error: Error,
-    stage?: PipelineStage<unknown, unknown, TState>
+    stage?: PipelineStage<unknown, unknown, TState>,
   ): Promise<void>;
 }
 
 /**
  * Final result of pipeline execution
  */
-export interface PipelineResult<TOutput = unknown, TState = Record<string, unknown>> {
+export interface PipelineResult<
+  TOutput = unknown,
+  TState = Record<string, unknown>,
+> {
   /** Whether the pipeline succeeded */
   success: boolean;
 
@@ -202,7 +217,13 @@ export interface PipelineOptions {
  * Pipeline event for streaming
  */
 export interface PipelineEvent {
-  type: 'pipeline-start' | 'pipeline-complete' | 'stage-start' | 'stage-complete' | 'stage-error' | 'middleware-event';
+  type:
+    | "pipeline-start"
+    | "pipeline-complete"
+    | "stage-start"
+    | "stage-complete"
+    | "stage-error"
+    | "middleware-event";
   timestamp: number;
   executionId: string;
   stageName?: string;
@@ -218,7 +239,9 @@ export interface BranchCondition<TState = Record<string, unknown>> {
   name: string;
 
   /** Condition to evaluate */
-  condition(context: PipelineContext<unknown, TState>): Promise<boolean> | boolean;
+  condition(
+    context: PipelineContext<unknown, TState>,
+  ): Promise<boolean> | boolean;
 
   /** Stages to execute if condition is true */
   stages: PipelineStage[];
@@ -258,20 +281,27 @@ export interface PipelineMetrics {
   successfulExecutions: number;
   failedExecutions: number;
   averageDuration: number;
-  stageMetrics: Map<string, {
-    executions: number;
-    successes: number;
-    failures: number;
-    averageDuration: number;
-    retries: number;
-  }>;
+  stageMetrics: Map<
+    string,
+    {
+      executions: number;
+      successes: number;
+      failures: number;
+      averageDuration: number;
+      retries: number;
+    }
+  >;
   lastExecutionTime?: number;
 }
 
 /**
  * Pipeline execution strategy
  */
-export type ExecutionStrategy = 'sequential' | 'parallel' | 'conditional' | 'dynamic';
+export type ExecutionStrategy =
+  | "sequential"
+  | "parallel"
+  | "conditional"
+  | "dynamic";
 
 /**
  * Error recovery strategy
@@ -284,7 +314,11 @@ export interface ErrorRecoveryStrategy {
   isRecoverable(error: Error, context: PipelineContext): boolean;
 
   /** Attempt to recover from error */
-  recover(error: Error, context: PipelineContext, stage: PipelineStage): Promise<StageResult>;
+  recover(
+    error: Error,
+    context: PipelineContext,
+    stage: PipelineStage,
+  ): Promise<StageResult>;
 
   /** Maximum recovery attempts */
   maxAttempts?: number;
@@ -313,7 +347,11 @@ export interface ValidationResult {
 /**
  * Pipeline interface
  */
-export interface Pipeline<TInput = unknown, TOutput = unknown, TState = Record<string, unknown>> {
+export interface Pipeline<
+  TInput = unknown,
+  TOutput = unknown,
+  TState = Record<string, unknown>,
+> {
   /** Pipeline options */
   options: PipelineOptions;
 
@@ -324,20 +362,27 @@ export interface Pipeline<TInput = unknown, TOutput = unknown, TState = Record<s
   middleware: PipelineMiddleware<TState>[];
 
   /** Execute the pipeline */
-  execute(input: TInput, signal?: AbortSignal): Promise<PipelineResult<TOutput, TState>>;
+  execute(
+    input: TInput,
+    signal?: AbortSignal,
+  ): Promise<PipelineResult<TOutput, TState>>;
 
   /** Execute with streaming events */
   executeStream(
     input: TInput,
     onEvent: (event: PipelineEvent) => void,
-    signal?: AbortSignal
+    signal?: AbortSignal,
   ): Promise<PipelineResult<TOutput, TState>>;
 
   /** Add a stage to the pipeline */
-  addStage(stage: PipelineStage<unknown, unknown, TState>): Pipeline<TInput, TOutput, TState>;
+  addStage(
+    stage: PipelineStage<unknown, unknown, TState>,
+  ): Pipeline<TInput, TOutput, TState>;
 
   /** Add middleware to the pipeline */
-  addMiddleware(middleware: PipelineMiddleware<TState>): Pipeline<TInput, TOutput, TState>;
+  addMiddleware(
+    middleware: PipelineMiddleware<TState>,
+  ): Pipeline<TInput, TOutput, TState>;
 
   /** Validate the pipeline */
   validate(): Promise<ValidationResult>;

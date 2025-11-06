@@ -12,8 +12,8 @@ import type {
   PipelineContext,
   StageResult,
   PipelineResult,
-} from './types.js';
-import { EventEmitter } from 'events';
+} from "./types.js";
+import { EventEmitter } from "events";
 
 /**
  * Plugin metadata
@@ -36,8 +36,14 @@ export interface PluginHooks {
   onEnable?: () => Promise<void> | void;
   onDisable?: () => Promise<void> | void;
   onPipelineCreate?: (pipeline: Pipeline) => Promise<void> | void;
-  onPipelineExecute?: (pipeline: Pipeline, input: unknown) => Promise<void> | void;
-  onPipelineComplete?: (pipeline: Pipeline, result: PipelineResult) => Promise<void> | void;
+  onPipelineExecute?: (
+    pipeline: Pipeline,
+    input: unknown,
+  ) => Promise<void> | void;
+  onPipelineComplete?: (
+    pipeline: Pipeline,
+    result: PipelineResult,
+  ) => Promise<void> | void;
 }
 
 /**
@@ -71,7 +77,9 @@ export class PluginRegistry extends EventEmitter {
     if (plugin.metadata.dependencies) {
       for (const dep of plugin.metadata.dependencies) {
         if (!this.plugins.has(dep)) {
-          throw new Error(`Missing dependency: ${dep} for plugin ${plugin.metadata.name}`);
+          throw new Error(
+            `Missing dependency: ${dep} for plugin ${plugin.metadata.name}`,
+          );
         }
       }
     }
@@ -83,7 +91,7 @@ export class PluginRegistry extends EventEmitter {
       await plugin.hooks.onInstall();
     }
 
-    this.emit('plugin-registered', plugin.metadata.name);
+    this.emit("plugin-registered", plugin.metadata.name);
   }
 
   /**
@@ -98,7 +106,9 @@ export class PluginRegistry extends EventEmitter {
     // Check if other plugins depend on this
     for (const [name, p] of this.plugins.entries()) {
       if (p.metadata.dependencies?.includes(pluginName)) {
-        throw new Error(`Cannot unregister ${pluginName}: ${name} depends on it`);
+        throw new Error(
+          `Cannot unregister ${pluginName}: ${name} depends on it`,
+        );
       }
     }
 
@@ -113,7 +123,7 @@ export class PluginRegistry extends EventEmitter {
     }
 
     this.plugins.delete(pluginName);
-    this.emit('plugin-unregistered', pluginName);
+    this.emit("plugin-unregistered", pluginName);
   }
 
   /**
@@ -143,7 +153,7 @@ export class PluginRegistry extends EventEmitter {
       await plugin.hooks.onEnable();
     }
 
-    this.emit('plugin-enabled', pluginName);
+    this.emit("plugin-enabled", pluginName);
   }
 
   /**
@@ -163,7 +173,9 @@ export class PluginRegistry extends EventEmitter {
     for (const enabledName of this.enabledPlugins) {
       const p = this.plugins.get(enabledName);
       if (p?.metadata.dependencies?.includes(pluginName)) {
-        throw new Error(`Cannot disable ${pluginName}: ${enabledName} depends on it`);
+        throw new Error(
+          `Cannot disable ${pluginName}: ${enabledName} depends on it`,
+        );
       }
     }
 
@@ -174,7 +186,7 @@ export class PluginRegistry extends EventEmitter {
       await plugin.hooks.onDisable();
     }
 
-    this.emit('plugin-disabled', pluginName);
+    this.emit("plugin-disabled", pluginName);
   }
 
   /**
@@ -196,7 +208,7 @@ export class PluginRegistry extends EventEmitter {
    */
   getEnabled(): Plugin[] {
     return Array.from(this.enabledPlugins)
-      .map(name => this.plugins.get(name))
+      .map((name) => this.plugins.get(name))
       .filter((p): p is Plugin => p !== undefined);
   }
 
@@ -223,7 +235,10 @@ export class PluginRegistry extends EventEmitter {
   /**
    * Get middleware from plugin
    */
-  getMiddleware(pluginName: string, middlewareName: string): PipelineMiddleware | null {
+  getMiddleware(
+    pluginName: string,
+    middlewareName: string,
+  ): PipelineMiddleware | null {
     const plugin = this.plugins.get(pluginName);
     if (!plugin || !this.enabledPlugins.has(pluginName)) {
       return null;
@@ -236,10 +251,7 @@ export class PluginRegistry extends EventEmitter {
   /**
    * Call hook on all enabled plugins
    */
-  async callHook(
-    hookName: keyof PluginHooks,
-    ...args: any[]
-  ): Promise<void> {
+  async callHook(hookName: keyof PluginHooks, ...args: any[]): Promise<void> {
     for (const pluginName of this.enabledPlugins) {
       const plugin = this.plugins.get(pluginName);
       if (plugin?.hooks?.[hookName]) {
@@ -264,12 +276,14 @@ export interface ExtensionPoint<T = unknown> {
 /**
  * Generic extension point
  */
-export class GenericExtensionPoint<T extends { id: string }> implements ExtensionPoint<T> {
+export class GenericExtensionPoint<T extends { id: string }>
+  implements ExtensionPoint<T>
+{
   private extensions = new Map<string, T>();
 
   constructor(
     public name: string,
-    public description: string
+    public description: string,
   ) {}
 
   register(extension: T): void {
@@ -305,7 +319,7 @@ export class PluginAwarePipelineBuilder {
   async addPluginStage(
     pipeline: Pipeline,
     pluginName: string,
-    stageName: string
+    stageName: string,
   ): Promise<void> {
     const stage = this.registry.getStage(pluginName, stageName);
     if (!stage) {
@@ -321,11 +335,13 @@ export class PluginAwarePipelineBuilder {
   async addPluginMiddleware(
     pipeline: Pipeline,
     pluginName: string,
-    middlewareName: string
+    middlewareName: string,
   ): Promise<void> {
     const middleware = this.registry.getMiddleware(pluginName, middlewareName);
     if (!middleware) {
-      throw new Error(`Middleware ${middlewareName} not found in plugin ${pluginName}`);
+      throw new Error(
+        `Middleware ${middlewareName} not found in plugin ${pluginName}`,
+      );
     }
 
     pipeline.addMiddleware(middleware);
@@ -341,27 +357,33 @@ export class PluginAwarePipelineBuilder {
  */
 export class NotificationPlugin implements Plugin {
   metadata: PluginMetadata = {
-    name: 'notifications',
-    version: '1.0.0',
-    description: 'Send notifications on pipeline events',
+    name: "notifications",
+    version: "1.0.0",
+    description: "Send notifications on pipeline events",
   };
 
-  private notificationHandlers: Array<(event: string, data: unknown) => void> = [];
+  private notificationHandlers: Array<(event: string, data: unknown) => void> =
+    [];
 
-  constructor(private options?: {
-    onPipelineComplete?: (result: PipelineResult) => void;
-    onPipelineError?: (error: Error) => void;
-  }) {}
+  constructor(
+    private options?: {
+      onPipelineComplete?: (result: PipelineResult) => void;
+      onPipelineError?: (error: Error) => void;
+    },
+  ) {}
 
   hooks: PluginHooks = {
     onEnable: () => {
-      console.log('Notification plugin enabled');
+      console.log("Notification plugin enabled");
     },
     onPipelineComplete: async (pipeline, result) => {
       if (this.options?.onPipelineComplete) {
         this.options.onPipelineComplete(result);
       }
-      this.notify('pipeline-complete', { pipeline: pipeline.options.name, result });
+      this.notify("pipeline-complete", {
+        pipeline: pipeline.options.name,
+        result,
+      });
     },
   };
 
@@ -374,7 +396,7 @@ export class NotificationPlugin implements Plugin {
       try {
         handler(event, data);
       } catch (error) {
-        console.error('Notification handler error:', error);
+        console.error("Notification handler error:", error);
       }
     }
   }
@@ -385,9 +407,9 @@ export class NotificationPlugin implements Plugin {
  */
 export class MetricsAggregationPlugin implements Plugin {
   metadata: PluginMetadata = {
-    name: 'metrics-aggregation',
-    version: '1.0.0',
-    description: 'Aggregate and export pipeline metrics',
+    name: "metrics-aggregation",
+    version: "1.0.0",
+    description: "Aggregate and export pipeline metrics",
   };
 
   private metrics: Array<{
@@ -412,16 +434,16 @@ export class MetricsAggregationPlugin implements Plugin {
     return [...this.metrics];
   }
 
-  exportMetrics(format: 'json' | 'csv'): string {
-    if (format === 'json') {
+  exportMetrics(format: "json" | "csv"): string {
+    if (format === "json") {
       return JSON.stringify(this.metrics, null, 2);
     }
 
     // CSV format
-    const headers = 'timestamp,pipeline,duration,success\n';
-    const rows = this.metrics.map(m =>
-      `${m.timestamp},${m.pipeline},${m.duration},${m.success}`
-    ).join('\n');
+    const headers = "timestamp,pipeline,duration,success\n";
+    const rows = this.metrics
+      .map((m) => `${m.timestamp},${m.pipeline},${m.duration},${m.success}`)
+      .join("\n");
 
     return headers + rows;
   }
@@ -436,9 +458,9 @@ export class MetricsAggregationPlugin implements Plugin {
  */
 export class WebhookPlugin implements Plugin {
   metadata: PluginMetadata = {
-    name: 'webhooks',
-    version: '1.0.0',
-    description: 'Send webhook notifications on pipeline events',
+    name: "webhooks",
+    version: "1.0.0",
+    description: "Send webhook notifications on pipeline events",
   };
 
   constructor(private webhookUrl: string) {}
@@ -447,10 +469,10 @@ export class WebhookPlugin implements Plugin {
     onPipelineComplete: async (pipeline, result) => {
       try {
         const response = await fetch(this.webhookUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            event: 'pipeline-complete',
+            event: "pipeline-complete",
             pipeline: pipeline.options.name,
             success: result.success,
             duration: result.metrics.totalDuration,
@@ -459,10 +481,10 @@ export class WebhookPlugin implements Plugin {
         });
 
         if (!response.ok) {
-          console.error('Webhook failed:', response.statusText);
+          console.error("Webhook failed:", response.statusText);
         }
       } catch (error) {
-        console.error('Webhook error:', error);
+        console.error("Webhook error:", error);
       }
     },
   };
@@ -481,7 +503,7 @@ export class PluginLoader {
       const PluginClass = module.default || module.Plugin;
 
       if (!PluginClass) {
-        throw new Error('No default export or Plugin export found');
+        throw new Error("No default export or Plugin export found");
       }
 
       return new PluginClass();
@@ -494,14 +516,14 @@ export class PluginLoader {
    * Load plugins from directory
    */
   static async loadFromDirectory(dirPath: string): Promise<Plugin[]> {
-    const fs = await import('fs/promises');
-    const path = await import('path');
+    const fs = await import("fs/promises");
+    const path = await import("path");
 
     const plugins: Plugin[] = [];
     const files = await fs.readdir(dirPath);
 
     for (const file of files) {
-      if (file.endsWith('.js') || file.endsWith('.ts')) {
+      if (file.endsWith(".js") || file.endsWith(".ts")) {
         const filePath = path.join(dirPath, file);
         try {
           const plugin = await this.loadFromFile(filePath);

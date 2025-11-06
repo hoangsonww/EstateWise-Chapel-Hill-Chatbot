@@ -5,7 +5,7 @@
  * distributed caching, and intelligent cache warming.
  */
 
-import type { PipelineResult } from './types.js';
+import type { PipelineResult } from "./types.js";
 
 /**
  * Cache entry with metadata
@@ -123,7 +123,7 @@ export class L1Cache<T = unknown> implements Cache<T> {
     let lruTime = Infinity;
 
     for (const [key, entry] of this.cache.entries()) {
-      const lastAccess = entry.timestamp + (entry.hits * 1000);
+      const lastAccess = entry.timestamp + entry.hits * 1000;
       if (lastAccess < lruTime) {
         lruTime = lastAccess;
         lruKey = key;
@@ -190,7 +190,7 @@ export class L2Cache<T = unknown> implements Cache<T> {
       hits: 0,
     };
 
-    await this.redisClient.set(key, JSON.stringify(entry), 'PX', ttl);
+    await this.redisClient.set(key, JSON.stringify(entry), "PX", ttl);
   }
 
   async delete(key: string): Promise<void> {
@@ -233,17 +233,17 @@ export class L3Cache<T = unknown> implements Cache<T> {
     evictions: 0,
   };
 
-  constructor(basePath: string = './.cache/l3') {
+  constructor(basePath: string = "./.cache/l3") {
     this.basePath = basePath;
   }
 
   async get(key: string): Promise<T | null> {
     try {
-      const fs = await import('fs/promises');
-      const path = await import('path');
+      const fs = await import("fs/promises");
+      const path = await import("path");
 
       const filePath = path.join(this.basePath, `${this.hashKey(key)}.json`);
-      const data = await fs.readFile(filePath, 'utf-8');
+      const data = await fs.readFile(filePath, "utf-8");
       const entry: CacheEntry<T> = JSON.parse(data);
 
       if (Date.now() > entry.expiresAt) {
@@ -261,8 +261,8 @@ export class L3Cache<T = unknown> implements Cache<T> {
   }
 
   async set(key: string, value: T, ttl = 3600000): Promise<void> {
-    const fs = await import('fs/promises');
-    const path = await import('path');
+    const fs = await import("fs/promises");
+    const path = await import("path");
 
     // Ensure directory exists
     await fs.mkdir(this.basePath, { recursive: true });
@@ -276,13 +276,13 @@ export class L3Cache<T = unknown> implements Cache<T> {
     };
 
     const filePath = path.join(this.basePath, `${this.hashKey(key)}.json`);
-    await fs.writeFile(filePath, JSON.stringify(entry), 'utf-8');
+    await fs.writeFile(filePath, JSON.stringify(entry), "utf-8");
   }
 
   async delete(key: string): Promise<void> {
     try {
-      const fs = await import('fs/promises');
-      const path = await import('path');
+      const fs = await import("fs/promises");
+      const path = await import("path");
 
       const filePath = path.join(this.basePath, `${this.hashKey(key)}.json`);
       await fs.unlink(filePath);
@@ -293,11 +293,11 @@ export class L3Cache<T = unknown> implements Cache<T> {
 
   async clear(): Promise<void> {
     try {
-      const fs = await import('fs/promises');
+      const fs = await import("fs/promises");
       const files = await fs.readdir(this.basePath);
 
       for (const file of files) {
-        const path = await import('path');
+        const path = await import("path");
         await fs.unlink(path.join(this.basePath, file));
       }
     } catch {
@@ -307,8 +307,8 @@ export class L3Cache<T = unknown> implements Cache<T> {
 
   async has(key: string): Promise<boolean> {
     try {
-      const fs = await import('fs/promises');
-      const path = await import('path');
+      const fs = await import("fs/promises");
+      const path = await import("path");
 
       const filePath = path.join(this.basePath, `${this.hashKey(key)}.json`);
       await fs.access(filePath);
@@ -333,7 +333,7 @@ export class L3Cache<T = unknown> implements Cache<T> {
     // Simple hash function
     let hash = 0;
     for (let i = 0; i < key.length; i++) {
-      hash = ((hash << 5) - hash) + key.charCodeAt(i);
+      hash = (hash << 5) - hash + key.charCodeAt(i);
       hash = hash & hash;
     }
     return Math.abs(hash).toString(36);
@@ -411,9 +411,11 @@ export class MultiLevelCache<T = unknown> implements Cache<T> {
   }
 
   async has(key: string): Promise<boolean> {
-    return (await this.l1.has(key)) ||
-           (this.l2 ? await this.l2.has(key) : false) ||
-           (this.l3 ? await this.l3.has(key) : false);
+    return (
+      (await this.l1.has(key)) ||
+      (this.l2 ? await this.l2.has(key) : false) ||
+      (this.l3 ? await this.l3.has(key) : false)
+    );
   }
 
   getStats(): CacheStats {
@@ -425,9 +427,18 @@ export class MultiLevelCache<T = unknown> implements Cache<T> {
       hits: l1Stats.hits + (l2Stats?.hits || 0) + (l3Stats?.hits || 0),
       misses: l1Stats.misses + (l2Stats?.misses || 0) + (l3Stats?.misses || 0),
       hitRate: 0, // Calculated below
-      totalEntries: l1Stats.totalEntries + (l2Stats?.totalEntries || 0) + (l3Stats?.totalEntries || 0),
-      totalSize: l1Stats.totalSize + (l2Stats?.totalSize || 0) + (l3Stats?.totalSize || 0),
-      evictions: l1Stats.evictions + (l2Stats?.evictions || 0) + (l3Stats?.evictions || 0),
+      totalEntries:
+        l1Stats.totalEntries +
+        (l2Stats?.totalEntries || 0) +
+        (l3Stats?.totalEntries || 0),
+      totalSize:
+        l1Stats.totalSize +
+        (l2Stats?.totalSize || 0) +
+        (l3Stats?.totalSize || 0),
+      evictions:
+        l1Stats.evictions +
+        (l2Stats?.evictions || 0) +
+        (l3Stats?.evictions || 0),
     };
   }
 
@@ -464,7 +475,7 @@ export class CacheWarmer {
   async warmCache<T>(
     cache: Cache<T>,
     keys: string[],
-    fetcher: (key: string) => Promise<T>
+    fetcher: (key: string) => Promise<T>,
   ): Promise<void> {
     const promises = keys.map(async (key) => {
       if (this.warmed.has(key)) return;

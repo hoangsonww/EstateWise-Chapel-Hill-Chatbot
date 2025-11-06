@@ -25,7 +25,7 @@ import type { Blackboard } from "../core/types.js";
  * Default pipeline options
  */
 const DEFAULT_OPTIONS: PipelineOptions = {
-  name: 'unnamed-pipeline',
+  name: "unnamed-pipeline",
   defaultTimeout: 300000, // 5 minutes
   continueOnError: false,
   maxConcurrency: 1,
@@ -37,21 +37,27 @@ const DEFAULT_OPTIONS: PipelineOptions = {
 /**
  * Main pipeline implementation with assembly line pattern
  */
-export class Pipeline<TInput = unknown, TOutput = unknown, TState = Record<string, unknown>>
-  implements IPipeline<TInput, TOutput, TState>
+export class Pipeline<
+  TInput = unknown,
+  TOutput = unknown,
+  TState = Record<string, unknown>,
+> implements IPipeline<TInput, TOutput, TState>
 {
   public readonly options: PipelineOptions;
   public readonly stages: PipelineStage<unknown, unknown, TState>[] = [];
   public readonly middleware: PipelineMiddleware<TState>[] = [];
 
   private readonly cache = new Map<string, CacheEntry>();
-  private readonly metrics = new Map<string, {
-    executions: number;
-    successes: number;
-    failures: number;
-    totalDuration: number;
-    retries: number;
-  }>();
+  private readonly metrics = new Map<
+    string,
+    {
+      executions: number;
+      successes: number;
+      failures: number;
+      totalDuration: number;
+      retries: number;
+    }
+  >();
 
   private executionCount = 0;
   private successCount = 0;
@@ -83,14 +89,17 @@ export class Pipeline<TInput = unknown, TOutput = unknown, TState = Record<strin
     return this;
   }
 
-  async execute(input: TInput, signal?: AbortSignal): Promise<PipelineResult<TOutput, TState>> {
+  async execute(
+    input: TInput,
+    signal?: AbortSignal,
+  ): Promise<PipelineResult<TOutput, TState>> {
     return this.executeInternal(input, signal);
   }
 
   async executeStream(
     input: TInput,
     onEvent: (event: PipelineEvent) => void,
-    signal?: AbortSignal
+    signal?: AbortSignal,
   ): Promise<PipelineResult<TOutput, TState>> {
     return this.executeInternal(input, signal, onEvent);
   }
@@ -98,7 +107,7 @@ export class Pipeline<TInput = unknown, TOutput = unknown, TState = Record<strin
   private async executeInternal(
     input: TInput,
     signal?: AbortSignal,
-    onEvent?: (event: PipelineEvent) => void
+    onEvent?: (event: PipelineEvent) => void,
   ): Promise<PipelineResult<TOutput, TState>> {
     const executionId = randomUUID();
     const startTime = Date.now();
@@ -133,7 +142,7 @@ export class Pipeline<TInput = unknown, TOutput = unknown, TState = Record<strin
 
     // Emit pipeline start event
     this.emitEvent(onEvent, {
-      type: 'pipeline-start',
+      type: "pipeline-start",
       timestamp: Date.now(),
       executionId,
       data: { input, options: this.options },
@@ -141,12 +150,12 @@ export class Pipeline<TInput = unknown, TOutput = unknown, TState = Record<strin
 
     try {
       // Call middleware: onPipelineStart
-      await this.callMiddleware('onPipelineStart', context);
+      await this.callMiddleware("onPipelineStart", context);
 
       // Execute stages in sequence
       for (const stage of this.stages) {
         if (signal?.aborted) {
-          throw new Error('Pipeline execution aborted');
+          throw new Error("Pipeline execution aborted");
         }
 
         // Validate stage if validation is defined
@@ -213,10 +222,10 @@ export class Pipeline<TInput = unknown, TOutput = unknown, TState = Record<strin
       this.failureCount++;
 
       // Call middleware: onError
-      await this.callMiddleware('onError', context, pipelineError);
+      await this.callMiddleware("onError", context, pipelineError);
 
       this.emitEvent(onEvent, {
-        type: 'stage-error',
+        type: "stage-error",
         timestamp: Date.now(),
         executionId,
         error: pipelineError,
@@ -236,21 +245,21 @@ export class Pipeline<TInput = unknown, TOutput = unknown, TState = Record<strin
         successfulStages: context.metadata.completedStages.length,
         failedStages: context.metadata.failedStages.length,
         retriedStages: Array.from(stageResults.values()).filter(
-          (r) => (r.metadata?.attempts ?? 0) > 1
+          (r) => (r.metadata?.attempts ?? 0) > 1,
         ).length,
         toolCallsTotal: Array.from(stageResults.values()).reduce(
           (sum, r) => sum + (r.metadata?.toolCalls?.length ?? 0),
-          0
+          0,
         ),
       },
     };
 
     // Call middleware: onPipelineComplete
-    await this.callMiddleware('onPipelineComplete', context, result);
+    await this.callMiddleware("onPipelineComplete", context, result);
 
     // Emit pipeline complete event
     this.emitEvent(onEvent, {
-      type: 'pipeline-complete',
+      type: "pipeline-complete",
       timestamp: Date.now(),
       executionId,
       data: { success: result.success, metrics: result.metrics },
@@ -267,7 +276,7 @@ export class Pipeline<TInput = unknown, TOutput = unknown, TState = Record<strin
   private async executeStage(
     stage: PipelineStage<unknown, unknown, TState>,
     context: PipelineContext<unknown, TState>,
-    onEvent?: (event: PipelineEvent) => void
+    onEvent?: (event: PipelineEvent) => void,
   ): Promise<StageResult> {
     const startTime = Date.now();
 
@@ -275,14 +284,14 @@ export class Pipeline<TInput = unknown, TOutput = unknown, TState = Record<strin
 
     // Emit stage start event
     this.emitEvent(onEvent, {
-      type: 'stage-start',
+      type: "stage-start",
       timestamp: Date.now(),
       executionId: context.executionId,
       stageName: stage.name,
     });
 
     // Call middleware: onStageStart
-    await this.callMiddleware('onStageStart', context, stage);
+    await this.callMiddleware("onStageStart", context, stage);
 
     // Execute stage with timeout if configured
     const timeout = stage.timeout ?? this.options.defaultTimeout;
@@ -290,7 +299,11 @@ export class Pipeline<TInput = unknown, TOutput = unknown, TState = Record<strin
 
     try {
       if (timeout) {
-        result = await this.executeWithTimeout(stage as any, context as any, timeout);
+        result = await this.executeWithTimeout(
+          stage as any,
+          context as any,
+          timeout,
+        );
       } else {
         result = await stage.execute(context);
       }
@@ -318,11 +331,11 @@ export class Pipeline<TInput = unknown, TOutput = unknown, TState = Record<strin
     }
 
     // Call middleware: onStageComplete
-    await this.callMiddleware('onStageComplete', context, stage, result);
+    await this.callMiddleware("onStageComplete", context, stage, result);
 
     // Emit stage complete event
     this.emitEvent(onEvent, {
-      type: 'stage-complete',
+      type: "stage-complete",
       timestamp: Date.now(),
       executionId: context.executionId,
       stageName: stage.name,
@@ -335,14 +348,15 @@ export class Pipeline<TInput = unknown, TOutput = unknown, TState = Record<strin
   private async executeWithTimeout(
     stage: PipelineStage,
     context: PipelineContext,
-    timeout: number
+    timeout: number,
   ): Promise<StageResult> {
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
         reject(new Error(`Stage ${stage.name} timed out after ${timeout}ms`));
       }, timeout);
 
-      stage.execute(context)
+      stage
+        .execute(context)
         .then((result) => {
           clearTimeout(timer);
           resolve(result);
@@ -355,30 +369,30 @@ export class Pipeline<TInput = unknown, TOutput = unknown, TState = Record<strin
   }
 
   private async callMiddleware(
-    hook: 'onPipelineStart',
-    context: PipelineContext<unknown, TState>
-  ): Promise<void>;
-  private async callMiddleware(
-    hook: 'onPipelineComplete',
+    hook: "onPipelineStart",
     context: PipelineContext<unknown, TState>,
-    result: PipelineResult<unknown, TState>
   ): Promise<void>;
   private async callMiddleware(
-    hook: 'onStageStart',
+    hook: "onPipelineComplete",
     context: PipelineContext<unknown, TState>,
-    stage: PipelineStage<unknown, unknown, TState>
+    result: PipelineResult<unknown, TState>,
   ): Promise<void>;
   private async callMiddleware(
-    hook: 'onStageComplete',
+    hook: "onStageStart",
     context: PipelineContext<unknown, TState>,
     stage: PipelineStage<unknown, unknown, TState>,
-    result: StageResult
   ): Promise<void>;
   private async callMiddleware(
-    hook: 'onError',
+    hook: "onStageComplete",
+    context: PipelineContext<unknown, TState>,
+    stage: PipelineStage<unknown, unknown, TState>,
+    result: StageResult,
+  ): Promise<void>;
+  private async callMiddleware(
+    hook: "onError",
     context: PipelineContext<unknown, TState>,
     error: Error,
-    stage?: PipelineStage<unknown, unknown, TState>
+    stage?: PipelineStage<unknown, unknown, TState>,
   ): Promise<void>;
   private async callMiddleware(
     hook: keyof PipelineMiddleware,
@@ -386,7 +400,7 @@ export class Pipeline<TInput = unknown, TOutput = unknown, TState = Record<strin
   ): Promise<void> {
     for (const mw of this.middleware) {
       const fn = mw[hook];
-      if (typeof fn === 'function') {
+      if (typeof fn === "function") {
         await (fn as any).apply(mw, args);
       }
     }
@@ -394,7 +408,7 @@ export class Pipeline<TInput = unknown, TOutput = unknown, TState = Record<strin
 
   private emitEvent(
     onEvent: ((event: PipelineEvent) => void) | undefined,
-    event: PipelineEvent
+    event: PipelineEvent,
   ): void {
     if (this.options.enableStreaming && onEvent) {
       onEvent(event);
@@ -441,7 +455,10 @@ export class Pipeline<TInput = unknown, TOutput = unknown, TState = Record<strin
     return entry.value as PipelineResult<TOutput>;
   }
 
-  private addToCache(input: TInput, result: PipelineResult<TOutput, TState>): void {
+  private addToCache(
+    input: TInput,
+    result: PipelineResult<TOutput, TState>,
+  ): void {
     const cacheKey = this.getCacheKey(input);
     const ttl = this.options.cacheTTL ?? 3600000;
 
@@ -473,12 +490,14 @@ export class Pipeline<TInput = unknown, TOutput = unknown, TState = Record<strin
 
     // Check for at least one stage
     if (this.stages.length === 0) {
-      errors.push('Pipeline must have at least one stage');
+      errors.push("Pipeline must have at least one stage");
     }
 
     // Warn about missing middleware
     if (this.middleware.length === 0) {
-      warnings.push('No middleware registered - consider adding logging or metrics middleware');
+      warnings.push(
+        "No middleware registered - consider adding logging or metrics middleware",
+      );
     }
 
     return {
@@ -496,9 +515,10 @@ export class Pipeline<TInput = unknown, TOutput = unknown, TState = Record<strin
         executions: metrics.executions,
         successes: metrics.successes,
         failures: metrics.failures,
-        averageDuration: metrics.executions > 0
-          ? metrics.totalDuration / metrics.executions
-          : 0,
+        averageDuration:
+          metrics.executions > 0
+            ? metrics.totalDuration / metrics.executions
+            : 0,
         retries: metrics.retries,
       });
     }

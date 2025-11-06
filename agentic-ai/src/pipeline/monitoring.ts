@@ -43,18 +43,24 @@ export interface ExecutionTrace {
  */
 export class PipelineMonitor {
   private traces = new Map<string, ExecutionTrace>();
-  private metrics = new Map<string, {
-    totalExecutions: number;
-    successfulExecutions: number;
-    failedExecutions: number;
-    totalDuration: number;
-    stageMetrics: Map<string, {
-      executions: number;
-      successes: number;
-      failures: number;
+  private metrics = new Map<
+    string,
+    {
+      totalExecutions: number;
+      successfulExecutions: number;
+      failedExecutions: number;
       totalDuration: number;
-    }>;
-  }>();
+      stageMetrics: Map<
+        string,
+        {
+          executions: number;
+          successes: number;
+          failures: number;
+          totalDuration: number;
+        }
+      >;
+    }
+  >();
 
   /**
    * Start monitoring a pipeline execution
@@ -62,7 +68,7 @@ export class PipelineMonitor {
   startExecution(
     executionId: string,
     pipelineName: string,
-    input: unknown
+    input: unknown,
   ): void {
     this.traces.set(executionId, {
       executionId,
@@ -109,7 +115,7 @@ export class PipelineMonitor {
     stageName: string,
     success: boolean,
     error?: string,
-    attempts?: number
+    attempts?: number,
   ): void {
     const trace = this.traces.get(executionId);
     if (!trace) return;
@@ -155,7 +161,7 @@ export class PipelineMonitor {
     executionId: string,
     success: boolean,
     output?: unknown,
-    error?: string
+    error?: string,
   ): void {
     const trace = this.traces.get(executionId);
     if (!trace) return;
@@ -197,7 +203,7 @@ export class PipelineMonitor {
    */
   getTracesForPipeline(pipelineName: string): ExecutionTrace[] {
     return Array.from(this.traces.values()).filter(
-      (t) => t.pipelineName === pipelineName
+      (t) => t.pipelineName === pipelineName,
     );
   }
 
@@ -220,12 +226,14 @@ export class PipelineMonitor {
     const metrics = this.metrics.get(pipelineName);
     if (!metrics) return null;
 
-    const stages = Array.from(metrics.stageMetrics.entries()).map(([name, m]) => ({
-      name,
-      executions: m.executions,
-      successRate: m.executions > 0 ? m.successes / m.executions : 0,
-      averageDuration: m.executions > 0 ? m.totalDuration / m.executions : 0,
-    }));
+    const stages = Array.from(metrics.stageMetrics.entries()).map(
+      ([name, m]) => ({
+        name,
+        executions: m.executions,
+        successRate: m.executions > 0 ? m.successes / m.executions : 0,
+        averageDuration: m.executions > 0 ? m.totalDuration / m.executions : 0,
+      }),
+    );
 
     return {
       totalExecutions: metrics.totalExecutions,
@@ -248,7 +256,7 @@ export class PipelineMonitor {
    */
   getSlowStages(
     pipelineName: string,
-    thresholdMs: number = 5000
+    thresholdMs: number = 5000,
   ): Array<{ name: string; averageDuration: number }> {
     const metrics = this.metrics.get(pipelineName);
     if (!metrics) return [];
@@ -298,27 +306,30 @@ export class PipelineMonitor {
    */
   visualizeTrace(executionId: string): string {
     const trace = this.traces.get(executionId);
-    if (!trace) return 'Trace not found';
+    if (!trace) return "Trace not found";
 
     const lines: string[] = [];
     lines.push(`Pipeline: ${trace.pipelineName}`);
     lines.push(`Execution ID: ${trace.executionId}`);
-    lines.push(`Status: ${trace.success ? '✓ Success' : '✗ Failed'}`);
+    lines.push(`Status: ${trace.success ? "✓ Success" : "✗ Failed"}`);
     lines.push(`Duration: ${trace.duration}ms`);
-    lines.push('');
-    lines.push('Stages:');
+    lines.push("");
+    lines.push("Stages:");
 
     for (const stage of trace.stages) {
-      const status = stage.success ? '✓' : '✗';
-      const duration = stage.duration ? `${stage.duration}ms` : 'N/A';
-      const attempts = stage.attempts && stage.attempts > 1 ? ` (${stage.attempts} attempts)` : '';
+      const status = stage.success ? "✓" : "✗";
+      const duration = stage.duration ? `${stage.duration}ms` : "N/A";
+      const attempts =
+        stage.attempts && stage.attempts > 1
+          ? ` (${stage.attempts} attempts)`
+          : "";
       lines.push(`  ${status} ${stage.name} - ${duration}${attempts}`);
       if (stage.error) {
         lines.push(`      Error: ${stage.error}`);
       }
     }
 
-    return lines.join('\n');
+    return lines.join("\n");
   }
 
   /**
@@ -326,28 +337,28 @@ export class PipelineMonitor {
    */
   visualizeFlow(pipelineName: string): string {
     const traces = this.getTracesForPipeline(pipelineName);
-    if (traces.length === 0) return 'No traces found';
+    if (traces.length === 0) return "No traces found";
 
     const recentTrace = traces[traces.length - 1];
     const lines: string[] = [];
 
     lines.push(`┌─ ${pipelineName} ─┐`);
-    lines.push('│');
+    lines.push("│");
 
     for (let i = 0; i < recentTrace.stages.length; i++) {
       const stage = recentTrace.stages[i];
-      const status = stage.success ? '✓' : '✗';
+      const status = stage.success ? "✓" : "✗";
       const isLast = i === recentTrace.stages.length - 1;
 
       lines.push(`├─ ${status} ${stage.name}`);
       if (!isLast) {
-        lines.push('│  ↓');
+        lines.push("│  ↓");
       }
     }
 
-    lines.push('└─────────────────────');
+    lines.push("└─────────────────────");
 
-    return lines.join('\n');
+    return lines.join("\n");
   }
 }
 
@@ -356,29 +367,36 @@ export class PipelineMonitor {
  */
 export function createMonitoringMiddleware(monitor: PipelineMonitor) {
   return {
-    name: 'monitoring',
+    name: "monitoring",
     onPipelineStart: async (context: PipelineContext) => {
-      const pipelineName = (context.metadata as any).pipelineName || 'unknown';
+      const pipelineName = (context.metadata as any).pipelineName || "unknown";
       monitor.startExecution(context.executionId, pipelineName, context.input);
     },
     onStageStart: async (context: PipelineContext, stage: any) => {
       monitor.startStage(context.executionId, stage.name);
     },
-    onStageComplete: async (context: PipelineContext, stage: any, result: StageResult) => {
+    onStageComplete: async (
+      context: PipelineContext,
+      stage: any,
+      result: StageResult,
+    ) => {
       monitor.completeStage(
         context.executionId,
         stage.name,
         result.success,
         result.error?.message,
-        result.metadata?.attempts
+        result.metadata?.attempts,
       );
     },
-    onPipelineComplete: async (context: PipelineContext, result: PipelineResult) => {
+    onPipelineComplete: async (
+      context: PipelineContext,
+      result: PipelineResult,
+    ) => {
       monitor.completeExecution(
         context.executionId,
         result.success,
         result.output,
-        result.error?.message
+        result.error?.message,
       );
     },
   };
@@ -411,7 +429,7 @@ export class PipelineEventStream {
       try {
         listener(event);
       } catch (error) {
-        console.error('Error in event listener:', error);
+        console.error("Error in event listener:", error);
       }
     }
   }
@@ -421,10 +439,10 @@ export class PipelineEventStream {
    */
   createMiddleware() {
     return {
-      name: 'event-stream',
+      name: "event-stream",
       onPipelineStart: async (context: PipelineContext) => {
         this.emit({
-          type: 'pipeline-start',
+          type: "pipeline-start",
           timestamp: Date.now(),
           executionId: context.executionId,
           data: { input: context.input },
@@ -432,24 +450,34 @@ export class PipelineEventStream {
       },
       onStageStart: async (context: PipelineContext, stage: any) => {
         this.emit({
-          type: 'stage-start',
+          type: "stage-start",
           timestamp: Date.now(),
           executionId: context.executionId,
           stageName: stage.name,
         });
       },
-      onStageComplete: async (context: PipelineContext, stage: any, result: StageResult) => {
+      onStageComplete: async (
+        context: PipelineContext,
+        stage: any,
+        result: StageResult,
+      ) => {
         this.emit({
-          type: 'stage-complete',
+          type: "stage-complete",
           timestamp: Date.now(),
           executionId: context.executionId,
           stageName: stage.name,
-          data: { success: result.success, duration: result.metadata?.duration },
+          data: {
+            success: result.success,
+            duration: result.metadata?.duration,
+          },
         });
       },
-      onPipelineComplete: async (context: PipelineContext, result: PipelineResult) => {
+      onPipelineComplete: async (
+        context: PipelineContext,
+        result: PipelineResult,
+      ) => {
         this.emit({
-          type: 'pipeline-complete',
+          type: "pipeline-complete",
           timestamp: Date.now(),
           executionId: context.executionId,
           data: {
@@ -460,7 +488,7 @@ export class PipelineEventStream {
       },
       onError: async (context: PipelineContext, error: Error, stage?: any) => {
         this.emit({
-          type: 'stage-error',
+          type: "stage-error",
           timestamp: Date.now(),
           executionId: context.executionId,
           stageName: stage?.name,
@@ -491,21 +519,23 @@ export class PipelineHealthChecker {
     if (!metrics) {
       return {
         healthy: false,
-        issues: ['No metrics available'],
+        issues: ["No metrics available"],
         metrics: null,
       };
     }
 
     // Check success rate
     if (metrics.successRate < 0.9) {
-      issues.push(`Low success rate: ${(metrics.successRate * 100).toFixed(1)}%`);
+      issues.push(
+        `Low success rate: ${(metrics.successRate * 100).toFixed(1)}%`,
+      );
     }
 
     // Check for slow stages
     const slowStages = this.monitor.getSlowStages(pipelineName, 10000);
     if (slowStages.length > 0) {
       issues.push(
-        `Slow stages: ${slowStages.map((s) => `${s.name} (${s.averageDuration.toFixed(0)}ms)`).join(', ')}`
+        `Slow stages: ${slowStages.map((s) => `${s.name} (${s.averageDuration.toFixed(0)}ms)`).join(", ")}`,
       );
     }
 
@@ -513,7 +543,7 @@ export class PipelineHealthChecker {
     for (const stage of metrics.stages) {
       if (stage.successRate < 0.8) {
         issues.push(
-          `Stage "${stage.name}" has low success rate: ${(stage.successRate * 100).toFixed(1)}%`
+          `Stage "${stage.name}" has low success rate: ${(stage.successRate * 100).toFixed(1)}%`,
         );
       }
     }

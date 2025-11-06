@@ -5,9 +5,9 @@
  * timeout handling, and decision routing.
  */
 
-import { EventEmitter } from 'events';
-import type { PipelineStage, PipelineContext, StageResult } from './types.js';
-import { Stage } from './Stage.js';
+import { EventEmitter } from "events";
+import type { PipelineStage, PipelineContext, StageResult } from "./types.js";
+import { Stage } from "./Stage.js";
 
 /**
  * Approval request
@@ -43,7 +43,7 @@ export interface ApprovalGateConfig {
   requiresApproval: (context: PipelineContext) => Promise<boolean> | boolean;
   approvalMessage?: string | ((context: PipelineContext) => string);
   timeout?: number;
-  onTimeout?: 'approve' | 'reject' | 'retry';
+  onTimeout?: "approve" | "reject" | "retry";
   approvers?: string[];
   minApprovals?: number;
 }
@@ -62,7 +62,7 @@ export class ApprovalManager extends EventEmitter {
   async createRequest(
     config: ApprovalGateConfig,
     context: PipelineContext,
-    data: unknown
+    data: unknown,
   ): Promise<ApprovalResponse> {
     const request: ApprovalRequest = {
       id: `approval-${Date.now()}-${Math.random()}`,
@@ -71,19 +71,25 @@ export class ApprovalManager extends EventEmitter {
       requestedAt: Date.now(),
       timeout: config.timeout,
       data,
-      message: typeof config.approvalMessage === 'function'
-        ? config.approvalMessage(context)
-        : config.approvalMessage,
+      message:
+        typeof config.approvalMessage === "function"
+          ? config.approvalMessage(context)
+          : config.approvalMessage,
     };
 
     this.pendingRequests.set(request.id, request);
-    this.emit('approval-requested', request);
+    this.emit("approval-requested", request);
 
     return new Promise((resolve, reject) => {
       // Set timeout if configured
       if (config.timeout) {
         const timer = setTimeout(() => {
-          this.handleTimeout(request.id, config.onTimeout || 'reject', resolve, reject);
+          this.handleTimeout(
+            request.id,
+            config.onTimeout || "reject",
+            resolve,
+            reject,
+          );
         }, config.timeout);
 
         this.timeouts.set(request.id, timer);
@@ -95,7 +101,7 @@ export class ApprovalManager extends EventEmitter {
           const timer = this.timeouts.get(request.id);
           if (timer) clearTimeout(timer);
 
-          this.off('approval-response', onResponse);
+          this.off("approval-response", onResponse);
           this.pendingRequests.delete(request.id);
           this.responses.set(response.requestId, response);
 
@@ -103,7 +109,7 @@ export class ApprovalManager extends EventEmitter {
         }
       };
 
-      this.on('approval-response', onResponse);
+      this.on("approval-response", onResponse);
     });
   }
 
@@ -117,7 +123,7 @@ export class ApprovalManager extends EventEmitter {
     }
 
     response.approvedAt = Date.now();
-    this.emit('approval-response', response);
+    this.emit("approval-response", response);
   }
 
   /**
@@ -145,27 +151,27 @@ export class ApprovalManager extends EventEmitter {
     }
 
     this.pendingRequests.delete(requestId);
-    this.emit('approval-cancelled', requestId);
+    this.emit("approval-cancelled", requestId);
   }
 
   private handleTimeout(
     requestId: string,
-    action: 'approve' | 'reject' | 'retry',
+    action: "approve" | "reject" | "retry",
     resolve: (response: ApprovalResponse) => void,
-    reject: (error: Error) => void
+    reject: (error: Error) => void,
   ): void {
     const response: ApprovalResponse = {
       requestId,
-      approved: action === 'approve',
+      approved: action === "approve",
       approvedAt: Date.now(),
-      reason: 'Timeout',
+      reason: "Timeout",
     };
 
-    if (action === 'retry') {
-      reject(new Error('Approval timeout - retry'));
+    if (action === "retry") {
+      reject(new Error("Approval timeout - retry"));
     } else {
-      this.emit('approval-timeout', { requestId, action });
-      this.emit('approval-response', response);
+      this.emit("approval-timeout", { requestId, action });
+      this.emit("approval-response", response);
     }
   }
 }
@@ -176,7 +182,7 @@ export class ApprovalManager extends EventEmitter {
 export class ApprovalGateStage extends Stage {
   constructor(
     private config: ApprovalGateConfig,
-    private approvalManager: ApprovalManager
+    private approvalManager: ApprovalManager,
   ) {
     super({
       name: `approval-${config.stageName}`,
@@ -193,11 +199,11 @@ export class ApprovalGateStage extends Stage {
         const response = await approvalManager.createRequest(
           config,
           context,
-          context.state
+          context.state,
         );
 
         if (!response.approved) {
-          throw new Error(response.reason || 'Approval rejected');
+          throw new Error(response.reason || "Approval rejected");
         }
 
         // Apply modifications if provided
@@ -220,7 +226,7 @@ export interface UserInputConfig {
   prompt: string | ((context: PipelineContext) => string);
   fields: Array<{
     name: string;
-    type: 'text' | 'number' | 'boolean' | 'select';
+    type: "text" | "number" | "boolean" | "select";
     label?: string;
     required?: boolean;
     options?: string[];
@@ -260,7 +266,7 @@ export class UserInputManager extends EventEmitter {
    */
   async requestInput(
     config: UserInputConfig,
-    context: PipelineContext
+    context: PipelineContext,
   ): Promise<UserInputResponse> {
     const request: UserInputRequest = {
       id: `input-${Date.now()}-${Math.random()}`,
@@ -270,13 +276,13 @@ export class UserInputManager extends EventEmitter {
     };
 
     this.pendingInputs.set(request.id, request);
-    this.emit('input-requested', request);
+    this.emit("input-requested", request);
 
     return new Promise((resolve, reject) => {
       // Set timeout if configured
       if (config.timeout) {
         setTimeout(() => {
-          reject(new Error('User input timeout'));
+          reject(new Error("User input timeout"));
           this.pendingInputs.delete(request.id);
         }, config.timeout);
       }
@@ -284,13 +290,13 @@ export class UserInputManager extends EventEmitter {
       // Listen for response
       const onResponse = (response: UserInputResponse) => {
         if (response.requestId === request.id) {
-          this.off('input-response', onResponse);
+          this.off("input-response", onResponse);
           this.pendingInputs.delete(request.id);
           resolve(response);
         }
       };
 
-      this.on('input-response', onResponse);
+      this.on("input-response", onResponse);
     });
   }
 
@@ -313,7 +319,7 @@ export class UserInputManager extends EventEmitter {
 
       if (field.validate && value !== undefined) {
         const result = field.validate(value);
-        if (typeof result === 'string') {
+        if (typeof result === "string") {
           throw new Error(result);
         }
         if (!result) {
@@ -323,7 +329,7 @@ export class UserInputManager extends EventEmitter {
     }
 
     response.submittedAt = Date.now();
-    this.emit('input-response', response);
+    this.emit("input-response", response);
   }
 
   /**
@@ -340,7 +346,7 @@ export class UserInputManager extends EventEmitter {
 export class UserInputStage extends Stage {
   constructor(
     private config: UserInputConfig,
-    private inputManager: UserInputManager
+    private inputManager: UserInputManager,
   ) {
     super({
       name: `input-${config.stageName}`,
@@ -363,7 +369,7 @@ export class UserInputStage extends Stage {
  */
 export interface NotificationService {
   send(notification: {
-    type: 'approval' | 'input' | 'error' | 'complete';
+    type: "approval" | "input" | "error" | "complete";
     title: string;
     message: string;
     data?: unknown;
@@ -381,14 +387,14 @@ export class ConsoleNotificationService implements NotificationService {
     message: string;
     data?: unknown;
   }): Promise<void> {
-    console.log('\n=== Notification ===');
+    console.log("\n=== Notification ===");
     console.log(`Type: ${notification.type}`);
     console.log(`Title: ${notification.title}`);
     console.log(`Message: ${notification.message}`);
     if (notification.data) {
       console.log(`Data: ${JSON.stringify(notification.data, null, 2)}`);
     }
-    console.log('==================\n');
+    console.log("==================\n");
   }
 }
 
@@ -405,7 +411,12 @@ export class EmailNotificationService implements NotificationService {
     recipients?: string[];
   }): Promise<void> {
     if (!this.emailClient) {
-      console.log('[Email] Would send:', notification.title, 'to', notification.recipients);
+      console.log(
+        "[Email] Would send:",
+        notification.title,
+        "to",
+        notification.recipients,
+      );
       return;
     }
 
@@ -417,7 +428,7 @@ export class EmailNotificationService implements NotificationService {
         body: notification.message,
       });
     } catch (error) {
-      console.error('Failed to send email:', error);
+      console.error("Failed to send email:", error);
     }
   }
 }
@@ -427,9 +438,9 @@ export class EmailNotificationService implements NotificationService {
  */
 export function createApprovalMiddleware(approvalManager: ApprovalManager) {
   return {
-    name: 'approval-notifications',
+    name: "approval-notifications",
     onStageStart: async (context: PipelineContext, stage: PipelineStage) => {
-      const isApprovalStage = stage.name.startsWith('approval-');
+      const isApprovalStage = stage.name.startsWith("approval-");
       if (isApprovalStage) {
         (context.metadata as any).awaitingApproval = true;
       }
@@ -445,9 +456,9 @@ export function createApprovalMiddleware(approvalManager: ApprovalManager) {
  */
 export function createUserInputMiddleware(inputManager: UserInputManager) {
   return {
-    name: 'user-input-notifications',
+    name: "user-input-notifications",
     onStageStart: async (context: PipelineContext, stage: PipelineStage) => {
-      const isInputStage = stage.name.startsWith('input-');
+      const isInputStage = stage.name.startsWith("input-");
       if (isInputStage) {
         (context.metadata as any).awaitingInput = true;
       }

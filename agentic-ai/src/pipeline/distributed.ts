@@ -5,8 +5,8 @@
  * and load balancing for scalable pipeline processing.
  */
 
-import { EventEmitter } from 'events';
-import type { PipelineStage, PipelineContext, StageResult } from './types.js';
+import { EventEmitter } from "events";
+import type { PipelineStage, PipelineContext, StageResult } from "./types.js";
 
 /**
  * Work item for distributed execution
@@ -27,7 +27,7 @@ export interface WorkItem {
  */
 export interface WorkerStatus {
   id: string;
-  status: 'idle' | 'busy' | 'error' | 'offline';
+  status: "idle" | "busy" | "error" | "offline";
   currentTask?: string;
   tasksCompleted: number;
   tasksFailed: number;
@@ -136,7 +136,7 @@ export class PriorityQueue implements MessageQueue {
   private normalizePriority(priority: number): number {
     // Find closest priority level
     return this.priorities.reduce((prev, curr) =>
-      Math.abs(curr - priority) < Math.abs(prev - priority) ? curr : prev
+      Math.abs(curr - priority) < Math.abs(prev - priority) ? curr : prev,
     );
   }
 }
@@ -163,7 +163,7 @@ export class PipelineWorker extends EventEmitter {
     this.queue = options.queue;
     this.status = {
       id: options.id,
-      status: 'idle',
+      status: "idle",
       tasksCompleted: 0,
       tasksFailed: 0,
       lastHeartbeat: Date.now(),
@@ -175,7 +175,7 @@ export class PipelineWorker extends EventEmitter {
     const interval = options.heartbeatInterval || 5000;
     this.heartbeatInterval = setInterval(() => {
       this.status.lastHeartbeat = Date.now();
-      this.emit('heartbeat', this.status);
+      this.emit("heartbeat", this.status);
     }, interval);
   }
 
@@ -193,19 +193,23 @@ export class PipelineWorker extends EventEmitter {
    * Start processing work items
    */
   async start(): Promise<void> {
-    this.status.status = 'idle';
-    this.emit('started');
+    this.status.status = "idle";
+    this.emit("started");
 
-    while (this.status.status === 'idle' || this.status.status === 'processing' || this.status.status === 'busy') {
+    while (
+      this.status.status === "idle" ||
+      this.status.status === "processing" ||
+      this.status.status === "busy"
+    ) {
       try {
         await this.processNextItem();
         await this.delay(100); // Small delay between tasks
       } catch (error) {
-        console.error('Worker error:', error);
-        this.status.status = 'error';
-        this.emit('error', error);
+        console.error("Worker error:", error);
+        this.status.status = "error";
+        this.emit("error", error);
         await this.delay(5000); // Wait before retrying
-        this.status.status = 'idle';
+        this.status.status = "idle";
       }
     }
   }
@@ -214,11 +218,11 @@ export class PipelineWorker extends EventEmitter {
    * Stop the worker
    */
   stop(): void {
-    this.status.status = 'offline';
+    this.status.status = "offline";
     if (this.heartbeatInterval) {
       clearInterval(this.heartbeatInterval);
     }
-    this.emit('stopped');
+    this.emit("stopped");
   }
 
   /**
@@ -227,7 +231,7 @@ export class PipelineWorker extends EventEmitter {
   private async processNextItem(): Promise<void> {
     const item = await this.queue.dequeue();
     if (!item) {
-      this.status.status = 'idle';
+      this.status.status = "idle";
       this.status.load = 0;
       return;
     }
@@ -240,11 +244,11 @@ export class PipelineWorker extends EventEmitter {
     }
 
     this.currentTask = item;
-    this.status.status = 'busy';
+    this.status.status = "busy";
     this.status.currentTask = item.id;
     this.status.load = 1;
 
-    this.emit('task-start', item);
+    this.emit("task-start", item);
 
     try {
       const stage = this.stages.get(item.stageName)!;
@@ -255,7 +259,7 @@ export class PipelineWorker extends EventEmitter {
       const duration = Date.now() - startTime;
 
       this.status.tasksCompleted++;
-      this.emit('task-complete', {
+      this.emit("task-complete", {
         item,
         result,
         duration,
@@ -264,7 +268,7 @@ export class PipelineWorker extends EventEmitter {
       this.status.tasksFailed++;
       item.attempts++;
 
-      this.emit('task-error', {
+      this.emit("task-error", {
         item,
         error,
       });
@@ -275,14 +279,14 @@ export class PipelineWorker extends EventEmitter {
       }
     } finally {
       this.currentTask = null;
-      this.status.status = 'idle';
+      this.status.status = "idle";
       this.status.currentTask = undefined;
       this.status.load = 0;
     }
   }
 
   private delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }
 
@@ -294,10 +298,7 @@ export class WorkerPool extends EventEmitter {
   private queue: MessageQueue;
   private maxWorkers: number;
 
-  constructor(options: {
-    maxWorkers?: number;
-    queue?: MessageQueue;
-  }) {
+  constructor(options: { maxWorkers?: number; queue?: MessageQueue }) {
     super();
     this.maxWorkers = options.maxWorkers || 4;
     this.queue = options.queue || new InMemoryQueue();
@@ -313,19 +314,19 @@ export class WorkerPool extends EventEmitter {
 
     this.workers.set(worker.id, worker);
 
-    worker.on('task-complete', (data) => {
-      this.emit('task-complete', { workerId: worker.id, ...data });
+    worker.on("task-complete", (data) => {
+      this.emit("task-complete", { workerId: worker.id, ...data });
     });
 
-    worker.on('task-error', (data) => {
-      this.emit('task-error', { workerId: worker.id, ...data });
+    worker.on("task-error", (data) => {
+      this.emit("task-error", { workerId: worker.id, ...data });
     });
 
-    worker.on('heartbeat', (status) => {
-      this.emit('worker-heartbeat', { workerId: worker.id, status });
+    worker.on("heartbeat", (status) => {
+      this.emit("worker-heartbeat", { workerId: worker.id, status });
     });
 
-    this.emit('worker-added', worker.id);
+    this.emit("worker-added", worker.id);
   }
 
   /**
@@ -336,7 +337,7 @@ export class WorkerPool extends EventEmitter {
     if (worker) {
       worker.stop();
       this.workers.delete(workerId);
-      this.emit('worker-removed', workerId);
+      this.emit("worker-removed", workerId);
     }
   }
 
@@ -344,7 +345,7 @@ export class WorkerPool extends EventEmitter {
    * Start all workers
    */
   async startAll(): Promise<void> {
-    const promises = Array.from(this.workers.values()).map(w => w.start());
+    const promises = Array.from(this.workers.values()).map((w) => w.start());
     await Promise.all(promises);
   }
 
@@ -362,7 +363,7 @@ export class WorkerPool extends EventEmitter {
    */
   async submitWork(item: WorkItem): Promise<void> {
     await this.queue.enqueue(item);
-    this.emit('work-submitted', item);
+    this.emit("work-submitted", item);
   }
 
   /**
@@ -384,9 +385,9 @@ export class WorkerPool extends EventEmitter {
     let totalFailed = 0;
 
     for (const worker of this.workers.values()) {
-      if (worker.status.status === 'idle') idleWorkers++;
-      if (worker.status.status === 'busy') busyWorkers++;
-      if (worker.status.status === 'error') errorWorkers++;
+      if (worker.status.status === "idle") idleWorkers++;
+      if (worker.status.status === "busy") busyWorkers++;
+      if (worker.status.status === "error") errorWorkers++;
       totalCompleted += worker.status.tasksCompleted;
       totalFailed += worker.status.tasksFailed;
     }
@@ -424,7 +425,7 @@ export class WorkerPool extends EventEmitter {
     let minLoad = Infinity;
 
     for (const worker of this.workers.values()) {
-      if (worker.status.status === 'idle' && worker.status.load < minLoad) {
+      if (worker.status.status === "idle" && worker.status.load < minLoad) {
         leastLoaded = worker;
         minLoad = worker.status.load;
       }
@@ -438,10 +439,12 @@ export class WorkerPool extends EventEmitter {
  * Load balancer for distributing work
  */
 export class LoadBalancer {
-  private strategy: 'round-robin' | 'least-loaded' | 'random';
+  private strategy: "round-robin" | "least-loaded" | "random";
   private roundRobinIndex = 0;
 
-  constructor(strategy: 'round-robin' | 'least-loaded' | 'random' = 'least-loaded') {
+  constructor(
+    strategy: "round-robin" | "least-loaded" | "random" = "least-loaded",
+  ) {
     this.strategy = strategy;
   }
 
@@ -449,25 +452,28 @@ export class LoadBalancer {
    * Select next worker based on strategy
    */
   selectWorker(workers: PipelineWorker[]): PipelineWorker | null {
-    const availableWorkers = workers.filter(w => w.status.status === 'idle');
+    const availableWorkers = workers.filter((w) => w.status.status === "idle");
 
     if (availableWorkers.length === 0) {
       return null;
     }
 
     switch (this.strategy) {
-      case 'round-robin':
-        const worker = availableWorkers[this.roundRobinIndex % availableWorkers.length];
+      case "round-robin":
+        const worker =
+          availableWorkers[this.roundRobinIndex % availableWorkers.length];
         this.roundRobinIndex++;
         return worker;
 
-      case 'least-loaded':
+      case "least-loaded":
         return availableWorkers.reduce((prev, curr) =>
-          curr.status.load < prev.status.load ? curr : prev
+          curr.status.load < prev.status.load ? curr : prev,
         );
 
-      case 'random':
-        return availableWorkers[Math.floor(Math.random() * availableWorkers.length)];
+      case "random":
+        return availableWorkers[
+          Math.floor(Math.random() * availableWorkers.length)
+        ];
 
       default:
         return availableWorkers[0];
@@ -487,7 +493,8 @@ export class DistributedPipelineExecutor {
     loadBalancer?: LoadBalancer;
   }) {
     this.workerPool = options.workerPool;
-    this.loadBalancer = options.loadBalancer || new LoadBalancer('least-loaded');
+    this.loadBalancer =
+      options.loadBalancer || new LoadBalancer("least-loaded");
   }
 
   /**
@@ -499,7 +506,7 @@ export class DistributedPipelineExecutor {
     options?: {
       priority?: number;
       maxAttempts?: number;
-    }
+    },
   ): Promise<StageResult> {
     return new Promise((resolve, reject) => {
       const workItem: WorkItem = {
@@ -518,23 +525,27 @@ export class DistributedPipelineExecutor {
       const onComplete = (data: any) => {
         if (data.item.id === workItem.id && !completed) {
           completed = true;
-          this.workerPool.off('task-complete', onComplete);
-          this.workerPool.off('task-error', onError);
+          this.workerPool.off("task-complete", onComplete);
+          this.workerPool.off("task-error", onError);
           resolve(data.result);
         }
       };
 
       const onError = (data: any) => {
-        if (data.item.id === workItem.id && data.item.attempts >= workItem.maxAttempts && !completed) {
+        if (
+          data.item.id === workItem.id &&
+          data.item.attempts >= workItem.maxAttempts &&
+          !completed
+        ) {
           completed = true;
-          this.workerPool.off('task-complete', onComplete);
-          this.workerPool.off('task-error', onError);
+          this.workerPool.off("task-complete", onComplete);
+          this.workerPool.off("task-error", onError);
           reject(data.error);
         }
       };
 
-      this.workerPool.on('task-complete', onComplete);
-      this.workerPool.on('task-error', onError);
+      this.workerPool.on("task-complete", onComplete);
+      this.workerPool.on("task-error", onError);
 
       this.workerPool.submitWork(workItem);
     });
@@ -551,9 +562,11 @@ export class DistributedPipelineExecutor {
 /**
  * Create a distributed pipeline middleware
  */
-export function createDistributedMiddleware(executor: DistributedPipelineExecutor) {
+export function createDistributedMiddleware(
+  executor: DistributedPipelineExecutor,
+) {
   return {
-    name: 'distributed',
+    name: "distributed",
     onStageStart: async (context: PipelineContext, stage: PipelineStage) => {
       (context.metadata as any).distributedExecution = true;
       (context.metadata as any).workerStats = executor.getStats();

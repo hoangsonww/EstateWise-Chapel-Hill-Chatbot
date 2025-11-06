@@ -16,7 +16,7 @@ import {
   createPerformanceMiddleware,
   createCachingMiddleware,
   type AgentPipelineState,
-} from '../pipeline/index.js';
+} from "../pipeline/index.js";
 
 /**
  * Property search input
@@ -60,20 +60,24 @@ export function createPropertySearchPipeline(options?: {
   maxResults?: number;
 }) {
   const builder = createPipeline<PropertySearchInput, AgentPipelineState>()
-    .withName('property-search')
-    .withDescription('Search and analyze properties based on natural language queries');
+    .withName("property-search")
+    .withDescription(
+      "Search and analyze properties based on natural language queries",
+    );
 
   // Add middleware
   if (options?.enableLogging !== false) {
-    builder.use(createLoggingMiddleware({ logLevel: 'info' }));
+    builder.use(createLoggingMiddleware({ logLevel: "info" }));
   }
 
   if (options?.enableMetrics !== false) {
-    builder.use(createMetricsMiddleware({
-      onMetrics: (metrics) => {
-        console.log('[Pipeline Metrics]', metrics);
-      }
-    }));
+    builder.use(
+      createMetricsMiddleware({
+        onMetrics: (metrics) => {
+          console.log("[Pipeline Metrics]", metrics);
+        },
+      }),
+    );
   }
 
   if (options?.enablePerformance !== false) {
@@ -84,8 +88,9 @@ export function createPropertySearchPipeline(options?: {
     builder.use(
       createCachingMiddleware({
         ttl: 300000, // 5 minutes
-        keyGenerator: (context) => `property-search:${(context.input as PropertySearchInput).goal}`,
-      })
+        keyGenerator: (context) =>
+          `property-search:${(context.input as PropertySearchInput).goal}`,
+      }),
     );
   }
 
@@ -99,7 +104,7 @@ export function createPropertySearchPipeline(options?: {
       const input = context.input as PropertySearchInput;
       return input.includeMap !== false && (state.zpids?.length || 0) > 0;
     }, createMapLinkStage())
-    .stage('format-result', async (context) => {
+    .stage("format-result", async (context) => {
       const state = context.state as AgentPipelineState;
       const result: PropertySearchResult = {
         properties: state.propertyResults || [],
@@ -120,13 +125,13 @@ export function createPropertySearchPipeline(options?: {
  */
 export function createQuickPropertySearchPipeline() {
   return createPipeline<PropertySearchInput, AgentPipelineState>()
-    .withName('quick-property-search')
-    .withDescription('Fast property search without advanced features')
-    .use(createLoggingMiddleware({ logLevel: 'warn' }))
+    .withName("quick-property-search")
+    .withDescription("Fast property search without advanced features")
+    .use(createLoggingMiddleware({ logLevel: "warn" }))
     .addStage(createGoalParserStage())
     .addStage(createPropertySearchStage())
     .addStage(createDedupeRankStage({ maxResults: 10 }))
-    .stage('format-result', async (context) => {
+    .stage("format-result", async (context) => {
       const state = context.state as AgentPipelineState;
       return {
         properties: state.propertyResults || [],
@@ -144,36 +149,42 @@ export function createQuickPropertySearchPipeline() {
  * Advanced property search with parallel analysis
  */
 export function createAdvancedPropertySearchPipeline() {
-  return createPipeline<PropertySearchInput, AgentPipelineState>()
-    .withName('advanced-property-search')
-    .withDescription('Property search with parallel graph and analytics analysis')
-    .use(createLoggingMiddleware({ logLevel: 'info' }))
-    .use(createMetricsMiddleware({
-      onMetrics: (metrics) => {
-        console.log('[Advanced Pipeline Metrics]', metrics);
-      }
-    }))
-    .use(createPerformanceMiddleware({ slowThreshold: 10000 }))
-    .addStage(createGoalParserStage())
-    .addStage(createPropertySearchStage())
-    .addStage(createDedupeRankStage())
-    // Parallel analysis stages would go here
-    .addStage(createMapLinkStage())
-    .stage('format-result', async (context) => {
-      const state = context.state as AgentPipelineState;
-      return {
-        properties: state.propertyResults || [],
-        mapLink: state.mapLink,
-        analytics: state.analytics,
-        graphData: state.graphResults,
-        metrics: {
-          totalFound: state.propertyResults?.length || 0,
-          duplicatesRemoved: 0,
-          searchTime: Date.now() - context.metadata.startTime,
-        },
-      };
-    })
-    .build();
+  return (
+    createPipeline<PropertySearchInput, AgentPipelineState>()
+      .withName("advanced-property-search")
+      .withDescription(
+        "Property search with parallel graph and analytics analysis",
+      )
+      .use(createLoggingMiddleware({ logLevel: "info" }))
+      .use(
+        createMetricsMiddleware({
+          onMetrics: (metrics) => {
+            console.log("[Advanced Pipeline Metrics]", metrics);
+          },
+        }),
+      )
+      .use(createPerformanceMiddleware({ slowThreshold: 10000 }))
+      .addStage(createGoalParserStage())
+      .addStage(createPropertySearchStage())
+      .addStage(createDedupeRankStage())
+      // Parallel analysis stages would go here
+      .addStage(createMapLinkStage())
+      .stage("format-result", async (context) => {
+        const state = context.state as AgentPipelineState;
+        return {
+          properties: state.propertyResults || [],
+          mapLink: state.mapLink,
+          analytics: state.analytics,
+          graphData: state.graphResults,
+          metrics: {
+            totalFound: state.propertyResults?.length || 0,
+            duplicatesRemoved: 0,
+            searchTime: Date.now() - context.metadata.startTime,
+          },
+        };
+      })
+      .build()
+  );
 }
 
 /**
@@ -185,7 +196,7 @@ export async function runPropertySearch(
     maxResults?: number;
     includeMap?: boolean;
     cacheResults?: boolean;
-  }
+  },
 ): Promise<PropertySearchResult> {
   const pipeline = createPropertySearchPipeline(options);
 

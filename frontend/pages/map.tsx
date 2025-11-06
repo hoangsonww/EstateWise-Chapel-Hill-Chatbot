@@ -22,6 +22,7 @@ import {
   Moon,
   GitBranch,
   HelpCircle,
+  Users,
 } from "lucide-react";
 import {
   Dialog,
@@ -388,6 +389,18 @@ export default function MapPage() {
                   </Link>
                 </TooltipTrigger>
                 <TooltipContent>Charts</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Link
+                    href="/forums"
+                    className="inline-flex h-8 w-8 items-center justify-center hover:text-primary transition-colors"
+                    aria-label="Forums"
+                  >
+                    <Users className="w-5 h-5" />
+                  </Link>
+                </TooltipTrigger>
+                <TooltipContent>Forums</TooltipContent>
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>

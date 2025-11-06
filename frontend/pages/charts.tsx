@@ -20,6 +20,7 @@ import {
   MessageCircleMore,
   MapPin,
   GitBranch,
+  Users,
 } from "lucide-react";
 import {
   Tooltip,
@@ -338,6 +339,18 @@ export default function ChartsPage() {
                   </Link>
                 </TooltipTrigger>
                 <TooltipContent>Map</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Link
+                    href="/forums"
+                    className="inline-flex h-8 w-8 items-center justify-center hover:text-primary transition-colors"
+                    aria-label="Forums"
+                  >
+                    <Users className="w-5 h-5" />
+                  </Link>
+                </TooltipTrigger>
+                <TooltipContent>Forums</TooltipContent>
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
