@@ -22,6 +22,7 @@ import {
   MessageCircle,
   LogOut,
   User as UserIcon,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -83,12 +84,16 @@ export default function ForumsPage() {
   const isAuthed = Boolean(token);
 
   useEffect(() => {
-    fetchPosts();
+    if (!searchQuery.trim()) {
+      fetchPosts();
+    }
   }, [selectedCategory]);
 
   useEffect(() => {
     const debounceTimer = setTimeout(() => {
-      handleSearch();
+      if (searchQuery.trim()) {
+        handleSearch();
+      }
     }, 300);
 
     return () => clearTimeout(debounceTimer);
@@ -110,6 +115,7 @@ export default function ForumsPage() {
 
   const fetchPosts = async () => {
     setLoading(true);
+    setPosts([]);
     try {
       const params =
         selectedCategory !== "All" ? { category: selectedCategory } : {};
@@ -129,6 +135,7 @@ export default function ForumsPage() {
     }
 
     setLoading(true);
+    setPosts([]);
     try {
       const results = await searchPosts(
         searchQuery,
@@ -411,7 +418,8 @@ export default function ForumsPage() {
 
           {/* Posts List */}
           {loading ? (
-            <div className="flex justify-center items-center py-20">
+            <div className="flex flex-col justify-center items-center py-20">
+              <Loader2 className="w-8 h-8 text-primary animate-spin mb-3" />
               <div className="text-muted-foreground">Loading posts...</div>
             </div>
           ) : posts.length === 0 ? (
