@@ -693,10 +693,10 @@ export default function PostDetailPage() {
           open={showDeletePostDialog}
           onOpenChange={setShowDeletePostDialog}
         >
-          <DialogContent>
+          <DialogContent className="bg-card text-foreground [&>button]:text-muted-foreground [&>button]:hover:text-foreground">
             <DialogHeader>
-              <DialogTitle>Delete Post</DialogTitle>
-              <DialogDescription>
+              <DialogTitle className="text-foreground">Delete Post</DialogTitle>
+              <DialogDescription className="text-muted-foreground">
                 Are you sure you want to delete this post? This action cannot be
                 undone.
               </DialogDescription>
@@ -720,10 +720,12 @@ export default function PostDetailPage() {
           open={!!deletingCommentId}
           onOpenChange={() => setDeletingCommentId(null)}
         >
-          <DialogContent>
+          <DialogContent className="bg-card text-foreground [&>button]:text-muted-foreground [&>button]:hover:text-foreground">
             <DialogHeader>
-              <DialogTitle>Delete Comment</DialogTitle>
-              <DialogDescription>
+              <DialogTitle className="text-foreground">
+                Delete Comment
+              </DialogTitle>
+              <DialogDescription className="text-muted-foreground">
                 Are you sure you want to delete this comment? This action cannot
                 be undone.
               </DialogDescription>

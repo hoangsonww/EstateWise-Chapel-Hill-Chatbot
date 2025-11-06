@@ -311,6 +311,7 @@ async function ensureCommentsForPost(
 
     const comment = new Comment({
       post: post._id,
+      // @ts-ignore
       author: author._id,
       content: commentData.content,
       upvotes: [],
@@ -374,6 +375,7 @@ async function seedWithRetry(
           postDoc = existing;
         } else {
           const post = new Post({
+            // @ts-ignore
             author: author._id,
             title: postData.title,
             content: postData.content,

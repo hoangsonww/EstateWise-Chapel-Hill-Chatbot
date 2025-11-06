@@ -494,7 +494,7 @@ export default function ForumsPage() {
         <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
-              <DialogTitle>Create New Post</DialogTitle>
+              <DialogTitle>Create a New Post</DialogTitle>
             </DialogHeader>
 
             <div className="space-y-4">
@@ -506,6 +506,7 @@ export default function ForumsPage() {
                   value={newPostTitle}
                   onChange={(e) => setNewPostTitle(e.target.value)}
                   maxLength={200}
+                  className="mt-2"
                 />
               </div>
 
@@ -513,7 +514,7 @@ export default function ForumsPage() {
                 <Label htmlFor="category">Category</Label>
                 <select
                   id="category"
-                  className="w-full rounded-md border border-input bg-background px-3 py-2"
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 mt-2"
                   value={newPostCategory}
                   onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
                     setNewPostCategory(e.target.value)
@@ -535,7 +536,7 @@ export default function ForumsPage() {
                   value={newPostContent}
                   onChange={(e) => setNewPostContent(e.target.value)}
                   rows={8}
-                  className="resize-none"
+                  className="resize-none mt-2"
                 />
               </div>
             </div>
