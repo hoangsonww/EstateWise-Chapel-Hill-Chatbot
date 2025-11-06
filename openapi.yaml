@@ -141,6 +141,8 @@ paths:
       summary: "Send a chat message to EstateWise"
       tags:
         - Chat
+      security:
+        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -162,10 +164,59 @@ paths:
                 $ref: "#/components/schemas/ChatResponse"
               example:
                 response: "Sure, I can help you with property taxes. Could you provide more details?"
+                expertViews: {}
+                convoId: "string"
         "401":
           description: "Unauthorized - invalid or missing authentication token."
         "500":
           description: "Server error - Unable to process chat request."
+  /api/chat/rate:
+    post:
+      summary: "Rate a conversation"
+      tags:
+        - Chat
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - convoId
+                - rating
+              properties:
+                convoId:
+                  type: string
+                  description: "ID of the conversation to rate"
+                rating:
+                  type: string
+                  enum: [up, down]
+                  description: "'up' for thumbs up, 'down' for thumbs down"
+            example:
+              convoId: "60d0fe4f5311236168a109ca"
+              rating: "up"
+      responses:
+        "200":
+          description: "Rating recorded successfully."
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  expertWeights:
+                    type: object
+                    additionalProperties:
+                      type: number
+        "401":
+          description: "Unauthorized - invalid or missing authentication token."
+        "404":
+          description: "Conversation not found."
+        "500":
+          description: "Server error - Unable to process rating request."
   /api/conversations:
     post:
       summary: "Create a new conversation"
@@ -315,6 +366,645 @@ paths:
                 message: "Conversation deleted successfully"
         "401":
           description: "Unauthorized - User not authenticated."
+  /api/properties:
+    get:
+      summary: "Search properties and generate chart specs"
+      tags:
+        - Properties
+      parameters:
+        - in: query
+          name: q
+          schema:
+            type: string
+          required: true
+          description: "Full-text query to search similar properties"
+        - in: query
+          name: topK
+          schema:
+            type: integer
+            default: 10
+          description: "Maximum number of properties to return"
+      responses:
+        "200":
+          description: "Matching properties plus 12 distinct Chart.js specs"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  listings:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Property"
+                  charts:
+                    type: object
+                    description: "Map of 12 Chart.js specs"
+        "500":
+          description: "Server error - Failed to fetch property data."
+  /api/properties/by-ids:
+    get:
+      summary: "Get properties by IDs"
+      tags:
+        - Properties
+      parameters:
+        - in: query
+          name: ids
+          schema:
+            type: array
+            items:
+              type: string
+          required: true
+          description: "Array of property IDs"
+      responses:
+        "200":
+          description: "List of properties"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Property"
+        "500":
+          description: "Server error - Failed to fetch properties."
+  /api/properties/lookup:
+    get:
+      summary: "Lookup properties by address/city/state/zip and optional beds/baths"
+      tags:
+        - Properties
+      parameters:
+        - in: query
+          name: address
+          schema:
+            type: string
+        - in: query
+          name: city
+          schema:
+            type: string
+        - in: query
+          name: state
+          schema:
+            type: string
+        - in: query
+          name: zipcode
+          schema:
+            type: string
+        - in: query
+          name: beds
+          schema:
+            type: integer
+        - in: query
+          name: baths
+          schema:
+            type: integer
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+      responses:
+        "200":
+          description: "Compact list of candidate properties including ZPIDs"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Property"
+        "400":
+          description: "Missing filters"
+  /api/commute-profiles:
+    post:
+      summary: "Create a new commute profile"
+      tags:
+        - Commute Profiles
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommuteProfile"
+      responses:
+        "201":
+          description: "Commute profile created successfully"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommuteProfile"
+        "400":
+          description: "Validation error"
+        "401":
+          description: "Unauthorized"
+        "409":
+          description: "Profile with this name already exists"
+        "500":
+          description: "Internal server error"
+    get:
+      summary: "Get all commute profiles for authenticated user"
+      tags:
+        - Commute Profiles
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: "List of commute profiles"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CommuteProfile"
+        "401":
+          description: "Unauthorized"
+        "500":
+          description: "Internal server error"
+  /api/commute-profiles/{id}:
+    get:
+      summary: "Get a specific commute profile by ID"
+      tags:
+        - Commute Profiles
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: "Commute profile ID"
+      responses:
+        "200":
+          description: "Commute profile details"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommuteProfile"
+        "400":
+          description: "Invalid profile ID format"
+        "401":
+          description: "Unauthorized"
+        "404":
+          description: "Profile not found"
+        "500":
+          description: "Internal server error"
+    put:
+      summary: "Update a commute profile"
+      tags:
+        - Commute Profiles
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: "Commute profile ID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommuteProfile"
+      responses:
+        "200":
+          description: "Commute profile updated successfully"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommuteProfile"
+        "400":
+          description: "Validation error"
+        "401":
+          description: "Unauthorized"
+        "404":
+          description: "Profile not found"
+        "409":
+          description: "Profile with this name already exists"
+        "500":
+          description: "Internal server error"
+    delete:
+      summary: "Delete a commute profile"
+      tags:
+        - Commute Profiles
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: "Commute profile ID"
+      responses:
+        "200":
+          description: "Commute profile deleted successfully"
+        "400":
+          description: "Invalid profile ID format"
+        "401":
+          description: "Unauthorized"
+        "404":
+          description: "Profile not found"
+        "500":
+          description: "Internal server error"
+  /api/graph/similar/{zpid}:
+    get:
+      summary: "Similar properties via graph relationships with reasons"
+      tags:
+        - Graph
+      parameters:
+        - in: path
+          name: zpid
+          required: true
+          schema:
+            type: integer
+          description: "Property ZPID"
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+          description: "Number of similar properties to return"
+      responses:
+        "200":
+          description: "List of similar properties and reasons"
+        "503":
+          description: "Neo4j not configured"
+  /api/graph/explain:
+    get:
+      summary: "Explain why two properties are related"
+      tags:
+        - Graph
+      parameters:
+        - in: query
+          name: from
+          required: true
+          schema:
+            type: integer
+          description: "Source property ZPID"
+        - in: query
+          name: to
+          required: true
+          schema:
+            type: integer
+          description: "Target property ZPID"
+      responses:
+        "200":
+          description: "Path explanation"
+  /api/graph/neighborhood/{name}:
+    get:
+      summary: "Neighborhood stats and sample properties"
+      tags:
+        - Graph
+      parameters:
+        - in: path
+          name: name
+          required: true
+          schema:
+            type: string
+          description: "Neighborhood name"
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 50
+          description: "Number of properties to return"
+      responses:
+        "200":
+          description: "Stats and properties"
+  /api/posts:
+    post:
+      summary: "Create a new forum post"
+      tags:
+        - Posts
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                content:
+                  type: string
+                category:
+                  type: string
+      responses:
+        "201":
+          description: "Post created successfully"
+        "401":
+          description: "Unauthorized"
+        "500":
+          description: "Failed to create post"
+    get:
+      summary: "Retrieve all posts with pagination"
+      tags:
+        - Posts
+      parameters:
+        - in: query
+          name: category
+          schema:
+            type: string
+          description: "Filter by category"
+        - in: query
+          name: page
+          schema:
+            type: number
+          description: "Page number"
+        - in: query
+          name: limit
+          schema:
+            type: number
+          description: "Posts per page"
+      responses:
+        "200":
+          description: "A list of posts"
+        "500":
+          description: "Failed to fetch posts"
+  /api/posts/search:
+    get:
+      summary: "Search posts by title or content"
+      tags:
+        - Posts
+      parameters:
+        - in: query
+          name: q
+          schema:
+            type: string
+          required: true
+          description: "Search query"
+        - in: query
+          name: category
+          schema:
+            type: string
+          description: "Filter by category"
+      responses:
+        "200":
+          description: "Search results"
+        "400":
+          description: "Search query is required"
+        "500":
+          description: "Search failed"
+  /api/posts/{id}:
+    get:
+      summary: "Get a single post by ID"
+      tags:
+        - Posts
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: "Post details"
+        "404":
+          description: "Post not found"
+        "500":
+          description: "Failed to fetch post"
+    put:
+      summary: "Update a post"
+      tags:
+        - Posts
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                content:
+                  type: string
+                category:
+                  type: string
+      responses:
+        "200":
+          description: "Post updated successfully"
+        "401":
+          description: "Unauthorized"
+        "404":
+          description: "Post not found"
+        "500":
+          description: "Failed to update post"
+    delete:
+      summary: "Delete a post"
+      tags:
+        - Posts
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: "Post deleted successfully"
+        "401":
+          description: "Unauthorized"
+        "404":
+          description: "Post not found"
+        "500":
+          description: "Failed to delete post"
+  /api/posts/{id}/upvote:
+    post:
+      summary: "Upvote a post"
+      tags:
+        - Posts
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: "Post upvoted successfully"
+        "401":
+          description: "Unauthorized"
+        "404":
+          description: "Post not found"
+        "500":
+          description: "Failed to upvote post"
+  /api/posts/{id}/downvote:
+    post:
+      summary: "Downvote a post"
+      tags:
+        - Posts
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: "Post downvoted successfully"
+        "401":
+          description: "Unauthorized"
+        "404":
+          description: "Post not found"
+        "500":
+          description: "Failed to downvote post"
+  /api/comments:
+    post:
+      summary: "Create a new comment on a post"
+      tags:
+        - Comments
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                postId:
+                  type: string
+                content:
+                  type: string
+      responses:
+        "201":
+          description: "Comment created successfully"
+        "401":
+          description: "Unauthorized"
+        "404":
+          description: "Post not found"
+        "500":
+          description: "Failed to create comment"
+  /api/comments/post/{postId}:
+    get:
+      summary: "Get all comments for a specific post"
+      tags:
+        - Comments
+      parameters:
+        - in: path
+          name: postId
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: "A list of comments"
+        "500":
+          description: "Failed to fetch comments"
+  /api/comments/{id}:
+    put:
+      summary: "Update a comment"
+      tags:
+        - Comments
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                content:
+                  type: string
+      responses:
+        "200":
+          description: "Comment updated successfully"
+        "401":
+          description: "Unauthorized"
+        "404":
+          description: "Comment not found"
+        "500":
+          description: "Failed to update comment"
+    delete:
+      summary: "Delete a comment"
+      tags:
+        - Comments
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: "Comment deleted successfully"
+        "401":
+          description: "Unauthorized"
+        "404":
+          description: "Comment not found"
+        "500":
+          description: "Failed to delete comment"
+  /api/comments/{id}/upvote:
+    post:
+      summary: "Upvote a comment"
+      tags:
+        - Comments
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: "Comment upvoted successfully"
+        "401":
+          description: "Unauthorized"
+        "404":
+          description: "Comment not found"
+        "500":
+          description: "Failed to upvote comment"
+  /api/comments/{id}/downvote:
+    post:
+      summary: "Downvote a comment"
+      tags:
+        - Comments
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: "Comment downvoted successfully"
+        "401":
+          description: "Unauthorized"
+        "404":
+          description: "Comment not found"
+        "500":
+          description: "Failed to downvote comment"
 components:
   schemas:
     SignupRequest:
@@ -440,6 +1130,14 @@ components:
         response:
           type: string
           example: "Sure, I can help you with property taxes. Could you provide more details?"
+        expertViews:
+          type: object
+          description: "Raw outputs from each expert model (optional)"
+          additionalProperties:
+            type: string
+        convoId:
+          type: string
+          description: "The conversation ID for authenticated users"
     NewConversationRequest:
       type: object
       properties:
@@ -478,3 +1176,88 @@ components:
           type: string
           format: date-time
           example: "2025-04-16T06:45:15.749Z"
+    Property:
+      type: object
+      properties:
+        id:
+          type: string
+        price:
+          type: number
+        bedrooms:
+          type: number
+        bathrooms:
+          type: number
+        livingArea:
+          type: number
+        yearBuilt:
+          type: number
+        homeType:
+          type: string
+        zipcode:
+          type: string
+    CommuteProfile:
+      type: object
+      properties:
+        _id:
+          type: string
+        userId:
+          type: string
+        name:
+          type: string
+          example: "Work Commute"
+        destinations:
+          type: array
+          minItems: 1
+          maxItems: 3
+          items:
+            type: object
+            required:
+              - label
+              - lat
+              - lng
+              - mode
+              - window
+            properties:
+              label:
+                type: string
+                example: "Work Office"
+              lat:
+                type: number
+                example: 35.9049
+              lng:
+                type: number
+                example: -79.0469
+              mode:
+                type: string
+                enum: [drive, transit, bike, walk]
+                example: "drive"
+              window:
+                type: string
+                pattern: "^([0-1]?[0-9]|2[0-3]):[0-5][0-9]-([0-1]?[0-9]|2[0-3]):[0-5][0-9]$"
+                example: "08:00-17:00"
+              maxMinutes:
+                type: number
+                minimum: 1
+                maximum: 300
+                example: 30
+        maxMinutes:
+          type: number
+          minimum: 1
+          maximum: 300
+          example: 45
+        combine:
+          type: string
+          enum: [intersect, union]
+          default: intersect
+          example: "intersect"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

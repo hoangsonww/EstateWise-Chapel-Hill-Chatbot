@@ -87,6 +87,14 @@ export default function ForumsPage() {
   }, [selectedCategory]);
 
   useEffect(() => {
+    const debounceTimer = setTimeout(() => {
+      handleSearch();
+    }, 300);
+
+    return () => clearTimeout(debounceTimer);
+  }, [searchQuery, selectedCategory]);
+
+  useEffect(() => {
     if (isAuthed) {
       setAuthMenuOpen(false);
     }
@@ -346,21 +354,17 @@ export default function ForumsPage() {
                     placeholder="Search posts..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                    className="pl-10"
+                    className="pl-10 text-foreground placeholder:text-muted-foreground"
                   />
                 </div>
-                <Button onClick={handleSearch} variant="secondary">
-                  Search
-                </Button>
                 {searchQuery && (
                   <Button
                     onClick={() => {
                       setSearchQuery("");
-                      fetchPosts();
                     }}
                     variant="ghost"
                     size="icon"
+                    className="text-foreground hover:text-primary"
                   >
                     <X className="w-4 h-4" />
                   </Button>
