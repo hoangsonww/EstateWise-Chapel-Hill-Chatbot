@@ -1752,8 +1752,14 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
                 } else if (parsed.error) {
                   throw new Error(parsed.error);
                 }
-              } catch (e) {
+              } catch (e: any) {
                 console.error("Error parsing SSE data:", e);
+                if (
+                  e?.message &&
+                  e.message !== "Unexpected end of JSON input"
+                ) {
+                  throw e;
+                }
               }
             }
           }
@@ -1782,6 +1788,20 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
       } catch (error: any) {
         console.error(`Stream attempt ${retryCount + 1} failed:`, error);
 
+        // Check if it's a rate limit or specific API error
+        const errorMsg = error?.message || "";
+        const isRateLimit =
+          errorMsg.includes("rate limit") || errorMsg.includes("Rate limit");
+        const isApiError =
+          errorMsg.includes("Google AI") ||
+          errorMsg.includes("property database");
+
+        if (isRateLimit || isApiError) {
+          // Don't retry for rate limit or specific API errors
+          toast.error(errorMsg);
+          return false;
+        }
+
         if (retryCount < MAX_RETRIES - 1) {
           retryCount++;
           toast.error(
@@ -1801,15 +1821,15 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
       const success = await attemptStream();
 
       if (!success) {
-        toast.error(
-          "Failed to get response after multiple retries. Please try again.",
-        );
+        // Error message already shown in attemptStream
         // Remove the empty streaming message on failure
         setMessages((m) => m.slice(0, -1));
       }
     } catch (error: any) {
       console.error("Error sending message:", error);
-      toast.error("Error processing your message. Please try again.");
+      const errorMsg =
+        error?.message || "Error processing your message. Please try again.";
+      toast.error(errorMsg);
       // Remove the empty streaming message on error
       setMessages((m) => m.slice(0, -1));
     } finally {
