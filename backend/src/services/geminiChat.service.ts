@@ -168,12 +168,25 @@ export async function chatWithEstateWise(
   let rawResults: RawQueryResult[];
 
   if (!dataNotFetched || !userContext.rawResults) {
-    [propertyContext, rawResults] = await Promise.all([
-      queryPropertiesAsString(message, 30),
-      queryProperties(message, 30),
-    ]);
-    userContext.propertyContext = propertyContext;
-    userContext.rawResults = rawResults;
+    try {
+      [propertyContext, rawResults] = await Promise.all([
+        queryPropertiesAsString(message, 50),
+        queryProperties(message, 50),
+      ]);
+      userContext.propertyContext = propertyContext;
+      userContext.rawResults = rawResults;
+    } catch (err: any) {
+      console.error("Error fetching property data:", err);
+      if (err?.message?.includes("rate limit") || err?.status === 429) {
+        throw new Error(
+          "Rate limit reached with Google AI API. Please try again in a moment.",
+        );
+      } else if (err?.message?.toLowerCase().includes("pinecone")) {
+        throw new Error("Error with property database. Please try again.");
+      } else {
+        throw new Error("Error fetching property data. Please try again.");
+      }
+    }
   } else {
     propertyContext = userContext.propertyContext!;
     rawResults = userContext.rawResults!;
@@ -324,7 +337,7 @@ export async function chatWithEstateWise(
 
     12.1. Do NOT take too long to respond. Time is of the essence. You must respond quickly and efficiently, without unnecessary delays.
 
-    12.2. Keep in mind that the dataset available to you here is only the top 30 properties based on the user's query. You do not have access to the entire dataset. So, you must be careful about how you present the data and avoid making any assumptions about the completeness of the dataset. Maybe display a disclaimer at the bottom of the response, such as "Note: The dataset is limited to the top 30 properties based on your query. For a more comprehensive analysis, provide additional context or preferences.".
+    12.2. Keep in mind that the dataset available to you here is only the top 50 properties based on the user's query. You do not have access to the entire dataset. So, you must be careful about how you present the data and avoid making any assumptions about the completeness of the dataset. Maybe display a disclaimer at the bottom of the response, such as "Note: The dataset is limited to the top 50 properties based on your query. For a more comprehensive analysis, provide additional context or preferences.".
 
     12.3. Limit your response so that it is not too verbose. And you must ensure that you don't take too long to answer. You must respond quickly and efficiently, without unnecessary delays.
 
@@ -433,7 +446,20 @@ export async function chatWithEstateWise(
       text: result.response.text(),
     };
   });
-  const expertResults = await Promise.all(expertPromises);
+
+  let expertResults;
+  try {
+    expertResults = await Promise.all(expertPromises);
+  } catch (err: any) {
+    console.error("Error from Google AI API:", err);
+    if (err?.message?.includes("rate limit") || err?.status === 429) {
+      throw new Error(
+        "Rate limit reached with Google AI API. Please try again in a moment.",
+      );
+    } else {
+      throw new Error("Error with Google AI API. Please try again.");
+    }
+  }
 
   // ─── 7) Build merger instruction, including expert weights ──────────────
   const mergerInstruction = `
@@ -548,12 +574,34 @@ export async function* chatWithEstateWiseStreaming(
     let rawResults: RawQueryResult[];
 
     if (!dataNotFetched || !userContext.rawResults) {
-      [propertyContext, rawResults] = await Promise.all([
-        queryPropertiesAsString(message, 30),
-        queryProperties(message, 30),
-      ]);
-      userContext.propertyContext = propertyContext;
-      userContext.rawResults = rawResults;
+      try {
+        [propertyContext, rawResults] = await Promise.all([
+          queryPropertiesAsString(message, 50),
+          queryProperties(message, 50),
+        ]);
+        userContext.propertyContext = propertyContext;
+        userContext.rawResults = rawResults;
+      } catch (err: any) {
+        console.error("Error fetching property data:", err);
+        if (err?.message?.includes("rate limit") || err?.status === 429) {
+          yield {
+            type: "error" as const,
+            error:
+              "Rate limit reached with Google AI API. Please try again in a moment.",
+          };
+        } else if (err?.message?.toLowerCase().includes("pinecone")) {
+          yield {
+            type: "error" as const,
+            error: "Error with property database. Please try again.",
+          };
+        } else {
+          yield {
+            type: "error" as const,
+            error: "Error fetching property data. Please try again.",
+          };
+        }
+        return;
+      }
     } else {
       propertyContext = userContext.propertyContext!;
       rawResults = userContext.rawResults!;
@@ -705,7 +753,7 @@ export async function* chatWithEstateWiseStreaming(
 
       12.1. Do NOT take too long to respond. Time is of the essence. You must respond quickly and efficiently, without unnecessary delays.
 
-      12.2. Keep in mind that the dataset available to you here is only the top 30 properties based on the user's query. You do not have access to the entire dataset. So, you must be careful about how you present the data and avoid making any assumptions about the completeness of the dataset. Maybe display a disclaimer at the bottom of the response, such as "Note: The dataset is limited to the top 30 properties based on your query. For a more comprehensive analysis, provide additional context or preferences.".
+      12.2. Keep in mind that the dataset available to you here is only the top 50 properties based on the user's query. You do not have access to the entire dataset. So, you must be careful about how you present the data and avoid making any assumptions about the completeness of the dataset. Maybe display a disclaimer at the bottom of the response, such as "Note: The dataset is limited to the top 50 properties based on your query. For a more comprehensive analysis, provide additional context or preferences.".
 
       12.3. Limit your response so that it is not too verbose. And you must ensure that you don't take too long to answer. You must respond quickly and efficiently, without unnecessary delays.
 
@@ -753,7 +801,7 @@ export async function* chatWithEstateWiseStreaming(
       },
     ];
 
-    // ─── 4) Build your weight map (no normalization) ─────────────────────────
+    // ─── 4) Build weight map (no normalization) ─────────────────────────
     const CLUSTER_KEY = "Cluster Analyst";
     const weights: Record<string, number> = {};
 
@@ -812,7 +860,26 @@ export async function* chatWithEstateWiseStreaming(
         text: result.response.text(),
       };
     });
-    const expertResults = await Promise.all(expertPromises);
+
+    let expertResults;
+    try {
+      expertResults = await Promise.all(expertPromises);
+    } catch (err: any) {
+      console.error("Error from Google AI API:", err);
+      if (err?.message?.includes("rate limit") || err?.status === 429) {
+        yield {
+          type: "error" as const,
+          error:
+            "Rate limit reached with Google AI API. Please try again in a moment.",
+        };
+      } else {
+        yield {
+          type: "error" as const,
+          error: "Error with Google AI API. Please try again.",
+        };
+      }
+      return;
+    }
 
     // ─── 7) Build merger instruction, including expert weights ──────────────
     const mergerInstruction = `
@@ -878,7 +945,15 @@ export async function* chatWithEstateWiseStreaming(
       yield { type: "expertViews" as const, expertViews };
     } catch (err: any) {
       console.error("Streaming error:", err);
-      // On error, use highest-weight expert
+      if (err?.message?.includes("rate limit") || err?.status === 429) {
+        yield {
+          type: "error" as const,
+          error:
+            "Rate limit reached with Google AI API. Please try again in a moment.",
+        };
+        return;
+      }
+      // On other errors, use highest-weight expert
       const best = expertResults.reduce((a, b) =>
         weights[b.name] > weights[a.name] ? b : a,
       );
@@ -890,8 +965,24 @@ export async function* chatWithEstateWiseStreaming(
       });
       yield { type: "expertViews" as const, expertViews };
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error("Streaming error:", error);
-    yield { type: "error" as const, error: "Error processing your request" };
+    if (error?.message?.includes("rate limit") || error?.status === 429) {
+      yield {
+        type: "error" as const,
+        error:
+          "Rate limit reached with Google AI API. Please try again in a moment.",
+      };
+    } else if (error?.message?.toLowerCase().includes("pinecone")) {
+      yield {
+        type: "error" as const,
+        error: "Error with property database. Please try again.",
+      };
+    } else {
+      yield {
+        type: "error" as const,
+        error: "Error processing your request. Please try again.",
+      };
+    }
   }
 }

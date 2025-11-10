@@ -145,9 +145,26 @@ export const chat = async (req: AuthRequest, res: Response) => {
       expertViews,
       expertWeights: guestWeights,
     });
-  } catch (err) {
+  } catch (err: any) {
     console.error("Error processing chat request:", err);
-    return res.status(500).json({ error: "Error processing chat request" });
+    let errorMessage = "Error processing chat request";
+    if (
+      err?.message?.includes("rate limit") ||
+      err?.message?.includes("Rate limit")
+    ) {
+      errorMessage = err.message;
+    } else if (
+      err?.message?.includes("Google AI") ||
+      err?.message?.includes("GOOGLE_AI")
+    ) {
+      errorMessage = "Error with Google AI API. Please try again.";
+    } else if (
+      err?.message?.toLowerCase().includes("pinecone") ||
+      err?.message?.includes("property database")
+    ) {
+      errorMessage = "Error with property database. Please try again.";
+    }
+    return res.status(500).json({ error: errorMessage });
   }
 };
 
@@ -355,9 +372,26 @@ export const chatStreaming = async (req: AuthRequest, res: Response) => {
           convoId: conversation._id,
           expertWeights: conversation.expertWeights,
         });
-      } catch (err) {
+      } catch (err: any) {
         console.error("Streaming error:", err);
-        sendEvent("error", { error: "Error processing chat request" });
+        let errorMessage = "Error processing chat request";
+        if (
+          err?.message?.includes("rate limit") ||
+          err?.message?.includes("Rate limit")
+        ) {
+          errorMessage = err.message;
+        } else if (
+          err?.message?.includes("Google AI") ||
+          err?.message?.includes("GOOGLE_AI")
+        ) {
+          errorMessage = "Error with Google AI API. Please try again.";
+        } else if (
+          err?.message?.toLowerCase().includes("pinecone") ||
+          err?.message?.includes("property database")
+        ) {
+          errorMessage = "Error with property database. Please try again.";
+        }
+        sendEvent("error", { error: errorMessage });
       }
 
       res.end();
@@ -425,18 +459,50 @@ export const chatStreaming = async (req: AuthRequest, res: Response) => {
         expertViews,
         expertWeights: guestWeights,
       });
-    } catch (err) {
+    } catch (err: any) {
       console.error("Streaming error:", err);
-      sendEvent("error", { error: "Error processing chat request" });
+      let errorMessage = "Error processing chat request";
+      if (
+        err?.message?.includes("rate limit") ||
+        err?.message?.includes("Rate limit")
+      ) {
+        errorMessage = err.message;
+      } else if (
+        err?.message?.includes("Google AI") ||
+        err?.message?.includes("GOOGLE_AI")
+      ) {
+        errorMessage = "Error with Google AI API. Please try again.";
+      } else if (
+        err?.message?.toLowerCase().includes("pinecone") ||
+        err?.message?.includes("property database")
+      ) {
+        errorMessage = "Error with property database. Please try again.";
+      }
+      sendEvent("error", { error: errorMessage });
     }
 
     res.end();
-  } catch (err) {
+  } catch (err: any) {
     console.error("Error processing chat request:", err);
+    let errorMessage = "Error processing chat request";
+    if (
+      err?.message?.includes("rate limit") ||
+      err?.message?.includes("Rate limit")
+    ) {
+      errorMessage = err.message;
+    } else if (
+      err?.message?.includes("Google AI") ||
+      err?.message?.includes("GOOGLE_AI")
+    ) {
+      errorMessage = "Error with Google AI API. Please try again.";
+    } else if (
+      err?.message?.toLowerCase().includes("pinecone") ||
+      err?.message?.includes("property database")
+    ) {
+      errorMessage = "Error with property database. Please try again.";
+    }
     res.write(`event: error\n`);
-    res.write(
-      `data: ${JSON.stringify({ error: "Error processing chat request" })}\n\n`,
-    );
+    res.write(`data: ${JSON.stringify({ error: errorMessage })}\n\n`);
     res.end();
   }
 };
