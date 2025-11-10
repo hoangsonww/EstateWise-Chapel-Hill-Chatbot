@@ -169,8 +169,8 @@ export async function chatWithEstateWise(
 
   if (!dataNotFetched || !userContext.rawResults) {
     [propertyContext, rawResults] = await Promise.all([
-      queryPropertiesAsString(message, 30),
-      queryProperties(message, 30),
+      queryPropertiesAsString(message, 50),
+      queryProperties(message, 50),
     ]);
     userContext.propertyContext = propertyContext;
     userContext.rawResults = rawResults;
@@ -324,7 +324,7 @@ export async function chatWithEstateWise(
 
     12.1. Do NOT take too long to respond. Time is of the essence. You must respond quickly and efficiently, without unnecessary delays.
 
-    12.2. Keep in mind that the dataset available to you here is only the top 30 properties based on the user's query. You do not have access to the entire dataset. So, you must be careful about how you present the data and avoid making any assumptions about the completeness of the dataset. Maybe display a disclaimer at the bottom of the response, such as "Note: The dataset is limited to the top 30 properties based on your query. For a more comprehensive analysis, provide additional context or preferences.".
+    12.2. Keep in mind that the dataset available to you here is only the top 50 properties based on the user's query. You do not have access to the entire dataset. So, you must be careful about how you present the data and avoid making any assumptions about the completeness of the dataset. Maybe display a disclaimer at the bottom of the response, such as "Note: The dataset is limited to the top 50 properties based on your query. For a more comprehensive analysis, provide additional context or preferences.".
 
     12.3. Limit your response so that it is not too verbose. And you must ensure that you don't take too long to answer. You must respond quickly and efficiently, without unnecessary delays.
 
@@ -549,8 +549,8 @@ export async function* chatWithEstateWiseStreaming(
 
     if (!dataNotFetched || !userContext.rawResults) {
       [propertyContext, rawResults] = await Promise.all([
-        queryPropertiesAsString(message, 30),
-        queryProperties(message, 30),
+        queryPropertiesAsString(message, 50),
+        queryProperties(message, 50),
       ]);
       userContext.propertyContext = propertyContext;
       userContext.rawResults = rawResults;
@@ -705,7 +705,7 @@ export async function* chatWithEstateWiseStreaming(
 
       12.1. Do NOT take too long to respond. Time is of the essence. You must respond quickly and efficiently, without unnecessary delays.
 
-      12.2. Keep in mind that the dataset available to you here is only the top 30 properties based on the user's query. You do not have access to the entire dataset. So, you must be careful about how you present the data and avoid making any assumptions about the completeness of the dataset. Maybe display a disclaimer at the bottom of the response, such as "Note: The dataset is limited to the top 30 properties based on your query. For a more comprehensive analysis, provide additional context or preferences.".
+      12.2. Keep in mind that the dataset available to you here is only the top 50 properties based on the user's query. You do not have access to the entire dataset. So, you must be careful about how you present the data and avoid making any assumptions about the completeness of the dataset. Maybe display a disclaimer at the bottom of the response, such as "Note: The dataset is limited to the top 50 properties based on your query. For a more comprehensive analysis, provide additional context or preferences.".
 
       12.3. Limit your response so that it is not too verbose. And you must ensure that you don't take too long to answer. You must respond quickly and efficiently, without unnecessary delays.
 
