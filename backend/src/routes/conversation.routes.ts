@@ -5,6 +5,7 @@ import {
   searchConversations,
   updateConversation,
   deleteConversation,
+  generateConversationName,
 } from "../controllers/conversation.controller";
 import { authMiddleware } from "../middleware/auth.middleware";
 
@@ -242,5 +243,40 @@ router.put("/:id", authMiddleware, updateConversation);
  *         description: Server error - Failed to delete conversation.
  */
 router.delete("/:id", authMiddleware, deleteConversation);
+
+/**
+ * @swagger
+ * /api/conversations/{id}/generate-name:
+ *   post:
+ *     summary: Generate a suggested conversation name using AI
+ *     tags: [Conversations]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Unique ID of the conversation.
+ *     responses:
+ *       200:
+ *         description: Suggested name generated successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 suggestedName:
+ *                   type: string
+ *                   example: Downtown Seattle Apartments
+ *       401:
+ *         description: Unauthorized - User not authenticated.
+ *       404:
+ *         description: Conversation not found.
+ *       500:
+ *         description: Server error - Failed to generate conversation name.
+ */
+router.post("/:id/generate-name", authMiddleware, generateConversationName);
 
 export default router;

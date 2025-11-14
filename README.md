@@ -866,6 +866,7 @@ Graph endpoints are available when Neo4j is configured; otherwise they respond w
 - **PUT** `/api/conversations/:id` – Rename a conversation.
 - **DELETE** `/api/conversations/:id` – Delete a conversation.
 - **GET** `/api/conversations/search/:query` – Search conversations by title or content.
+- **POST** `/api/conversations/:id/generate-name` – Generate an AI-powered conversation name suggestion based on conversation content.
 
 ### Chat
 

@@ -86,10 +86,10 @@ export const updateConversation = async (req: AuthRequest, res: Response) => {
 };
 
 /**
- * Updates the title of a specific conversation.
+ * Deletes a specific conversation.
  *
- * @param req - The request object containing the user's ID, conversation ID, and new title.
- * @param res - The response object to send the updated conversation back to the client.
+ * @param req - The request object containing the user's ID and conversation ID.
+ * @param res - The response object to send the deletion confirmation back to the client.
  */
 export const deleteConversation = async (req: AuthRequest, res: Response) => {
   try {
@@ -103,5 +103,56 @@ export const deleteConversation = async (req: AuthRequest, res: Response) => {
     res.json({ message: "Conversation deleted successfully" });
   } catch (err) {
     res.status(500).json({ error: "Failed to delete conversation" });
+  }
+};
+
+/**
+ * Generates a conversation name using AI based on conversation messages.
+ *
+ * @param req - The request object containing the user's ID and conversation ID.
+ * @param res - The response object to send the generated name back to the client.
+ */
+export const generateConversationName = async (
+  req: AuthRequest,
+  res: Response,
+) => {
+  try {
+    if (!req.user) return res.status(401).json({ error: "Unauthorized" });
+    const { id } = req.params;
+    const conv = await Conversation.findOne({
+      _id: id,
+      user: req.user.id,
+    });
+    if (!conv) return res.status(404).json({ error: "Conversation not found" });
+
+    const { GoogleGenerativeAI } = await import("@google/generative-ai");
+    const apiKey = process.env.GOOGLE_AI_API_KEY;
+    if (!apiKey) {
+      return res
+        .status(500)
+        .json({ error: "AI service not configured properly" });
+    }
+
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({
+      model: "gemini-2.0-flash-lite",
+      systemInstruction:
+        "You are a helpful assistant that generates concise, descriptive conversation titles. Generate a short title (3-6 words max) that captures the main topic of the conversation. Return ONLY the title text, no quotes, no extra explanation.",
+    });
+
+    const messageSummary = conv.messages
+      .slice(0, 6)
+      .map((m) => `${m.role}: ${m.text.substring(0, 150)}`)
+      .join("\n");
+
+    const result = await model.generateContent(
+      `Based on this conversation, generate a short, descriptive title:\n\n${messageSummary}`,
+    );
+    const suggestedName = result.response.text().trim();
+
+    res.json({ suggestedName });
+  } catch (err) {
+    console.error("Error generating conversation name:", err);
+    res.status(500).json({ error: "Failed to generate conversation name" });
   }
 };
