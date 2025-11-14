@@ -841,6 +841,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const searchTimeout = useRef<NodeJS.Timeout | null>(null);
   const [isMobile, setIsMobile] = useState(false);
+  const [generatingName, setGeneratingName] = useState(false);
 
   /* -----------------------------------------------------------------
    * Highlighting + auto-scroll logic
@@ -950,31 +951,124 @@ const Sidebar: React.FC<SidebarProps> = ({
     }
   };
 
+  const handleGenerateName = async (convId: string) => {
+    try {
+      setGeneratingName(true);
+      const token = Cookies.get("estatewise_token");
+      const res = await fetch(
+        `${API_BASE_URL}/api/conversations/${convId}/generate-name`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+      if (res.ok) {
+        const data = await res.json();
+        setNewTitle(data.suggestedName);
+        toast.success("Name generated successfully!");
+      } else {
+        toast.error("Failed to generate name");
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("Error generating name");
+    } finally {
+      setGeneratingName(false);
+    }
+  };
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const renderRenameButtons = (conv: any) => (
-    <div className="flex items-center gap-2">
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          handleRename(conv._id);
-        }}
-        title="Save"
-        className="cursor-pointer hover:text-green-500"
-      >
-        <Check className="w-4 h-4" />
-      </button>
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
+  const renderRenameModal = (conv: any) => (
+    <Dialog
+      open={renamingId === conv._id}
+      onOpenChange={(open) => {
+        if (!open) {
           setRenamingId(null);
           setNewTitle("");
-        }}
-        title="Cancel"
-        className="cursor-pointer hover:text-red-500"
-      >
-        <X className="w-4 h-4" />
-      </button>
-    </div>
+        }
+      }}
+    >
+      <DialogContent className="[&>button]:hidden border bg-card text-card-foreground">
+        <DialogClose asChild>
+          <button
+            aria-label="Close"
+            title="Close"
+            className="absolute top-3 right-3 text-card-foreground hover:opacity-80"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </DialogClose>
+
+        <DialogHeader>
+          <DialogTitle className="text-card-foreground">
+            Rename Conversation
+          </DialogTitle>
+          <DialogDescription className="text-muted-foreground">
+            Enter a new name for your conversation or generate one with AI.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          <Input
+            value={newTitle}
+            onChange={(e) => setNewTitle(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                handleRename(conv._id);
+              }
+            }}
+            placeholder="Enter conversation name"
+            autoFocus
+            className="cursor-text bg-background text-foreground border-input"
+          />
+          <Button
+            variant="outline"
+            className="w-full cursor-pointer bg-background hover:bg-muted text-foreground border-input"
+            onClick={() => handleGenerateName(conv._id)}
+            disabled={generatingName}
+          >
+            {generatingName ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Generating...
+              </>
+            ) : (
+              <>
+                <Zap className="w-4 h-4 mr-2" />
+                Generate Suggested Name
+              </>
+            )}
+          </Button>
+        </div>
+
+        <DialogFooter>
+          <Button
+            variant="outline"
+            className="cursor-pointer bg-background hover:bg-muted text-foreground border-input"
+            onClick={() => {
+              setRenamingId(null);
+              setNewTitle("");
+            }}
+            aria-label="Cancel Rename"
+            title="Cancel Rename"
+          >
+            Cancel
+          </Button>
+          <Button
+            className="cursor-pointer bg-primary hover:bg-primary/90 text-primary-foreground"
+            onClick={() => handleRename(conv._id)}
+            aria-label="Save Rename"
+            title="Save Rename"
+            disabled={!newTitle.trim()}
+          >
+            Save
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 
   const handleDelete = async () => {
@@ -1015,77 +1109,59 @@ const Sidebar: React.FC<SidebarProps> = ({
     const isSelected = conv._id === selectedConvoId;
 
     return (
-      <motion.div
-        key={conv._id}
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-        ref={(el) => (itemRefs.current[conv._id] = el)}
-        variants={rowVariants}
-        initial={highlightId === conv._id ? "initial" : false}
-        animate="animate"
-        layout
-        className={`flex items-center justify-between border-b border-sidebar-border p-2 cursor-pointer shadow-sm transition-colors duration-500 m-2 rounded-md dark:rounded-bl-none dark:rounded-br-none
-          ${isSelected ? "bg-muted dark:bg-primary/50" : "hover:bg-muted"}
-          ${highlightId === conv._id ? "bg-primary/10 dark:bg-primary/20" : ""}`}
-        onClick={() => {
-          onSelect(conv);
-          if (isMobile) toggleSidebar();
-        }}
-      >
-        {/* Title container */}
-        <div className="flex-1 min-w-0 select-none">
-          {renamingId === conv._id ? (
-            <Input
-              value={newTitle}
-              onChange={(e) => setNewTitle(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  handleRename(conv._id);
-                }
-              }}
-              autoFocus
-              className="cursor-text"
-            />
-          ) : (
+      <>
+        <motion.div
+          key={conv._id}
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-ignore
+          ref={(el) => (itemRefs.current[conv._id] = el)}
+          variants={rowVariants}
+          initial={highlightId === conv._id ? "initial" : false}
+          animate="animate"
+          layout
+          className={`flex items-center justify-between border-b border-sidebar-border p-2 cursor-pointer shadow-sm transition-colors duration-500 m-2 rounded-md dark:rounded-bl-none dark:rounded-br-none
+            ${isSelected ? "bg-muted dark:bg-primary/50" : "hover:bg-muted"}
+            ${highlightId === conv._id ? "bg-primary/10 dark:bg-primary/20" : ""}`}
+          onClick={() => {
+            onSelect(conv);
+            if (isMobile) toggleSidebar();
+          }}
+        >
+          {/* Title container */}
+          <div className="flex-1 min-w-0 select-none">
             <span className="block truncate">
               {conv.title || "Untitled Conversation"}
             </span>
-          )}
-        </div>
+          </div>
 
-        <div className="flex items-center gap-3 flex-shrink-0">
-          {renamingId === conv._id ? (
-            renderRenameButtons(conv)
-          ) : (
-            <>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setRenamingId(conv._id);
-                  setNewTitle(conv.title);
-                }}
-                title="Rename"
-                className="cursor-pointer hover:text-blue-500"
-                aria-label="Rename Conversation"
-              >
-                <Pencil className="w-4 h-4" />
-              </button>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setDeleteId(conv._id);
-                }}
-                title="Delete"
-                className="cursor-pointer hover:text-red-500"
-                aria-label="Delete Conversation"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-            </>
-          )}
-        </div>
-      </motion.div>
+          <div className="flex items-center gap-3 flex-shrink-0">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setRenamingId(conv._id);
+                setNewTitle(conv.title);
+              }}
+              title="Rename"
+              className="cursor-pointer hover:text-blue-500"
+              aria-label="Rename Conversation"
+            >
+              <Pencil className="w-4 h-4" />
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setDeleteId(conv._id);
+              }}
+              title="Delete"
+              className="cursor-pointer hover:text-red-500"
+              aria-label="Delete Conversation"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
+        </motion.div>
+        {renderRenameModal(conv)}
+      </>
     );
   };
 
