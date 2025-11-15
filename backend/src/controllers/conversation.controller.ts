@@ -13,7 +13,7 @@ export const createConversation = async (req: AuthRequest, res: Response) => {
     if (!req.user) return res.status(401).json({ error: "Unauthorized" });
     const newConversation = new Conversation({
       user: req.user.id,
-      title: req.body.title || "Untitled Conversation",
+      title: req.body.title || "New Conversation",
       messages: [],
     });
     await newConversation.save();
@@ -119,6 +119,7 @@ export const generateConversationName = async (
   try {
     if (!req.user) return res.status(401).json({ error: "Unauthorized" });
     const { id } = req.params;
+    const { autoUpdate, message } = req.body;
     const conv = await Conversation.findOne({
       _id: id,
       user: req.user.id,
@@ -140,15 +141,26 @@ export const generateConversationName = async (
         "You are a helpful assistant that generates concise, descriptive conversation titles. Generate a short title (3-6 words max) that captures the main topic of the conversation. Return ONLY the title text, no quotes, no extra explanation.",
     });
 
-    const messageSummary = conv.messages
-      .slice(0, 6)
-      .map((m) => `${m.role}: ${m.text.substring(0, 150)}`)
-      .join("\n");
+    let messageSummary: string;
+    if (message) {
+      messageSummary = `user: ${message}`;
+    } else {
+      messageSummary = conv.messages
+        .slice(0, 6)
+        .map((m) => `${m.role}: ${m.text.substring(0, 150)}`)
+        .join("\n");
+    }
 
     const result = await model.generateContent(
       `Based on this conversation, generate a short, descriptive title:\n\n${messageSummary}`,
     );
     const suggestedName = result.response.text().trim();
+
+    if (autoUpdate) {
+      conv.title = suggestedName;
+      await conv.save();
+      return res.json({ title: suggestedName, updated: true });
+    }
 
     res.json({ suggestedName });
   } catch (err) {
