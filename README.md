@@ -160,6 +160,7 @@ EstateWise is packed with both UI and AI features to enhance your home-finding e
 - **Conversation History**
 
   - **Authenticated users** can view, rename, and delete past chats.
+  - **Auto-Generated Conversation Titles**: New conversations automatically receive AI-generated titles (3-6 words) based on the first message, replacing the default "New Conversation" title within seconds.
   - **Guest users** still have their conversation history saved locally in the browser.
 
 - **Full‑Text Search**  

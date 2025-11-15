@@ -21,7 +21,7 @@ const router = Router();
  *       - bearerAuth: []
  *     requestBody:
  *       required: true
- *       description: Conversation details. The title is optional; if not provided, it defaults to "Untitled Conversation".
+ *       description: Conversation details. The title is optional; if not provided, it defaults to "New Conversation".
  *       content:
  *         application/json:
  *           schema:

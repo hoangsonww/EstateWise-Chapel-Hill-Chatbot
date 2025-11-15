@@ -1684,7 +1684,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
         "Content-Type": "application/json",
         Authorization: `Bearer ${Cookies.get("estatewise_token")}`,
       },
-      body: JSON.stringify({ title: "Untitled Conversation" }),
+      body: JSON.stringify({ title: "New Conversation" }),
     });
     if (!res.ok) throw new Error("Failed to create conversation");
     const data = await res.json();
@@ -1706,6 +1706,8 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
 
     const text = userInput;
     setUserInput("");
+
+    const isFirstMessage = messages.length === 0;
 
     // Add user message immediately
     setMessages((m) => [...m, { role: "user", text }]);
@@ -1851,13 +1853,39 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
         }
 
         // Refresh conversations if needed
-        if (isAuthed && receivedConvoId && !selectedConvoId) {
+        if (isAuthed && receivedConvoId) {
           const r = await fetch(`${API_BASE_URL}/api/conversations`, {
             headers: {
               Authorization: `Bearer ${Cookies.get("estatewise_token")}`,
             },
           });
           if (r.ok) setLocalConvos(await r.json());
+
+          if (isFirstMessage) {
+            console.log("[AutoNaming] Polling for title updates...");
+            [2000, 4000, 7000].forEach((delay) => {
+              setTimeout(async () => {
+                try {
+                  console.log(`[AutoNaming] Polling at ${delay}ms`);
+                  const pollRes = await fetch(
+                    `${API_BASE_URL}/api/conversations`,
+                    {
+                      headers: {
+                        Authorization: `Bearer ${Cookies.get("estatewise_token")}`,
+                      },
+                    },
+                  );
+                  if (pollRes.ok) {
+                    const data = await pollRes.json();
+                    setLocalConvos(data);
+                    console.log("[AutoNaming] Conversations updated", data);
+                  }
+                } catch (err) {
+                  console.error("Failed to poll for updated title:", err);
+                }
+              }, delay);
+            });
+          }
         }
 
         return true;

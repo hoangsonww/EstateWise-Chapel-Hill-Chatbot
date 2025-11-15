@@ -42,10 +42,13 @@ export const chat = async (req: AuthRequest, res: Response) => {
           user: userId,
         });
       }
+      const isNewConversation = conversation
+        ? conversation.messages.length === 0
+        : false;
       if (!conversation) {
         conversation = new Conversation({
           user: userId,
-          title: "Untitled Conversation",
+          title: "New Conversation",
           messages: [],
           expertWeights: {
             "Data Analyst": 1,
@@ -88,6 +91,20 @@ export const chat = async (req: AuthRequest, res: Response) => {
       });
       conversation.markModified("messages");
       await conversation.save();
+
+      if (isNewConversation) {
+        console.log(
+          `[AutoNaming] Triggering for new conversation ${conversation._id}`,
+        );
+        setImmediate(() => {
+          autoGenerateConversationName(
+            conversation._id.toString(),
+            message,
+          ).catch((err) =>
+            console.error("[AutoNaming] Failed to auto-generate name:", err),
+          );
+        });
+      }
 
       return res.json({
         response: finalText,
@@ -305,10 +322,13 @@ export const chatStreaming = async (req: AuthRequest, res: Response) => {
           user: userId,
         });
       }
+      const isNewConversation = conversation
+        ? conversation.messages.length === 0
+        : false;
       if (!conversation) {
         conversation = new Conversation({
           user: userId,
-          title: "Untitled Conversation",
+          title: "New Conversation",
           messages: [],
           expertWeights: {
             "Data Analyst": 1,
@@ -372,6 +392,20 @@ export const chatStreaming = async (req: AuthRequest, res: Response) => {
           convoId: conversation._id,
           expertWeights: conversation.expertWeights,
         });
+
+        if (isNewConversation) {
+          console.log(
+            `[AutoNaming] Triggering for new conversation ${conversation._id}`,
+          );
+          setImmediate(() => {
+            autoGenerateConversationName(
+              conversation._id.toString(),
+              message,
+            ).catch((err) =>
+              console.error("[AutoNaming] Failed to auto-generate name:", err),
+            );
+          });
+        }
       } catch (err: any) {
         console.error("Streaming error:", err);
         let errorMessage = "Error processing chat request";
@@ -506,3 +540,70 @@ export const chatStreaming = async (req: AuthRequest, res: Response) => {
     res.end();
   }
 };
+
+/**
+ * Helper function to automatically generate a conversation name in the background.
+ */
+async function autoGenerateConversationName(
+  conversationId: string,
+  firstMessage: string,
+) {
+  try {
+    console.log(`[AutoNaming] Starting for conversation ${conversationId}`);
+    console.log(`[AutoNaming] Importing GoogleGenerativeAI...`);
+    const { GoogleGenerativeAI } = await import("@google/generative-ai");
+    console.log(`[AutoNaming] Checking API key...`);
+    const apiKey = process.env.GOOGLE_AI_API_KEY;
+    if (!apiKey) {
+      console.log("[AutoNaming] No API key found");
+      return;
+    }
+    console.log("[AutoNaming] API key found");
+
+    console.log(`[AutoNaming] Finding conversation in DB...`);
+    const conversation = await Conversation.findById(conversationId);
+    if (!conversation) {
+      console.log("[AutoNaming] Conversation not found");
+      return;
+    }
+    console.log(
+      `[AutoNaming] Conversation found, title: ${conversation.title}`,
+    );
+    if (conversation.title !== "New Conversation") {
+      console.log(
+        `[AutoNaming] Title already set to: ${conversation.title}, skipping`,
+      );
+      return;
+    }
+
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({
+      model: "gemini-2.0-flash-lite",
+      systemInstruction:
+        "You are a helpful assistant that generates concise, descriptive conversation titles. Generate a short title (3-6 words max) that captures the main topic of the conversation. Return ONLY the title text, no quotes, no extra explanation.",
+    });
+
+    console.log(`[AutoNaming] Calling Gemini API...`);
+    const result = await Promise.race([
+      model.generateContent(
+        `Based on this conversation, generate a short, descriptive title:\n\nuser: ${firstMessage}`,
+      ),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("Gemini API timeout")), 10000),
+      ),
+    ]);
+    console.log(`[AutoNaming] Gemini API responded`);
+    const suggestedName = (result as any).response.text().trim();
+    console.log(`[AutoNaming] Generated name: ${suggestedName}`);
+
+    conversation.title = suggestedName;
+    console.log(`[AutoNaming] Saving title to DB...`);
+    await conversation.save();
+    console.log(`[AutoNaming] Title saved successfully for ${conversationId}`);
+  } catch (err) {
+    console.error(
+      "[AutoNaming] Failed to auto-generate conversation name:",
+      err,
+    );
+  }
+}

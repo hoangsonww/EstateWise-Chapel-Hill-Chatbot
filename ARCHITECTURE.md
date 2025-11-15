@@ -198,6 +198,7 @@ flowchart LR
     Experts[5 Specialized Experts]
     Merger[Response Merger]
     Output[Final Response]
+    AutoName[Auto-Name Conversation]
   end
 
   Input --> Decision
@@ -208,6 +209,7 @@ flowchart LR
   MoE --> Experts
   Experts --> Merger
   Merger --> Output
+  Output -.->|First message only| AutoName
 ```
 
 Expert models include:
@@ -216,6 +218,8 @@ Expert models include:
 - **Financial Advisor**: Mortgage, investment analysis
 - **Neighborhood Expert**: Local insights, schools
 - **Cluster Analyst**: Property grouping, similarities
+
+**Auto-Generated Titles**: For authenticated users, the first message in a new conversation automatically triggers AI-powered title generation (3-6 words) via Gemini API, replacing "New Conversation" within seconds.
 
 ### Property Service
 
