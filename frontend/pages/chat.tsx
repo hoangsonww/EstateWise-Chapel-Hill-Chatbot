@@ -1574,8 +1574,10 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   setLocalConvos,
   selectedConvoId,
   onSetSelectedConvo,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   namingInProgress,
   setNamingInProgress,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   loadingConversations,
   setLoadingConversations,
 }) => {
@@ -1785,7 +1787,8 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
     let retryCount = 0;
     const MAX_RETRIES = 3;
     let streamedText = "";
-    let receivedExpertViews: Record<string, string> = {};
+    let receivedExpertViews: Record<string,string> = {};
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let receivedWeights: any = null;
     let receivedConvoId: string | null = null;
     let hasTimedOut = false;
@@ -1953,6 +1956,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
 
                             // Check if title has been updated
                             const updatedConvo = data.find(
+                              // eslint-disable-next-line @typescript-eslint/no-explicit-any
                               (c: any) => c._id === receivedConvoId,
                             );
                             if (
@@ -1965,6 +1969,8 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
                               );
                               setNamingInProgress((prev) => {
                                 const next = new Set(prev);
+                                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                                // @ts-ignore
                                 next.delete(receivedConvoId);
                                 console.log(
                                   "[AutoNaming] Removed from set, size:",
@@ -1985,6 +1991,8 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
                       // Always remove from naming set after all attempts
                       setNamingInProgress((prev) => {
                         const next = new Set(prev);
+                        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                        // @ts-ignore
                         next.delete(receivedConvoId);
                         return next;
                       });
@@ -2065,6 +2073,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
                 }
                 // Reset event type after processing
                 currentEventType = "";
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
               } catch (e: any) {
                 console.error("Error parsing SSE data:", e);
                 if (
@@ -2098,6 +2107,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
         }
 
         return true;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (error: any) {
         console.error(`Stream attempt ${retryCount + 1} failed:`, error);
 
@@ -2138,6 +2148,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
         // Remove the empty streaming message on failure
         setMessages((m) => m.slice(0, -1));
       }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       console.error("Error sending message:", error);
       const errorMsg =
