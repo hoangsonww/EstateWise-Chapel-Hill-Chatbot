@@ -427,6 +427,17 @@ export default function Home() {
                     Properties Map
                   </Button>
                 </Link>
+                <Link href="/resilience-lab">
+                  <Button
+                    variant="outline"
+                    className="rounded-full px-8 py-4 text-lg cursor-pointer shadow-md"
+                    aria-label="Community Resilience Lab"
+                    title="Community Resilience Lab"
+                  >
+                    <Shield className="w-5 h-5" />
+                    Resilience Lab
+                  </Button>
+                </Link>
               </div>
             </AnimatedInView>
             <AnimatedInView delay={0.6}>
