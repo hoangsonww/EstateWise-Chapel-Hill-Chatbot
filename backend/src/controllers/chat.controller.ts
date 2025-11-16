@@ -350,9 +350,36 @@ export const chatStreaming = async (req: AuthRequest, res: Response) => {
         { role: "user", parts: [{ text: message }] },
       ];
 
+      // Save user message IMMEDIATELY before streaming starts
+      conversation.messages.push({
+        role: "user",
+        text: message,
+        timestamp: new Date(),
+      });
+      conversation.markModified("messages");
+      await conversation.save();
+
+      // Start conversation naming in parallel (fire-and-forget)
+      if (isNewConversation) {
+        console.log(
+          `[AutoNaming] Starting in parallel for conversation ${conversation._id}`,
+        );
+        autoGenerateConversationName(
+          conversation._id.toString(),
+          message,
+        ).catch((err) =>
+          console.error("[AutoNaming] Failed to auto-generate name:", err),
+        );
+      }
+
       // run MoE pipeline with streaming
       let fullText = "";
       let expertViews: Record<string, string> = {};
+      const startTime = Date.now();
+      const TIMEOUT_MS = 58000; // 58 seconds - safety margin before Vercel's 60s limit
+      const SAVE_INTERVAL_MS = 10000; // Save every 10 seconds
+      let lastSaveTime = startTime;
+      let timedOut = false;
 
       try {
         for await (const chunk of chatWithEstateWiseStreaming(
@@ -361,9 +388,49 @@ export const chatStreaming = async (req: AuthRequest, res: Response) => {
           {},
           conversation.expertWeights,
         )) {
+          const elapsed = Date.now() - startTime;
+
+          // Check for timeout
+          if (elapsed >= TIMEOUT_MS) {
+            console.warn(
+              `[Timeout] Stopping stream at ${elapsed}ms for conversation ${conversation._id}`,
+            );
+            timedOut = true;
+            break;
+          }
+
           if (chunk.type === "token") {
             fullText += chunk.token;
             sendEvent("token", { token: chunk.token });
+
+            // Periodically save partial response
+            if (Date.now() - lastSaveTime >= SAVE_INTERVAL_MS) {
+              const modelMsgIndex = conversation.messages.findIndex(
+                (m, idx) =>
+                  idx > 0 &&
+                  conversation.messages[idx - 1].role === "user" &&
+                  conversation.messages[idx - 1].text === message &&
+                  m.role === "model",
+              );
+
+              if (modelMsgIndex !== -1) {
+                // Update existing model message
+                conversation.messages[modelMsgIndex].text = fullText;
+              } else {
+                // Add new model message
+                conversation.messages.push({
+                  role: "model",
+                  text: fullText,
+                  timestamp: new Date(),
+                });
+              }
+              conversation.markModified("messages");
+              await conversation.save();
+              lastSaveTime = Date.now();
+              console.log(
+                `[PartialSave] Saved ${fullText.length} chars at ${elapsed}ms`,
+              );
+            }
           } else if (chunk.type === "expertViews") {
             expertViews = chunk.expertViews;
           } else if (chunk.type === "error") {
@@ -373,37 +440,55 @@ export const chatStreaming = async (req: AuthRequest, res: Response) => {
           }
         }
 
-        /* persist both msgs */
-        conversation.messages.push({
-          role: "user",
-          text: message,
-          timestamp: new Date(),
-        });
-        conversation.messages.push({
-          role: "model",
-          text: fullText,
-          timestamp: new Date(),
-        });
+        // Add timeout note and stream it if timed out
+        if (timedOut) {
+          const timeoutNote =
+            "\n\n---\n\n⚠️ **Note:** This response was cut off due to cloud infrastructure timeout limits (60 seconds). The partial response has been saved. Please try rephrasing or breaking down your request into smaller parts.";
+          fullText += timeoutNote;
+          // Stream the timeout note to the client
+          sendEvent("token", { token: timeoutNote });
+        }
+
+        /* persist final AI response */
+        const modelMsgIndex = conversation.messages.findIndex(
+          (m, idx) =>
+            idx > 0 &&
+            conversation.messages[idx - 1].role === "user" &&
+            conversation.messages[idx - 1].text === message &&
+            m.role === "model",
+        );
+
+        if (modelMsgIndex !== -1) {
+          // Update existing model message with final text
+          conversation.messages[modelMsgIndex].text = fullText;
+        } else {
+          // Add new model message
+          conversation.messages.push({
+            role: "model",
+            text: fullText,
+            timestamp: new Date(),
+          });
+        }
         conversation.markModified("messages");
         await conversation.save();
 
-        sendEvent("done", {
-          expertViews,
-          convoId: conversation._id,
-          expertWeights: conversation.expertWeights,
-        });
-
-        if (isNewConversation) {
-          console.log(
-            `[AutoNaming] Triggering for new conversation ${conversation._id}`,
-          );
-          setImmediate(() => {
-            autoGenerateConversationName(
-              conversation._id.toString(),
-              message,
-            ).catch((err) =>
-              console.error("[AutoNaming] Failed to auto-generate name:", err),
-            );
+        if (timedOut) {
+          // Send timeout event to client
+          sendEvent("timeout", {
+            message:
+              "Response was cut off due to cloud infrastructure timeout limits. The partial response has been saved. Please try rephrasing or breaking down your request.",
+          });
+          sendEvent("done", {
+            expertViews,
+            convoId: conversation._id,
+            expertWeights: conversation.expertWeights,
+            timedOut: true,
+          });
+        } else {
+          sendEvent("done", {
+            expertViews,
+            convoId: conversation._id,
+            expertWeights: conversation.expertWeights,
           });
         }
       } catch (err: any) {
@@ -469,6 +554,9 @@ export const chatStreaming = async (req: AuthRequest, res: Response) => {
 
     let fullText = "";
     let expertViews: Record<string, string> = {};
+    const startTime = Date.now();
+    const TIMEOUT_MS = 58000; // 58 seconds - safety margin before Vercel's 60s limit
+    let timedOut = false;
 
     try {
       for await (const chunk of chatWithEstateWiseStreaming(
@@ -477,6 +565,15 @@ export const chatStreaming = async (req: AuthRequest, res: Response) => {
         {},
         guestWeights,
       )) {
+        const elapsed = Date.now() - startTime;
+
+        // Check for timeout
+        if (elapsed >= TIMEOUT_MS) {
+          console.warn(`[Timeout] Stopping guest stream at ${elapsed}ms`);
+          timedOut = true;
+          break;
+        }
+
         if (chunk.type === "token") {
           fullText += chunk.token;
           sendEvent("token", { token: chunk.token });
@@ -489,10 +586,30 @@ export const chatStreaming = async (req: AuthRequest, res: Response) => {
         }
       }
 
-      sendEvent("done", {
-        expertViews,
-        expertWeights: guestWeights,
-      });
+      // Add timeout note and stream it if timed out
+      if (timedOut) {
+        const timeoutNote =
+          "\n\n---\n\n⚠️ **Note:** This response was cut off due to cloud infrastructure timeout limits (60 seconds). Please try rephrasing or breaking down your request into smaller parts.";
+        fullText += timeoutNote;
+        // Stream the timeout note to the client
+        sendEvent("token", { token: timeoutNote });
+
+        // Send timeout event to client
+        sendEvent("timeout", {
+          message:
+            "Response was cut off due to cloud infrastructure timeout limits. Please try rephrasing or breaking down your request.",
+        });
+        sendEvent("done", {
+          expertViews,
+          expertWeights: guestWeights,
+          timedOut: true,
+        });
+      } else {
+        sendEvent("done", {
+          expertViews,
+          expertWeights: guestWeights,
+        });
+      }
     } catch (err: any) {
       console.error("Streaming error:", err);
       let errorMessage = "Error processing chat request";

@@ -819,6 +819,9 @@ type SidebarProps = {
   sidebarVisible: boolean;
   toggleSidebar: () => void;
   selectedConvoId: string | null;
+  namingInProgress: Set<string>;
+  loadingConversations: Set<string>;
+  isStreaming: boolean;
 };
 
 const Sidebar: React.FC<SidebarProps> = ({
@@ -830,6 +833,9 @@ const Sidebar: React.FC<SidebarProps> = ({
   sidebarVisible,
   toggleSidebar,
   selectedConvoId,
+  namingInProgress,
+  loadingConversations,
+  isStreaming,
 }) => {
   const [showSearchModal, setShowSearchModal] = useState(false);
   const [query, setQuery] = useState("");
@@ -1107,6 +1113,19 @@ const Sidebar: React.FC<SidebarProps> = ({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const ConversationRow = ({ conv }: { conv: any }) => {
     const isSelected = conv._id === selectedConvoId;
+    const isNaming = namingInProgress.has(conv._id);
+    const isLoading = loadingConversations.has(conv._id);
+    const shouldBlink = isNaming;
+
+    // Debug logging
+    if (shouldBlink) {
+      console.log(
+        "[ConversationRow] Blinking active for:",
+        conv._id,
+        conv.title,
+        { isNaming, isLoading },
+      );
+    }
 
     return (
       <>
@@ -1119,17 +1138,26 @@ const Sidebar: React.FC<SidebarProps> = ({
           initial={highlightId === conv._id ? "initial" : false}
           animate="animate"
           layout
-          className={`flex items-center justify-between border-b border-sidebar-border p-2 cursor-pointer shadow-sm transition-colors duration-500 m-2 rounded-md dark:rounded-bl-none dark:rounded-br-none
+          className={`flex items-center justify-between border-b border-sidebar-border p-2 shadow-sm transition-colors duration-500 m-2 rounded-md dark:rounded-bl-none dark:rounded-br-none
             ${isSelected ? "bg-muted dark:bg-primary/50" : "hover:bg-muted"}
-            ${highlightId === conv._id ? "bg-primary/10 dark:bg-primary/20" : ""}`}
+            ${highlightId === conv._id ? "bg-primary/10 dark:bg-primary/20" : ""}
+            ${isStreaming ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}
           onClick={() => {
+            if (isStreaming) {
+              toast.error(
+                "Please wait for the current response to complete before switching conversations",
+              );
+              return;
+            }
             onSelect(conv);
             if (isMobile) toggleSidebar();
           }}
         >
           {/* Title container */}
           <div className="flex-1 min-w-0 select-none">
-            <span className="block truncate">
+            <span
+              className={`block truncate ${shouldBlink ? "animate-pulse-gentle" : ""}`}
+            >
               {conv.title || "Untitled Conversation"}
             </span>
           </div>
@@ -1286,8 +1314,18 @@ const Sidebar: React.FC<SidebarProps> = ({
                   searchResults.map((conv) => (
                     <div
                       key={conv._id}
-                      className="p-2 bg-muted rounded cursor-pointer hover:bg-muted-foreground shadow-sm"
+                      className={`p-2 bg-muted rounded shadow-sm ${
+                        isStreaming
+                          ? "cursor-not-allowed opacity-60"
+                          : "cursor-pointer hover:bg-muted-foreground"
+                      }`}
                       onClick={() => {
+                        if (isStreaming) {
+                          toast.error(
+                            "Please wait for the current response to complete before switching conversations",
+                          );
+                          return;
+                        }
                         onSelect(conv);
                         setShowSearchModal(false);
                       }}
@@ -1524,6 +1562,10 @@ type ChatWindowProps = {
   selectedConvoId: string | null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onSetSelectedConvo: (conv: any) => void;
+  namingInProgress: Set<string>;
+  setNamingInProgress: React.Dispatch<React.SetStateAction<Set<string>>>;
+  loadingConversations: Set<string>;
+  setLoadingConversations: React.Dispatch<React.SetStateAction<Set<string>>>;
 };
 
 const ChatWindow: React.FC<ChatWindowProps> = ({
@@ -1532,6 +1574,10 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   setLocalConvos,
   selectedConvoId,
   onSetSelectedConvo,
+  namingInProgress,
+  setNamingInProgress,
+  loadingConversations,
+  setLoadingConversations,
 }) => {
   const [messages, setMessages] = useState<ChatMessage[]>(
     !Cookies.get("estatewise_token") ? getInitialMessages() : [],
@@ -1640,6 +1686,12 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   useEffect(() => {
     if (!Cookies.get("estatewise_token")) {
       localStorage.setItem("estateWiseChat", JSON.stringify(messages));
+      const hasTimeoutNote = messages.some((m) => m.text?.includes("⚠️"));
+      if (hasTimeoutNote) {
+        console.log(
+          "[Frontend-Guest] Saved messages with timeout note to localStorage",
+        );
+      }
     }
   }, [messages]);
 
@@ -1711,6 +1763,15 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
 
     // Add user message immediately
     setMessages((m) => [...m, { role: "user", text }]);
+
+    // Track this conversation as loading immediately
+    const currentConvoId = selectedConvoId || "pending";
+    setLoadingConversations((prev) => {
+      const next = new Set(prev);
+      next.add(currentConvoId);
+      console.log("[LoadingConvo] Added to loading set:", currentConvoId);
+      return next;
+    });
     setInputHistory((h) => {
       const next = [...h, text];
       setHistoryIndex(next.length);
@@ -1727,6 +1788,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
     let receivedExpertViews: Record<string, string> = {};
     let receivedWeights: any = null;
     let receivedConvoId: string | null = null;
+    let hasTimedOut = false;
 
     const attemptStream = async (): Promise<boolean> => {
       try {
@@ -1737,6 +1799,26 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
             const c = await createNewConversation();
             body.convoId = c._id;
             receivedConvoId = c._id;
+
+            // Update loading conversations with actual ID
+            setLoadingConversations((prev) => {
+              const next = new Set(prev);
+              next.delete("pending");
+              next.add(c._id);
+              console.log("[LoadingConvo] Updated to actual ID:", c._id);
+              return next;
+            });
+
+            // Start name generation tracking immediately for first message
+            if (isFirstMessage) {
+              console.log("[AutoNaming] Starting tracking for", c._id);
+              setNamingInProgress((prev) => {
+                const next = new Set(prev);
+                next.add(c._id);
+                console.log("[AutoNaming] Added to set, size:", next.size);
+                return next;
+              });
+            }
           } else {
             body.convoId = selectedConvoId;
           }
@@ -1778,6 +1860,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
 
         const decoder = new TextDecoder();
         let buffer = "";
+        let currentEventType = "";
 
         while (true) {
           const { done, value } = await reader.read();
@@ -1792,7 +1875,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
             if (!line.trim() || line.startsWith(":")) continue;
 
             if (line.startsWith("event: ")) {
-              const eventType = line.slice(7).trim();
+              currentEventType = line.slice(7).trim();
               continue;
             }
 
@@ -1803,6 +1886,15 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
 
                 if (parsed.token) {
                   streamedText += parsed.token;
+
+                  // Log if this is the timeout note
+                  if (parsed.token.includes("⚠️")) {
+                    console.log(
+                      "[Frontend-Timeout] Received timeout note token. Total length:",
+                      streamedText.length,
+                    );
+                  }
+
                   setMessages((m) => {
                     const updated = [...m];
                     updated[streamingMessageIndex] = {
@@ -1827,9 +1919,152 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
                   receivedWeights = parsed.expertWeights;
                 } else if (parsed.convoId) {
                   receivedConvoId = parsed.convoId;
+
+                  // Start polling IN PARALLEL as soon as we get convoId (don't await)
+                  if (isAuthed && isFirstMessage && !hasTimedOut) {
+                    console.log(
+                      "[AutoNaming] Starting PARALLEL polling for",
+                      receivedConvoId,
+                    );
+                    // Fire and forget - runs in background
+                    (async () => {
+                      const delays = [2000, 4000, 7000, 10000, 15000];
+                      for (const delay of delays) {
+                        await new Promise((resolve) =>
+                          setTimeout(resolve, delay),
+                        );
+                        try {
+                          console.log(`[AutoNaming] Polling at ${delay}ms`);
+                          const pollRes = await fetch(
+                            `${API_BASE_URL}/api/conversations`,
+                            {
+                              headers: {
+                                Authorization: `Bearer ${Cookies.get("estatewise_token")}`,
+                              },
+                            },
+                          );
+                          if (pollRes.ok) {
+                            const data = await pollRes.json();
+                            setLocalConvos(data);
+                            console.log(
+                              "[AutoNaming] Conversations updated",
+                              data,
+                            );
+
+                            // Check if title has been updated
+                            const updatedConvo = data.find(
+                              (c: any) => c._id === receivedConvoId,
+                            );
+                            if (
+                              updatedConvo &&
+                              updatedConvo.title !== "New Conversation"
+                            ) {
+                              console.log(
+                                "[AutoNaming] Title updated to:",
+                                updatedConvo.title,
+                              );
+                              setNamingInProgress((prev) => {
+                                const next = new Set(prev);
+                                next.delete(receivedConvoId);
+                                console.log(
+                                  "[AutoNaming] Removed from set, size:",
+                                  next.size,
+                                );
+                                return next;
+                              });
+                              break;
+                            }
+                          }
+                        } catch (err) {
+                          console.error(
+                            "Failed to poll for updated title:",
+                            err,
+                          );
+                        }
+                      }
+                      // Always remove from naming set after all attempts
+                      setNamingInProgress((prev) => {
+                        const next = new Set(prev);
+                        next.delete(receivedConvoId);
+                        return next;
+                      });
+                    })();
+                  }
+                } else if (
+                  currentEventType === "timeout" ||
+                  (parsed.message && parsed.message.includes("timeout"))
+                ) {
+                  // Handle timeout event
+                  hasTimedOut = true;
+                  console.log(
+                    "[Frontend-Timeout] Timeout event received. StreamedText length:",
+                    streamedText.length,
+                    "Contains timeout note:",
+                    streamedText.includes("⚠️"),
+                  );
+
+                  // If timeout note is not already in the streamed text, add it
+                  if (!streamedText.includes("⚠️")) {
+                    const timeoutNote =
+                      "\n\n---\n\n⚠️ **Note:** This response was cut off due to cloud infrastructure timeout limits (60 seconds). The partial response has been saved. Please try rephrasing or breaking down your request into smaller parts.";
+                    streamedText += timeoutNote;
+                    console.log(
+                      "[Frontend-Timeout] Manually appended timeout note. New length:",
+                      streamedText.length,
+                    );
+
+                    // Update the message with the timeout note
+                    setMessages((m) => {
+                      const updated = [...m];
+                      updated[streamingMessageIndex] = {
+                        role: "model",
+                        text: streamedText,
+                        expertViews: receivedExpertViews,
+                      };
+                      return updated;
+                    });
+                  }
+
+                  toast.error(
+                    "Response timed out due to cloud infrastructure limits",
+                    { duration: 5000 },
+                  );
+                } else if (
+                  currentEventType === "done" ||
+                  parsed.timedOut !== undefined
+                ) {
+                  // Handle done event - ensure timeout note is preserved
+                  if (parsed.timedOut && !streamedText.includes("⚠️")) {
+                    const timeoutNote =
+                      "\n\n---\n\n⚠️ **Note:** This response was cut off due to cloud infrastructure timeout limits (60 seconds). The partial response has been saved. Please try rephrasing or breaking down your request into smaller parts.";
+                    streamedText += timeoutNote;
+                    console.log(
+                      "[Frontend-Done] Appended timeout note on done event. Length:",
+                      streamedText.length,
+                    );
+
+                    // Update the message with the timeout note
+                    setMessages((m) => {
+                      const updated = [...m];
+                      updated[streamingMessageIndex] = {
+                        role: "model",
+                        text: streamedText,
+                        expertViews: receivedExpertViews,
+                      };
+                      return updated;
+                    });
+                  }
+                  console.log(
+                    "[Frontend-Done] Done event received. TimedOut:",
+                    parsed.timedOut,
+                    "Final text length:",
+                    streamedText.length,
+                  );
                 } else if (parsed.error) {
                   throw new Error(parsed.error);
                 }
+                // Reset event type after processing
+                currentEventType = "";
               } catch (e: any) {
                 console.error("Error parsing SSE data:", e);
                 if (
@@ -1860,32 +2095,6 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
             },
           });
           if (r.ok) setLocalConvos(await r.json());
-
-          if (isFirstMessage) {
-            console.log("[AutoNaming] Polling for title updates...");
-            [2000, 4000, 7000].forEach((delay) => {
-              setTimeout(async () => {
-                try {
-                  console.log(`[AutoNaming] Polling at ${delay}ms`);
-                  const pollRes = await fetch(
-                    `${API_BASE_URL}/api/conversations`,
-                    {
-                      headers: {
-                        Authorization: `Bearer ${Cookies.get("estatewise_token")}`,
-                      },
-                    },
-                  );
-                  if (pollRes.ok) {
-                    const data = await pollRes.json();
-                    setLocalConvos(data);
-                    console.log("[AutoNaming] Conversations updated", data);
-                  }
-                } catch (err) {
-                  console.error("Failed to poll for updated title:", err);
-                }
-              }, delay);
-            });
-          }
         }
 
         return true;
@@ -1938,6 +2147,33 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
       setMessages((m) => m.slice(0, -1));
     } finally {
       setLoading(false);
+      // Remove from loading conversations
+      setLoadingConversations((prev) => {
+        const next = new Set(prev);
+        next.delete(currentConvoId);
+        if (receivedConvoId) next.delete(receivedConvoId);
+        next.delete("pending");
+        console.log("[LoadingConvo] Removed from loading set");
+        return next;
+      });
+
+      // Stop pulsing animation when streaming completes
+      // The background polling will continue to update the title if needed
+      if (receivedConvoId || currentConvoId) {
+        // Small delay to let the polling finish if it's about to complete
+        setTimeout(() => {
+          setNamingInProgress((prev) => {
+            const next = new Set(prev);
+            if (receivedConvoId) next.delete(receivedConvoId);
+            if (currentConvoId !== "pending") next.delete(currentConvoId);
+            console.log(
+              "[AutoNaming] Stopped pulsing animation, size:",
+              next.size,
+            );
+            return next;
+          });
+        }, 1000);
+      }
     }
   };
 
@@ -2102,7 +2338,10 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
           ) : (
             <>
               <ReactMarkdown
-                remarkPlugins={[remarkGfm, remarkMath]}
+                remarkPlugins={[
+                  remarkGfm,
+                  [remarkMath, { singleDollarTextMath: false }],
+                ]}
                 rehypePlugins={[rehypeKatex]}
                 components={markdownComponents}
               >
@@ -2375,6 +2614,12 @@ export default function ChatPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [selectedConvo, setSelectedConvo] = useState<any>(null);
   const [sidebarVisible, setSidebarVisible] = useState(false);
+  const [namingInProgress, setNamingInProgress] = useState<Set<string>>(
+    new Set(),
+  );
+  const [loadingConversations, setLoadingConversations] = useState<Set<string>>(
+    new Set(),
+  );
 
   useEffect(() => {
     const saved = localStorage.getItem("sidebarVisible");
@@ -2446,6 +2691,20 @@ export default function ChatPage() {
             body {
               overscroll-behavior: none;
             }
+
+            @keyframes pulse-gentle {
+              0%,
+              100% {
+                opacity: 1;
+              }
+              50% {
+                opacity: 0.6;
+              }
+            }
+
+            .animate-pulse-gentle {
+              animation: pulse-gentle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+            }
           `}</style>
           {/* Desktop sidebar and content container */}
           <div className="flex flex-1">
@@ -2466,6 +2725,9 @@ export default function ChatPage() {
                   sidebarVisible={true}
                   toggleSidebar={toggleSidebar}
                   selectedConvoId={selectedConvo ? selectedConvo._id : null}
+                  namingInProgress={namingInProgress}
+                  loadingConversations={loadingConversations}
+                  isStreaming={loadingConversations.size > 0}
                 />
               </motion.div>
             </div>
@@ -2485,6 +2747,10 @@ export default function ChatPage() {
                 setLocalConvos={setConversations}
                 selectedConvoId={selectedConvo ? selectedConvo._id : null}
                 onSetSelectedConvo={setSelectedConvo}
+                namingInProgress={namingInProgress}
+                setNamingInProgress={setNamingInProgress}
+                loadingConversations={loadingConversations}
+                setLoadingConversations={setLoadingConversations}
               />
             </div>
           </div>
@@ -2498,6 +2764,9 @@ export default function ChatPage() {
               sidebarVisible={sidebarVisible}
               toggleSidebar={toggleSidebar}
               selectedConvoId={selectedConvo ? selectedConvo._id : null}
+              namingInProgress={namingInProgress}
+              loadingConversations={loadingConversations}
+              isStreaming={loadingConversations.size > 0}
             />
           </div>
         </div>
