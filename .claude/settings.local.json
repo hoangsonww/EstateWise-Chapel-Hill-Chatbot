@@ -1,6 +1,11 @@
 {
   "permissions": {
-    "allow": ["Bash(npm run:*)", "Bash(curl:*)", "Bash(npx tsc:*)"],
+    "allow": [
+      "Bash(npm run:*)",
+      "Bash(curl:*)",
+      "Bash(npx tsc:*)",
+      "Bash(chmod:*)"
+    ],
     "deny": [],
     "ask": []
   }

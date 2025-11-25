@@ -1,0 +1,96 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: mongodb-backup
+  namespace: estatewise
+  labels:
+    app: mongodb-backup
+    app.kubernetes.io/part-of: estatewise
+spec:
+  schedule: "0 2 * * *"  # Daily at 2 AM
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        metadata:
+          labels:
+            app: mongodb-backup
+        spec:
+          restartPolicy: OnFailure
+          serviceAccountName: estatewise-backend-sa
+          containers:
+            - name: backup
+              image: mongo:7.0
+              command:
+                - /bin/bash
+                - -c
+                - |
+                  set -euo pipefail
+
+                  BACKUP_DATE=$(date +%Y%m%d_%H%M%S)
+                  BACKUP_FILE="/backup/mongodb_backup_${BACKUP_DATE}.archive"
+
+                  echo "Starting MongoDB backup at ${BACKUP_DATE}"
+
+                  mongodump \
+                    --uri="${MONGO_URI}" \
+                    --archive="${BACKUP_FILE}" \
+                    --gzip \
+                    --numParallelCollections=4
+
+                  echo "Backup completed: ${BACKUP_FILE}"
+                  echo "Backup size: $(du -h ${BACKUP_FILE} | cut -f1)"
+
+                  # Upload to S3 (if configured)
+                  if [ -n "${AWS_S3_BUCKET:-}" ]; then
+                    echo "Uploading to S3..."
+                    aws s3 cp "${BACKUP_FILE}" "s3://${AWS_S3_BUCKET}/mongodb-backups/"
+                    echo "Upload completed"
+                  fi
+
+                  # Cleanup old local backups (keep last 7 days)
+                  find /backup -name "mongodb_backup_*.archive" -mtime +7 -delete
+
+                  echo "Backup process completed successfully"
+              env:
+                - name: MONGO_URI
+                  valueFrom:
+                    secretKeyRef:
+                      name: estatewise-secrets
+                      key: mongoUri
+                - name: AWS_S3_BUCKET
+                  valueFrom:
+                    configMapKeyRef:
+                      name: estatewise-shared-config
+                      key: backupS3Bucket
+                      optional: true
+              volumeMounts:
+                - name: backup-storage
+                  mountPath: /backup
+              resources:
+                requests:
+                  cpu: 500m
+                  memory: 512Mi
+                limits:
+                  cpu: 1000m
+                  memory: 1Gi
+          volumes:
+            - name: backup-storage
+              persistentVolumeClaim:
+                claimName: mongodb-backup-pvc
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mongodb-backup-pvc
+  namespace: estatewise
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 50Gi
+  storageClassName: standard

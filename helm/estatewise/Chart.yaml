@@ -1,0 +1,17 @@
+apiVersion: v2
+name: estatewise
+description: A Helm chart for EstateWise AI Chatbot application
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - estatewise
+  - real-estate
+  - chatbot
+  - ai
+home: https://github.com/your-org/estatewise
+sources:
+  - https://github.com/your-org/estatewise
+maintainers:
+  - name: EstateWise Team
+    email: devops@estatewise.com

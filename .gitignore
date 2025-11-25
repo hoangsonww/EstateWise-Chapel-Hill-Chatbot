@@ -12,7 +12,6 @@ yarn-error.log*
 backend/.env
 backend/node_modules
 
-docs
 docs-backend
 docs-frontend
 /mcp/node_modules/
