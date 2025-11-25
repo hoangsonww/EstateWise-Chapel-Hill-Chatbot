@@ -1787,7 +1787,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
     let retryCount = 0;
     const MAX_RETRIES = 3;
     let streamedText = "";
-    let receivedExpertViews: Record<string,string> = {};
+    let receivedExpertViews: Record<string, string> = {};
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let receivedWeights: any = null;
     let receivedConvoId: string | null = null;

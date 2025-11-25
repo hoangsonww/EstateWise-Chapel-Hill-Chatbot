@@ -1,0 +1,14 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: estatewise-backend-pdb
+  namespace: estatewise
+  labels:
+    app: estatewise-backend
+    app.kubernetes.io/part-of: estatewise
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: estatewise-backend
+  unhealthyPodEvictionPolicy: AlwaysAllow

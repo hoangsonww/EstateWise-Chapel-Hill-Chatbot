@@ -1,0 +1,118 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: estatewise-backend-sa
+  namespace: estatewise
+  labels:
+    app: estatewise-backend
+    app.kubernetes.io/part-of: estatewise
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: estatewise-frontend-sa
+  namespace: estatewise
+  labels:
+    app: estatewise-frontend
+    app.kubernetes.io/part-of: estatewise
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: estatewise-backend-role
+  namespace: estatewise
+rules:
+  # Allow reading ConfigMaps
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list", "watch"]
+  # Allow reading Secrets
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "list"]
+  # Allow listing pods (for service discovery)
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: estatewise-backend-rolebinding
+  namespace: estatewise
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: estatewise-backend-role
+subjects:
+  - kind: ServiceAccount
+    name: estatewise-backend-sa
+    namespace: estatewise
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: estatewise-frontend-role
+  namespace: estatewise
+rules:
+  # Minimal permissions for frontend
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: estatewise-frontend-rolebinding
+  namespace: estatewise
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: estatewise-frontend-role
+subjects:
+  - kind: ServiceAccount
+    name: estatewise-frontend-sa
+    namespace: estatewise
+---
+# Deployment ServiceAccount for CI/CD
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: estatewise-deployer
+  namespace: estatewise
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: estatewise-deployer-role
+  namespace: estatewise
+rules:
+  - apiGroups: ["apps"]
+    resources: ["deployments", "replicasets"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: [""]
+    resources: ["services", "configmaps", "secrets", "pods", "pods/log"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+  - apiGroups: ["autoscaling"]
+    resources: ["horizontalpodautoscalers"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+  - apiGroups: ["policy"]
+    resources: ["poddisruptionbudgets"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["ingresses", "networkpolicies"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: estatewise-deployer-rolebinding
+  namespace: estatewise
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: estatewise-deployer-role
+subjects:
+  - kind: ServiceAccount
+    name: estatewise-deployer
+    namespace: estatewise

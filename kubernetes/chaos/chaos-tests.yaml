@@ -1,0 +1,123 @@
+# Chaos Engineering Tests for EstateWise
+# These tests use Chaos Mesh or can be adapted for manual testing
+
+---
+# Test 1: Pod Failure - Simulate pod crashes
+apiVersion: chaos-mesh.org/v1alpha1
+kind: PodChaos
+metadata:
+  name: pod-failure-test
+  namespace: estatewise
+spec:
+  action: pod-failure
+  mode: one
+  selector:
+    namespaces:
+      - estatewise
+    labelSelectors:
+      app: estatewise-backend
+  duration: "30s"
+  scheduler:
+    cron: "@every 2h"
+
+---
+# Test 2: Network Delay - Simulate network latency
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: network-delay-test
+  namespace: estatewise
+spec:
+  action: delay
+  mode: one
+  selector:
+    namespaces:
+      - estatewise
+    labelSelectors:
+      app: estatewise-backend
+  delay:
+    latency: "500ms"
+    correlation: "50"
+    jitter: "100ms"
+  duration: "2m"
+
+---
+# Test 3: Network Partition - Simulate network splits
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: network-partition-test
+  namespace: estatewise
+spec:
+  action: partition
+  mode: one
+  selector:
+    namespaces:
+      - estatewise
+    labelSelectors:
+      app: estatewise-backend
+  direction: both
+  duration: "1m"
+
+---
+# Test 4: CPU Stress - Simulate high CPU usage
+apiVersion: chaos-mesh.org/v1alpha1
+kind: StressChaos
+metadata:
+  name: cpu-stress-test
+  namespace: estatewise
+spec:
+  mode: one
+  selector:
+    namespaces:
+      - estatewise
+    labelSelectors:
+      app: estatewise-backend
+  stressors:
+    cpu:
+      workers: 2
+      load: 80
+  duration: "2m"
+
+---
+# Test 5: Memory Stress - Simulate memory pressure
+apiVersion: chaos-mesh.org/v1alpha1
+kind: StressChaos
+metadata:
+  name: memory-stress-test
+  namespace: estatewise
+spec:
+  mode: one
+  selector:
+    namespaces:
+      - estatewise
+    labelSelectors:
+      app: estatewise-backend
+  stressors:
+    memory:
+      workers: 2
+      size: "512MB"
+  duration: "2m"
+
+---
+# Test 6: DNS Failure - Simulate DNS resolution failures
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: dns-failure-test
+  namespace: estatewise
+spec:
+  action: loss
+  mode: one
+  selector:
+    namespaces:
+      - estatewise
+    labelSelectors:
+      app: estatewise-backend
+  loss:
+    loss: "50"
+    correlation: "50"
+  duration: "1m"
+  direction: to
+  externalTargets:
+    - kube-dns.kube-system.svc.cluster.local

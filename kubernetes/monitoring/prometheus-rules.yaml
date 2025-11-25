@@ -1,0 +1,177 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: estatewise-alerts
+  namespace: estatewise
+  labels:
+    prometheus: estatewise
+    role: alert-rules
+spec:
+  groups:
+    - name: estatewise.availability
+      interval: 30s
+      rules:
+        - alert: ServiceDown
+          expr: up{job=~"estatewise-(backend|frontend)"} == 0
+          for: 2m
+          labels:
+            severity: critical
+            team: estatewise
+          annotations:
+            summary: "EstateWise service is down"
+            description: "{{ $labels.job }} has been down for more than 2 minutes."
+
+        - alert: HighErrorRate
+          expr: |
+            sum(rate(http_request_errors_total{job=~"estatewise-(backend|frontend)"}[5m])) by (job)
+            /
+            sum(rate(http_requests_total{job=~"estatewise-(backend|frontend)"}[5m])) by (job)
+            > 0.01
+          for: 5m
+          labels:
+            severity: warning
+            team: estatewise
+          annotations:
+            summary: "High error rate detected"
+            description: "Error rate for {{ $labels.job }} is above 1% (current: {{ $value | humanizePercentage }})"
+
+        - alert: CriticalErrorRate
+          expr: |
+            sum(rate(http_request_errors_total{job=~"estatewise-(backend|frontend)"}[5m])) by (job)
+            /
+            sum(rate(http_requests_total{job=~"estatewise-(backend|frontend)"}[5m])) by (job)
+            > 0.05
+          for: 2m
+          labels:
+            severity: critical
+            team: estatewise
+          annotations:
+            summary: "Critical error rate detected"
+            description: "Error rate for {{ $labels.job }} is above 5% (current: {{ $value | humanizePercentage }})"
+
+    - name: estatewise.performance
+      interval: 30s
+      rules:
+        - alert: HighResponseTime
+          expr: |
+            histogram_quantile(0.95,
+              sum(rate(http_request_duration_seconds_bucket{job=~"estatewise-(backend|frontend)"}[5m])) by (job, le)
+            ) > 1
+          for: 5m
+          labels:
+            severity: warning
+            team: estatewise
+          annotations:
+            summary: "High response time detected"
+            description: "P95 response time for {{ $labels.job }} is above 1s (current: {{ $value }}s)"
+
+        - alert: VeryHighResponseTime
+          expr: |
+            histogram_quantile(0.95,
+              sum(rate(http_request_duration_seconds_bucket{job=~"estatewise-(backend|frontend)"}[5m])) by (job, le)
+            ) > 3
+          for: 2m
+          labels:
+            severity: critical
+            team: estatewise
+          annotations:
+            summary: "Very high response time detected"
+            description: "P95 response time for {{ $labels.job }} is above 3s (current: {{ $value }}s)"
+
+    - name: estatewise.resources
+      interval: 30s
+      rules:
+        - alert: HighMemoryUsage
+          expr: |
+            container_memory_usage_bytes{namespace="estatewise", container=~"backend|frontend"}
+            /
+            container_spec_memory_limit_bytes{namespace="estatewise", container=~"backend|frontend"}
+            > 0.9
+          for: 5m
+          labels:
+            severity: warning
+            team: estatewise
+          annotations:
+            summary: "High memory usage detected"
+            description: "Memory usage for {{ $labels.pod }} is above 90% (current: {{ $value | humanizePercentage }})"
+
+        - alert: HighCPUUsage
+          expr: |
+            rate(container_cpu_usage_seconds_total{namespace="estatewise", container=~"backend|frontend"}[5m])
+            /
+            container_spec_cpu_quota{namespace="estatewise", container=~"backend|frontend"}
+            * 100000
+            > 0.85
+          for: 5m
+          labels:
+            severity: warning
+            team: estatewise
+          annotations:
+            summary: "High CPU usage detected"
+            description: "CPU usage for {{ $labels.pod }} is above 85% (current: {{ $value | humanizePercentage }})"
+
+        - alert: PodCrashLooping
+          expr: rate(kube_pod_container_status_restarts_total{namespace="estatewise"}[15m]) > 0
+          for: 5m
+          labels:
+            severity: critical
+            team: estatewise
+          annotations:
+            summary: "Pod is crash looping"
+            description: "Pod {{ $labels.pod }} is restarting frequently"
+
+    - name: estatewise.scaling
+      interval: 30s
+      rules:
+        - alert: HPAMaxedOut
+          expr: |
+            kube_horizontalpodautoscaler_status_current_replicas{namespace="estatewise"}
+            >=
+            kube_horizontalpodautoscaler_spec_max_replicas{namespace="estatewise"}
+          for: 10m
+          labels:
+            severity: warning
+            team: estatewise
+          annotations:
+            summary: "HPA has reached maximum replicas"
+            description: "HPA {{ $labels.horizontalpodautoscaler }} has been at maximum replicas for 10 minutes"
+
+        - alert: HPAScalingDisabled
+          expr: |
+            kube_horizontalpodautoscaler_status_condition{namespace="estatewise", condition="ScalingActive", status="false"} == 1
+          for: 5m
+          labels:
+            severity: warning
+            team: estatewise
+          annotations:
+            summary: "HPA scaling is disabled"
+            description: "HPA {{ $labels.horizontalpodautoscaler }} scaling is not active"
+
+    - name: estatewise.deployment
+      interval: 30s
+      rules:
+        - alert: DeploymentReplicasMismatch
+          expr: |
+            kube_deployment_spec_replicas{namespace="estatewise"}
+            !=
+            kube_deployment_status_replicas_available{namespace="estatewise"}
+          for: 10m
+          labels:
+            severity: warning
+            team: estatewise
+          annotations:
+            summary: "Deployment replicas mismatch"
+            description: "Deployment {{ $labels.deployment }} has been unable to reach desired replica count for 10 minutes"
+
+        - alert: DeploymentGenerationMismatch
+          expr: |
+            kube_deployment_status_observed_generation{namespace="estatewise"}
+            !=
+            kube_deployment_metadata_generation{namespace="estatewise"}
+          for: 10m
+          labels:
+            severity: warning
+            team: estatewise
+          annotations:
+            summary: "Deployment generation mismatch"
+            description: "Deployment {{ $labels.deployment }} has failed to progress"

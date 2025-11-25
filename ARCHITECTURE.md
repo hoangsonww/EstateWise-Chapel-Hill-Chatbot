@@ -260,8 +260,6 @@ graph LR
   Property -->|IN_NEIGHBORHOOD| Hood
   Property -->|SIMILAR_TO| Similar
 
-  classDef property fill:#f9f,stroke:#333,stroke-width:2px
-  classDef location fill:#9f9,stroke:#333,stroke-width:2px
   class Property,Similar property
   class Zip,Hood location
 ```
@@ -526,6 +524,8 @@ flowchart LR
 
 ## Infrastructure & Deployment
 
+> **Production-Ready Infrastructure**: EstateWise features enterprise-grade DevOps with advanced deployment strategies, comprehensive monitoring, and multi-cloud support. See [DEVOPS.md](DEVOPS.md) for complete operational documentation.
+
 ### Multi-Cloud Architecture
 
 ```mermaid
@@ -534,10 +534,18 @@ flowchart TB
     GitHub[GitHub Repository]
   end
 
-  subgraph "CI/CD"
+  subgraph "CI/CD Pipeline"
     Actions[GitHub Actions]
     Travis[Travis CI]
-    Jenkins[Jenkins]
+    Jenkins[Jenkins<br/>Primary CI/CD]
+
+    subgraph "Jenkins Stages"
+      Security[Security Scanning<br/>5 layers]
+      Coverage[Code Coverage]
+      Build[Docker Build]
+      BGDeploy[Blue-Green Deploy]
+      Canary[Canary Deploy]
+    end
   end
 
   subgraph "Container Registry"
@@ -563,37 +571,110 @@ flowchart TB
       GLB[Global Load Balancer]
     end
 
+    subgraph "Kubernetes"
+      K8s[K8s Cluster<br/>EKS/AKS/GKE]
+      HPA[Horizontal Pod<br/>Autoscaler]
+      PDB[Pod Disruption<br/>Budget]
+    end
+
     subgraph "Edge"
       Vercel[Vercel Platform]
     end
   end
 
-  subgraph "Orchestration"
-    K8s[Kubernetes]
+  subgraph "Service Mesh"
     Consul[Consul Mesh]
-    Nomad[Nomad]
+    Nomad[Nomad Jobs]
   end
 
-  GitHub --> Actions
-  GitHub --> Travis
   GitHub --> Jenkins
+  Jenkins --> Security
+  Security --> Coverage
+  Coverage --> Build
+  Build --> BGDeploy
+  Build --> Canary
 
-  Actions --> GHCR
-  Actions --> ECR
-  Actions --> ACR
-  Actions --> GAR
+  Jenkins --> GHCR
+  Jenkins --> ECR
+  Jenkins --> ACR
+  Jenkins --> GAR
 
   GHCR --> ECS
   ECR --> ECS
   ACR --> ACA
   GAR --> CloudRun
-
-  Actions --> Vercel
-
   GHCR --> K8s
+
+  BGDeploy --> K8s
+  Canary --> K8s
+
+  K8s --> HPA
+  K8s --> PDB
   K8s --> Consul
   K8s --> Nomad
+
+  Jenkins --> Vercel
+
+  style Jenkins fill:#D24939,color:#fff
+  style BGDeploy fill:#00D084,color:#000
+  style Canary fill:#FF6B6B,color:#fff
 ```
+
+### Advanced Deployment Strategies
+
+EstateWise supports three zero-downtime deployment strategies:
+
+```mermaid
+flowchart LR
+  subgraph "Blue-Green Deployment"
+    direction TB
+    Blue[Blue Environment<br/>v1.0.0 - Active]
+    Green[Green Environment<br/>v1.1.0 - Standby]
+    Switch[Instant Traffic<br/>Switch]
+
+    Blue --> Switch
+    Green --> Switch
+  end
+
+  subgraph "Canary Deployment"
+    direction TB
+    Stable[Stable: 90%<br/>v1.0.0]
+    Canary1[Canary: 10%<br/>v1.1.0]
+    Canary2[Canary: 25%]
+    Canary3[Canary: 50%]
+    Final[Promoted: 100%]
+
+    Stable --> Canary1
+    Canary1 --> Canary2
+    Canary2 --> Canary3
+    Canary3 --> Final
+  end
+
+  subgraph "Rolling Update"
+    direction TB
+    Pod1[Pod 1: v1.0.0]
+    Pod2[Pod 2: v1.0.0]
+    Pod3[Pod 1: v1.1.0]
+    Pod4[Pod 2: v1.1.0]
+
+    Pod1 --> Pod3
+    Pod2 --> Pod4
+  end
+
+  style Blue fill:#4A90E2,color:#fff
+  style Green fill:#7ED321,color:#000
+  style Canary1 fill:#FF6B6B,color:#fff
+  style Canary2 fill:#FF6B6B,color:#fff
+  style Canary3 fill:#FF6B6B,color:#fff
+```
+
+**Deployment Strategy Comparison:**
+
+| Strategy | Rollback Speed | Resource Usage | Risk Level | Best For |
+|----------|---------------|----------------|------------|----------|
+| **Blue-Green** | Instant (< 1s) | 2x during switch | Low | Major releases |
+| **Canary** | Gradual | 1.1-1.5x | Very Low | New features |
+| **Rolling** | Re-deploy | 1x | Moderate | Regular updates |
 
 ### Infrastructure as Code
 
@@ -608,13 +689,15 @@ graph LR
     Kustomize[Kustomize]
   end
 
-  subgraph "Resources"
-    VPC[Networks]
-    IAM[Identity & Access]
+  subgraph "Production Resources"
+    VPC[Networks & VPC]
+    IAM[RBAC & IAM]
     Compute[Compute Resources]
-    Storage[Storage]
+    Storage[Storage & Backups]
     DNS[DNS & CDN]
     Secrets[Secrets Management]
+    Monitor[Monitoring Stack]
+    Security[Security Policies]
   end
 
   TF --> VPC
@@ -623,6 +706,75 @@ graph LR
   Bicep --> Storage
   DM --> DNS
   Helm --> Secrets
+  Kustomize --> Monitor
+  Kustomize --> Security
+```
+
+### Production Kubernetes Architecture
+
+```mermaid
+flowchart TB
+  subgraph "Ingress Layer"
+    Ingress[NGINX Ingress<br/>TLS Termination]
+  end
+
+  subgraph "Application Layer"
+    subgraph "Backend Deployment"
+      BBlue[Backend Blue<br/>2 replicas]
+      BGreen[Backend Green<br/>2 replicas]
+      BCanary[Backend Canary<br/>1 replica]
+    end
+
+    subgraph "Frontend Deployment"
+      FBlue[Frontend Blue<br/>2 replicas]
+      FGreen[Frontend Green<br/>2 replicas]
+      FCanary[Frontend Canary<br/>1 replica]
+    end
+  end
+
+  subgraph "Platform Services"
+    HPA[Horizontal Pod<br/>Autoscaler]
+    PDB[Pod Disruption<br/>Budget]
+    NetPol[Network<br/>Policies]
+    RBAC[RBAC]
+  end
+
+  subgraph "Monitoring Stack"
+    Prometheus[Prometheus<br/>Metrics]
+    Grafana[Grafana<br/>Dashboards]
+    AlertMgr[AlertManager<br/>16 rules]
+  end
+
+  subgraph "Operations"
+    Backup[MongoDB Backup<br/>CronJob]
+    Migration[DB Migration<br/>Job]
+    Chaos[Chaos Tests]
+  end
+
+  Ingress --> BBlue
+  Ingress --> BGreen
+  Ingress --> BCanary
+  Ingress --> FBlue
+  Ingress --> FGreen
+  Ingress --> FCanary
+
+  HPA --> BBlue
+  HPA --> FBlue
+  PDB --> BBlue
+  PDB --> FBlue
+  NetPol --> BBlue
+  NetPol --> FBlue
+  RBAC --> BBlue
+
+  Prometheus --> BBlue
+  Prometheus --> FBlue
+  Grafana --> Prometheus
+  AlertMgr --> Prometheus
+
+  style HPA fill:#326CE5,color:#fff
+  style PDB fill:#326CE5,color:#fff
+  style Prometheus fill:#E6512D,color:#fff
+  style Grafana fill:#F46800,color:#fff
 ```
 
 ## Security Architecture

@@ -1,0 +1,114 @@
+# Default values for estatewise
+# This is a YAML-formatted file.
+
+global:
+  namespace: estatewise
+  registry: ghcr.io/your-org
+  imagePullPolicy: IfNotPresent
+
+backend:
+  enabled: true
+  replicaCount: 2
+  image:
+    repository: estatewise-app-backend
+    tag: latest
+  service:
+    type: ClusterIP
+    port: 3001
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  healthCheck:
+    readiness:
+      initialDelaySeconds: 10
+      periodSeconds: 5
+    liveness:
+      initialDelaySeconds: 30
+      periodSeconds: 10
+
+frontend:
+  enabled: true
+  replicaCount: 2
+  image:
+    repository: estatewise-app-frontend
+    tag: latest
+  service:
+    type: ClusterIP
+    port: 3000
+  resources:
+    requests:
+      cpu: 150m
+      memory: 256Mi
+    limits:
+      cpu: 300m
+      memory: 512Mi
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 8
+    targetCPUUtilizationPercentage: 75
+    targetMemoryUtilizationPercentage: 85
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+  hosts:
+    - host: estatewise.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+          service: frontend
+        - path: /api
+          pathType: Prefix
+          service: backend
+  tls:
+    - secretName: estatewise-tls
+      hosts:
+        - estatewise.example.com
+
+monitoring:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    interval: 30s
+  prometheusRules:
+    enabled: true
+
+security:
+  networkPolicies:
+    enabled: true
+  podSecurityPolicy:
+    enabled: false
+  rbac:
+    enabled: true
+
+secrets:
+  mongoUri: ""
+  jwtSecret: ""
+  googleAiApiKey: ""
+  pineconeApiKey: ""
+  pineconeIndex: ""
+
+configMap:
+  nodeEnv: production
+  logLevel: info
+  corsOrigin: "*"
+
+persistence:
+  backup:
+    enabled: true
+    storageClass: standard
+    size: 50Gi

@@ -1,0 +1,67 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: estatewise-backend-monitor
+  namespace: estatewise
+  labels:
+    app: estatewise-backend
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: estatewise-backend
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 30s
+      scrapeTimeout: 10s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: estatewise-frontend-monitor
+  namespace: estatewise
+  labels:
+    app: estatewise-frontend
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: estatewise-frontend
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 30s
+      scrapeTimeout: 10s
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: estatewise-backend-metrics
+  namespace: estatewise
+  labels:
+    app: estatewise-backend
+spec:
+  selector:
+    app: estatewise-backend
+  ports:
+    - name: http
+      port: 3001
+      targetPort: 3001
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: estatewise-frontend-metrics
+  namespace: estatewise
+  labels:
+    app: estatewise-frontend
+spec:
+  selector:
+    app: estatewise-frontend
+  ports:
+    - name: http
+      port: 3000
+      targetPort: 3000
+  type: ClusterIP

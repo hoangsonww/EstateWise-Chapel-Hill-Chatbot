@@ -19,13 +19,17 @@ EstateWise ships with four production-grade deployment tracks so you can choose 
 
 In addition, the monorepo already supports **Vercel** deployments for the frontend (and optional backend edge functions) for teams that prefer Vercel’s serverless workflow.
 
+> [!TIP]
 > ℹ️  Mixed deployments are fully supported: for example run the backend on AWS while exposing the frontend on Vercel, or use the HashiCorp stack for internal tooling while shipping the public experience via Cloud Run.
+
+It also supports advanced deployment strategies like **Blue-Green** and **Canary** deployments for zero-downtime releases and safe progressive delivery.
 
 ---
 
 ## Table of Contents
 
 - [High-Level Architecture](#high-level-architecture)
+- [Advanced Deployment Strategies](#advanced-deployment-strategies)
 - [AWS Deployment](#aws-deployment)
 - [Azure Deployment](#azure-deployment)
 - [Google Cloud Deployment](#google-cloud-deployment)
@@ -74,6 +78,80 @@ flowchart LR
 ```
 
 Each target shares the same containers and environment variables – only the infrastructure wrapper changes.
+
+---
+
+## Advanced Deployment Strategies
+
+EstateWise now supports enterprise-grade deployment strategies for zero-downtime deployments and safe progressive delivery.
+
+### Available Strategies
+
+| Strategy | Use Case | Risk Level | Rollback Speed |
+|----------|----------|------------|----------------|
+| **Blue-Green** | Major releases, complete environment swap | Low | Instant |
+| **Canary** | Progressive rollout with real user testing | Very Low | Gradual |
+| **Rolling Update** | Standard updates, patches | Moderate | Re-deploy |
+
+### Blue-Green Deployments
+
+Blue-Green deployment maintains two identical production environments. Deploy to the inactive environment, test thoroughly, then instantly switch traffic.
+
+**Quick Start:**
+
+```bash
+# Via Jenkins - set environment variables:
+DEPLOY_BLUE_GREEN=1
+BLUE_GREEN_SERVICE=backend
+AUTO_SWITCH_BLUE_GREEN=false
+
+# Manual execution:
+./kubernetes/scripts/blue-green-deploy.sh backend \
+  ghcr.io/your-org/estatewise-app-backend:v1.2.3
+```
+
+**Key Features:**
+- ✅ Instant rollback capability
+- ✅ Full environment testing before traffic switch
+- ✅ Zero-downtime deployments
+- ⚠️ Requires 2x resources during transition
+
+### Canary Deployments
+
+Canary deployment gradually shifts traffic from stable to new version, starting with a small percentage of users and progressively increasing.
+
+**Quick Start:**
+
+```bash
+# Via Jenkins - set environment variables:
+DEPLOY_CANARY=1
+CANARY_SERVICE=backend
+CANARY_STAGES=10,25,50,75,100
+CANARY_STAGE_DURATION=120
+
+# Manual execution:
+./kubernetes/scripts/canary-deploy.sh backend \
+  ghcr.io/your-org/estatewise-app-backend:v1.2.3
+```
+
+**Canary Stages:**
+1. **10%** - Initial canary with 1 replica (Very Low Risk)
+2. **25%** - Expanded testing (Low Risk)
+3. **50%** - Half traffic to new version (Moderate Risk)
+4. **75%** - Majority traffic (Moderate-High Risk)
+5. **100%** - Full rollout (Promoted to Stable)
+
+**Key Features:**
+- ✅ Real production testing with minimal user impact
+- ✅ Automated health checks and metrics validation
+- ✅ Progressive rollout with manual approval gates
+- ✅ Automatic rollback on health check failures
+
+### Documentation
+
+For comprehensive guides on deployment strategies, CI/CD pipelines, monitoring, and troubleshooting, see:
+
+📘 **[DEVOPS.md](DEVOPS.md)** - Complete DevOps and deployment strategy guide
 
 ---
 
@@ -273,7 +351,9 @@ The frontend (`frontend/`) ships with a `vercel.json` and can be deployed direct
 
 ### Jenkins
 
-`jenkins/workflow.Jenkinsfile` now supports multi-target deployments via environment toggles:
+`jenkins/workflow.Jenkinsfile` now supports multi-target deployments and advanced deployment strategies via environment toggles:
+
+#### Multi-Cloud Deployment Toggles
 
 | Env Var | Effect |
 |---------|--------|
@@ -283,7 +363,50 @@ The frontend (`frontend/`) ships with a `vercel.json` and can be deployed direct
 | `DEPLOY_HASHICORP=1` | Runs Terraform (`hashicorp/deploy.sh`). |
 | `DEPLOY_K8S_MANIFESTS=1` | Applies manifests under `kubernetes/`. |
 
-Secrets / parameters are passed as Base64 payloads (`*_B64`) to avoid accidental logging. Example configuration is documented in `jenkins/README.md`.
+#### Advanced Deployment Strategy Toggles
+
+| Env Var | Default | Effect |
+|---------|---------|--------|
+| `DEPLOY_BLUE_GREEN=1` | `0` | Execute Blue-Green deployment strategy. |
+| `DEPLOY_CANARY=1` | `0` | Execute Canary deployment strategy. |
+| `BLUE_GREEN_SERVICE` | `backend` | Service to deploy (backend/frontend). |
+| `CANARY_SERVICE` | `backend` | Service to deploy (backend/frontend). |
+| `CANARY_STAGES` | `10,25,50,75,100` | Traffic percentage stages for canary. |
+| `CANARY_STAGE_DURATION` | `120` | Seconds between canary stages. |
+| `AUTO_SWITCH_BLUE_GREEN` | `false` | Auto-switch traffic without approval. |
+| `AUTO_PROMOTE_CANARY` | `false` | Auto-promote canary without approval. |
+| `SCALE_DOWN_OLD_DEPLOYMENT` | `false` | Scale down old deployment after switch. |
+| `K8S_NAMESPACE` | `estatewise` | Kubernetes namespace for deployments. |
+
+**Example: Production Blue-Green Deployment**
+
+```groovy
+pipeline {
+  environment {
+    DEPLOY_BLUE_GREEN = '1'
+    BLUE_GREEN_SERVICE = 'backend'
+    AUTO_SWITCH_BLUE_GREEN = 'false'      // require manual approval
+    SCALE_DOWN_OLD_DEPLOYMENT = 'true'
+    K8S_NAMESPACE = 'estatewise-prod'
+  }
+}
+```
+
+**Example: Staging Canary Deployment**
+
+```groovy
+pipeline {
+  environment {
+    DEPLOY_CANARY = '1'
+    CANARY_SERVICE = 'backend'
+    CANARY_STAGES = '20,50,100'
+    AUTO_PROMOTE_CANARY = 'true'          // automatic progression
+    K8S_NAMESPACE = 'estatewise-staging'
+  }
+}
+```
+
+Secrets / parameters are passed as Base64 payloads (`*_B64`) to avoid accidental logging. Example configuration is documented in `jenkins/README.md` and comprehensive deployment guides in `DEVOPS.md`.
 
 ### Other CI
 

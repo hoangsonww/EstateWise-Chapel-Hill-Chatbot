@@ -1,0 +1,53 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: db-migration
+  namespace: estatewise
+  labels:
+    app: db-migration
+    app.kubernetes.io/part-of: estatewise
+spec:
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 86400  # Cleanup after 24 hours
+  template:
+    metadata:
+      labels:
+        app: db-migration
+    spec:
+      restartPolicy: OnFailure
+      serviceAccountName: estatewise-backend-sa
+      initContainers:
+        - name: wait-for-mongodb
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              echo "Waiting for MongoDB to be ready..."
+              until nc -z mongodb 27017; do
+                echo "MongoDB not ready, waiting..."
+                sleep 2
+              done
+              echo "MongoDB is ready"
+      containers:
+        - name: migrate
+          image: ghcr.io/your-org/estatewise-app-backend:latest
+          command:
+            - npm
+            - run
+            - migrate
+          env:
+            - name: MONGO_URI
+              valueFrom:
+                secretKeyRef:
+                  name: estatewise-secrets
+                  key: mongoUri
+            - name: NODE_ENV
+              value: production
+          resources:
+            requests:
+              cpu: 200m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi

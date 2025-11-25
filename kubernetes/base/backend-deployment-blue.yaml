@@ -1,0 +1,92 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: estatewise-backend-blue
+  labels:
+    app: estatewise-backend
+    version: blue
+    app.kubernetes.io/part-of: estatewise
+    deployment-strategy: blue-green
+  namespace: estatewise
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: estatewise-backend
+      version: blue
+  template:
+    metadata:
+      labels:
+        app: estatewise-backend
+        version: blue
+        app.kubernetes.io/part-of: estatewise
+      annotations:
+        consul.hashicorp.com/connect-service: "estatewise-backend"
+        consul.hashicorp.com/connect-service-port: "http"
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "3001"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+        - name: backend
+          image: ghcr.io/your-org/estatewise-app-backend:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3001
+              name: http
+          envFrom:
+            - configMapRef:
+                name: estatewise-shared-config
+          env:
+            - name: DEPLOYMENT_SLOT
+              value: "blue"
+            - name: MONGO_URI
+              valueFrom:
+                secretKeyRef:
+                  name: estatewise-secrets
+                  key: mongoUri
+            - name: GOOGLE_AI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: estatewise-secrets
+                  key: googleAiApiKey
+            - name: PINECONE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: estatewise-secrets
+                  key: pineconeApiKey
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: estatewise-secrets
+                  key: jwtSecret
+            - name: PINECONE_INDEX
+              valueFrom:
+                secretKeyRef:
+                  name: estatewise-secrets
+                  key: pineconeIndex
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3001
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            successThreshold: 2
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3001
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: 500m
+              memory: 1Gi
+      terminationGracePeriodSeconds: 30
