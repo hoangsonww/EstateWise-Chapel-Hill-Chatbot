@@ -111,6 +111,26 @@ flowchart TB
 
 ---
 
+## GitLab CI/CD (self-managed or SaaS)
+
+GitLab pipelines mirror the Jenkins flow with first-class support for blue/green, canary, and rolling rollouts.
+
+- **Pipeline file**: `.gitlab-ci.yml`
+- **Deploy helper**: `gitlab/deploy.sh` (wraps the existing Kubernetes scripts)
+- **Stages**: lint → test → build → security (npm audit) → deploy (manual)
+- **Defaults**: Node 20 runner image, project-local `.npm` cache, `NEXT_TELEMETRY_DISABLED=1`
+- **Key variables**:
+  - `DEPLOY_STRATEGY`: `blue-green`, `canary`, or `rolling`
+  - `IMAGE_TAG`: container image to deploy
+  - `SERVICE_NAME`: target workload (default `backend`)
+  - `NAMESPACE`: Kubernetes namespace (default `estatewise`)
+  - Optional toggles: `AUTO_SWITCH`, `SMOKE_TEST`, `SCALE_DOWN_OLD`, `CANARY_STAGES`, `STAGE_DURATION`, `AUTO_PROMOTE`, `ENABLE_METRICS`, `CANARY_REPLICAS_START`, `STABLE_REPLICAS`
+- **Kube auth**: Prefer GitLab’s Kubernetes agent or protected CI variables for `KUBECONFIG`. No Dockerfile changes are required.
+
+> Tip: Protect deploy jobs to `main` and require approvals; pair with the `deployment-control/` dashboard for visibility.
+
+---
+
 ## Deployment Strategies
 
 EstateWise supports three primary deployment strategies, each suited for different scenarios.

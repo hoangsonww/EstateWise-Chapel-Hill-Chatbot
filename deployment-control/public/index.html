@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Deployment Control | EstateWise</title>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Sora:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="background-glow"></div>
+  <header class="hero">
+    <div class="hero__content">
+      <p class="eyebrow">EstateWise Delivery</p>
+      <h1>Deployment Control</h1>
+      <p class="lede">Operate blue/green, canary, and rolling updates without touching the CLI. Track live jobs, inspect cluster state, and ship with confidence.</p>
+      <div class="hero__actions">
+        <button id="refreshSummary" class="ghost">Refresh cluster</button>
+        <span class="meta" id="summaryStatus">Awaiting data…</span>
+      </div>
+    </div>
+    <div class="hero__pill">
+      <div>
+        <p class="meta">Namespace</p>
+        <input id="namespace" type="text" value="estatewise" aria-label="Namespace" />
+      </div>
+      <div>
+        <p class="meta">Kube Context</p>
+        <span class="badge badge--outline">uses local kubectl</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="panel">
+      <div class="panel__header">
+        <div>
+          <p class="eyebrow">Live cluster</p>
+          <h2>Deployment health</h2>
+        </div>
+        <div class="panel__actions">
+          <button id="refreshSummarySecondary" class="ghost ghost--small">Refresh</button>
+        </div>
+      </div>
+      <div id="summary" class="summary-grid">
+        <p class="muted">No data yet. Click refresh to fetch cluster state.</p>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel__header">
+        <div>
+          <p class="eyebrow">Blue / Green</p>
+          <h2>Swap traffic safely</h2>
+        </div>
+        <div class="pill pill--soft">Zero downtime</div>
+      </div>
+      <form id="blueGreenForm" class="form">
+        <label>
+          <span>Container image</span>
+          <input name="image" type="text" placeholder="ghcr.io/your-org/estatewise-app-backend:v1.2.3" required>
+        </label>
+        <div class="grid-2">
+          <label>
+            <span>Service name</span>
+            <input name="serviceName" type="text" value="backend">
+          </label>
+          <label>
+            <span>Namespace</span>
+            <input name="namespace" type="text" value="estatewise">
+          </label>
+        </div>
+        <div class="toggles">
+          <label class="toggle">
+            <input type="checkbox" name="autoSwitch">
+            <span>Auto switch traffic</span>
+          </label>
+          <label class="toggle">
+            <input type="checkbox" name="smokeTest">
+            <span>Run smoke test</span>
+          </label>
+          <label class="toggle">
+            <input type="checkbox" name="scaleDownOld">
+            <span>Scale down old slot</span>
+          </label>
+        </div>
+        <button type="submit" class="primary">Launch Blue/Green</button>
+      </form>
+    </section>
+
+    <section class="panel">
+      <div class="panel__header">
+        <div>
+          <p class="eyebrow">Canary</p>
+          <h2>Progressive delivery</h2>
+        </div>
+        <div class="pill pill--soft pill--accent">Guarded rollout</div>
+      </div>
+      <form id="canaryForm" class="form">
+        <label>
+          <span>Container image</span>
+          <input name="image" type="text" placeholder="ghcr.io/your-org/estatewise-app-backend:v1.2.3" required>
+        </label>
+        <div class="grid-2">
+          <label>
+            <span>Service name</span>
+            <input name="serviceName" type="text" value="backend">
+          </label>
+          <label>
+            <span>Namespace</span>
+            <input name="namespace" type="text" value="estatewise">
+          </label>
+        </div>
+        <div class="grid-2">
+          <label>
+            <span>Canary stages (%)</span>
+            <input name="canaryStages" type="text" value="10,25,50,75,100">
+          </label>
+          <label>
+            <span>Stage duration (s)</span>
+            <input name="stageDuration" type="number" min="10" value="120">
+          </label>
+        </div>
+        <div class="grid-2">
+          <label>
+            <span>Stable replicas</span>
+            <input name="stableReplicas" type="number" min="1" value="2">
+          </label>
+          <label>
+            <span>Canary start replicas</span>
+            <input name="canaryReplicasStart" type="number" min="1" value="1">
+          </label>
+        </div>
+        <div class="toggles">
+          <label class="toggle">
+            <input type="checkbox" name="autoPromote">
+            <span>Auto promote stages</span>
+          </label>
+          <label class="toggle">
+            <input type="checkbox" name="enableMetrics">
+            <span>Enforce metrics gate</span>
+          </label>
+        </div>
+        <button type="submit" class="primary">Launch Canary</button>
+      </form>
+    </section>
+
+    <section class="panel">
+      <div class="panel__header">
+        <div>
+          <p class="eyebrow">Ops</p>
+          <h2>Quick controls</h2>
+        </div>
+        <div class="pill pill--outline">Kubernetes native</div>
+      </div>
+      <div class="ops-grid">
+        <div class="op-card">
+          <div>
+            <p class="meta">Rolling restart</p>
+            <h3>Restart deployment</h3>
+          </div>
+          <form id="rollingForm" class="inline-form">
+            <input name="serviceName" type="text" value="backend" aria-label="Service name">
+            <input name="namespace" type="text" value="estatewise" aria-label="Namespace">
+            <button type="submit" class="ghost ghost--tight">Restart</button>
+          </form>
+        </div>
+        <div class="op-card">
+          <div>
+            <p class="meta">Scale</p>
+            <h3>Adjust replicas</h3>
+          </div>
+          <form id="scaleForm" class="inline-form">
+            <input name="serviceName" type="text" value="backend" aria-label="Service name">
+            <input name="replicas" type="number" min="0" value="3" aria-label="Replicas">
+            <input name="variant" type="text" placeholder="stable / blue / green / canary" aria-label="Variant">
+            <button type="submit" class="ghost ghost--tight">Scale</button>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel panel--wide">
+      <div class="panel__header">
+        <div>
+          <p class="eyebrow">Activity</p>
+          <h2>Job feed</h2>
+        </div>
+        <div class="panel__actions">
+          <button id="refreshJobs" class="ghost ghost--small">Refresh</button>
+        </div>
+      </div>
+      <div id="jobs" class="jobs"></div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="app.js"></script>
+</body>
+</html>

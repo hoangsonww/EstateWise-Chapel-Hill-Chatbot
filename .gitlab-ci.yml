@@ -1,0 +1,111 @@
+stages:
+  - lint
+  - test
+  - build
+  - security
+  - deploy
+
+variables:
+  NODE_ENV: test
+  NPM_CONFIG_CACHE: .npm
+  NEXT_TELEMETRY_DISABLED: "1"
+
+default:
+  image: node:20
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}
+    paths:
+      - .npm
+  before_script:
+    - npm config set cache "${CI_PROJECT_DIR}/.npm"
+
+frontend-lint:
+  stage: lint
+  script:
+    - npm ci --prefer-offline --no-audit --prefix frontend
+    - npm run lint --prefix frontend
+  artifacts:
+    when: on_failure
+    paths:
+      - frontend/.next
+
+backend-test:
+  stage: test
+  script:
+    - npm ci --prefer-offline --no-audit --prefix backend
+    - MONGO_URI=${MONGO_URI:-mongodb://localhost:27017/estatewise-ci} npm test --prefix backend -- --runInBand --passWithNoTests
+
+frontend-test:
+  stage: test
+  script:
+    - npm ci --prefer-offline --no-audit --prefix frontend
+    - npm run test --prefix frontend -- --runInBand --passWithNoTests
+
+backend-build:
+  stage: build
+  needs:
+    - backend-test
+  script:
+    - npm ci --prefer-offline --no-audit --prefix backend
+    - npm run build --prefix backend
+
+frontend-build:
+  stage: build
+  needs:
+    - frontend-test
+  script:
+    - npm ci --prefer-offline --no-audit --prefix frontend
+    - npm run build --prefix frontend
+
+security-audit:
+  stage: security
+  needs:
+    - backend-build
+    - frontend-build
+  script:
+    - npm ci --prefer-offline --prefix backend
+    - npm ci --prefer-offline --prefix frontend
+    - npm audit --prefix backend --audit-level=high
+    - npm audit --prefix frontend --audit-level=high
+
+deploy-blue-green:
+  stage: deploy
+  needs:
+    - security-audit
+  rules:
+    - if: $DEPLOY_STRATEGY == "blue-green" && $CI_COMMIT_BRANCH == "main"
+      when: manual
+    - when: never
+  script:
+    - bash gitlab/deploy.sh
+  environment:
+    name: production
+    action: start
+
+deploy-canary:
+  stage: deploy
+  needs:
+    - security-audit
+  rules:
+    - if: $DEPLOY_STRATEGY == "canary" && $CI_COMMIT_BRANCH == "main"
+      when: manual
+    - when: never
+  script:
+    - bash gitlab/deploy.sh
+  environment:
+    name: production
+    action: start
+
+deploy-rolling:
+  stage: deploy
+  needs:
+    - security-audit
+  rules:
+    - if: $DEPLOY_STRATEGY == "rolling" && $CI_COMMIT_BRANCH == "main"
+      when: manual
+    - when: never
+  script:
+    - bash gitlab/deploy.sh
+  environment:
+    name: production
+    action: start
