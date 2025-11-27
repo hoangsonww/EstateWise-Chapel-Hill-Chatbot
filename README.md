@@ -703,6 +703,8 @@ See [DEVOPS.md](DEVOPS.md) for detailed guides and [kubernetes/scripts/](kuberne
 - **Azure Pipelines** – Container build/update pipeline for Container Apps
 - **GCP Cloud Build** – Docker build + Cloud Run deploy in a single step
 - **Travis CI** – Alternative CI provider (see [TRAVIS_CI.md](TRAVIS_CI.md))
+- **GitLab CI** – Support for GitLab-hosted repos
+- **Deployment Control Dashboard** – View deployment status, history, rollbacks across clouds, and control canary/blue-green deployments (see [deployment-control/](deployment-control/))
 
 ### Deployment Architecture Overview
 

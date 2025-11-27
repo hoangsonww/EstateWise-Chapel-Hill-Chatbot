@@ -24,6 +24,9 @@ In addition, the monorepo already supports **Vercel** deployments for the fronte
 
 It also supports advanced deployment strategies like **Blue-Green** and **Canary** deployments for zero-downtime releases and safe progressive delivery.
 
+> [!NEW]
+> GitLab CI/CD is now supported out of the box via `.gitlab-ci.yml`, mirroring the Jenkins flow and wiring directly into the Kubernetes blue/green and canary scripts through `gitlab/deploy.sh`.
+
 ---
 
 ## Table of Contents

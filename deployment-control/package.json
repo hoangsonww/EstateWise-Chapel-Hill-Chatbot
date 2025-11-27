@@ -1,0 +1,22 @@
+{
+  "name": "estatewise-deployment-control",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Dashboard UI and API to operate EstateWise blue-green, canary, and rolling deployments without the CLI.",
+  "scripts": {
+    "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/node": "^22.7.4",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.6.3"
+  }
+}
