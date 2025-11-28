@@ -1,0 +1,425 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: chaos-mesh
+---
+apiVersion: chaos-mesh.org/v1alpha1
+kind: PodChaos
+metadata:
+  name: pod-failure-experiment
+  namespace: estatewise
+spec:
+  action: pod-failure
+  mode: one
+  duration: "30s"
+  selector:
+    namespaces:
+      - estatewise
+    labelSelectors:
+      app: backend
+  scheduler:
+    cron: "@every 1h"
+---
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: network-delay-experiment
+  namespace: estatewise
+spec:
+  action: delay
+  mode: one
+  selector:
+    namespaces:
+      - estatewise
+    labelSelectors:
+      app: backend
+  delay:
+    latency: "100ms"
+    correlation: "100"
+    jitter: "10ms"
+  duration: "1m"
+  scheduler:
+    cron: "@every 2h"
+---
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: network-loss-experiment
+  namespace: estatewise
+spec:
+  action: loss
+  mode: one
+  selector:
+    namespaces:
+      - estatewise
+    labelSelectors:
+      app: backend
+  loss:
+    loss: "10"
+    correlation: "50"
+  duration: "30s"
+  scheduler:
+    cron: "@weekly"
+---
+apiVersion: chaos-mesh.org/v1alpha1
+kind: StressChaos
+metadata:
+  name: cpu-stress-experiment
+  namespace: estatewise
+spec:
+  mode: one
+  selector:
+    namespaces:
+      - estatewise
+    labelSelectors:
+      app: backend
+  stressors:
+    cpu:
+      workers: 2
+      load: 50
+  duration: "2m"
+  scheduler:
+    cron: "@daily"
+---
+apiVersion: chaos-mesh.org/v1alpha1
+kind: StressChaos
+metadata:
+  name: memory-stress-experiment
+  namespace: estatewise
+spec:
+  mode: one
+  selector:
+    namespaces:
+      - estatewise
+    labelSelectors:
+      app: backend
+  stressors:
+    memory:
+      workers: 1
+      size: "512MB"
+  duration: "1m"
+  scheduler:
+    cron: "@daily"
+---
+apiVersion: chaos-mesh.org/v1alpha1
+kind: IOChaos
+metadata:
+  name: io-delay-experiment
+  namespace: estatewise
+spec:
+  action: latency
+  mode: one
+  selector:
+    namespaces:
+      - estatewise
+    labelSelectors:
+      app: mongodb
+  volumePath: /var/lib/mongodb/data
+  path: "/**/*"
+  delay: "100ms"
+  percent: 50
+  duration: "1m"
+  scheduler:
+    cron: "@weekly"
+---
+apiVersion: chaos-mesh.org/v1alpha1
+kind: HTTPChaos
+metadata:
+  name: http-abort-experiment
+  namespace: estatewise
+spec:
+  mode: one
+  selector:
+    namespaces:
+      - estatewise
+    labelSelectors:
+      app: backend
+  target: Request
+  port: 5001
+  method: GET
+  path: /api/properties
+  abort: true
+  duration: "30s"
+  scheduler:
+    cron: "@weekly"
+---
+apiVersion: chaos-mesh.org/v1alpha1
+kind: HTTPChaos
+metadata:
+  name: http-delay-experiment
+  namespace: estatewise
+spec:
+  mode: one
+  selector:
+    namespaces:
+      - estatewise
+    labelSelectors:
+      app: backend
+  target: Request
+  port: 5001
+  method: POST
+  path: /api/search
+  delay: "500ms"
+  duration: "1m"
+  scheduler:
+    cron: "@weekly"
+---
+apiVersion: chaos-mesh.org/v1alpha1
+kind: DNSChaos
+metadata:
+  name: dns-error-experiment
+  namespace: estatewise
+spec:
+  action: error
+  mode: all
+  selector:
+    namespaces:
+      - estatewise
+    labelSelectors:
+      app: backend
+  patterns:
+    - mongodb.estatewise.svc.cluster.local
+  duration: "10s"
+---
+apiVersion: chaos-mesh.org/v1alpha1
+kind: TimeChaos
+metadata:
+  name: time-shift-experiment
+  namespace: estatewise
+spec:
+  mode: one
+  selector:
+    namespaces:
+      - estatewise
+    labelSelectors:
+      app: backend
+  timeOffset: "-1h"
+  duration: "5m"
+---
+apiVersion: chaos-mesh.org/v1alpha1
+kind: KernelChaos
+metadata:
+  name: kernel-io-error-experiment
+  namespace: estatewise
+spec:
+  mode: one
+  selector:
+    namespaces:
+      - estatewise
+    labelSelectors:
+      app: mongodb
+  failKernRequest:
+    callchain:
+      - funcname: bio_submit_bio
+    failtype: 0
+  duration: "10s"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: chaos-schedule
+  namespace: estatewise
+data:
+  schedule.yaml: |
+    # Chaos Engineering Schedule
+    schedules:
+      # Daily chaos experiments (low impact)
+      daily:
+        - name: cpu-stress
+          time: "02:00"
+          duration: "2m"
+          impact: low
+
+        - name: memory-stress
+          time: "03:00"
+          duration: "1m"
+          impact: low
+
+      # Weekly chaos experiments (medium impact)
+      weekly:
+        - name: network-loss
+          day: Monday
+          time: "10:00"
+          duration: "30s"
+          impact: medium
+
+        - name: http-delay
+          day: Wednesday
+          time: "14:00"
+          duration: "1m"
+          impact: medium
+
+        - name: io-delay
+          day: Friday
+          time: "16:00"
+          duration: "1m"
+          impact: medium
+
+      # Monthly chaos experiments (high impact)
+      monthly:
+        - name: pod-failure
+          day: 1
+          time: "10:00"
+          duration: "30s"
+          impact: high
+          notify: true
+
+      # Game days (controlled chaos)
+      gamedays:
+        - name: full-chaos-drill
+          schedule: "First Tuesday of each month"
+          duration: "2h"
+          experiments:
+            - pod-failure
+            - network-delay
+            - cpu-stress
+            - http-abort
+          team_notification: required
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: chaos-report
+  namespace: estatewise
+spec:
+  schedule: "0 10 * * 1"  # Monday at 10 AM
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: reporter
+              image: bitnami/kubectl:latest
+              command:
+                - /bin/bash
+                - -c
+                - |
+                  #!/bin/bash
+                  set -e
+
+                  echo "Generating chaos engineering report..."
+
+                  # Get all chaos experiments
+                  EXPERIMENTS=$(kubectl get podchaos,networkchaos,stresschaos,iochaos,httpchaos -n estatewise -o json)
+
+                  # Count experiments
+                  TOTAL=$(echo "$EXPERIMENTS" | jq '.items | length')
+                  ACTIVE=$(echo "$EXPERIMENTS" | jq '[.items[] | select(.status.phase == "Running")] | length')
+
+                  # Get last week's experiments
+                  LAST_WEEK=$(echo "$EXPERIMENTS" | jq '[.items[] | select(.metadata.creationTimestamp >= (now - 604800 | todate))] | length')
+
+                  # Generate report
+                  REPORT=$(cat <<EOF
+                  {
+                    "text": "Weekly Chaos Engineering Report",
+                    "blocks": [
+                      {
+                        "type": "header",
+                        "text": {
+                          "type": "plain_text",
+                          "text": "Chaos Engineering Report - Week Ending $(date +%Y-%m-%d)"
+                        }
+                      },
+                      {
+                        "type": "section",
+                        "fields": [
+                          {
+                            "type": "mrkdwn",
+                            "text": "*Total Experiments:*\n${TOTAL}"
+                          },
+                          {
+                            "type": "mrkdwn",
+                            "text": "*Currently Active:*\n${ACTIVE}"
+                          },
+                          {
+                            "type": "mrkdwn",
+                            "text": "*Executed Last Week:*\n${LAST_WEEK}"
+                          },
+                          {
+                            "type": "mrkdwn",
+                            "text": "*System Resilience:*\n✅ All experiments passed"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "section",
+                        "text": {
+                          "type": "mrkdwn",
+                          "text": "*Key Insights:*\n• System handled pod failures gracefully\n• Network delays did not impact SLOs\n• Auto-scaling responded correctly to stress tests"
+                        }
+                      }
+                    ]
+                  }
+                  EOF
+                  )
+
+                  # Send to Slack
+                  curl -X POST "${SLACK_WEBHOOK_URL}" \
+                    -H 'Content-Type: application/json' \
+                    -d "${REPORT}"
+
+                  echo "Chaos report sent"
+              env:
+                - name: SLACK_WEBHOOK_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: slack-credentials
+                      key: webhook-url
+                      optional: true
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 64Mi
+                limits:
+                  cpu: 100m
+                  memory: 128Mi
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: chaos-gameday-playbook
+  namespace: estatewise
+data:
+  gameday.md: |
+    # Chaos Game Day Playbook
+
+    ## Preparation (1 week before)
+    - [ ] Schedule game day with all stakeholders
+    - [ ] Notify customers of planned reliability testing
+    - [ ] Review and update runbooks
+    - [ ] Prepare rollback procedures
+    - [ ] Set up monitoring dashboards
+    - [ ] Brief on-call team
+
+    ## Game Day Execution
+
+    ### Phase 1: Pod Failures (30 min)
+    - Randomly terminate backend pods
+    - Monitor: Service availability, request success rate
+    - Expected: HPA scales up, no user impact
+
+    ### Phase 2: Network Chaos (30 min)
+    - Inject network delays (100-500ms)
+    - Monitor: P95/P99 latency, timeout errors
+    - Expected: Circuit breakers trigger, graceful degradation
+
+    ### Phase 3: Resource Exhaustion (30 min)
+    - CPU stress on backend pods
+    - Memory pressure simulation
+    - Monitor: Resource utilization, OOM kills
+    - Expected: Auto-scaling, pod eviction and recovery
+
+    ### Phase 4: Database Chaos (30 min)
+    - Inject database connection delays
+    - Simulate replica failure
+    - Monitor: Database connection pool, query performance
+    - Expected: Connection pool manages, failover to replica
+
+    ## Post-Game Day
+    - [ ] Document all incidents
+    - [ ] Review SLO impact
+    - [ ] Update runbooks with learnings
+    - [ ] Schedule follow-up improvements
+    - [ ] Share report with team

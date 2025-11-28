@@ -1,0 +1,457 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: istio-system
+  labels:
+    istio-injection: disabled
+---
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: estatewise-gateway
+  namespace: estatewise
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+    - port:
+        number: 80
+        name: http
+        protocol: HTTP
+      hosts:
+        - "estatewise.com"
+        - "*.estatewise.com"
+      tls:
+        httpsRedirect: true
+    - port:
+        number: 443
+        name: https
+        protocol: HTTPS
+      hosts:
+        - "estatewise.com"
+        - "*.estatewise.com"
+      tls:
+        mode: SIMPLE
+        credentialName: estatewise-tls
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: estatewise-vs
+  namespace: estatewise
+spec:
+  hosts:
+    - "estatewise.com"
+    - "api.estatewise.com"
+  gateways:
+    - estatewise-gateway
+  http:
+    - match:
+        - uri:
+            prefix: /api
+      route:
+        - destination:
+            host: backend
+            port:
+              number: 5001
+          weight: 100
+      retries:
+        attempts: 3
+        perTryTimeout: 2s
+        retryOn: gateway-error,connect-failure,refused-stream,5xx
+      timeout: 10s
+      fault:
+        delay:
+          percentage:
+            value: 0.1
+          fixedDelay: 5s
+      corsPolicy:
+        allowOrigins:
+          - exact: https://estatewise.com
+        allowMethods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+        allowHeaders:
+          - authorization
+          - content-type
+        maxAge: 24h
+    - route:
+        - destination:
+            host: frontend
+            port:
+              number: 3000
+---
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: default
+  namespace: estatewise
+spec:
+  mtls:
+    mode: STRICT
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: backend-authz
+  namespace: estatewise
+spec:
+  selector:
+    matchLabels:
+      app: backend
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            principals: ["cluster.local/ns/estatewise/sa/frontend"]
+      to:
+        - operation:
+            methods: ["GET", "POST", "PUT", "DELETE"]
+            paths: ["/api/*"]
+---
+apiVersion: security.istio.io/v1beta1
+kind: RequestAuthentication
+metadata:
+  name: jwt-auth
+  namespace: estatewise
+spec:
+  selector:
+    matchLabels:
+      app: backend
+  jwtRules:
+    - issuer: "https://estatewise.com"
+      jwksUri: "https://estatewise.com/.well-known/jwks.json"
+      audiences:
+        - "estatewise-api"
+      forwardOriginalToken: true
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: backend-circuit-breaker
+  namespace: estatewise
+spec:
+  host: backend
+  trafficPolicy:
+    connectionPool:
+      tcp:
+        maxConnections: 100
+      http:
+        http1MaxPendingRequests: 50
+        http2MaxRequests: 100
+        maxRequestsPerConnection: 2
+        maxRetries: 3
+    loadBalancer:
+      simple: LEAST_REQUEST
+      localityLbSetting:
+        enabled: true
+    outlierDetection:
+      consecutiveErrors: 5
+      interval: 30s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 50
+      minHealthPercent: 50
+    tls:
+      mode: ISTIO_MUTUAL
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: frontend-dr
+  namespace: estatewise
+spec:
+  host: frontend
+  trafficPolicy:
+    connectionPool:
+      tcp:
+        maxConnections: 200
+      http:
+        http1MaxPendingRequests: 100
+        http2MaxRequests: 200
+    loadBalancer:
+      simple: ROUND_ROBIN
+    outlierDetection:
+      consecutiveErrors: 5
+      interval: 30s
+      baseEjectionTime: 30s
+    tls:
+      mode: ISTIO_MUTUAL
+---
+apiVersion: telemetry.istio.io/v1alpha1
+kind: Telemetry
+metadata:
+  name: mesh-default
+  namespace: istio-system
+spec:
+  tracing:
+    - providers:
+        - name: jaeger
+      randomSamplingPercentage: 10.0
+      customTags:
+        environment:
+          literal:
+            value: production
+        version:
+          literal:
+            value: v1
+  metrics:
+    - providers:
+        - name: prometheus
+      overrides:
+        - match:
+            metric: ALL_METRICS
+          tagOverrides:
+            source_cluster:
+              value: estatewise-production
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: istio-mesh-config
+  namespace: istio-system
+data:
+  mesh: |
+    accessLogFile: /dev/stdout
+    accessLogEncoding: JSON
+    accessLogFormat: |
+      {
+        "start_time": "%START_TIME%",
+        "method": "%REQ(:METHOD)%",
+        "path": "%REQ(X-ENVOY-ORIGINAL-PATH?:PATH)%",
+        "protocol": "%PROTOCOL%",
+        "response_code": "%RESPONSE_CODE%",
+        "response_flags": "%RESPONSE_FLAGS%",
+        "bytes_received": "%BYTES_RECEIVED%",
+        "bytes_sent": "%BYTES_SENT%",
+        "duration": "%DURATION%",
+        "upstream_service_time": "%RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)%",
+        "x_forwarded_for": "%REQ(X-FORWARDED-FOR)%",
+        "user_agent": "%REQ(USER-AGENT)%",
+        "request_id": "%REQ(X-REQUEST-ID)%",
+        "authority": "%REQ(:AUTHORITY)%",
+        "upstream_host": "%UPSTREAM_HOST%"
+      }
+
+    enableTracing: true
+    defaultConfig:
+      tracing:
+        sampling: 10.0
+        zipkin:
+          address: jaeger-collector.estatewise:9411
+
+    outboundTrafficPolicy:
+      mode: REGISTRY_ONLY
+
+    defaultServiceExportTo:
+      - "."
+
+    defaultVirtualServiceExportTo:
+      - "."
+
+    defaultDestinationRuleExportTo:
+      - "."
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: istio-ingressgateway
+  namespace: istio-system
+  labels:
+    app: istio-ingressgateway
+    istio: ingressgateway
+spec:
+  type: LoadBalancer
+  selector:
+    app: istio-ingressgateway
+    istio: ingressgateway
+  ports:
+    - name: status-port
+      port: 15021
+      targetPort: 15021
+    - name: http2
+      port: 80
+      targetPort: 8080
+    - name: https
+      port: 443
+      targetPort: 8443
+    - name: tcp
+      port: 31400
+      targetPort: 31400
+    - name: tls
+      port: 15443
+      targetPort: 15443
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: istio-ingressgateway
+  namespace: istio-system
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: istio-ingressgateway
+      istio: ingressgateway
+  template:
+    metadata:
+      labels:
+        app: istio-ingressgateway
+        istio: ingressgateway
+      annotations:
+        sidecar.istio.io/inject: "false"
+        prometheus.io/port: "15090"
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/stats/prometheus"
+    spec:
+      serviceAccountName: istio-ingressgateway
+      containers:
+        - name: istio-proxy
+          image: docker.io/istio/proxyv2:1.20.0
+          ports:
+            - containerPort: 15021
+            - containerPort: 8080
+            - containerPort: 8443
+            - containerPort: 15090
+              protocol: TCP
+              name: http-envoy-prom
+          args:
+            - proxy
+            - router
+            - --domain
+            - $(POD_NAMESPACE).svc.cluster.local
+            - --proxyLogLevel=warning
+            - --proxyComponentLogLevel=misc:error
+            - --log_output_level=default:info
+          env:
+            - name: JWT_POLICY
+              value: third-party-jwt
+            - name: PILOT_CERT_PROVIDER
+              value: istiod
+            - name: CA_ADDR
+              value: istiod.istio-system.svc:15012
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: spec.nodeName
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.namespace
+            - name: INSTANCE_IP
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: status.podIP
+            - name: HOST_IP
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: status.hostIP
+            - name: SERVICE_ACCOUNT
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.serviceAccountName
+            - name: ISTIO_META_WORKLOAD_NAME
+              value: istio-ingressgateway
+            - name: ISTIO_META_OWNER
+              value: kubernetes://apis/apps/v1/namespaces/istio-system/deployments/istio-ingressgateway
+            - name: ISTIO_META_MESH_ID
+              value: cluster.local
+            - name: TRUST_DOMAIN
+              value: cluster.local
+            - name: ISTIO_META_UNPRIVILEGED_POD
+              value: "true"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 2000m
+              memory: 1024Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            privileged: false
+            readOnlyRootFilesystem: true
+          volumeMounts:
+            - name: workload-socket
+              mountPath: /var/run/secrets/workload-spiffe-uds
+            - name: credential-socket
+              mountPath: /var/run/secrets/credential-uds
+            - name: workload-certs
+              mountPath: /var/run/secrets/workload-spiffe-credentials
+            - name: istio-envoy
+              mountPath: /etc/istio/proxy
+            - name: config-volume
+              mountPath: /etc/istio/config
+            - name: istio-data
+              mountPath: /var/lib/istio/data
+            - name: podinfo
+              mountPath: /etc/istio/pod
+            - name: ingressgateway-certs
+              mountPath: /etc/istio/ingressgateway-certs
+              readOnly: true
+            - name: ingressgateway-ca-certs
+              mountPath: /etc/istio/ingressgateway-ca-certs
+              readOnly: true
+      volumes:
+        - emptyDir: {}
+          name: workload-socket
+        - emptyDir: {}
+          name: credential-socket
+        - emptyDir: {}
+          name: workload-certs
+        - emptyDir: {}
+          name: istio-envoy
+        - configMap:
+            name: istio
+            optional: true
+          name: config-volume
+        - emptyDir: {}
+          name: istio-data
+        - downwardAPI:
+            items:
+              - path: labels
+                fieldRef:
+                  fieldPath: metadata.labels
+              - path: annotations
+                fieldRef:
+                  fieldPath: metadata.annotations
+          name: podinfo
+        - name: ingressgateway-certs
+          secret:
+            secretName: istio-ingressgateway-certs
+            optional: true
+        - name: ingressgateway-ca-certs
+          secret:
+            secretName: istio-ingressgateway-ca-certs
+            optional: true
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: istio-ingressgateway
+  namespace: istio-system
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: istio-ingressgateway
+  namespace: istio-system
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: istio-ingressgateway
+      istio: ingressgateway

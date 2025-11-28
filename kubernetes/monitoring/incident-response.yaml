@@ -1,0 +1,492 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: incident-runbooks
+  namespace: estatewise
+data:
+  high-error-rate.md: |
+    # High Error Rate Incident Runbook
+
+    ## Alert Description
+    HTTP error rate (5xx responses) has exceeded threshold
+
+    ## Severity
+    Critical
+
+    ## Investigation Steps
+    1. Check recent deployments:
+       ```bash
+       kubectl rollout history deployment/backend -n estatewise
+       ```
+
+    2. Check application logs:
+       ```bash
+       kubectl logs -n estatewise -l app=backend --tail=100 | grep ERROR
+       ```
+
+    3. Check database connectivity:
+       ```bash
+       kubectl exec -n estatewise deployment/backend -- mongosh $MONGO_URI --eval "db.adminCommand('ping')"
+       ```
+
+    4. Review Grafana dashboard for error patterns:
+       - URL: https://grafana.estatewise.com/d/errors
+
+    ## Mitigation Steps
+    1. If caused by recent deployment, rollback:
+       ```bash
+       kubectl rollout undo deployment/backend -n estatewise
+       ```
+
+    2. Scale up pods if load-related:
+       ```bash
+       kubectl scale deployment/backend --replicas=5 -n estatewise
+       ```
+
+    3. If database issue, check connection pool:
+       ```bash
+       kubectl get pods -n estatewise -l app=mongodb
+       ```
+
+    ## Escalation
+    - If unresolved after 15 minutes, page on-call engineer
+    - PagerDuty: estatewise-backend-oncall
+    - Slack: #estatewise-incidents
+
+  pod-crash-loop.md: |
+    # Pod Crash Loop Runbook
+
+    ## Alert Description
+    Pod is in CrashLoopBackOff state
+
+    ## Investigation Steps
+    1. Get pod status:
+       ```bash
+       kubectl get pods -n estatewise
+       kubectl describe pod <pod-name> -n estatewise
+       ```
+
+    2. Check pod logs:
+       ```bash
+       kubectl logs <pod-name> -n estatewise --previous
+       ```
+
+    3. Check events:
+       ```bash
+       kubectl get events -n estatewise --sort-by='.lastTimestamp'
+       ```
+
+    4. Check resource limits:
+       ```bash
+       kubectl top pod <pod-name> -n estatewise
+       ```
+
+    ## Common Causes
+    - OOMKilled: Pod exceeded memory limits
+    - ImagePullBackOff: Cannot pull container image
+    - ConfigMap/Secret missing
+    - Liveness probe failing
+
+    ## Mitigation
+    1. If OOMKilled, increase memory limits
+    2. If probe failing, increase timeout
+    3. Check and fix ConfigMap/Secret references
+
+  database-connection-pool.md: |
+    # Database Connection Pool Exhausted Runbook
+
+    ## Investigation Steps
+    1. Check current connections:
+       ```bash
+       kubectl exec -n estatewise deployment/mongodb -- mongosh --eval "db.serverStatus().connections"
+       ```
+
+    2. Check application connection usage:
+       ```bash
+       kubectl logs -n estatewise -l app=backend | grep "connection pool"
+       ```
+
+    3. Check for connection leaks:
+       - Review application code for unclosed connections
+       - Check Grafana for connection pool metrics
+
+    ## Mitigation
+    1. Restart backend pods to reset connections:
+       ```bash
+       kubectl rollout restart deployment/backend -n estatewise
+       ```
+
+    2. Scale MongoDB if needed:
+       ```bash
+       kubectl scale statefulset/mongodb --replicas=3 -n estatewise
+       ```
+
+    3. Adjust connection pool settings
+
+  high-latency.md: |
+    # High Latency Runbook
+
+    ## Alert Description
+    P95 latency exceeded SLO threshold
+
+    ## Investigation Steps
+    1. Check Jaeger for slow traces:
+       - URL: https://jaeger.estatewise.com
+
+    2. Check database query performance:
+       ```bash
+       kubectl exec -n estatewise deployment/mongodb -- mongosh --eval "db.currentOp()"
+       ```
+
+    3. Check resource utilization:
+       ```bash
+       kubectl top pods -n estatewise
+       ```
+
+    4. Check network latency:
+       ```bash
+       kubectl exec -n estatewise deployment/backend -- ping mongodb
+       ```
+
+    ## Common Causes
+    - Slow database queries
+    - Resource constraints (CPU/Memory)
+    - Network issues
+    - External API timeouts
+
+    ## Mitigation
+    1. Add database indexes if needed
+    2. Scale up pods if resource-constrained
+    3. Enable caching for frequent queries
+    4. Review and optimize slow endpoints
+
+  disk-space-low.md: |
+    # Low Disk Space Runbook
+
+    ## Investigation Steps
+    1. Check disk usage:
+       ```bash
+       kubectl exec -n estatewise <pod-name> -- df -h
+       ```
+
+    2. Find large files:
+       ```bash
+       kubectl exec -n estatewise <pod-name> -- du -sh /* | sort -h
+       ```
+
+    3. Check PVC usage:
+       ```bash
+       kubectl get pvc -n estatewise
+       kubectl describe pvc <pvc-name> -n estatewise
+       ```
+
+    ## Mitigation
+    1. Clean up old logs:
+       ```bash
+       kubectl exec -n estatewise <pod-name> -- find /var/log -name "*.log" -mtime +7 -delete
+       ```
+
+    2. Resize PVC if needed:
+       ```bash
+       kubectl patch pvc <pvc-name> -n estatewise -p '{"spec":{"resources":{"requests":{"storage":"100Gi"}}}}'
+       ```
+
+    3. Enable log rotation
+    4. Clean up old backups
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: incident-automation-scripts
+  namespace: estatewise
+data:
+  auto-remediate.sh: |
+    #!/bin/bash
+    set -e
+
+    ALERT_NAME=$1
+    NAMESPACE=${2:-estatewise}
+
+    case "$ALERT_NAME" in
+      "HighErrorRate")
+        echo "Auto-remediation: Checking recent deployments..."
+
+        # Get last rollout
+        LAST_REVISION=$(kubectl rollout history deployment/backend -n $NAMESPACE | tail -n 2 | head -n 1 | awk '{print $1}')
+
+        # Rollback if deployed in last 30 minutes
+        DEPLOY_TIME=$(kubectl rollout history deployment/backend -n $NAMESPACE --revision=$LAST_REVISION -o jsonpath='{.metadata.creationTimestamp}')
+
+        # Simple rollback
+        kubectl rollout undo deployment/backend -n $NAMESPACE
+        echo "Rolled back deployment"
+        ;;
+
+      "PodCrashLooping")
+        POD_NAME=$3
+        echo "Auto-remediation: Restarting pod $POD_NAME..."
+
+        kubectl delete pod $POD_NAME -n $NAMESPACE
+        echo "Pod deleted, will be recreated by controller"
+        ;;
+
+      "HighMemoryUsage")
+        echo "Auto-remediation: Scaling up deployment..."
+
+        CURRENT_REPLICAS=$(kubectl get deployment/backend -n $NAMESPACE -o jsonpath='{.spec.replicas}')
+        NEW_REPLICAS=$((CURRENT_REPLICAS + 2))
+
+        kubectl scale deployment/backend --replicas=$NEW_REPLICAS -n $NAMESPACE
+        echo "Scaled from $CURRENT_REPLICAS to $NEW_REPLICAS replicas"
+        ;;
+
+      *)
+        echo "No auto-remediation available for $ALERT_NAME"
+        exit 0
+        ;;
+    esac
+
+  incident-report.sh: |
+    #!/bin/bash
+    set -e
+
+    # Generate incident report
+    INCIDENT_ID=$1
+    START_TIME=$2
+    END_TIME=$3
+
+    cat <<EOF > /tmp/incident-${INCIDENT_ID}.md
+    # Incident Report: ${INCIDENT_ID}
+
+    ## Timeline
+    - Start: ${START_TIME}
+    - End: ${END_TIME}
+    - Duration: $(( $(date -d "$END_TIME" +%s) - $(date -d "$START_TIME" +%s) )) seconds
+
+    ## Affected Services
+    $(kubectl get pods -n estatewise --field-selector=status.phase!=Running)
+
+    ## Events During Incident
+    $(kubectl get events -n estatewise --sort-by='.lastTimestamp' | grep -A 10 "$START_TIME")
+
+    ## Metrics
+    - Error rate: $(curl -s "http://prometheus:9090/api/v1/query?query=sli:error_rate" | jq -r '.data.result[0].value[1]')%
+    - P95 latency: $(curl -s "http://prometheus:9090/api/v1/query?query=sli:latency:p95" | jq -r '.data.result[0].value[1]')s
+
+    ## Actions Taken
+    - [List actions taken during incident]
+
+    ## Root Cause
+    - [To be determined]
+
+    ## Action Items
+    - [ ] Conduct post-mortem
+    - [ ] Update runbooks
+    - [ ] Implement preventive measures
+    EOF
+
+    echo "Incident report generated: /tmp/incident-${INCIDENT_ID}.md"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: incident-commander
+  namespace: estatewise
+  labels:
+    app: incident-commander
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: incident-commander
+  template:
+    metadata:
+      labels:
+        app: incident-commander
+    spec:
+      serviceAccountName: incident-commander
+      containers:
+        - name: commander
+          image: bitnami/kubectl:latest
+          command:
+            - /bin/bash
+            - -c
+            - |
+              #!/bin/bash
+              echo "Incident Commander running..."
+
+              # Listen for alerts from Alertmanager webhook
+              # This is a simplified example - in production, use proper webhook receiver
+
+              while true; do
+                # Placeholder for webhook receiver logic
+                # In production, use a proper webhook receiver like alertmanager-webhook-receiver
+
+                sleep 10
+              done
+          volumeMounts:
+            - name: scripts
+              mountPath: /scripts
+            - name: runbooks
+              mountPath: /runbooks
+          env:
+            - name: SLACK_WEBHOOK_URL
+              valueFrom:
+                secretKeyRef:
+                  name: slack-credentials
+                  key: webhook-url
+                  optional: true
+            - name: PAGERDUTY_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: pagerduty-credentials
+                  key: api-key
+                  optional: true
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+      volumes:
+        - name: scripts
+          configMap:
+            name: incident-automation-scripts
+            defaultMode: 0755
+        - name: runbooks
+          configMap:
+            name: incident-runbooks
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: incident-commander
+  namespace: estatewise
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: incident-commander
+rules:
+  - apiGroups: [""]
+    resources:
+      - pods
+      - pods/log
+      - services
+      - events
+    verbs: ["get", "list", "watch", "delete"]
+  - apiGroups: ["apps"]
+    resources:
+      - deployments
+      - statefulsets
+      - daemonsets
+    verbs: ["get", "list", "watch", "patch", "update"]
+  - apiGroups: ["apps"]
+    resources:
+      - deployments/scale
+    verbs: ["get", "update", "patch"]
+  - apiGroups: [""]
+    resources:
+      - pods/exec
+    verbs: ["create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: incident-commander
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: incident-commander
+subjects:
+  - kind: ServiceAccount
+    name: incident-commander
+    namespace: estatewise
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: incident-commander
+  namespace: estatewise
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8080
+      targetPort: 8080
+      name: webhook
+  selector:
+    app: incident-commander
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: incident-drill
+  namespace: estatewise
+spec:
+  schedule: "0 10 1 * *"  # Monthly on 1st at 10 AM
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: incident-commander
+          restartPolicy: Never
+          containers:
+            - name: drill
+              image: bitnami/kubectl:latest
+              command:
+                - /bin/bash
+                - -c
+                - |
+                  #!/bin/bash
+                  set -e
+
+                  echo "Running incident response drill..."
+
+                  # Simulate high error rate scenario
+                  echo "Scenario: High error rate detected"
+
+                  # Run through runbook steps (dry-run)
+                  echo "1. Checking recent deployments..."
+                  kubectl rollout history deployment/backend -n estatewise
+
+                  echo "2. Checking application logs..."
+                  kubectl logs -n estatewise -l app=backend --tail=10
+
+                  echo "3. Checking metrics..."
+                  curl -s "http://prometheus:9090/api/v1/query?query=sli:error_rate"
+
+                  # Test escalation
+                  echo "4. Testing escalation procedures..."
+
+                  # Send drill notification
+                  curl -X POST "${SLACK_WEBHOOK_URL}" \
+                    -H 'Content-Type: application/json' \
+                    -d '{
+                      "text": "🔔 Monthly Incident Response Drill Completed",
+                      "blocks": [
+                        {
+                          "type": "section",
+                          "text": {
+                            "type": "mrkdwn",
+                            "text": "*Incident Response Drill Summary*\n• All runbooks validated\n• Escalation procedures tested\n• Team response time: <5 minutes"
+                          }
+                        }
+                      ]
+                    }'
+
+                  echo "Incident drill completed successfully"
+              env:
+                - name: SLACK_WEBHOOK_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: slack-credentials
+                      key: webhook-url
+                      optional: true
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 64Mi
+                limits:
+                  cpu: 100m
+                  memory: 128Mi

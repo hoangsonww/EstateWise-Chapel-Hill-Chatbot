@@ -1,0 +1,376 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: multi-region-config
+  namespace: estatewise
+data:
+  regions.json: |
+    {
+      "regions": [
+        {
+          "name": "us-east-1",
+          "displayName": "US East (N. Virginia)",
+          "primary": true,
+          "weight": 40,
+          "endpoint": "https://us-east-1.estatewise.com",
+          "cloudProvider": "aws",
+          "kubernetesContext": "estatewise-us-east-1"
+        },
+        {
+          "name": "us-west-2",
+          "displayName": "US West (Oregon)",
+          "primary": false,
+          "weight": 30,
+          "endpoint": "https://us-west-2.estatewise.com",
+          "cloudProvider": "aws",
+          "kubernetesContext": "estatewise-us-west-2"
+        },
+        {
+          "name": "eu-west-1",
+          "displayName": "EU (Ireland)",
+          "primary": false,
+          "weight": 20,
+          "endpoint": "https://eu-west-1.estatewise.com",
+          "cloudProvider": "aws",
+          "kubernetesContext": "estatewise-eu-west-1"
+        },
+        {
+          "name": "ap-southeast-1",
+          "displayName": "Asia Pacific (Singapore)",
+          "primary": false,
+          "weight": 10,
+          "endpoint": "https://ap-southeast-1.estatewise.com",
+          "cloudProvider": "aws",
+          "kubernetesContext": "estatewise-ap-southeast-1"
+        }
+      ],
+      "failover": {
+        "enabled": true,
+        "healthCheckInterval": "30s",
+        "healthCheckTimeout": "10s",
+        "unhealthyThreshold": 3,
+        "healthyThreshold": 2
+      },
+      "dataReplication": {
+        "strategy": "active-passive",
+        "primaryRegion": "us-east-1",
+        "replicationLag": "5s"
+      }
+    }
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: backend-multiregion
+  namespace: estatewise
+spec:
+  host: backend.estatewise.svc.cluster.local
+  trafficPolicy:
+    loadBalancer:
+      consistentHash:
+        httpHeaderName: x-user-id
+    connectionPool:
+      tcp:
+        maxConnections: 100
+      http:
+        http1MaxPendingRequests: 50
+        http2MaxRequests: 100
+        maxRequestsPerConnection: 2
+    outlierDetection:
+      consecutiveErrors: 5
+      interval: 30s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 50
+      minHealthPercent: 50
+  subsets:
+    - name: us-east-1
+      labels:
+        region: us-east-1
+    - name: us-west-2
+      labels:
+        region: us-west-2
+    - name: eu-west-1
+      labels:
+        region: eu-west-1
+    - name: ap-southeast-1
+      labels:
+        region: ap-southeast-1
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: backend-multiregion-routing
+  namespace: estatewise
+spec:
+  hosts:
+    - backend.estatewise.svc.cluster.local
+    - estatewise.com
+  gateways:
+    - estatewise-gateway
+  http:
+    - match:
+        - headers:
+            x-region:
+              exact: us-east-1
+      route:
+        - destination:
+            host: backend.estatewise.svc.cluster.local
+            subset: us-east-1
+          weight: 100
+
+    - match:
+        - headers:
+            x-region:
+              exact: us-west-2
+      route:
+        - destination:
+            host: backend.estatewise.svc.cluster.local
+            subset: us-west-2
+          weight: 100
+
+    - match:
+        - headers:
+            x-region:
+              exact: eu-west-1
+      route:
+        - destination:
+            host: backend.estatewise.svc.cluster.local
+            subset: eu-west-1
+          weight: 100
+
+    - match:
+        - headers:
+            x-region:
+              exact: ap-southeast-1
+      route:
+        - destination:
+            host: backend.estatewise.svc.cluster.local
+            subset: ap-southeast-1
+          weight: 100
+
+    - route:
+        - destination:
+            host: backend.estatewise.svc.cluster.local
+            subset: us-east-1
+          weight: 40
+        - destination:
+            host: backend.estatewise.svc.cluster.local
+            subset: us-west-2
+          weight: 30
+        - destination:
+            host: backend.estatewise.svc.cluster.local
+            subset: eu-west-1
+          weight: 20
+        - destination:
+            host: backend.estatewise.svc.cluster.local
+            subset: ap-southeast-1
+          weight: 10
+      retries:
+        attempts: 3
+        perTryTimeout: 2s
+        retryOn: gateway-error,connect-failure,refused-stream
+      timeout: 10s
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: global-load-balancer-config
+  namespace: estatewise
+data:
+  nginx.conf: |
+    upstream backend_us_east {
+        least_conn;
+        server backend-us-east-1.estatewise.com:443 weight=40;
+        server backend-us-west-2.estatewise.com:443 weight=30 backup;
+    }
+
+    upstream backend_eu {
+        least_conn;
+        server backend-eu-west-1.estatewise.com:443 weight=20;
+        server backend-us-east-1.estatewise.com:443 weight=10 backup;
+    }
+
+    upstream backend_apac {
+        least_conn;
+        server backend-ap-southeast-1.estatewise.com:443 weight=10;
+        server backend-us-west-2.estatewise.com:443 weight=5 backup;
+    }
+
+    geo $backend_pool {
+        default backend_us_east;
+
+        # North America
+        US backend_us_east;
+        CA backend_us_east;
+        MX backend_us_east;
+
+        # Europe
+        GB backend_eu;
+        DE backend_eu;
+        FR backend_eu;
+        IT backend_eu;
+        ES backend_eu;
+        NL backend_eu;
+        SE backend_eu;
+        NO backend_eu;
+        DK backend_eu;
+        FI backend_eu;
+
+        # Asia Pacific
+        SG backend_apac;
+        JP backend_apac;
+        KR backend_apac;
+        CN backend_apac;
+        IN backend_apac;
+        AU backend_apac;
+        NZ backend_apac;
+    }
+
+    server {
+        listen 80;
+        server_name estatewise.com;
+
+        location / {
+            proxy_pass https://$backend_pool;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Region $backend_pool;
+
+            # Health checks
+            proxy_connect_timeout 5s;
+            proxy_send_timeout 10s;
+            proxy_read_timeout 10s;
+
+            # Retry logic
+            proxy_next_upstream error timeout http_500 http_502 http_503;
+            proxy_next_upstream_tries 3;
+        }
+
+        location /health {
+            access_log off;
+            return 200 "healthy\n";
+        }
+    }
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: multi-region-health-check
+  namespace: estatewise
+spec:
+  schedule: "*/5 * * * *"  # Every 5 minutes
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: health-checker
+              image: curlimages/curl:8.4.0
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  #!/bin/sh
+                  set -e
+
+                  REGIONS="us-east-1 us-west-2 eu-west-1 ap-southeast-1"
+                  ALL_HEALTHY=true
+
+                  echo "Starting multi-region health check..."
+
+                  for region in $REGIONS; do
+                    ENDPOINT="https://${region}.estatewise.com/health"
+
+                    echo "Checking ${region}..."
+
+                    START_TIME=$(date +%s%N)
+                    HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$ENDPOINT" || echo "000")
+                    END_TIME=$(date +%s%N)
+
+                    LATENCY=$(( ($END_TIME - $START_TIME) / 1000000 ))
+
+                    if [ "$HTTP_CODE" = "200" ]; then
+                      echo "✓ ${region}: healthy (${LATENCY}ms)"
+                    else
+                      echo "✗ ${region}: unhealthy (HTTP ${HTTP_CODE})"
+                      ALL_HEALTHY=false
+
+                      # Send alert
+                      curl -X POST "${SLACK_WEBHOOK_URL}" \
+                        -H 'Content-Type: application/json' \
+                        -d "{\"text\":\"⚠️ Region ${region} is unhealthy (HTTP ${HTTP_CODE})\"}" || true
+                    fi
+                  done
+
+                  if [ "$ALL_HEALTHY" = "true" ]; then
+                    echo "All regions healthy"
+                    exit 0
+                  else
+                    echo "Some regions are unhealthy"
+                    exit 1
+                  fi
+              env:
+                - name: SLACK_WEBHOOK_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: slack-credentials
+                      key: webhook-url
+                      optional: true
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 64Mi
+                limits:
+                  cpu: 100m
+                  memory: 128Mi
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: database-replication-config
+  namespace: estatewise
+data:
+  setup-replication.sh: |
+    #!/bin/bash
+    set -e
+
+    echo "Setting up MongoDB multi-region replication..."
+
+    # Primary region: us-east-1
+    PRIMARY_URI="mongodb://mongodb-us-east-1.estatewise.com:27017"
+
+    # Secondary regions
+    SECONDARY_US_WEST="mongodb://mongodb-us-west-2.estatewise.com:27017"
+    SECONDARY_EU="mongodb://mongodb-eu-west-1.estatewise.com:27017"
+    SECONDARY_APAC="mongodb://mongodb-ap-southeast-1.estatewise.com:27017"
+
+    # Initialize replica set on primary
+    mongosh "${PRIMARY_URI}/admin" <<EOF
+    rs.initiate({
+      _id: "estatewise-rs",
+      members: [
+        { _id: 0, host: "mongodb-us-east-1.estatewise.com:27017", priority: 3 },
+        { _id: 1, host: "mongodb-us-west-2.estatewise.com:27017", priority: 2 },
+        { _id: 2, host: "mongodb-eu-west-1.estatewise.com:27017", priority: 1 },
+        { _id: 3, host: "mongodb-ap-southeast-1.estatewise.com:27017", priority: 1, hidden: false }
+      ],
+      settings: {
+        heartbeatIntervalMillis: 2000,
+        heartbeatTimeoutSecs: 10,
+        electionTimeoutMillis: 10000,
+        catchUpTimeoutMillis: 60000
+      }
+    })
+    EOF
+
+    echo "Replica set initialized successfully"
+
+    # Configure read preferences
+    mongosh "${PRIMARY_URI}/admin" <<EOF
+    db.getMongo().setReadPref("nearest")
+    EOF
+
+    echo "Multi-region replication setup complete"

@@ -1,0 +1,281 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cosign-keys
+  namespace: estatewise
+data:
+  cosign.pub: |
+    -----BEGIN PUBLIC KEY-----
+    # Replace with your actual Cosign public key
+    # Generated with: cosign generate-key-pair
+    -----END PUBLIC KEY-----
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: image-policy
+  namespace: estatewise
+data:
+  policy.yaml: |
+    apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: image-policies
+    data:
+      policies: |
+        # Require signed images from trusted registry
+        - pattern: "ghcr.io/estatewise/*"
+          type: "cosign"
+          publicKey: "/keys/cosign.pub"
+          required: true
+
+        # Allow specific base images
+        - pattern: "docker.io/library/node:20*"
+          type: "cosign"
+          required: false
+
+        # Block all other registries
+        - pattern: "*"
+          type: "deny"
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: sign-images
+  namespace: estatewise
+spec:
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: cosign
+          image: gcr.io/projectsigstore/cosign:v2.2.1
+          command:
+            - /bin/sh
+            - -c
+            - |
+              #!/bin/sh
+              set -e
+
+              echo "Signing container images..."
+
+              # Sign backend image
+              cosign sign --key /keys/cosign.key \
+                ${REGISTRY}/estatewise/backend:${IMAGE_TAG}
+
+              # Sign frontend image
+              cosign sign --key /keys/cosign.key \
+                ${REGISTRY}/estatewise/frontend:${IMAGE_TAG}
+
+              echo "Images signed successfully"
+
+              # Verify signatures
+              cosign verify --key /keys/cosign.pub \
+                ${REGISTRY}/estatewise/backend:${IMAGE_TAG}
+
+              cosign verify --key /keys/cosign.pub \
+                ${REGISTRY}/estatewise/frontend:${IMAGE_TAG}
+
+              echo "Signature verification passed"
+          env:
+            - name: REGISTRY
+              value: "ghcr.io"
+            - name: IMAGE_TAG
+              value: "latest"
+            - name: COSIGN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: cosign-keys
+                  key: password
+          volumeMounts:
+            - name: cosign-keys
+              mountPath: /keys
+              readOnly: true
+      volumes:
+        - name: cosign-keys
+          secret:
+            secretName: cosign-keys
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: image-signature-verification
+webhooks:
+  - name: verify-image-signature.estatewise.com
+    admissionReviewVersions: ["v1", "v1beta1"]
+    clientConfig:
+      service:
+        name: image-verifier
+        namespace: estatewise
+        path: /verify
+      caBundle: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0t...
+    rules:
+      - operations: ["CREATE", "UPDATE"]
+        apiGroups: [""]
+        apiVersions: ["v1"]
+        resources: ["pods"]
+    failurePolicy: Fail
+    sideEffects: None
+    timeoutSeconds: 10
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: image-verifier
+  namespace: estatewise
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: image-verifier
+  template:
+    metadata:
+      labels:
+        app: image-verifier
+    spec:
+      serviceAccountName: image-verifier
+      containers:
+        - name: verifier
+          image: gcr.io/projectsigstore/policy-controller:v0.8.0
+          args:
+            - --webhook-name=image-signature-verification
+            - --policy-config=/policies/policy.yaml
+          ports:
+            - containerPort: 8443
+              name: webhook
+          volumeMounts:
+            - name: policies
+              mountPath: /policies
+            - name: cosign-keys
+              mountPath: /keys
+              readOnly: true
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+      volumes:
+        - name: policies
+          configMap:
+            name: image-policy
+        - name: cosign-keys
+          configMap:
+            name: cosign-keys
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: image-verifier
+  namespace: estatewise
+spec:
+  ports:
+    - port: 443
+      targetPort: 8443
+      name: webhook
+  selector:
+    app: image-verifier
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: image-verifier
+  namespace: estatewise
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: verify-running-images
+  namespace: estatewise
+spec:
+  schedule: "0 */6 * * *"  # Every 6 hours
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          serviceAccountName: image-verifier
+          containers:
+            - name: verify
+              image: gcr.io/projectsigstore/cosign:v2.2.1
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  #!/bin/sh
+                  set -e
+
+                  echo "Verifying signatures of running images..."
+
+                  # Get all running images
+                  kubectl get pods --all-namespaces -o jsonpath='{range .items[*]}{.spec.containers[*].image}{"\n"}{end}' | \
+                    sort -u | \
+                    while read IMAGE; do
+                      echo "Verifying: $IMAGE"
+
+                      # Skip system images
+                      if echo "$IMAGE" | grep -q "k8s.gcr.io\|gcr.io/google"; then
+                        echo "Skipping system image: $IMAGE"
+                        continue
+                      fi
+
+                      # Verify signature
+                      if ! cosign verify --key /keys/cosign.pub "$IMAGE" > /dev/null 2>&1; then
+                        echo "WARNING: Unsigned or invalid signature: $IMAGE"
+
+                        # Send alert
+                        curl -X POST "${SLACK_WEBHOOK_URL}" \
+                          -H 'Content-Type: application/json' \
+                          -d "{
+                            \"text\": \"⚠️ Unsigned Image Detected\",
+                            \"blocks\": [{
+                              \"type\": \"section\",
+                              \"text\": {
+                                \"type\": \"mrkdwn\",
+                                \"text\": \"*Image:* \`${IMAGE}\`\n*Status:* Unsigned or invalid signature\"
+                              }
+                            }]
+                          }" || true
+                      else
+                        echo "✓ Valid signature: $IMAGE"
+                      fi
+                    done
+
+                  echo "Verification completed"
+              volumeMounts:
+                - name: cosign-keys
+                  mountPath: /keys
+                  readOnly: true
+              env:
+                - name: SLACK_WEBHOOK_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: slack-credentials
+                      key: webhook-url
+                      optional: true
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 128Mi
+                limits:
+                  cpu: 500m
+                  memory: 512Mi
+          volumes:
+            - name: cosign-keys
+              configMap:
+                name: cosign-keys
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: cosign-keys
+  namespace: estatewise
+type: Opaque
+stringData:
+  cosign.key: |
+    -----BEGIN ENCRYPTED COSIGN PRIVATE KEY-----
+    # Replace with your actual Cosign private key
+    # Generated with: cosign generate-key-pair
+    -----END ENCRYPTED COSIGN PRIVATE KEY-----
+  password: "change-me-in-production"

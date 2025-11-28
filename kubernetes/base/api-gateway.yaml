@@ -1,0 +1,495 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kong-config
+  namespace: estatewise
+data:
+  KONG_DATABASE: "postgres"
+  KONG_PG_HOST: "postgres-kong"
+  KONG_PG_PORT: "5432"
+  KONG_PG_DATABASE: "kong"
+  KONG_PROXY_ACCESS_LOG: "/dev/stdout"
+  KONG_ADMIN_ACCESS_LOG: "/dev/stdout"
+  KONG_PROXY_ERROR_LOG: "/dev/stderr"
+  KONG_ADMIN_ERROR_LOG: "/dev/stderr"
+  KONG_ADMIN_LISTEN: "0.0.0.0:8001"
+  KONG_PROXY_LISTEN: "0.0.0.0:8000, 0.0.0.0:8443 ssl"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: kong-postgres
+  namespace: estatewise
+type: Opaque
+stringData:
+  KONG_PG_PASSWORD: "kong"
+  POSTGRES_PASSWORD: "kong"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres-kong
+  namespace: estatewise
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres-kong
+  template:
+    metadata:
+      labels:
+        app: postgres-kong
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:15-alpine
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: "kong"
+            - name: POSTGRES_USER
+              value: "kong"
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: kong-postgres
+                  key: POSTGRES_PASSWORD
+          volumeMounts:
+            - name: postgres-storage
+              mountPath: /var/lib/postgresql/data
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+      volumes:
+        - name: postgres-storage
+          persistentVolumeClaim:
+            claimName: postgres-kong-pvc
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-kong-pvc
+  namespace: estatewise
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-kong
+  namespace: estatewise
+spec:
+  ports:
+    - port: 5432
+      targetPort: 5432
+  selector:
+    app: postgres-kong
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: kong-migrations
+  namespace: estatewise
+spec:
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: kong-migrations
+          image: kong:3.5-alpine
+          env:
+            - name: KONG_DATABASE
+              value: "postgres"
+            - name: KONG_PG_HOST
+              value: "postgres-kong"
+            - name: KONG_PG_DATABASE
+              value: "kong"
+            - name: KONG_PG_USER
+              value: "kong"
+            - name: KONG_PG_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: kong-postgres
+                  key: KONG_PG_PASSWORD
+          command: ["kong", "migrations", "bootstrap"]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kong
+  namespace: estatewise
+  labels:
+    app: kong
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: kong
+  template:
+    metadata:
+      labels:
+        app: kong
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8100"
+    spec:
+      initContainers:
+        - name: wait-for-db
+          image: busybox:1.35
+          command:
+            - sh
+            - -c
+            - until nc -z postgres-kong 5432; do echo "Waiting for DB..."; sleep 2; done
+      containers:
+        - name: kong
+          image: kong:3.5-alpine
+          ports:
+            - containerPort: 8000
+              name: proxy
+              protocol: TCP
+            - containerPort: 8443
+              name: proxy-ssl
+              protocol: TCP
+            - containerPort: 8001
+              name: admin
+              protocol: TCP
+            - containerPort: 8444
+              name: admin-ssl
+              protocol: TCP
+            - containerPort: 8100
+              name: metrics
+              protocol: TCP
+          env:
+            - name: KONG_DATABASE
+              value: "postgres"
+            - name: KONG_PG_HOST
+              value: "postgres-kong"
+            - name: KONG_PG_DATABASE
+              value: "kong"
+            - name: KONG_PG_USER
+              value: "kong"
+            - name: KONG_PG_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: kong-postgres
+                  key: KONG_PG_PASSWORD
+            - name: KONG_PROXY_ACCESS_LOG
+              value: "/dev/stdout"
+            - name: KONG_ADMIN_ACCESS_LOG
+              value: "/dev/stdout"
+            - name: KONG_PROXY_ERROR_LOG
+              value: "/dev/stderr"
+            - name: KONG_ADMIN_ERROR_LOG
+              value: "/dev/stderr"
+            - name: KONG_ADMIN_LISTEN
+              value: "0.0.0.0:8001"
+            - name: KONG_PROXY_LISTEN
+              value: "0.0.0.0:8000, 0.0.0.0:8443 ssl"
+            - name: KONG_STATUS_LISTEN
+              value: "0.0.0.0:8100"
+            - name: KONG_PLUGINS
+              value: "bundled,rate-limiting,request-transformer,response-transformer,correlation-id,prometheus,jwt,acl,bot-detection,ip-restriction,cors"
+          livenessProbe:
+            httpGet:
+              path: /status
+              port: 8100
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /status
+              port: 8100
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 200m
+              memory: 512Mi
+            limits:
+              cpu: 1000m
+              memory: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kong-proxy
+  namespace: estatewise
+  labels:
+    app: kong
+spec:
+  type: LoadBalancer
+  ports:
+    - port: 80
+      targetPort: 8000
+      protocol: TCP
+      name: proxy
+    - port: 443
+      targetPort: 8443
+      protocol: TCP
+      name: proxy-ssl
+  selector:
+    app: kong
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kong-admin
+  namespace: estatewise
+  labels:
+    app: kong
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8001
+      targetPort: 8001
+      protocol: TCP
+      name: admin
+  selector:
+    app: kong
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kong-declarative-config
+  namespace: estatewise
+data:
+  kong.yml: |
+    _format_version: "3.0"
+
+    services:
+      - name: backend-service
+        url: http://backend:5001
+        routes:
+          - name: backend-route
+            paths:
+              - /api
+            strip_path: false
+            methods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - PATCH
+        plugins:
+          - name: rate-limiting
+            config:
+              minute: 100
+              hour: 10000
+              policy: local
+              fault_tolerant: true
+              hide_client_headers: false
+          - name: correlation-id
+            config:
+              header_name: X-Correlation-ID
+              generator: uuid
+              echo_downstream: true
+          - name: prometheus
+            config:
+              per_consumer: true
+          - name: bot-detection
+            config:
+              allow:
+                - googlebot
+                - bingbot
+              deny:
+                - curl
+                - wget
+          - name: cors
+            config:
+              origins:
+                - "*"
+              methods:
+                - GET
+                - POST
+                - PUT
+                - DELETE
+                - PATCH
+                - OPTIONS
+              headers:
+                - Accept
+                - Accept-Version
+                - Content-Length
+                - Content-MD5
+                - Content-Type
+                - Date
+                - X-Auth-Token
+                - Authorization
+              exposed_headers:
+                - X-Auth-Token
+              credentials: true
+              max_age: 3600
+
+      - name: frontend-service
+        url: http://frontend:3000
+        routes:
+          - name: frontend-route
+            paths:
+              - /
+            strip_path: false
+        plugins:
+          - name: rate-limiting
+            config:
+              minute: 200
+              hour: 20000
+          - name: correlation-id
+
+    upstreams:
+      - name: backend-upstream
+        algorithm: round-robin
+        healthchecks:
+          active:
+            healthy:
+              interval: 5
+              successes: 2
+            unhealthy:
+              interval: 5
+              http_failures: 3
+              timeouts: 3
+            http_path: /health
+            timeout: 1
+          passive:
+            healthy:
+              successes: 2
+            unhealthy:
+              http_failures: 3
+              timeouts: 3
+        targets:
+          - target: backend:5001
+            weight: 100
+
+    consumers:
+      - username: admin
+        custom_id: admin-user
+        plugins:
+          - name: jwt
+            config:
+              key_claim_name: kid
+              secret_is_base64: false
+          - name: acl
+            config:
+              allow:
+                - admin
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: waf-rules
+  namespace: estatewise
+data:
+  modsecurity.conf: |
+    # ModSecurity Configuration
+    SecRuleEngine On
+    SecRequestBodyAccess On
+    SecResponseBodyAccess Off
+    SecAuditEngine RelevantOnly
+    SecAuditLog /dev/stdout
+
+    # OWASP Core Rule Set
+    Include /etc/modsecurity/owasp-crs/crs-setup.conf
+    Include /etc/modsecurity/owasp-crs/rules/*.conf
+
+    # Custom Rules
+    SecRule REQUEST_HEADERS:User-Agent "@contains sqlmap" "id:1000,phase:1,deny,status:403,msg:'SQL injection attempt detected'"
+    SecRule REQUEST_URI "@contains union select" "id:1001,phase:1,deny,status:403,msg:'SQL injection attempt detected'"
+    SecRule REQUEST_URI|ARGS "@contains <script" "id:1002,phase:2,deny,status:403,msg:'XSS attempt detected'"
+    SecRule REQUEST_HEADERS:X-Forwarded-For "@ipMatch 0.0.0.0/8,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16" "id:1003,phase:1,deny,status:403,msg:'Private IP detected'"
+
+    # Rate Limiting
+    SecAction "id:900900,phase:1,nolog,pass,initcol:ip=%{REMOTE_ADDR},initcol:user=%{REMOTE_ADDR}"
+    SecRule IP:RATE_LIMIT "@gt 100" "id:900901,phase:1,deny,status:429,msg:'Rate limit exceeded',setvar:ip.rate_limit=+1"
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: estatewise-ingress
+  namespace: estatewise
+  annotations:
+    kubernetes.io/ingress.class: "kong"
+    konghq.com/protocols: "https"
+    konghq.com/https-redirect-status-code: "301"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    konghq.com/plugins: "rate-limiting-global, bot-detection-global, cors-global"
+spec:
+  tls:
+    - hosts:
+        - estatewise.com
+        - api.estatewise.com
+      secretName: estatewise-tls
+  rules:
+    - host: estatewise.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 3000
+    - host: api.estatewise.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: backend
+                port:
+                  number: 5001
+---
+apiVersion: configuration.konghq.com/v1
+kind: KongPlugin
+metadata:
+  name: rate-limiting-global
+  namespace: estatewise
+config:
+  minute: 1000
+  hour: 100000
+  policy: redis
+  redis_host: redis
+  redis_port: 6379
+  fault_tolerant: true
+plugin: rate-limiting
+---
+apiVersion: configuration.konghq.com/v1
+kind: KongPlugin
+metadata:
+  name: bot-detection-global
+  namespace: estatewise
+config:
+  allow:
+    - googlebot
+    - bingbot
+    - slackbot
+  deny:
+    - BadBot
+plugin: bot-detection
+---
+apiVersion: configuration.konghq.com/v1
+kind: KongPlugin
+metadata:
+  name: cors-global
+  namespace: estatewise
+config:
+  origins:
+    - https://estatewise.com
+    - https://www.estatewise.com
+  methods:
+    - GET
+    - POST
+    - PUT
+    - DELETE
+    - PATCH
+    - OPTIONS
+  credentials: true
+  max_age: 3600
+plugin: cors

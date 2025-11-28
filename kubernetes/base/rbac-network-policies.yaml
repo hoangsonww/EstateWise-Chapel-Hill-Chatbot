@@ -1,0 +1,428 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: backend
+  namespace: estatewise
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: frontend
+  namespace: estatewise
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: backend-role
+  namespace: estatewise
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps", "secrets"]
+    verbs: ["get", "list"]
+    resourceNames: ["backend-config", "backend-secrets"]
+  - apiGroups: [""]
+    resources: ["services"]
+    verbs: ["get", "list"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: frontend-role
+  namespace: estatewise
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list"]
+    resourceNames: ["frontend-config"]
+  - apiGroups: [""]
+    resources: ["services"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: backend-rolebinding
+  namespace: estatewise
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: backend-role
+subjects:
+  - kind: ServiceAccount
+    name: backend
+    namespace: estatewise
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: frontend-rolebinding
+  namespace: estatewise
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: frontend-role
+subjects:
+  - kind: ServiceAccount
+    name: frontend
+    namespace: estatewise
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: estatewise
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: backend-network-policy
+  namespace: estatewise
+spec:
+  podSelector:
+    matchLabels:
+      app: backend
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: frontend
+      ports:
+        - protocol: TCP
+          port: 5001
+    - from:
+        - podSelector:
+            matchLabels:
+              app: kong
+      ports:
+        - protocol: TCP
+          port: 5001
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: istio-system
+      ports:
+        - protocol: TCP
+          port: 5001
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app: mongodb
+      ports:
+        - protocol: TCP
+          port: 27017
+    - to:
+        - podSelector:
+            matchLabels:
+              app: redis
+      ports:
+        - protocol: TCP
+          port: 6379
+    - to:
+        - namespaceSelector: {}
+        - podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+    - to:
+        - podSelector:
+            matchLabels:
+              app: vault
+      ports:
+        - protocol: TCP
+          port: 8200
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 443
+        - protocol: TCP
+          port: 80
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: frontend-network-policy
+  namespace: estatewise
+spec:
+  podSelector:
+    matchLabels:
+      app: frontend
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: kong
+      ports:
+        - protocol: TCP
+          port: 3000
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: istio-system
+      ports:
+        - protocol: TCP
+          port: 3000
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app: backend
+      ports:
+        - protocol: TCP
+          port: 5001
+    - to:
+        - namespaceSelector: {}
+        - podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 443
+        - protocol: TCP
+          port: 80
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: mongodb-network-policy
+  namespace: estatewise
+spec:
+  podSelector:
+    matchLabels:
+      app: mongodb
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: backend
+      ports:
+        - protocol: TCP
+          port: 27017
+    - from:
+        - podSelector:
+            matchLabels:
+              app: mongodb-exporter
+      ports:
+        - protocol: TCP
+          port: 27017
+  egress:
+    - to:
+        - namespaceSelector: {}
+        - podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+    - to:
+        - podSelector:
+            matchLabels:
+              app: mongodb
+      ports:
+        - protocol: TCP
+          port: 27017
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: prometheus-network-policy
+  namespace: estatewise
+spec:
+  podSelector:
+    matchLabels:
+      app: prometheus
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: grafana
+      ports:
+        - protocol: TCP
+          port: 9090
+    - from:
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels:
+              app: alertmanager
+      ports:
+        - protocol: TCP
+          port: 9090
+  egress:
+    - to:
+        - namespaceSelector: {}
+        - podSelector: {}
+      ports:
+        - protocol: TCP
+          port: 8080
+        - protocol: TCP
+          port: 9090
+        - protocol: TCP
+          port: 5001
+        - protocol: TCP
+          port: 3000
+    - to:
+        - namespaceSelector: {}
+        - podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-monitoring
+  namespace: estatewise
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: estatewise
+          podSelector:
+            matchLabels:
+              app: prometheus
+      ports:
+        - protocol: TCP
+          port: 8080
+        - protocol: TCP
+          port: 9090
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: estatewise-quota
+  namespace: estatewise
+spec:
+  hard:
+    requests.cpu: "50"
+    requests.memory: 100Gi
+    requests.storage: 500Gi
+    persistentvolumeclaims: "50"
+    pods: "100"
+    services: "50"
+    secrets: "100"
+    configmaps: "100"
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: estatewise-limits
+  namespace: estatewise
+spec:
+  limits:
+    - type: Pod
+      max:
+        cpu: "4"
+        memory: 8Gi
+      min:
+        cpu: 50m
+        memory: 64Mi
+    - type: Container
+      max:
+        cpu: "4"
+        memory: 8Gi
+      min:
+        cpu: 50m
+        memory: 64Mi
+      default:
+        cpu: 200m
+        memory: 512Mi
+      defaultRequest:
+        cpu: 100m
+        memory: 256Mi
+    - type: PersistentVolumeClaim
+      max:
+        storage: 100Gi
+      min:
+        storage: 1Gi
+---
+apiVersion: policy/v1
+kind: PodSecurityPolicy
+metadata:
+  name: restricted
+  annotations:
+    seccomp.security.alpha.kubernetes.io/allowedProfileNames: 'runtime/default'
+    apparmor.security.beta.kubernetes.io/allowedProfileNames: 'runtime/default'
+    seccomp.security.alpha.kubernetes.io/defaultProfileName:  'runtime/default'
+    apparmor.security.beta.kubernetes.io/defaultProfileName:  'runtime/default'
+spec:
+  privileged: false
+  allowPrivilegeEscalation: false
+  requiredDropCapabilities:
+    - ALL
+  volumes:
+    - 'configMap'
+    - 'emptyDir'
+    - 'projected'
+    - 'secret'
+    - 'downwardAPI'
+    - 'persistentVolumeClaim'
+  hostNetwork: false
+  hostIPC: false
+  hostPID: false
+  runAsUser:
+    rule: 'MustRunAsNonRoot'
+  seLinux:
+    rule: 'RunAsAny'
+  supplementalGroups:
+    rule: 'RunAsAny'
+  fsGroup:
+    rule: 'RunAsAny'
+  readOnlyRootFilesystem: false
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: psp:restricted
+rules:
+  - apiGroups: ['policy']
+    resources: ['podsecuritypolicies']
+    verbs:     ['use']
+    resourceNames:
+      - restricted
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: psp:restricted:all-serviceaccounts
+roleRef:
+  kind: ClusterRole
+  name: psp:restricted
+  apiGroup: rbac.authorization.k8s.io
+subjects:
+  - kind: Group
+    name: system:serviceaccounts
+    apiGroup: rbac.authorization.k8s.io

@@ -1,0 +1,224 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: jaeger-config
+  namespace: estatewise
+data:
+  sampling.json: |
+    {
+      "service_strategies": [
+        {
+          "service": "estatewise-backend",
+          "type": "probabilistic",
+          "param": 0.5
+        },
+        {
+          "service": "estatewise-frontend",
+          "type": "probabilistic",
+          "param": 0.3
+        }
+      ],
+      "default_strategy": {
+        "type": "probabilistic",
+        "param": 0.1
+      }
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jaeger
+  namespace: estatewise
+  labels:
+    app: jaeger
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: jaeger
+  template:
+    metadata:
+      labels:
+        app: jaeger
+    spec:
+      containers:
+        - name: jaeger
+          image: jaegertracing/all-in-one:1.51
+          env:
+            - name: COLLECTOR_ZIPKIN_HOST_PORT
+              value: ":9411"
+            - name: COLLECTOR_OTLP_ENABLED
+              value: "true"
+            - name: SPAN_STORAGE_TYPE
+              value: "badger"
+            - name: BADGER_EPHEMERAL
+              value: "false"
+            - name: BADGER_DIRECTORY_VALUE
+              value: "/badger/data"
+            - name: BADGER_DIRECTORY_KEY
+              value: "/badger/key"
+            - name: METRICS_STORAGE_TYPE
+              value: "prometheus"
+            - name: PROMETHEUS_SERVER_URL
+              value: "http://prometheus:9090"
+            - name: PROMETHEUS_QUERY_SUPPORT_SPANMETRICS_CONNECTOR
+              value: "true"
+            - name: QUERY_BASE_PATH
+              value: "/jaeger"
+          ports:
+            - containerPort: 5775
+              protocol: UDP
+              name: zipkin-compact
+            - containerPort: 6831
+              protocol: UDP
+              name: jaeger-compact
+            - containerPort: 6832
+              protocol: UDP
+              name: jaeger-binary
+            - containerPort: 5778
+              protocol: TCP
+              name: config-rest
+            - containerPort: 16686
+              protocol: TCP
+              name: query
+            - containerPort: 14250
+              protocol: TCP
+              name: grpc
+            - containerPort: 14268
+              protocol: TCP
+              name: collector
+            - containerPort: 14269
+              protocol: TCP
+              name: admin
+            - containerPort: 9411
+              protocol: TCP
+              name: zipkin
+            - containerPort: 4317
+              protocol: TCP
+              name: otlp-grpc
+            - containerPort: 4318
+              protocol: TCP
+              name: otlp-http
+          volumeMounts:
+            - name: badger-data
+              mountPath: /badger
+            - name: sampling-config
+              mountPath: /etc/jaeger
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 14269
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 14269
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 200m
+              memory: 512Mi
+            limits:
+              cpu: 1000m
+              memory: 2Gi
+      volumes:
+        - name: badger-data
+          persistentVolumeClaim:
+            claimName: jaeger-pvc
+        - name: sampling-config
+          configMap:
+            name: jaeger-config
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: jaeger-pvc
+  namespace: estatewise
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 20Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: jaeger-collector
+  namespace: estatewise
+  labels:
+    app: jaeger
+spec:
+  type: ClusterIP
+  ports:
+    - port: 14268
+      targetPort: 14268
+      protocol: TCP
+      name: http
+    - port: 14250
+      targetPort: 14250
+      protocol: TCP
+      name: grpc
+    - port: 9411
+      targetPort: 9411
+      protocol: TCP
+      name: zipkin
+    - port: 4317
+      targetPort: 4317
+      protocol: TCP
+      name: otlp-grpc
+    - port: 4318
+      targetPort: 4318
+      protocol: TCP
+      name: otlp-http
+  selector:
+    app: jaeger
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: jaeger-query
+  namespace: estatewise
+  labels:
+    app: jaeger
+spec:
+  type: ClusterIP
+  ports:
+    - port: 16686
+      targetPort: 16686
+      protocol: TCP
+      name: query
+  selector:
+    app: jaeger
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: jaeger-agent
+  namespace: estatewise
+  labels:
+    app: jaeger
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+    - port: 5775
+      targetPort: 5775
+      protocol: UDP
+      name: zipkin-compact
+    - port: 6831
+      targetPort: 6831
+      protocol: UDP
+      name: jaeger-compact
+    - port: 6832
+      targetPort: 6832
+      protocol: UDP
+      name: jaeger-binary
+    - port: 5778
+      targetPort: 5778
+      protocol: TCP
+      name: config-rest
+  selector:
+    app: jaeger

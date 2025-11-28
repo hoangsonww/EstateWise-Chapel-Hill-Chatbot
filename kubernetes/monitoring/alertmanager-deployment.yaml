@@ -1,0 +1,186 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: alertmanager-config
+  namespace: estatewise
+data:
+  alertmanager.yml: |
+    global:
+      resolve_timeout: 5m
+      slack_api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+      pagerduty_url: 'https://events.pagerduty.com/v2/enqueue'
+
+    route:
+      group_by: ['alertname', 'cluster', 'service']
+      group_wait: 10s
+      group_interval: 10s
+      repeat_interval: 12h
+      receiver: 'default'
+      routes:
+        - match:
+            severity: critical
+          receiver: 'critical-alerts'
+          continue: true
+
+        - match:
+            severity: warning
+          receiver: 'warning-alerts'
+
+        - match:
+            component: database
+          receiver: 'database-alerts'
+
+        - match:
+            slo: availability
+          receiver: 'slo-alerts'
+
+    receivers:
+      - name: 'default'
+        slack_configs:
+          - channel: '#estatewise-alerts'
+            title: 'EstateWise Alert'
+            text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
+            send_resolved: true
+
+      - name: 'critical-alerts'
+        pagerduty_configs:
+          - service_key: 'YOUR_PAGERDUTY_SERVICE_KEY'
+            description: '{{ .CommonAnnotations.summary }}'
+        slack_configs:
+          - channel: '#estatewise-critical'
+            title: 'CRITICAL: {{ .CommonAnnotations.summary }}'
+            text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
+            send_resolved: true
+            color: 'danger'
+
+      - name: 'warning-alerts'
+        slack_configs:
+          - channel: '#estatewise-warnings'
+            title: 'Warning: {{ .CommonAnnotations.summary }}'
+            text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
+            send_resolved: true
+            color: 'warning'
+
+      - name: 'database-alerts'
+        slack_configs:
+          - channel: '#estatewise-database'
+            title: 'Database Alert: {{ .CommonAnnotations.summary }}'
+            text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
+            send_resolved: true
+
+      - name: 'slo-alerts'
+        pagerduty_configs:
+          - service_key: 'YOUR_PAGERDUTY_SLO_KEY'
+            description: 'SLO Breach: {{ .CommonAnnotations.summary }}'
+        slack_configs:
+          - channel: '#estatewise-slo'
+            title: 'SLO BREACH: {{ .CommonAnnotations.summary }}'
+            text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
+            send_resolved: true
+            color: 'danger'
+
+    inhibit_rules:
+      - source_match:
+          severity: 'critical'
+        target_match:
+          severity: 'warning'
+        equal: ['alertname', 'instance']
+
+      - source_match:
+          alertname: 'PodDown'
+        target_match_re:
+          alertname: 'HighLatency|HighErrorRate'
+        equal: ['pod']
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: alertmanager
+  namespace: estatewise
+  labels:
+    app: alertmanager
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: alertmanager
+  template:
+    metadata:
+      labels:
+        app: alertmanager
+    spec:
+      securityContext:
+        runAsUser: 65534
+        runAsNonRoot: true
+        fsGroup: 65534
+      containers:
+        - name: alertmanager
+          image: prom/alertmanager:v0.26.0
+          args:
+            - '--config.file=/etc/alertmanager/alertmanager.yml'
+            - '--storage.path=/alertmanager'
+            - '--web.external-url=http://alertmanager:9093'
+          ports:
+            - containerPort: 9093
+              name: web
+              protocol: TCP
+          volumeMounts:
+            - name: config
+              mountPath: /etc/alertmanager
+            - name: storage
+              mountPath: /alertmanager
+          livenessProbe:
+            httpGet:
+              path: /-/healthy
+              port: 9093
+            initialDelaySeconds: 30
+            timeoutSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /-/ready
+              port: 9093
+            initialDelaySeconds: 5
+            timeoutSeconds: 5
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+      volumes:
+        - name: config
+          configMap:
+            name: alertmanager-config
+        - name: storage
+          persistentVolumeClaim:
+            claimName: alertmanager-pvc
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: alertmanager-pvc
+  namespace: estatewise
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: alertmanager
+  namespace: estatewise
+  labels:
+    app: alertmanager
+spec:
+  type: ClusterIP
+  ports:
+    - port: 9093
+      targetPort: 9093
+      protocol: TCP
+      name: web
+  selector:
+    app: alertmanager

@@ -1,0 +1,227 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: flagger-config
+  namespace: estatewise
+data:
+  enabled: "true"
+  metrics-server: "http://prometheus:9090"
+---
+apiVersion: flagger.app/v1beta1
+kind: Canary
+metadata:
+  name: backend-canary
+  namespace: estatewise
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: backend
+  progressDeadlineSeconds: 600
+  service:
+    port: 5001
+    targetPort: 5001
+  analysis:
+    interval: 1m
+    threshold: 5
+    maxWeight: 50
+    stepWeight: 10
+    metrics:
+      - name: request-success-rate
+        thresholdRange:
+          min: 99
+        interval: 1m
+      - name: request-duration
+        thresholdRange:
+          max: 500
+        interval: 30s
+      - name: error-rate
+        templateRef:
+          name: error-rate
+          namespace: estatewise
+        thresholdRange:
+          max: 5
+        interval: 1m
+    webhooks:
+      - name: load-test
+        type: rollout
+        url: http://flagger-loadtester/
+        timeout: 15s
+        metadata:
+          type: cmd
+          cmd: "hey -z 1m -q 10 -c 2 http://backend-canary:5001/health"
+      - name: acceptance-test
+        type: pre-rollout
+        url: http://flagger-loadtester/
+        timeout: 30s
+        metadata:
+          type: bash
+          cmd: |
+            #!/bin/bash
+            set -e
+
+            # Test health endpoint
+            curl -sf http://backend-canary:5001/health | grep -q "ok"
+
+            # Test API endpoints
+            curl -sf http://backend-canary:5001/api/properties | grep -q "properties"
+
+            echo "Acceptance tests passed"
+      - name: notify-slack
+        type: event
+        url: http://event-notifier/
+        metadata:
+          channel: "#estatewise-deployments"
+---
+apiVersion: flagger.app/v1beta1
+kind: Canary
+metadata:
+  name: frontend-canary
+  namespace: estatewise
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: frontend
+  progressDeadlineSeconds: 600
+  service:
+    port: 3000
+    targetPort: 3000
+  analysis:
+    interval: 1m
+    threshold: 5
+    maxWeight: 50
+    stepWeight: 10
+    metrics:
+      - name: request-success-rate
+        thresholdRange:
+          min: 99
+        interval: 1m
+      - name: request-duration
+        thresholdRange:
+          max: 1000
+        interval: 30s
+    webhooks:
+      - name: load-test
+        type: rollout
+        url: http://flagger-loadtester/
+        timeout: 15s
+        metadata:
+          type: cmd
+          cmd: "hey -z 1m -q 10 -c 2 http://frontend-canary:3000/"
+      - name: smoke-test
+        type: pre-rollout
+        url: http://flagger-loadtester/
+        timeout: 30s
+        metadata:
+          type: bash
+          cmd: |
+            #!/bin/bash
+            set -e
+
+            # Test homepage
+            curl -sf http://frontend-canary:3000/ | grep -q "EstateWise"
+
+            echo "Smoke tests passed"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: error-rate-metric
+  namespace: estatewise
+data:
+  metric.yaml: |
+    apiVersion: flagger.app/v1beta1
+    kind: MetricTemplate
+    metadata:
+      name: error-rate
+      namespace: estatewise
+    spec:
+      provider:
+        type: prometheus
+        address: http://prometheus:9090
+      query: |
+        100 - sum(
+          rate(
+            http_requests_total{
+              kubernetes_namespace="{{ namespace }}",
+              kubernetes_pod=~"{{ target }}-[0-9a-zA-Z]+(-[0-9a-zA-Z]+)",
+              status!~"5.."
+            }[{{ interval }}]
+          )
+        )
+        /
+        sum(
+          rate(
+            http_requests_total{
+              kubernetes_namespace="{{ namespace }}",
+              kubernetes_pod=~"{{ target }}-[0-9a-zA-Z]+(-[0-9a-zA-Z]+)"
+            }[{{ interval }}]
+          )
+        )
+        * 100
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flagger-loadtester
+  namespace: estatewise
+  labels:
+    app: flagger-loadtester
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: flagger-loadtester
+  template:
+    metadata:
+      labels:
+        app: flagger-loadtester
+    spec:
+      containers:
+        - name: loadtester
+          image: ghcr.io/fluxcd/flagger-loadtester:0.27.0
+          ports:
+            - name: http
+              containerPort: 8080
+          command:
+            - ./loadtester
+            - -port=8080
+            - -log-level=info
+            - -timeout=1h
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: flagger-loadtester
+  namespace: estatewise
+  labels:
+    app: flagger-loadtester
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: 8080
+      protocol: TCP
+      name: http
+  selector:
+    app: flagger-loadtester

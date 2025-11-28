@@ -1,0 +1,395 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: k6-test-scripts
+  namespace: estatewise
+data:
+  load-test.js: |
+    import http from 'k6/http';
+    import { check, group, sleep } from 'k6';
+    import { Rate, Trend, Counter } from 'k6/metrics';
+
+    // Custom metrics
+    const errorRate = new Rate('error_rate');
+    const apiLatency = new Trend('api_latency');
+    const requestCount = new Counter('request_count');
+
+    // Test configuration
+    export const options = {
+      stages: [
+        { duration: '2m', target: 50 },   // Ramp up to 50 users
+        { duration: '5m', target: 50 },   // Stay at 50 users
+        { duration: '2m', target: 100 },  // Ramp up to 100 users
+        { duration: '5m', target: 100 },  // Stay at 100 users
+        { duration: '2m', target: 200 },  // Ramp up to 200 users
+        { duration: '5m', target: 200 },  // Stay at 200 users
+        { duration: '2m', target: 0 },    // Ramp down
+      ],
+      thresholds: {
+        'http_req_duration': ['p(95)<500', 'p(99)<1000'],
+        'http_req_failed': ['rate<0.01'],
+        'error_rate': ['rate<0.05'],
+      },
+    };
+
+    const BASE_URL = __ENV.BASE_URL || 'http://backend:5001';
+
+    export default function () {
+      group('API Health Check', function () {
+        const res = http.get(`${BASE_URL}/health`);
+
+        const checkResult = check(res, {
+          'health check status is 200': (r) => r.status === 200,
+          'health check response time < 200ms': (r) => r.timings.duration < 200,
+        });
+
+        errorRate.add(!checkResult);
+        apiLatency.add(res.timings.duration);
+        requestCount.add(1);
+      });
+
+      sleep(1);
+
+      group('Properties API', function () {
+        const res = http.get(`${BASE_URL}/api/properties?limit=10`);
+
+        const checkResult = check(res, {
+          'properties status is 200': (r) => r.status === 200,
+          'properties has data': (r) => {
+            try {
+              const body = JSON.parse(r.body);
+              return body.properties && body.properties.length > 0;
+            } catch (e) {
+              return false;
+            }
+          },
+          'properties response time < 500ms': (r) => r.timings.duration < 500,
+        });
+
+        errorRate.add(!checkResult);
+        apiLatency.add(res.timings.duration);
+        requestCount.add(1);
+      });
+
+      sleep(2);
+
+      group('Search API', function () {
+        const payload = JSON.stringify({
+          query: 'apartment near campus',
+          filters: {
+            priceRange: { min: 500, max: 2000 }
+          }
+        });
+
+        const params = {
+          headers: { 'Content-Type': 'application/json' },
+        };
+
+        const res = http.post(`${BASE_URL}/api/search`, payload, params);
+
+        const checkResult = check(res, {
+          'search status is 200': (r) => r.status === 200,
+          'search response time < 1000ms': (r) => r.timings.duration < 1000,
+        });
+
+        errorRate.add(!checkResult);
+        apiLatency.add(res.timings.duration);
+        requestCount.add(1);
+      });
+
+      sleep(1);
+    }
+
+    export function handleSummary(data) {
+      return {
+        '/tmp/summary.json': JSON.stringify(data),
+        'stdout': textSummary(data, { indent: ' ', enableColors: true }),
+      };
+    }
+
+  stress-test.js: |
+    import http from 'k6/http';
+    import { check, sleep } from 'k6';
+
+    export const options = {
+      stages: [
+        { duration: '1m', target: 100 },
+        { duration: '3m', target: 500 },
+        { duration: '5m', target: 1000 },
+        { duration: '3m', target: 2000 },
+        { duration: '2m', target: 0 },
+      ],
+      thresholds: {
+        'http_req_duration': ['p(95)<2000'],
+        'http_req_failed': ['rate<0.1'],
+      },
+    };
+
+    const BASE_URL = __ENV.BASE_URL || 'http://backend:5001';
+
+    export default function () {
+      http.get(`${BASE_URL}/health`);
+      sleep(1);
+    }
+
+  spike-test.js: |
+    import http from 'k6/http';
+    import { check } from 'k6';
+
+    export const options = {
+      stages: [
+        { duration: '10s', target: 100 },
+        { duration: '30s', target: 100 },
+        { duration: '10s', target: 1000 },  // Spike
+        { duration: '30s', target: 1000 },
+        { duration: '10s', target: 100 },
+        { duration: '30s', target: 100 },
+        { duration: '10s', target: 0 },
+      ],
+    };
+
+    const BASE_URL = __ENV.BASE_URL || 'http://backend:5001';
+
+    export default function () {
+      const res = http.get(`${BASE_URL}/api/properties?limit=10`);
+      check(res, { 'status is 200': (r) => r.status === 200 });
+    }
+
+  soak-test.js: |
+    import http from 'k6/http';
+    import { check, sleep } from 'k6';
+
+    export const options = {
+      stages: [
+        { duration: '5m', target: 200 },
+        { duration: '4h', target: 200 },  // Soak for 4 hours
+        { duration: '5m', target: 0 },
+      ],
+      thresholds: {
+        'http_req_duration': ['p(95)<500'],
+        'http_req_failed': ['rate<0.01'],
+      },
+    };
+
+    const BASE_URL = __ENV.BASE_URL || 'http://backend:5001';
+
+    export default function () {
+      http.get(`${BASE_URL}/health`);
+      sleep(5);
+    }
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: load-test-baseline
+  namespace: estatewise
+  labels:
+    app: load-test
+    type: baseline
+spec:
+  ttlSecondsAfterFinished: 3600
+  template:
+    metadata:
+      labels:
+        app: load-test
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: k6
+          image: grafana/k6:0.47.0
+          command:
+            - k6
+            - run
+            - --out
+            - json=/tmp/results.json
+            - --summary-export=/tmp/summary.json
+            - /scripts/load-test.js
+          env:
+            - name: BASE_URL
+              value: "http://backend:5001"
+            - name: K6_PROMETHEUS_RW_SERVER_URL
+              value: "http://prometheus:9090/api/v1/write"
+            - name: K6_PROMETHEUS_RW_TREND_AS_NATIVE_HISTOGRAM
+              value: "true"
+          volumeMounts:
+            - name: scripts
+              mountPath: /scripts
+            - name: results
+              mountPath: /tmp
+          resources:
+            requests:
+              cpu: 500m
+              memory: 512Mi
+            limits:
+              cpu: 2000m
+              memory: 2Gi
+      volumes:
+        - name: scripts
+          configMap:
+            name: k6-test-scripts
+        - name: results
+          emptyDir: {}
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: scheduled-load-test
+  namespace: estatewise
+spec:
+  schedule: "0 2 * * 0"  # Weekly on Sunday at 2 AM
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: load-test
+            type: scheduled
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: k6
+              image: grafana/k6:0.47.0
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  echo "Starting scheduled load test..."
+
+                  k6 run \
+                    --out json=/tmp/results.json \
+                    --summary-export=/tmp/summary.json \
+                    /scripts/load-test.js
+
+                  # Parse results
+                  HTTP_REQ_DURATION_P95=$(jq -r '.metrics.http_req_duration.values.["p(95)"]' /tmp/summary.json)
+                  HTTP_REQ_FAILED=$(jq -r '.metrics.http_req_failed.values.rate' /tmp/summary.json)
+
+                  # Send to Slack
+                  curl -X POST "${SLACK_WEBHOOK_URL}" \
+                    -H 'Content-Type: application/json' \
+                    -d "{
+                      \"text\": \"Weekly Load Test Results\",
+                      \"blocks\": [
+                        {
+                          \"type\": \"section\",
+                          \"text\": {
+                            \"type\": \"mrkdwn\",
+                            \"text\": \"*P95 Latency:* ${HTTP_REQ_DURATION_P95}ms\n*Error Rate:* ${HTTP_REQ_FAILED}\"
+                          }
+                        }
+                      ]
+                    }"
+
+                  echo "Load test completed"
+              env:
+                - name: BASE_URL
+                  value: "http://backend:5001"
+                - name: SLACK_WEBHOOK_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: slack-credentials
+                      key: webhook-url
+                      optional: true
+              volumeMounts:
+                - name: scripts
+                  mountPath: /scripts
+              resources:
+                requests:
+                  cpu: 500m
+                  memory: 512Mi
+                limits:
+                  cpu: 2000m
+                  memory: 2Gi
+          volumes:
+            - name: scripts
+              configMap:
+                name: k6-test-scripts
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: artillery-test-config
+  namespace: estatewise
+data:
+  artillery.yml: |
+    config:
+      target: "http://backend:5001"
+      phases:
+        - duration: 60
+          arrivalRate: 10
+          name: "Warm up"
+        - duration: 300
+          arrivalRate: 50
+          name: "Sustained load"
+        - duration: 120
+          arrivalRate: 100
+          name: "Peak load"
+      plugins:
+        expect: {}
+        metrics-by-endpoint: {}
+      ensure:
+        p95: 500
+        p99: 1000
+        maxErrorRate: 1
+    scenarios:
+      - name: "API Load Test"
+        flow:
+          - get:
+              url: "/health"
+              expect:
+                - statusCode: 200
+          - think: 1
+          - get:
+              url: "/api/properties"
+              qs:
+                limit: 10
+              expect:
+                - statusCode: 200
+                - contentType: json
+          - think: 2
+          - post:
+              url: "/api/search"
+              json:
+                query: "apartment"
+                filters:
+                  priceRange:
+                    min: 500
+                    max: 2000
+              expect:
+                - statusCode: 200
+          - think: 1
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: artillery-performance-test
+  namespace: estatewise
+spec:
+  ttlSecondsAfterFinished: 3600
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: artillery
+          image: artilleryio/artillery:latest
+          command:
+            - artillery
+            - run
+            - --output
+            - /tmp/artillery-report.json
+            - /config/artillery.yml
+          volumeMounts:
+            - name: config
+              mountPath: /config
+          resources:
+            requests:
+              cpu: 500m
+              memory: 512Mi
+            limits:
+              cpu: 2000m
+              memory: 2Gi
+      volumes:
+        - name: config
+          configMap:
+            name: artillery-test-config

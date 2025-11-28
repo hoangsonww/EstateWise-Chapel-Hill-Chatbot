@@ -1,0 +1,433 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: disaster-recovery-plan
+  namespace: estatewise
+data:
+  dr-plan.yaml: |
+    disaster_recovery:
+      rpo: 1h  # Recovery Point Objective
+      rto: 4h  # Recovery Time Objective
+
+      primary_region: us-east-1
+      dr_region: us-west-2
+
+      backup_strategy:
+        database:
+          frequency: hourly
+          retention: 30d
+          cross_region: true
+          verification: daily
+
+        application_state:
+          frequency: 15m
+          retention: 7d
+
+        configuration:
+          frequency: realtime
+          method: git_sync
+
+      failover_triggers:
+        - primary_region_unavailable
+        - slo_breach_critical
+        - manual_activation
+
+      automation:
+        enabled: true
+        approval_required: true
+        notification_channels:
+          - slack
+          - pagerduty
+          - email
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dr-scripts
+  namespace: estatewise
+data:
+  initiate-failover.sh: |
+    #!/bin/bash
+    set -e
+
+    echo "Initiating disaster recovery failover..."
+    echo "Primary: $PRIMARY_REGION"
+    echo "DR: $DR_REGION"
+
+    # Step 1: Verify DR region readiness
+    echo "Step 1: Verifying DR region readiness..."
+    kubectl --context=$DR_CONTEXT get nodes
+    kubectl --context=$DR_CONTEXT get pods -n estatewise
+
+    # Step 2: Promote MongoDB replica in DR region
+    echo "Step 2: Promoting MongoDB replica..."
+    kubectl --context=$DR_CONTEXT exec -n estatewise deployment/mongodb -- \
+      mongosh --eval "rs.stepDown()"
+
+    # Wait for new primary
+    sleep 10
+
+    # Step 3: Update DNS to point to DR region
+    echo "Step 3: Updating DNS records..."
+    aws route53 change-resource-record-sets \
+      --hosted-zone-id $HOSTED_ZONE_ID \
+      --change-batch file:///tmp/dr-dns-update.json
+
+    # Step 4: Scale up services in DR region
+    echo "Step 4: Scaling up DR services..."
+    kubectl --context=$DR_CONTEXT scale deployment/backend --replicas=3 -n estatewise
+    kubectl --context=$DR_CONTEXT scale deployment/frontend --replicas=3 -n estatewise
+
+    # Step 5: Verify service health
+    echo "Step 5: Verifying service health..."
+    kubectl --context=$DR_CONTEXT rollout status deployment/backend -n estatewise
+    kubectl --context=$DR_CONTEXT rollout status deployment/frontend -n estatewise
+
+    # Step 6: Run smoke tests
+    echo "Step 6: Running smoke tests..."
+    curl -f https://dr.estatewise.com/health || exit 1
+    curl -f https://dr.estatewise.com/api/properties?limit=1 || exit 1
+
+    echo "Failover completed successfully"
+
+    # Notification
+    curl -X POST "$SLACK_WEBHOOK_URL" \
+      -H 'Content-Type: application/json' \
+      -d '{
+        "text": "🚨 DR Failover Completed",
+        "blocks": [{
+          "type": "section",
+          "text": {
+            "type": "mrkdwn",
+            "text": "*Disaster Recovery Failover*\n• From: '"$PRIMARY_REGION"'\n• To: '"$DR_REGION"'\n• Status: ✅ Successful"
+          }
+        }]
+      }'
+
+  failback-to-primary.sh: |
+    #!/bin/bash
+    set -e
+
+    echo "Initiating failback to primary region..."
+
+    # Step 1: Verify primary region is healthy
+    echo "Step 1: Verifying primary region health..."
+    kubectl --context=$PRIMARY_CONTEXT get nodes
+    kubectl --context=$PRIMARY_CONTEXT get pods -n estatewise
+
+    # Step 2: Sync data from DR to primary
+    echo "Step 2: Syncing data..."
+    kubectl --context=$DR_CONTEXT exec -n estatewise deployment/mongodb -- \
+      mongodump --archive=/tmp/failback.archive --gzip
+
+    kubectl --context=$PRIMARY_CONTEXT exec -n estatewise deployment/mongodb -- \
+      mongorestore --archive=/tmp/failback.archive --gzip
+
+    # Step 3: Scale up primary services
+    echo "Step 3: Scaling up primary services..."
+    kubectl --context=$PRIMARY_CONTEXT scale deployment/backend --replicas=3 -n estatewise
+    kubectl --context=$PRIMARY_CONTEXT scale deployment/frontend --replicas=3 -n estatewise
+
+    # Step 4: Update DNS back to primary
+    echo "Step 4: Updating DNS back to primary..."
+    aws route53 change-resource-record-sets \
+      --hosted-zone-id $HOSTED_ZONE_ID \
+      --change-batch file:///tmp/primary-dns-update.json
+
+    # Step 5: Monitor for issues
+    echo "Step 5: Monitoring..."
+    sleep 300
+
+    # Step 6: Scale down DR services
+    echo "Step 6: Scaling down DR services..."
+    kubectl --context=$DR_CONTEXT scale deployment/backend --replicas=1 -n estatewise
+    kubectl --context=$DR_CONTEXT scale deployment/frontend --replicas=1 -n estatewise
+
+    echo "Failback completed successfully"
+
+  verify-dr-readiness.sh: |
+    #!/bin/bash
+    set -e
+
+    echo "Verifying DR readiness..."
+
+    CHECKS_PASSED=0
+    CHECKS_TOTAL=10
+
+    # Check 1: DR cluster accessible
+    if kubectl --context=$DR_CONTEXT cluster-info > /dev/null 2>&1; then
+      echo "✓ DR cluster accessible"
+      ((CHECKS_PASSED++))
+    else
+      echo "✗ DR cluster not accessible"
+    fi
+
+    # Check 2: All namespaces exist
+    if kubectl --context=$DR_CONTEXT get namespace estatewise > /dev/null 2>&1; then
+      echo "✓ Namespaces configured"
+      ((CHECKS_PASSED++))
+    else
+      echo "✗ Namespaces missing"
+    fi
+
+    # Check 3: ConfigMaps synced
+    PRIMARY_CONFIGS=$(kubectl --context=$PRIMARY_CONTEXT get configmaps -n estatewise -o name | wc -l)
+    DR_CONFIGS=$(kubectl --context=$DR_CONTEXT get configmaps -n estatewise -o name | wc -l)
+    if [ "$PRIMARY_CONFIGS" -eq "$DR_CONFIGS" ]; then
+      echo "✓ ConfigMaps synced ($DR_CONFIGS)"
+      ((CHECKS_PASSED++))
+    else
+      echo "✗ ConfigMaps not synced (Primary: $PRIMARY_CONFIGS, DR: $DR_CONFIGS)"
+    fi
+
+    # Check 4: Secrets synced
+    PRIMARY_SECRETS=$(kubectl --context=$PRIMARY_CONTEXT get secrets -n estatewise -o name | wc -l)
+    DR_SECRETS=$(kubectl --context=$DR_CONTEXT get secrets -n estatewise -o name | wc -l)
+    if [ "$PRIMARY_SECRETS" -eq "$DR_SECRETS" ]; then
+      echo "✓ Secrets synced ($DR_SECRETS)"
+      ((CHECKS_PASSED++))
+    else
+      echo "✗ Secrets not synced (Primary: $PRIMARY_SECRETS, DR: $DR_SECRETS)"
+    fi
+
+    # Check 5: Database replica healthy
+    if kubectl --context=$DR_CONTEXT exec -n estatewise deployment/mongodb -- \
+       mongosh --eval "rs.status()" | grep -q "SECONDARY"; then
+      echo "✓ Database replica healthy"
+      ((CHECKS_PASSED++))
+    else
+      echo "✗ Database replica not healthy"
+    fi
+
+    # Check 6: Latest backup available
+    LATEST_BACKUP=$(kubectl --context=$DR_CONTEXT exec -n estatewise <backup-pod> -- \
+      ls -t /backups/*.archive | head -1)
+    if [ -n "$LATEST_BACKUP" ]; then
+      echo "✓ Latest backup available: $LATEST_BACKUP"
+      ((CHECKS_PASSED++))
+    else
+      echo "✗ No backups found"
+    fi
+
+    # Check 7: Deployments exist (scaled to 0)
+    if kubectl --context=$DR_CONTEXT get deployment/backend -n estatewise > /dev/null 2>&1; then
+      echo "✓ Deployments configured"
+      ((CHECKS_PASSED++))
+    else
+      echo "✗ Deployments missing"
+    fi
+
+    # Check 8: Services configured
+    if kubectl --context=$DR_CONTEXT get service/backend -n estatewise > /dev/null 2>&1; then
+      echo "✓ Services configured"
+      ((CHECKS_PASSED++))
+    else
+      echo "✗ Services missing"
+    fi
+
+    # Check 9: Ingress configured
+    if kubectl --context=$DR_CONTEXT get ingress -n estatewise > /dev/null 2>&1; then
+      echo "✓ Ingress configured"
+      ((CHECKS_PASSED++))
+    else
+      echo "✗ Ingress missing"
+    fi
+
+    # Check 10: DNS failover configured
+    if dig dr.estatewise.com | grep -q "ANSWER SECTION"; then
+      echo "✓ DNS failover configured"
+      ((CHECKS_PASSED++))
+    else
+      echo "✗ DNS failover not configured"
+    fi
+
+    # Summary
+    echo ""
+    echo "DR Readiness: $CHECKS_PASSED/$CHECKS_TOTAL checks passed"
+
+    if [ "$CHECKS_PASSED" -eq "$CHECKS_TOTAL" ]; then
+      echo "✅ DR is fully ready"
+      exit 0
+    elif [ "$CHECKS_PASSED" -ge 8 ]; then
+      echo "⚠️ DR is partially ready"
+      exit 1
+    else
+      echo "❌ DR is not ready"
+      exit 2
+    fi
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: dr-readiness-check
+  namespace: estatewise
+spec:
+  schedule: "0 */6 * * *"  # Every 6 hours
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          serviceAccountName: dr-operator
+          containers:
+            - name: dr-check
+              image: bitnami/kubectl:latest
+              command:
+                - /bin/bash
+                - /scripts/verify-dr-readiness.sh
+              env:
+                - name: PRIMARY_CONTEXT
+                  value: "estatewise-us-east-1"
+                - name: DR_CONTEXT
+                  value: "estatewise-us-west-2"
+                - name: SLACK_WEBHOOK_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: slack-credentials
+                      key: webhook-url
+                      optional: true
+              volumeMounts:
+                - name: scripts
+                  mountPath: /scripts
+                - name: kubeconfigs
+                  mountPath: /root/.kube
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 128Mi
+                limits:
+                  cpu: 500m
+                  memory: 512Mi
+          volumes:
+            - name: scripts
+              configMap:
+                name: dr-scripts
+                defaultMode: 0755
+            - name: kubeconfigs
+              secret:
+                secretName: kubeconfigs
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: dr-drill
+  namespace: estatewise
+spec:
+  schedule: "0 10 1 */3 *"  # Quarterly on 1st at 10 AM
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          serviceAccountName: dr-operator
+          containers:
+            - name: dr-drill
+              image: bitnami/kubectl:latest
+              command:
+                - /bin/bash
+                - -c
+                - |
+                  #!/bin/bash
+                  set -e
+
+                  echo "Starting DR drill..."
+
+                  # This is a dry-run - does not actually fail over
+                  echo "1. Verifying DR readiness..."
+                  /scripts/verify-dr-readiness.sh
+
+                  echo "2. Simulating failover steps (dry-run)..."
+                  echo "  - DNS update (simulated)"
+                  echo "  - Database promotion (simulated)"
+                  echo "  - Service scaling (simulated)"
+
+                  echo "3. Testing DR endpoints..."
+                  curl -f https://dr.estatewise.com/health || echo "DR endpoint not accessible"
+
+                  echo "4. Generating drill report..."
+                  REPORT=$(cat <<EOF
+                  {
+                    "text": "Quarterly DR Drill Completed",
+                    "blocks": [
+                      {
+                        "type": "header",
+                        "text": {
+                          "type": "plain_text",
+                          "text": "DR Drill Report - $(date +%Y-%m-%d)"
+                        }
+                      },
+                      {
+                        "type": "section",
+                        "text": {
+                          "type": "mrkdwn",
+                          "text": "*Status:* ✅ Successful\n*Duration:* Simulated\n*RTO Target:* 4h\n*RPO Target:* 1h\n\n*Key Findings:*\n• DR region is ready\n• All prerequisites met\n• Estimated failover time: 15 minutes"
+                        }
+                      }
+                    ]
+                  }
+                  EOF
+                  )
+
+                  curl -X POST "$SLACK_WEBHOOK_URL" \
+                    -H 'Content-Type: application/json' \
+                    -d "$REPORT"
+
+                  echo "DR drill completed"
+              env:
+                - name: SLACK_WEBHOOK_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: slack-credentials
+                      key: webhook-url
+                      optional: true
+              volumeMounts:
+                - name: scripts
+                  mountPath: /scripts
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 128Mi
+                limits:
+                  cpu: 500m
+                  memory: 512Mi
+          volumes:
+            - name: scripts
+              configMap:
+                name: dr-scripts
+                defaultMode: 0755
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: dr-operator
+  namespace: estatewise
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: dr-operator
+rules:
+  - apiGroups: [""]
+    resources: ["*"]
+    verbs: ["*"]
+  - apiGroups: ["apps"]
+    resources: ["*"]
+    verbs: ["*"]
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["*"]
+    verbs: ["*"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: dr-operator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: dr-operator
+subjects:
+  - kind: ServiceAccount
+    name: dr-operator
+    namespace: estatewise

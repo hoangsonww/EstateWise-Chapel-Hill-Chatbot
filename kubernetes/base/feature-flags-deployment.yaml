@@ -1,0 +1,199 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: unleash-config
+  namespace: estatewise
+data:
+  DATABASE_URL: "postgres://unleash:unleash@postgres-unleash:5432/unleash"
+  DATABASE_SSL: "false"
+  LOG_LEVEL: "info"
+  INIT_FRONTEND_API_TOKENS: "default:development.unleash-insecure-frontend-api-token"
+  INIT_CLIENT_API_TOKENS: "default:development.unleash-insecure-api-token"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: unleash
+  namespace: estatewise
+  labels:
+    app: unleash
+    component: feature-flags
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: unleash
+  template:
+    metadata:
+      labels:
+        app: unleash
+        component: feature-flags
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "4242"
+        prometheus.io/path: "/internal-backstage/prometheus"
+    spec:
+      initContainers:
+        - name: wait-for-postgres
+          image: busybox:1.35
+          command:
+            - sh
+            - -c
+            - |
+              until nc -z postgres-unleash 5432; do
+                echo "Waiting for PostgreSQL..."
+                sleep 2
+              done
+      containers:
+        - name: unleash
+          image: unleashorg/unleash-server:5.6
+          ports:
+            - containerPort: 4242
+              name: http
+              protocol: TCP
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: unleash-secrets
+                  key: database-url
+            - name: DATABASE_SSL
+              value: "false"
+            - name: LOG_LEVEL
+              value: "info"
+            - name: INIT_FRONTEND_API_TOKENS
+              valueFrom:
+                secretKeyRef:
+                  name: unleash-secrets
+                  key: frontend-api-token
+            - name: INIT_CLIENT_API_TOKENS
+              valueFrom:
+                secretKeyRef:
+                  name: unleash-secrets
+                  key: client-api-token
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 4242
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 4242
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+          resources:
+            requests:
+              cpu: 200m
+              memory: 512Mi
+            limits:
+              cpu: 1000m
+              memory: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: unleash
+  namespace: estatewise
+  labels:
+    app: unleash
+spec:
+  type: ClusterIP
+  ports:
+    - port: 4242
+      targetPort: 4242
+      protocol: TCP
+      name: http
+  selector:
+    app: unleash
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres-unleash
+  namespace: estatewise
+  labels:
+    app: postgres-unleash
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres-unleash
+  template:
+    metadata:
+      labels:
+        app: postgres-unleash
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:15-alpine
+          ports:
+            - containerPort: 5432
+              name: postgres
+          env:
+            - name: POSTGRES_DB
+              value: "unleash"
+            - name: POSTGRES_USER
+              value: "unleash"
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: unleash-secrets
+                  key: postgres-password
+          volumeMounts:
+            - name: postgres-storage
+              mountPath: /var/lib/postgresql/data
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+      volumes:
+        - name: postgres-storage
+          persistentVolumeClaim:
+            claimName: postgres-unleash-pvc
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-unleash-pvc
+  namespace: estatewise
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-unleash
+  namespace: estatewise
+  labels:
+    app: postgres-unleash
+spec:
+  type: ClusterIP
+  ports:
+    - port: 5432
+      targetPort: 5432
+      name: postgres
+  selector:
+    app: postgres-unleash
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: unleash-secrets
+  namespace: estatewise
+type: Opaque
+stringData:
+  database-url: "postgres://unleash:unleash@postgres-unleash:5432/unleash"
+  postgres-password: "unleash"
+  frontend-api-token: "default:development.unleash-insecure-frontend-api-token"
+  client-api-token: "default:development.unleash-insecure-api-token"

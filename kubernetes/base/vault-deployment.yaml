@@ -1,0 +1,324 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: vault
+  namespace: estatewise
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vault-config
+  namespace: estatewise
+data:
+  vault.hcl: |
+    ui = true
+
+    listener "tcp" {
+      address = "0.0.0.0:8200"
+      tls_disable = 0
+      tls_cert_file = "/vault/tls/tls.crt"
+      tls_key_file = "/vault/tls/tls.key"
+    }
+
+    storage "file" {
+      path = "/vault/data"
+    }
+
+    # HA storage with Raft (for production multi-replica setup)
+    # storage "raft" {
+    #   path    = "/vault/data"
+    #   node_id = "vault-0"
+    # }
+
+    api_addr = "https://vault:8200"
+    cluster_addr = "https://vault:8201"
+    disable_mlock = true
+
+    # Telemetry
+    telemetry {
+      prometheus_retention_time = "30s"
+      disable_hostname = true
+    }
+
+  init-vault.sh: |
+    #!/bin/sh
+    set -e
+
+    # Wait for Vault to be ready
+    until vault status > /dev/null 2>&1; do
+      echo "Waiting for Vault..."
+      sleep 2
+    done
+
+    # Check if Vault is initialized
+    if ! vault status | grep -q "Initialized.*true"; then
+      echo "Initializing Vault..."
+      vault operator init -key-shares=5 -key-threshold=3 > /vault/init-keys.txt
+      echo "Vault initialized. Keys saved to /vault/init-keys.txt"
+      echo "IMPORTANT: Securely store the unseal keys and root token!"
+    fi
+
+    # Auto-unseal (in production, use auto-unseal with KMS)
+    if vault status | grep -q "Sealed.*true"; then
+      echo "Unsealing Vault..."
+      # Read unseal keys from file (for demo purposes only)
+      UNSEAL_KEY_1=$(grep 'Unseal Key 1' /vault/init-keys.txt | awk '{print $NF}')
+      UNSEAL_KEY_2=$(grep 'Unseal Key 2' /vault/init-keys.txt | awk '{print $NF}')
+      UNSEAL_KEY_3=$(grep 'Unseal Key 3' /vault/init-keys.txt | awk '{print $NF}')
+
+      vault operator unseal $UNSEAL_KEY_1
+      vault operator unseal $UNSEAL_KEY_2
+      vault operator unseal $UNSEAL_KEY_3
+      echo "Vault unsealed"
+    fi
+
+  configure-vault.sh: |
+    #!/bin/sh
+    set -e
+
+    # Login with root token
+    vault login ${VAULT_ROOT_TOKEN}
+
+    # Enable secrets engines
+    vault secrets enable -path=estatewise kv-v2
+    vault secrets enable -path=database database
+
+    # Configure MongoDB database secrets engine
+    vault write database/config/mongodb \
+      plugin_name=mongodb-database-plugin \
+      allowed_roles="backend,frontend" \
+      connection_url="mongodb://{{username}}:{{password}}@mongodb:27017/admin" \
+      username="${MONGO_ROOT_USER}" \
+      password="${MONGO_ROOT_PASSWORD}"
+
+    # Create role for backend
+    vault write database/roles/backend \
+      db_name=mongodb \
+      creation_statements='{"db":"estatewise","roles":[{"role":"readWrite"}]}' \
+      default_ttl="1h" \
+      max_ttl="24h"
+
+    # Store static secrets
+    vault kv put estatewise/backend \
+      jwt_secret="${JWT_SECRET}" \
+      openai_api_key="${OPENAI_API_KEY}"
+
+    vault kv put estatewise/frontend \
+      next_public_api_url="${NEXT_PUBLIC_API_URL}"
+
+    # Enable Kubernetes auth
+    vault auth enable kubernetes
+
+    vault write auth/kubernetes/config \
+      kubernetes_host="https://${KUBERNETES_SERVICE_HOST}:${KUBERNETES_SERVICE_PORT}" \
+      kubernetes_ca_cert=@/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+
+    # Create policy for backend
+    vault policy write backend-policy - <<EOF
+    path "estatewise/data/backend/*" {
+      capabilities = ["read", "list"]
+    }
+    path "database/creds/backend" {
+      capabilities = ["read"]
+    }
+    EOF
+
+    # Create Kubernetes auth role for backend
+    vault write auth/kubernetes/role/backend \
+      bound_service_account_names=backend \
+      bound_service_account_namespaces=estatewise \
+      policies=backend-policy \
+      ttl=1h
+
+    echo "Vault configuration completed"
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: vault
+  namespace: estatewise
+  labels:
+    app: vault
+spec:
+  serviceName: vault
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vault
+  template:
+    metadata:
+      labels:
+        app: vault
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8200"
+        prometheus.io/path: "/v1/sys/metrics"
+    spec:
+      serviceAccountName: vault
+      securityContext:
+        runAsUser: 100
+        runAsGroup: 1000
+        fsGroup: 1000
+      containers:
+        - name: vault
+          image: hashicorp/vault:1.15
+          ports:
+            - containerPort: 8200
+              name: api
+              protocol: TCP
+            - containerPort: 8201
+              name: cluster
+              protocol: TCP
+          env:
+            - name: VAULT_ADDR
+              value: "https://127.0.0.1:8200"
+            - name: VAULT_API_ADDR
+              value: "https://vault:8200"
+            - name: SKIP_SETCAP
+              value: "true"
+            - name: VAULT_CLUSTER_ADDR
+              value: "https://$(POD_IP):8201"
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+          args:
+            - server
+            - -config=/vault/config/vault.hcl
+          volumeMounts:
+            - name: vault-config
+              mountPath: /vault/config
+            - name: vault-data
+              mountPath: /vault/data
+            - name: vault-tls
+              mountPath: /vault/tls
+          livenessProbe:
+            httpGet:
+              path: /v1/sys/health?standbyok=true
+              port: 8200
+              scheme: HTTPS
+            initialDelaySeconds: 60
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /v1/sys/health?standbyok=true&sealedcode=204&uninitcode=204
+              port: 8200
+              scheme: HTTPS
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+            limits:
+              cpu: 1000m
+              memory: 1Gi
+      volumes:
+        - name: vault-config
+          configMap:
+            name: vault-config
+        - name: vault-tls
+          secret:
+            secretName: vault-tls
+  volumeClaimTemplates:
+    - metadata:
+        name: vault-data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 10Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vault
+  namespace: estatewise
+  labels:
+    app: vault
+spec:
+  type: ClusterIP
+  publishNotReadyAddresses: true
+  ports:
+    - port: 8200
+      targetPort: 8200
+      protocol: TCP
+      name: api
+    - port: 8201
+      targetPort: 8201
+      protocol: TCP
+      name: cluster
+  selector:
+    app: vault
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: vault-secrets-operator
+  namespace: estatewise
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: vault-secrets-operator
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+  - apiGroups: [""]
+    resources: ["serviceaccounts"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: vault-secrets-operator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: vault-secrets-operator
+subjects:
+  - kind: ServiceAccount
+    name: vault-secrets-operator
+    namespace: estatewise
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vault-secrets-operator
+  namespace: estatewise
+  labels:
+    app: vault-secrets-operator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vault-secrets-operator
+  template:
+    metadata:
+      labels:
+        app: vault-secrets-operator
+    spec:
+      serviceAccountName: vault-secrets-operator
+      containers:
+        - name: operator
+          image: ricoberger/vault-secrets-operator:1.18.0
+          args:
+            - -vault-address=https://vault:8200
+            - -vault-auth-method=kubernetes
+            - -vault-kubernetes-role=secrets-operator
+            - -vault-reconciliation-time=60
+          env:
+            - name: VAULT_CAPATH
+              value: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi

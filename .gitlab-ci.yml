@@ -1,14 +1,25 @@
 stages:
+  - validate
   - lint
   - test
+  - security-scan
   - build
-  - security
+  - image-scan
+  - performance
   - deploy
+  - smoke-test
+  - monitor
 
 variables:
   NODE_ENV: test
   NPM_CONFIG_CACHE: .npm
   NEXT_TELEMETRY_DISABLED: "1"
+  DOCKER_DRIVER: overlay2
+  DOCKER_TLS_CERTDIR: "/certs"
+  SAST_EXCLUDED_PATHS: "spec, test, tests, tmp, node_modules"
+  KUBECONFIG: /tmp/kubeconfig
+  HELM_VERSION: "3.13.0"
+  TRIVY_VERSION: "0.47.0"
 
 default:
   image: node:20
@@ -16,9 +27,67 @@ default:
     key: ${CI_COMMIT_REF_SLUG}
     paths:
       - .npm
+      - backend/node_modules
+      - frontend/node_modules
   before_script:
     - npm config set cache "${CI_PROJECT_DIR}/.npm"
+  retry:
+    max: 2
+    when:
+      - runner_system_failure
+      - stuck_or_timeout_failure
 
+workflow:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_COMMIT_TAG'
+
+# === Validation Stage ===
+code-quality:
+  stage: validate
+  image: sonarsource/sonar-scanner-cli:latest
+  variables:
+    SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar"
+    GIT_DEPTH: "0"
+  cache:
+    key: "${CI_JOB_NAME}"
+    paths:
+      - .sonar/cache
+  script:
+    - sonar-scanner
+  allow_failure: true
+  only:
+    - merge_requests
+    - main
+
+dependency-check:
+  stage: validate
+  script:
+    - npm ci --prefix backend
+    - npm ci --prefix frontend
+    - npm audit --prefix backend --audit-level=moderate --json > backend-audit.json || true
+    - npm audit --prefix frontend --audit-level=moderate --json > frontend-audit.json || true
+  artifacts:
+    reports:
+      dependency_scanning:
+        - backend-audit.json
+        - frontend-audit.json
+    expire_in: 1 week
+
+license-scan:
+  stage: validate
+  script:
+    - npm install -g license-checker
+    - license-checker --json --out backend-licenses.json --start backend/
+    - license-checker --json --out frontend-licenses.json --start frontend/
+  artifacts:
+    paths:
+      - backend-licenses.json
+      - frontend-licenses.json
+    expire_in: 1 week
+
+# === Lint Stage ===
 frontend-lint:
   stage: lint
   script:
@@ -28,84 +97,418 @@ frontend-lint:
     when: on_failure
     paths:
       - frontend/.next
+    expire_in: 1 week
 
-backend-test:
-  stage: test
+backend-lint:
+  stage: lint
   script:
     - npm ci --prefer-offline --no-audit --prefix backend
-    - MONGO_URI=${MONGO_URI:-mongodb://localhost:27017/estatewise-ci} npm test --prefix backend -- --runInBand --passWithNoTests
+    - npm run lint --prefix backend || true
+  artifacts:
+    when: on_failure
+    expire_in: 1 week
+
+# === Test Stage ===
+backend-test:
+  stage: test
+  services:
+    - mongo:7
+  variables:
+    MONGO_URI: mongodb://mongo:27017/estatewise-test
+  script:
+    - npm ci --prefer-offline --no-audit --prefix backend
+    - npm test --prefix backend -- --runInBand --passWithNoTests --coverage
+  coverage: '/All files[^|]*\|[^|]*\s+([\d\.]+)/'
+  artifacts:
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: backend/coverage/cobertura-coverage.xml
+      junit: backend/junit.xml
+    paths:
+      - backend/coverage
+    expire_in: 1 week
 
 frontend-test:
   stage: test
   script:
     - npm ci --prefer-offline --no-audit --prefix frontend
-    - npm run test --prefix frontend -- --runInBand --passWithNoTests
+    - npm test --prefix frontend -- --runInBand --passWithNoTests --coverage
+  coverage: '/All files[^|]*\|[^|]*\s+([\d\.]+)/'
+  artifacts:
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: frontend/coverage/cobertura-coverage.xml
+      junit: frontend/junit.xml
+    paths:
+      - frontend/coverage
+    expire_in: 1 week
 
+integration-test:
+  stage: test
+  services:
+    - mongo:7
+    - redis:7-alpine
+  variables:
+    MONGO_URI: mongodb://mongo:27017/estatewise-test
+    REDIS_URL: redis://redis:6379
+  script:
+    - npm ci --prefix backend
+    - npm run test:integration --prefix backend || true
+  allow_failure: true
+  only:
+    - merge_requests
+    - main
+
+# === Security Scan Stage ===
+sast-scan:
+  stage: security-scan
+  image: returntocorp/semgrep:latest
+  script:
+    - semgrep --config=auto --json --output=semgrep-report.json . || true
+    - semgrep --config=auto --sarif --output=semgrep-report.sarif . || true
+  artifacts:
+    reports:
+      sast: semgrep-report.sarif
+    paths:
+      - semgrep-report.json
+    expire_in: 1 week
+  allow_failure: true
+
+secret-detection:
+  stage: security-scan
+  image: trufflesecurity/trufflehog:latest
+  script:
+    - trufflehog filesystem . --json --no-update > trufflehog-report.json || true
+  artifacts:
+    paths:
+      - trufflehog-report.json
+    expire_in: 1 week
+  allow_failure: true
+
+dependency-vulnerability-scan:
+  stage: security-scan
+  image: aquasec/trivy:latest
+  script:
+    - trivy fs --format json --output trivy-fs-report.json --severity HIGH,CRITICAL . || true
+  artifacts:
+    paths:
+      - trivy-fs-report.json
+    expire_in: 1 week
+  allow_failure: true
+
+# === Build Stage ===
 backend-build:
   stage: build
   needs:
     - backend-test
+  image: docker:24-dind
+  services:
+    - docker:24-dind
+  before_script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
   script:
-    - npm ci --prefer-offline --no-audit --prefix backend
-    - npm run build --prefix backend
+    - docker build -t $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHA -f backend/Dockerfile .
+    - docker tag $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHA $CI_REGISTRY_IMAGE/backend:latest
+    - docker push $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHA
+    - docker push $CI_REGISTRY_IMAGE/backend:latest
+  only:
+    - main
+    - merge_requests
 
 frontend-build:
   stage: build
   needs:
     - frontend-test
+  image: docker:24-dind
+  services:
+    - docker:24-dind
+  before_script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
   script:
-    - npm ci --prefer-offline --no-audit --prefix frontend
-    - npm run build --prefix frontend
+    - docker build -t $CI_REGISTRY_IMAGE/frontend:$CI_COMMIT_SHA -f frontend/Dockerfile .
+    - docker tag $CI_REGISTRY_IMAGE/frontend:$CI_COMMIT_SHA $CI_REGISTRY_IMAGE/frontend:latest
+    - docker push $CI_REGISTRY_IMAGE/frontend:$CI_COMMIT_SHA
+    - docker push $CI_REGISTRY_IMAGE/frontend:latest
+  only:
+    - main
+    - merge_requests
 
-security-audit:
-  stage: security
+# === Image Scan Stage ===
+backend-image-scan:
+  stage: image-scan
   needs:
     - backend-build
+  image: aquasec/trivy:latest
+  script:
+    - trivy image --format json --output backend-image-scan.json --severity HIGH,CRITICAL $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHA
+    - trivy image --exit-code 1 --severity CRITICAL $CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHA
+  artifacts:
+    paths:
+      - backend-image-scan.json
+    expire_in: 1 week
+  only:
+    - main
+    - merge_requests
+
+frontend-image-scan:
+  stage: image-scan
+  needs:
+    - frontend-build
+  image: aquasec/trivy:latest
+  script:
+    - trivy image --format json --output frontend-image-scan.json --severity HIGH,CRITICAL $CI_REGISTRY_IMAGE/frontend:$CI_COMMIT_SHA
+    - trivy image --exit-code 1 --severity CRITICAL $CI_REGISTRY_IMAGE/frontend:$CI_COMMIT_SHA
+  artifacts:
+    paths:
+      - frontend-image-scan.json
+    expire_in: 1 week
+  only:
+    - main
+    - merge_requests
+
+# === Performance Stage ===
+load-test:
+  stage: performance
+  image: grafana/k6:latest
+  needs:
+    - backend-build
+  script:
+    - k6 run --out json=k6-results.json kubernetes/jobs/load-test.js || true
+  artifacts:
+    paths:
+      - k6-results.json
+    expire_in: 1 week
+  allow_failure: true
+  only:
+    - main
+
+lighthouse-audit:
+  stage: performance
+  image: markhobson/node-chrome:latest
+  needs:
     - frontend-build
   script:
-    - npm ci --prefer-offline --prefix backend
-    - npm ci --prefer-offline --prefix frontend
-    - npm audit --prefix backend --audit-level=high
-    - npm audit --prefix frontend --audit-level=high
+    - npm install -g @lhci/cli
+    - lhci autorun --upload.target=temporary-public-storage || true
+  allow_failure: true
+  only:
+    - main
+
+# === Deploy Stage ===
+deploy-staging:
+  stage: deploy
+  image: bitnami/kubectl:latest
+  needs:
+    - backend-image-scan
+    - frontend-image-scan
+  script:
+    - echo "$KUBECONFIG_STAGING" | base64 -d > $KUBECONFIG
+    - kubectl set image deployment/backend backend=$CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHA -n estatewise-staging
+    - kubectl set image deployment/frontend frontend=$CI_REGISTRY_IMAGE/frontend:$CI_COMMIT_SHA -n estatewise-staging
+    - kubectl rollout status deployment/backend -n estatewise-staging --timeout=5m
+    - kubectl rollout status deployment/frontend -n estatewise-staging --timeout=5m
+  environment:
+    name: staging
+    url: https://staging.estatewise.com
+    on_stop: stop-staging
+  only:
+    - main
 
 deploy-blue-green:
   stage: deploy
+  image: bitnami/kubectl:latest
   needs:
-    - security-audit
+    - backend-image-scan
+    - frontend-image-scan
+    - load-test
   rules:
-    - if: $DEPLOY_STRATEGY == "blue-green" && $CI_COMMIT_BRANCH == "main"
+    - if: '$DEPLOY_STRATEGY == "blue-green" && $CI_COMMIT_BRANCH == "main"'
       when: manual
-    - when: never
   script:
-    - bash gitlab/deploy.sh
+    - echo "$KUBECONFIG_PROD" | base64 -d > $KUBECONFIG
+    - |
+      # Blue-Green Deployment
+      CURRENT_COLOR=$(kubectl get service backend -n estatewise -o jsonpath='{.spec.selector.color}')
+      NEW_COLOR=$([ "$CURRENT_COLOR" == "blue" ] && echo "green" || echo "blue")
+
+      echo "Current: $CURRENT_COLOR, New: $NEW_COLOR"
+
+      # Deploy new version
+      kubectl set image deployment/backend-$NEW_COLOR backend=$CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHA -n estatewise
+      kubectl rollout status deployment/backend-$NEW_COLOR -n estatewise --timeout=5m
+
+      # Run smoke tests
+      kubectl run smoke-test --rm -i --image=curlimages/curl:latest --restart=Never -- \
+        curl -f http://backend-$NEW_COLOR:5001/health || exit 1
+
+      # Switch traffic
+      kubectl patch service backend -n estatewise -p "{\"spec\":{\"selector\":{\"color\":\"$NEW_COLOR\"}}}"
+
+      echo "Traffic switched to $NEW_COLOR"
   environment:
-    name: production
-    action: start
+    name: production-blue-green
+    url: https://estatewise.com
+  when: manual
 
 deploy-canary:
   stage: deploy
+  image: bitnami/kubectl:latest
   needs:
-    - security-audit
+    - backend-image-scan
+    - frontend-image-scan
+    - load-test
   rules:
-    - if: $DEPLOY_STRATEGY == "canary" && $CI_COMMIT_BRANCH == "main"
+    - if: '$DEPLOY_STRATEGY == "canary" && $CI_COMMIT_BRANCH == "main"'
       when: manual
-    - when: never
   script:
-    - bash gitlab/deploy.sh
+    - echo "$KUBECONFIG_PROD" | base64 -d > $KUBECONFIG
+    - |
+      # Canary Deployment
+      kubectl set image deployment/backend-canary backend=$CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHA -n estatewise
+      kubectl rollout status deployment/backend-canary -n estatewise --timeout=5m
+
+      # Gradually increase traffic: 10% -> 25% -> 50% -> 100%
+      for WEIGHT in 10 25 50 100; do
+        echo "Canary traffic weight: $WEIGHT%"
+        kubectl apply -f - <<EOF
+      apiVersion: networking.istio.io/v1beta1
+      kind: VirtualService
+      metadata:
+        name: backend-canary-vs
+        namespace: estatewise
+      spec:
+        hosts:
+          - backend
+        http:
+          - route:
+              - destination:
+                  host: backend
+                  subset: stable
+                weight: $((100 - WEIGHT))
+              - destination:
+                  host: backend
+                  subset: canary
+                weight: $WEIGHT
+      EOF
+
+        # Monitor for 2 minutes
+        sleep 120
+
+        # Check error rate
+        ERROR_RATE=$(kubectl exec -n estatewise deployment/prometheus -- \
+          wget -qO- 'http://localhost:9090/api/v1/query?query=sli:error_rate' | \
+          jq -r '.data.result[0].value[1]')
+
+        if (( $(echo "$ERROR_RATE > 0.01" | bc -l) )); then
+          echo "Error rate too high: $ERROR_RATE. Rolling back!"
+          kubectl rollout undo deployment/backend-canary -n estatewise
+          exit 1
+        fi
+      done
+
+      echo "Canary deployment successful"
   environment:
-    name: production
-    action: start
+    name: production-canary
+    url: https://estatewise.com
+  when: manual
 
 deploy-rolling:
   stage: deploy
+  image: bitnami/kubectl:latest
   needs:
-    - security-audit
+    - backend-image-scan
+    - frontend-image-scan
+    - load-test
   rules:
-    - if: $DEPLOY_STRATEGY == "rolling" && $CI_COMMIT_BRANCH == "main"
+    - if: '$DEPLOY_STRATEGY == "rolling" && $CI_COMMIT_BRANCH == "main"'
       when: manual
-    - when: never
   script:
-    - bash gitlab/deploy.sh
+    - echo "$KUBECONFIG_PROD" | base64 -d > $KUBECONFIG
+    - kubectl set image deployment/backend backend=$CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHA -n estatewise
+    - kubectl set image deployment/frontend frontend=$CI_REGISTRY_IMAGE/frontend:$CI_COMMIT_SHA -n estatewise
+    - kubectl rollout status deployment/backend -n estatewise --timeout=10m
+    - kubectl rollout status deployment/frontend -n estatewise --timeout=10m
   environment:
     name: production
-    action: start
+    url: https://estatewise.com
+  when: manual
+
+stop-staging:
+  stage: deploy
+  image: bitnami/kubectl:latest
+  script:
+    - echo "$KUBECONFIG_STAGING" | base64 -d > $KUBECONFIG
+    - kubectl scale deployment/backend --replicas=0 -n estatewise-staging
+    - kubectl scale deployment/frontend --replicas=0 -n estatewise-staging
+  environment:
+    name: staging
+    action: stop
+  when: manual
+
+# === Smoke Test Stage ===
+smoke-test-production:
+  stage: smoke-test
+  image: curlimages/curl:latest
+  needs:
+    - deploy-rolling
+  rules:
+    - if: '$DEPLOY_STRATEGY == "rolling" && $CI_COMMIT_BRANCH == "main"'
+      when: on_success
+  script:
+    - |
+      echo "Running smoke tests..."
+
+      # Health check
+      curl -f https://estatewise.com/api/health || exit 1
+
+      # API endpoint check
+      curl -f https://estatewise.com/api/properties?limit=1 || exit 1
+
+      echo "Smoke tests passed!"
+  retry: 2
+
+# === Monitor Stage ===
+notify-deployment:
+  stage: monitor
+  image: curlimages/curl:latest
+  needs:
+    - deploy-rolling
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      when: on_success
+  script:
+    - |
+      curl -X POST "$SLACK_WEBHOOK_URL" \
+        -H 'Content-Type: application/json' \
+        -d "{
+          \"text\": \"Deployment to production completed\",
+          \"blocks\": [
+            {
+              \"type\": \"section\",
+              \"text\": {
+                \"type\": \"mrkdwn\",
+                \"text\": \"*EstateWise Deployment*\n• Commit: $CI_COMMIT_SHA\n• Branch: $CI_COMMIT_BRANCH\n• Author: $GITLAB_USER_NAME\"
+              }
+            }
+          ]
+        }"
+
+create-release-notes:
+  stage: monitor
+  image: alpine:latest
+  needs:
+    - deploy-rolling
+  rules:
+    - if: '$CI_COMMIT_TAG'
+  before_script:
+    - apk add --no-cache git
+  script:
+    - |
+      git log --pretty=format:"- %s" $(git describe --tags --abbrev=0 HEAD^)..HEAD > RELEASE_NOTES.md
+      echo "Release notes created for $CI_COMMIT_TAG"
+  artifacts:
+    paths:
+      - RELEASE_NOTES.md
+    expire_in: 1 year

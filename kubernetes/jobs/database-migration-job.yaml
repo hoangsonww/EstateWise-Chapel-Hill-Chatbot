@@ -1,0 +1,328 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: migration-scripts
+  namespace: estatewise
+data:
+  run-migrations.sh: |
+    #!/bin/bash
+    set -e
+
+    echo "Starting database migration process..."
+    echo "Timestamp: $(date)"
+    echo "MongoDB URI: ${MONGO_URI}"
+
+    # Wait for MongoDB to be ready
+    echo "Waiting for MongoDB..."
+    until mongosh "${MONGO_URI}" --eval "db.adminCommand('ping')" > /dev/null 2>&1; do
+      echo "MongoDB not ready, waiting..."
+      sleep 2
+    done
+
+    echo "MongoDB is ready!"
+
+    # Create backup before migration
+    echo "Creating pre-migration backup..."
+    mongodump --uri="${MONGO_URI}" --archive="/backups/pre-migration-$(date +%Y%m%d-%H%M%S).archive" --gzip
+
+    # Run migrations
+    echo "Running migrations..."
+    cd /app/backend
+    npm run migrate
+
+    echo "Migration completed successfully!"
+
+  rollback.sh: |
+    #!/bin/bash
+    set -e
+
+    BACKUP_FILE=$1
+
+    if [ -z "$BACKUP_FILE" ]; then
+      echo "Usage: rollback.sh <backup-file>"
+      exit 1
+    fi
+
+    echo "Rolling back to backup: $BACKUP_FILE"
+
+    # Restore from backup
+    mongorestore --uri="${MONGO_URI}" --archive="/backups/${BACKUP_FILE}" --gzip --drop
+
+    echo "Rollback completed successfully!"
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: database-migration
+  namespace: estatewise
+  labels:
+    app: database-migration
+spec:
+  ttlSecondsAfterFinished: 3600
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        app: database-migration
+    spec:
+      restartPolicy: Never
+      initContainers:
+        - name: wait-for-db
+          image: mongo:7
+          command:
+            - sh
+            - -c
+            - |
+              until mongosh "${MONGO_URI}" --eval "db.adminCommand('ping')" > /dev/null 2>&1; do
+                echo "Waiting for MongoDB..."
+                sleep 2
+              done
+              echo "MongoDB is ready!"
+          env:
+            - name: MONGO_URI
+              valueFrom:
+                secretKeyRef:
+                  name: mongodb-credentials
+                  key: uri
+      containers:
+        - name: migration
+          image: ghcr.io/estatewise/backend:latest
+          command: ["/bin/bash", "/scripts/run-migrations.sh"]
+          env:
+            - name: MONGO_URI
+              valueFrom:
+                secretKeyRef:
+                  name: mongodb-credentials
+                  key: uri
+            - name: NODE_ENV
+              value: "production"
+          volumeMounts:
+            - name: migration-scripts
+              mountPath: /scripts
+            - name: backup-storage
+              mountPath: /backups
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+      volumes:
+        - name: migration-scripts
+          configMap:
+            name: migration-scripts
+            defaultMode: 0755
+        - name: backup-storage
+          persistentVolumeClaim:
+            claimName: database-backup-pvc
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: database-backup
+  namespace: estatewise
+  labels:
+    app: database-backup
+spec:
+  schedule: "0 2 * * *"  # Daily at 2 AM
+  successfulJobsHistoryLimit: 7
+  failedJobsHistoryLimit: 3
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: database-backup
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: backup
+              image: mongo:7
+              command:
+                - /bin/bash
+                - -c
+                - |
+                  set -e
+
+                  BACKUP_DIR="/backups"
+                  TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+                  BACKUP_FILE="${BACKUP_DIR}/estatewise-${TIMESTAMP}.archive"
+                  LATEST_LINK="${BACKUP_DIR}/latest.archive"
+
+                  echo "Starting backup at ${TIMESTAMP}"
+                  echo "MongoDB URI: ${MONGO_URI}"
+
+                  # Create backup
+                  mongodump --uri="${MONGO_URI}" --archive="${BACKUP_FILE}" --gzip
+
+                  # Create symlink to latest
+                  ln -sf "$(basename ${BACKUP_FILE})" "${LATEST_LINK}"
+
+                  # Calculate backup size
+                  BACKUP_SIZE=$(du -h "${BACKUP_FILE}" | cut -f1)
+                  echo "Backup completed: ${BACKUP_FILE} (${BACKUP_SIZE})"
+
+                  # Cleanup old backups (keep last 30 days)
+                  find "${BACKUP_DIR}" -name "estatewise-*.archive" -mtime +30 -delete
+
+                  # Upload to S3 if configured
+                  if [ ! -z "$AWS_S3_BUCKET" ]; then
+                    echo "Uploading to S3..."
+                    aws s3 cp "${BACKUP_FILE}" "s3://${AWS_S3_BUCKET}/backups/mongodb/"
+                    echo "S3 upload completed"
+                  fi
+
+                  # Send notification
+                  curl -X POST "${SLACK_WEBHOOK_URL}" \
+                    -H 'Content-Type: application/json' \
+                    -d "{\"text\":\"Database backup completed: ${BACKUP_FILE} (${BACKUP_SIZE})\"}" || true
+
+                  echo "Backup process completed successfully"
+              env:
+                - name: MONGO_URI
+                  valueFrom:
+                    secretKeyRef:
+                      name: mongodb-credentials
+                      key: uri
+                - name: AWS_S3_BUCKET
+                  valueFrom:
+                    configMapKeyRef:
+                      name: backup-config
+                      key: s3-bucket
+                      optional: true
+                - name: SLACK_WEBHOOK_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: slack-credentials
+                      key: webhook-url
+                      optional: true
+              volumeMounts:
+                - name: backup-storage
+                  mountPath: /backups
+              resources:
+                requests:
+                  cpu: 200m
+                  memory: 512Mi
+                limits:
+                  cpu: 1000m
+                  memory: 1Gi
+          volumes:
+            - name: backup-storage
+              persistentVolumeClaim:
+                claimName: database-backup-pvc
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: database-backup-pvc
+  namespace: estatewise
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Gi
+  storageClassName: standard
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backup-config
+  namespace: estatewise
+data:
+  s3-bucket: "estatewise-backups"
+  retention-days: "30"
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: database-backup-verification
+  namespace: estatewise
+  labels:
+    app: database-backup-verification
+spec:
+  schedule: "0 4 * * 0"  # Weekly on Sunday at 4 AM
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: database-backup-verification
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: verify
+              image: mongo:7
+              command:
+                - /bin/bash
+                - -c
+                - |
+                  set -e
+
+                  BACKUP_FILE="/backups/latest.archive"
+
+                  if [ ! -f "${BACKUP_FILE}" ]; then
+                    echo "ERROR: No backup file found at ${BACKUP_FILE}"
+                    exit 1
+                  fi
+
+                  echo "Verifying backup: ${BACKUP_FILE}"
+
+                  # Test restore to temporary database
+                  TEST_URI="${MONGO_URI}/estatewise_test_restore"
+
+                  echo "Restoring to test database..."
+                  mongorestore --uri="${TEST_URI}" --archive="${BACKUP_FILE}" --gzip --drop
+
+                  # Verify collections
+                  echo "Verifying collections..."
+                  COLLECTIONS=$(mongosh "${TEST_URI}" --quiet --eval "db.getCollectionNames().join(',')")
+
+                  if [ -z "$COLLECTIONS" ]; then
+                    echo "ERROR: No collections found in restored database"
+                    exit 1
+                  fi
+
+                  echo "Found collections: ${COLLECTIONS}"
+
+                  # Count documents
+                  DOC_COUNT=$(mongosh "${TEST_URI}" --quiet --eval "db.properties.countDocuments()")
+                  echo "Document count in properties: ${DOC_COUNT}"
+
+                  # Cleanup test database
+                  mongosh "${TEST_URI}" --eval "db.dropDatabase()"
+
+                  echo "Backup verification completed successfully"
+
+                  # Send notification
+                  curl -X POST "${SLACK_WEBHOOK_URL}" \
+                    -H 'Content-Type: application/json' \
+                    -d "{\"text\":\"Database backup verification passed. Collections: ${COLLECTIONS}\"}" || true
+              env:
+                - name: MONGO_URI
+                  valueFrom:
+                    secretKeyRef:
+                      name: mongodb-credentials
+                      key: uri
+                - name: SLACK_WEBHOOK_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: slack-credentials
+                      key: webhook-url
+                      optional: true
+              volumeMounts:
+                - name: backup-storage
+                  mountPath: /backups
+              resources:
+                requests:
+                  cpu: 200m
+                  memory: 512Mi
+                limits:
+                  cpu: 1000m
+                  memory: 2Gi
+          volumes:
+            - name: backup-storage
+              persistentVolumeClaim:
+                claimName: database-backup-pvc
