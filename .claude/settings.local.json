@@ -4,7 +4,8 @@
       "Bash(npm run:*)",
       "Bash(curl:*)",
       "Bash(npx tsc:*)",
-      "Bash(chmod:*)"
+      "Bash(chmod:*)",
+      "Bash(find:*)"
     ],
     "deny": [],
     "ask": []

@@ -1,0 +1,446 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: opa-policies
+  namespace: estatewise
+data:
+  security.rego: |
+    package kubernetes.admission
+
+    import future.keywords.contains
+    import future.keywords.if
+    import future.keywords.in
+
+    # Deny containers running as root
+    deny[msg] {
+      input.request.kind.kind == "Pod"
+      some container in input.request.object.spec.containers
+      not container.securityContext.runAsNonRoot
+      msg := sprintf("Container %s must run as non-root", [container.name])
+    }
+
+    # Require resource limits
+    deny[msg] {
+      input.request.kind.kind == "Pod"
+      some container in input.request.object.spec.containers
+      not container.resources.limits
+      msg := sprintf("Container %s must have resource limits", [container.name])
+    }
+
+    # Require resource requests
+    deny[msg] {
+      input.request.kind.kind == "Pod"
+      some container in input.request.object.spec.containers
+      not container.resources.requests
+      msg := sprintf("Container %s must have resource requests", [container.name])
+    }
+
+    # Deny privileged containers
+    deny[msg] {
+      input.request.kind.kind == "Pod"
+      some container in input.request.object.spec.containers
+      container.securityContext.privileged
+      msg := sprintf("Container %s cannot be privileged", [container.name])
+    }
+
+    # Deny containers with hostNetwork
+    deny[msg] {
+      input.request.kind.kind == "Pod"
+      input.request.object.spec.hostNetwork
+      msg := "Pods cannot use hostNetwork"
+    }
+
+    # Deny containers with hostPID
+    deny[msg] {
+      input.request.kind.kind == "Pod"
+      input.request.object.spec.hostPID
+      msg := "Pods cannot use hostPID"
+    }
+
+    # Deny containers with hostIPC
+    deny[msg] {
+      input.request.kind.kind == "Pod"
+      input.request.object.spec.hostIPC
+      msg := "Pods cannot use hostIPC"
+    }
+
+  images.rego: |
+    package kubernetes.admission
+
+    import future.keywords.contains
+    import future.keywords.if
+
+    # Allowed registries
+    allowed_registries := {
+      "ghcr.io",
+      "gcr.io",
+      "docker.io",
+      "quay.io"
+    }
+
+    # Deny images from untrusted registries
+    deny[msg] {
+      input.request.kind.kind == "Pod"
+      some container in input.request.object.spec.containers
+      image := container.image
+      not registry_allowed(image)
+      msg := sprintf("Container %s uses untrusted registry: %s", [container.name, image])
+    }
+
+    registry_allowed(image) {
+      some registry in allowed_registries
+      startswith(image, concat("", [registry, "/"]))
+    }
+
+    # Deny latest tag
+    deny[msg] {
+      input.request.kind.kind == "Pod"
+      some container in input.request.object.spec.containers
+      image := container.image
+      endswith(image, ":latest")
+      msg := sprintf("Container %s uses 'latest' tag which is not allowed", [container.name])
+    }
+
+    # Require image digests for production
+    warn[msg] {
+      input.request.namespace == "estatewise"
+      input.request.kind.kind == "Pod"
+      some container in input.request.object.spec.containers
+      image := container.image
+      not contains(image, "@sha256:")
+      msg := sprintf("Container %s should use image digest for production", [container.name])
+    }
+
+  networking.rego: |
+    package kubernetes.admission
+
+    import future.keywords.if
+
+    # Require NetworkPolicies for namespaces
+    violation[{"msg": msg}] {
+      input.request.kind.kind == "Namespace"
+      not has_network_policy(input.request.object.metadata.name)
+      msg := sprintf("Namespace %s must have a NetworkPolicy", [input.request.object.metadata.name])
+    }
+
+    has_network_policy(namespace) {
+      data.kubernetes.networkpolicies[namespace]
+    }
+
+    # Deny services with LoadBalancer type without annotations
+    deny[msg] {
+      input.request.kind.kind == "Service"
+      input.request.object.spec.type == "LoadBalancer"
+      not input.request.object.metadata.annotations["service.beta.kubernetes.io/aws-load-balancer-internal"]
+      msg := "LoadBalancer services must specify if they are internal or external"
+    }
+
+  labels.rego: |
+    package kubernetes.admission
+
+    import future.keywords.if
+    import future.keywords.in
+
+    # Required labels
+    required_labels := {
+      "app",
+      "version",
+      "environment",
+      "team"
+    }
+
+    # Deny resources without required labels
+    deny[msg] {
+      input.request.kind.kind in {"Deployment", "StatefulSet", "DaemonSet", "Service"}
+      provided_labels := {label | input.request.object.metadata.labels[label]}
+      missing := required_labels - provided_labels
+      count(missing) > 0
+      msg := sprintf("Missing required labels: %v", [missing])
+    }
+
+  compliance.rego: |
+    package kubernetes.admission
+
+    import future.keywords.if
+
+    # PCI-DSS: Require encryption for sensitive data
+    deny[msg] {
+      input.request.kind.kind == "Secret"
+      input.request.object.metadata.labels.sensitive == "true"
+      not input.request.object.metadata.annotations["encryptionKey"]
+      msg := "Sensitive secrets must have encryption key annotation"
+    }
+
+    # GDPR: Require data retention policy
+    warn[msg] {
+      input.request.kind.kind == "PersistentVolumeClaim"
+      input.request.object.metadata.labels.contains_pii == "true"
+      not input.request.object.metadata.annotations["retention-policy"]
+      msg := "PVCs containing PII should have retention policy annotation"
+    }
+
+    # SOC2: Require backup annotations
+    warn[msg] {
+      input.request.kind.kind == "PersistentVolumeClaim"
+      not input.request.object.metadata.annotations["backup-enabled"]
+      msg := "PVCs should specify backup policy"
+    }
+
+  cost.rego: |
+    package kubernetes.admission
+
+    import future.keywords.if
+
+    # Warn about expensive resource requests
+    warn[msg] {
+      input.request.kind.kind == "Pod"
+      some container in input.request.object.spec.containers
+      cpu_cores := to_number(trim_suffix(container.resources.requests.cpu, "m")) / 1000
+      cpu_cores > 4
+      msg := sprintf("Container %s requests excessive CPU: %v cores", [container.name, cpu_cores])
+    }
+
+    warn[msg] {
+      input.request.kind.kind == "Pod"
+      some container in input.request.object.spec.containers
+      memory_gb := to_number(trim_suffix(container.resources.requests.memory, "Gi"))
+      memory_gb > 16
+      msg := sprintf("Container %s requests excessive memory: %vGi", [container.name, memory_gb])
+    }
+
+    # Deny storage requests above threshold
+    deny[msg] {
+      input.request.kind.kind == "PersistentVolumeClaim"
+      storage := trim_suffix(input.request.object.spec.resources.requests.storage, "Gi")
+      to_number(storage) > 500
+      msg := sprintf("PVC storage request exceeds limit: %sGi", [storage])
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: opa
+  namespace: estatewise
+  labels:
+    app: opa
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: opa
+  template:
+    metadata:
+      labels:
+        app: opa
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8181"
+    spec:
+      serviceAccountName: opa
+      containers:
+        - name: opa
+          image: openpolicyagent/opa:0.58.0
+          args:
+            - run
+            - --server
+            - --addr=0.0.0.0:8181
+            - --diagnostic-addr=0.0.0.0:8282
+            - --set=decision_logs.console=true
+            - --set=status.console=true
+            - --ignore=.*
+            - /policies
+          ports:
+            - containerPort: 8181
+              name: http
+              protocol: TCP
+            - containerPort: 8282
+              name: diagnostic
+              protocol: TCP
+          volumeMounts:
+            - name: policies
+              mountPath: /policies
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8181
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health?bundle=true
+              port: 8181
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+      volumes:
+        - name: policies
+          configMap:
+            name: opa-policies
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: opa
+  namespace: estatewise
+  labels:
+    app: opa
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8181
+      targetPort: 8181
+      protocol: TCP
+      name: http
+  selector:
+    app: opa
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: opa
+  namespace: estatewise
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: opa
+rules:
+  - apiGroups: [""]
+    resources:
+      - configmaps
+      - secrets
+      - pods
+      - services
+      - namespaces
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources:
+      - deployments
+      - statefulsets
+      - daemonsets
+      - replicasets
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["networking.k8s.io"]
+    resources:
+      - networkpolicies
+      - ingresses
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: opa
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: opa
+subjects:
+  - kind: ServiceAccount
+    name: opa
+    namespace: estatewise
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: opa-validating-webhook
+webhooks:
+  - name: validating-webhook.openpolicyagent.org
+    admissionReviewVersions: ["v1", "v1beta1"]
+    clientConfig:
+      service:
+        name: opa
+        namespace: estatewise
+        path: /v1/data/kubernetes/admission/deny
+      caBundle: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURQekNDQWllZ0F3SUJBZ0lVWEJDaWRIVnFzTkR1SmxlY1dOZ3l0c3RQZ1Jnd0RRWUpLb1pJaHZjTkFRRUwKQlFBd0x6RXRNQ3NHQTFVRUF3d2tRV1J0YVhOemFXOXVJRU52Ym5SeWIyeHNaWElnVjJWaWFHOXZheUJFWlcxdgpJRU5CTUI0WERUSXhNRGd4T0RJeU1qQXhNRm9YRFRJeE1Ea3hOekl5TWpBeE1Gb3dMekV0TUNzR0ExVUVBd3drClFXUnRhWE56YVc5dUlFTnZiblJ5YjJ4c1pYSWdWMlZpYUc5dmF5QkVaVzF2SUVOQk1JSUJJakFOQmdrcWhraUcKOXcwQkFRRUZBQU9DQVE4QU1JSUJDZ0tDQVFFQXJnZnJjdlhkaWJ1V1V2SlpWY3pFaE5GTlBhY0MK
+    rules:
+      - operations: ["CREATE", "UPDATE"]
+        apiGroups: ["*"]
+        apiVersions: ["*"]
+        resources:
+          - pods
+          - deployments
+          - statefulsets
+          - daemonsets
+          - services
+          - secrets
+          - configmaps
+    failurePolicy: Fail
+    sideEffects: None
+    timeoutSeconds: 10
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: opa-policy-audit
+  namespace: estatewise
+spec:
+  schedule: "0 0 * * *"  # Daily at midnight
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: opa
+          restartPolicy: Never
+          containers:
+            - name: auditor
+              image: openpolicyagent/opa:0.58.0
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  #!/bin/sh
+                  set -e
+
+                  echo "Running OPA policy audit..."
+
+                  # Audit all pods
+                  kubectl get pods --all-namespaces -o json | \
+                    opa eval -d /policies -I 'data.kubernetes.admission.deny' | \
+                    tee /tmp/pod-violations.json
+
+                  # Generate report
+                  VIOLATIONS=$(jq '.result | length' /tmp/pod-violations.json)
+
+                  if [ "$VIOLATIONS" -gt 0 ]; then
+                    echo "Found $VIOLATIONS policy violations"
+
+                    # Send alert
+                    curl -X POST "${SLACK_WEBHOOK_URL}" \
+                      -H 'Content-Type: application/json' \
+                      -d "{
+                        \"text\": \"⚠️ OPA Policy Audit: ${VIOLATIONS} violations found\",
+                        \"attachments\": [{
+                          \"color\": \"warning\",
+                          \"text\": \"Review policy violations in the audit log\"
+                        }]
+                      }"
+                  else
+                    echo "No policy violations found"
+                  fi
+              volumeMounts:
+                - name: policies
+                  mountPath: /policies
+              env:
+                - name: SLACK_WEBHOOK_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: slack-credentials
+                      key: webhook-url
+                      optional: true
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 128Mi
+                limits:
+                  cpu: 500m
+                  memory: 512Mi
+          volumes:
+            - name: policies
+              configMap:
+                name: opa-policies

@@ -1,0 +1,267 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: estatewise
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+      scrape_timeout: 10s
+      evaluation_interval: 15s
+      external_labels:
+        cluster: 'estatewise-production'
+        environment: 'production'
+
+    alerting:
+      alertmanagers:
+        - static_configs:
+            - targets:
+                - alertmanager:9093
+          path_prefix: /
+          scheme: http
+          timeout: 10s
+
+    rule_files:
+      - /etc/prometheus/rules/*.yml
+
+    scrape_configs:
+      - job_name: 'prometheus'
+        static_configs:
+          - targets: ['localhost:9090']
+
+      - job_name: 'kubernetes-apiservers'
+        kubernetes_sd_configs:
+          - role: endpoints
+        scheme: https
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
+            action: keep
+            regex: default;kubernetes;https
+
+      - job_name: 'kubernetes-nodes'
+        kubernetes_sd_configs:
+          - role: node
+        scheme: https
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        relabel_configs:
+          - action: labelmap
+            regex: __meta_kubernetes_node_label_(.+)
+
+      - job_name: 'kubernetes-pods'
+        kubernetes_sd_configs:
+          - role: pod
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+            action: replace
+            target_label: __metrics_path__
+            regex: (.+)
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
+          - source_labels: [__meta_kubernetes_namespace]
+            action: replace
+            target_label: kubernetes_namespace
+          - source_labels: [__meta_kubernetes_pod_name]
+            action: replace
+            target_label: kubernetes_pod_name
+
+      - job_name: 'estatewise-backend'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - estatewise
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: backend
+          - source_labels: [__meta_kubernetes_pod_container_port_number]
+            action: keep
+            regex: "5001"
+          - source_labels: [__meta_kubernetes_pod_name]
+            target_label: pod
+          - source_labels: [__meta_kubernetes_namespace]
+            target_label: namespace
+
+      - job_name: 'estatewise-frontend'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - estatewise
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: frontend
+          - source_labels: [__meta_kubernetes_pod_container_port_number]
+            action: keep
+            regex: "3000"
+          - source_labels: [__meta_kubernetes_pod_name]
+            target_label: pod
+          - source_labels: [__meta_kubernetes_namespace]
+            target_label: namespace
+
+      - job_name: 'node-exporter'
+        kubernetes_sd_configs:
+          - role: pod
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: node-exporter
+          - source_labels: [__meta_kubernetes_pod_node_name]
+            target_label: node
+
+      - job_name: 'mongodb-exporter'
+        kubernetes_sd_configs:
+          - role: service
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_service_label_app]
+            action: keep
+            regex: mongodb-exporter
+          - source_labels: [__meta_kubernetes_service_name]
+            target_label: service
+
+      - job_name: 'redis-exporter'
+        kubernetes_sd_configs:
+          - role: service
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_service_label_app]
+            action: keep
+            regex: redis-exporter
+
+  alerting_rules.yml: |
+    groups:
+      - name: estatewise_alerts
+        interval: 30s
+        rules:
+          - alert: HighErrorRate
+            expr: rate(http_requests_total{status=~"5.."}[5m]) > 0.05
+            for: 5m
+            labels:
+              severity: critical
+              component: api
+            annotations:
+              summary: "High error rate detected"
+              description: "Error rate is {{ $value }} requests/sec on {{ $labels.instance }}"
+
+          - alert: HighLatency
+            expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 1
+            for: 5m
+            labels:
+              severity: warning
+              component: api
+            annotations:
+              summary: "High latency detected"
+              description: "95th percentile latency is {{ $value }}s on {{ $labels.instance }}"
+
+          - alert: PodDown
+            expr: up{job=~"estatewise-.*"} == 0
+            for: 2m
+            labels:
+              severity: critical
+            annotations:
+              summary: "Pod {{ $labels.pod }} is down"
+              description: "Pod {{ $labels.pod }} in namespace {{ $labels.namespace }} has been down for more than 2 minutes"
+
+          - alert: HighMemoryUsage
+            expr: (container_memory_usage_bytes / container_spec_memory_limit_bytes) > 0.9
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "High memory usage"
+              description: "Container {{ $labels.container }} is using {{ $value | humanizePercentage }} of memory limit"
+
+          - alert: HighCPUUsage
+            expr: (rate(container_cpu_usage_seconds_total[5m]) / container_spec_cpu_quota) > 0.8
+            for: 10m
+            labels:
+              severity: warning
+            annotations:
+              summary: "High CPU usage"
+              description: "Container {{ $labels.container }} is using {{ $value | humanizePercentage }} of CPU limit"
+
+          - alert: DatabaseConnectionPoolExhausted
+            expr: mongodb_connections{state="current"} / mongodb_connections{state="available"} > 0.8
+            for: 5m
+            labels:
+              severity: warning
+              component: database
+            annotations:
+              summary: "Database connection pool nearly exhausted"
+              description: "MongoDB connection pool is {{ $value | humanizePercentage }} utilized"
+
+          - alert: DiskSpaceLow
+            expr: (node_filesystem_avail_bytes / node_filesystem_size_bytes) < 0.1
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Low disk space"
+              description: "Disk space is below 10% on {{ $labels.device }}"
+
+          - alert: PodCrashLooping
+            expr: rate(kube_pod_container_status_restarts_total[15m]) > 0
+            for: 5m
+            labels:
+              severity: critical
+            annotations:
+              summary: "Pod is crash looping"
+              description: "Pod {{ $labels.pod }} is restarting frequently"
+
+  sli_rules.yml: |
+    groups:
+      - name: sli_slo_rules
+        interval: 30s
+        rules:
+          - record: sli:availability:ratio
+            expr: |
+              sum(rate(http_requests_total{status!~"5.."}[5m])) /
+              sum(rate(http_requests_total[5m]))
+
+          - record: sli:latency:p95
+            expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))
+
+          - record: sli:latency:p99
+            expr: histogram_quantile(0.99, rate(http_request_duration_seconds_bucket[5m]))
+
+          - record: sli:error_rate
+            expr: |
+              sum(rate(http_requests_total{status=~"5.."}[5m])) /
+              sum(rate(http_requests_total[5m]))
+
+          - record: sli:throughput
+            expr: sum(rate(http_requests_total[5m]))
+
+          - alert: SLOAvailabilityBreach
+            expr: sli:availability:ratio < 0.995
+            for: 5m
+            labels:
+              severity: critical
+              slo: availability
+            annotations:
+              summary: "SLO breach: Availability below 99.5%"
+              description: "Current availability: {{ $value | humanizePercentage }}"
+
+          - alert: SLOLatencyBreach
+            expr: sli:latency:p95 > 0.5
+            for: 5m
+            labels:
+              severity: critical
+              slo: latency
+            annotations:
+              summary: "SLO breach: p95 latency above 500ms"
+              description: "Current p95 latency: {{ $value }}s"

@@ -1,0 +1,310 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: slo-definitions
+  namespace: estatewise
+data:
+  slo.yaml: |
+    slos:
+      - name: api-availability
+        description: "API availability - percentage of successful requests"
+        objective: 99.9
+        window: 30d
+        service: estatewise-backend
+        indicators:
+          - type: availability
+            query: |
+              sum(rate(http_requests_total{job="estatewise-backend",status!~"5.."}[5m]))
+              /
+              sum(rate(http_requests_total{job="estatewise-backend"}[5m]))
+              * 100
+
+      - name: api-latency-p95
+        description: "95th percentile API latency under 500ms"
+        objective: 500
+        unit: ms
+        window: 30d
+        service: estatewise-backend
+        indicators:
+          - type: latency
+            query: |
+              histogram_quantile(0.95,
+                rate(http_request_duration_seconds_bucket{job="estatewise-backend"}[5m])
+              ) * 1000
+
+      - name: api-latency-p99
+        description: "99th percentile API latency under 1000ms"
+        objective: 1000
+        unit: ms
+        window: 30d
+        service: estatewise-backend
+        indicators:
+          - type: latency
+            query: |
+              histogram_quantile(0.99,
+                rate(http_request_duration_seconds_bucket{job="estatewise-backend"}[5m])
+              ) * 1000
+
+      - name: database-availability
+        description: "Database availability"
+        objective: 99.95
+        window: 30d
+        service: mongodb
+        indicators:
+          - type: availability
+            query: |
+              up{job="mongodb-exporter"} * 100
+
+      - name: error-budget
+        description: "Monthly error budget tracking"
+        objective: 99.9
+        window: 30d
+        service: estatewise-backend
+        budget:
+          total_minutes: 43200  # 30 days in minutes
+          allowed_downtime: 43.2  # 0.1% of 30 days
+        indicators:
+          - type: error-budget
+            query: |
+              (1 - (sum(rate(http_requests_total{job="estatewise-backend",status!~"5.."}[30d]))
+              /
+              sum(rate(http_requests_total{job="estatewise-backend"}[30d])))) * 43200
+
+      - name: frontend-availability
+        description: "Frontend availability"
+        objective: 99.9
+        window: 30d
+        service: estatewise-frontend
+        indicators:
+          - type: availability
+            query: |
+              sum(rate(http_requests_total{job="estatewise-frontend",status!~"5.."}[5m]))
+              /
+              sum(rate(http_requests_total{job="estatewise-frontend"}[5m]))
+              * 100
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-slo-dashboard
+  namespace: estatewise
+data:
+  slo-dashboard.json: |
+    {
+      "dashboard": {
+        "title": "EstateWise SLO Dashboard",
+        "tags": ["slo", "sli", "estatewise"],
+        "timezone": "browser",
+        "panels": [
+          {
+            "id": 1,
+            "title": "API Availability (SLO: 99.9%)",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "sli:availability:ratio * 100"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "thresholds": {
+                  "steps": [
+                    {"value": 0, "color": "red"},
+                    {"value": 99.5, "color": "yellow"},
+                    {"value": 99.9, "color": "green"}
+                  ]
+                },
+                "unit": "percent"
+              }
+            }
+          },
+          {
+            "id": 2,
+            "title": "P95 Latency (SLO: <500ms)",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "sli:latency:p95 * 1000"
+              }
+            ],
+            "yaxes": [
+              {
+                "format": "ms",
+                "label": "Latency"
+              }
+            ]
+          },
+          {
+            "id": 3,
+            "title": "Error Budget Remaining",
+            "type": "bargauge",
+            "targets": [
+              {
+                "expr": "43.2 - ((1 - sli:availability:ratio) * 43200)"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "thresholds": {
+                  "steps": [
+                    {"value": 0, "color": "red"},
+                    {"value": 10, "color": "yellow"},
+                    {"value": 20, "color": "green"}
+                  ]
+                },
+                "unit": "m",
+                "min": 0,
+                "max": 43.2
+              }
+            }
+          },
+          {
+            "id": 4,
+            "title": "Request Rate",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "sli:throughput"
+              }
+            ]
+          },
+          {
+            "id": 5,
+            "title": "Error Rate",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "sli:error_rate * 100"
+              }
+            ],
+            "yaxes": [
+              {
+                "format": "percent"
+              }
+            ]
+          },
+          {
+            "id": 6,
+            "title": "SLO Compliance (30 days)",
+            "type": "table",
+            "targets": [
+              {
+                "expr": "sli:availability:ratio{job=~'estatewise-.*'}",
+                "format": "table"
+              }
+            ]
+          }
+        ],
+        "refresh": "30s",
+        "time": {
+          "from": "now-6h",
+          "to": "now"
+        }
+      }
+    }
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: slo-report-generator
+  namespace: estatewise
+spec:
+  schedule: "0 9 * * 1"  # Weekly on Monday at 9 AM
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: slo-reporter
+              image: prom/prometheus:v2.48.0
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  #!/bin/sh
+                  set -e
+
+                  echo "Generating SLO Report for week ending $(date)"
+
+                  # Query Prometheus for SLO metrics
+                  PROMETHEUS_URL="http://prometheus:9090"
+
+                  # Availability
+                  AVAILABILITY=$(wget -qO- "${PROMETHEUS_URL}/api/v1/query?query=avg_over_time(sli:availability:ratio[7d])*100" | \
+                    jq -r '.data.result[0].value[1]')
+
+                  # P95 Latency
+                  P95_LATENCY=$(wget -qO- "${PROMETHEUS_URL}/api/v1/query?query=avg_over_time(sli:latency:p95[7d])*1000" | \
+                    jq -r '.data.result[0].value[1]')
+
+                  # Error Rate
+                  ERROR_RATE=$(wget -qO- "${PROMETHEUS_URL}/api/v1/query?query=avg_over_time(sli:error_rate[7d])*100" | \
+                    jq -r '.data.result[0].value[1]')
+
+                  # Error Budget
+                  ERROR_BUDGET=$(wget -qO- "${PROMETHEUS_URL}/api/v1/query?query=43.2-((1-avg_over_time(sli:availability:ratio[30d]))*43200)" | \
+                    jq -r '.data.result[0].value[1]')
+
+                  # Generate report
+                  REPORT=$(cat <<EOF
+                  {
+                    "text": "EstateWise Weekly SLO Report",
+                    "blocks": [
+                      {
+                        "type": "header",
+                        "text": {
+                          "type": "plain_text",
+                          "text": "EstateWise SLO Report - Week Ending $(date +%Y-%m-%d)"
+                        }
+                      },
+                      {
+                        "type": "section",
+                        "fields": [
+                          {
+                            "type": "mrkdwn",
+                            "text": "*Availability (7d avg)*\n${AVAILABILITY}% (SLO: 99.9%)"
+                          },
+                          {
+                            "type": "mrkdwn",
+                            "text": "*P95 Latency (7d avg)*\n${P95_LATENCY}ms (SLO: <500ms)"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "section",
+                        "fields": [
+                          {
+                            "type": "mrkdwn",
+                            "text": "*Error Rate (7d avg)*\n${ERROR_RATE}% (SLO: <1%)"
+                          },
+                          {
+                            "type": "mrkdwn",
+                            "text": "*Error Budget Remaining (30d)*\n${ERROR_BUDGET} minutes"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                  EOF
+                  )
+
+                  # Send to Slack
+                  wget -qO- --post-data="${REPORT}" \
+                    --header="Content-Type: application/json" \
+                    "${SLACK_WEBHOOK_URL}"
+
+                  echo "SLO report sent successfully"
+              env:
+                - name: SLACK_WEBHOOK_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: slack-credentials
+                      key: webhook-url
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 64Mi
+                limits:
+                  cpu: 200m
+                  memory: 128Mi
