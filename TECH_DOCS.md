@@ -1047,7 +1047,7 @@ A continuous integration and deployment (CI/CD) pipeline that automates the test
 To ensure that every change to the codebase is tested, built, and deployed automatically, reducing the risk of introducing bugs and ensuring a smooth deployment process.
 
 <p align="center">
-  <img src="img/github-actions.png" alt="GitHub Actions CI/CD Pipeline" width="800">
+  <img src="img/github-actions.png" alt="GitHub Actions CI/CD Pipeline" width="100%">
 </p>
 
 ### 13.1 Workflow Configuration
@@ -1324,7 +1324,7 @@ Below is a simplified flow diagram of the entire application architecture, from 
 This UML sequence diagram illustrates the flow of data and interactions between the user, UI, API, agent, decision model, Pinecone, experts, and Gemini models:
 
 <p align="center">
-  <img src="img/sequence-diagram.png" alt="Mermaid Sequence Diagram" width="800">
+  <img src="img/sequence-diagram.png" alt="Mermaid Sequence Diagram" width="100%">
 </p>
 
 ```mermaid
