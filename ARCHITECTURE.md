@@ -694,7 +694,7 @@ The `deployment-control/` directory contains a full-featured dashboard for manag
 To get started, see [deployment-control/README.md](deployment-control/README.md).
 
 <p align="center">
-  <img src="deployment-control/docs/ui.png" alt="Deployment Control Dashboard Screenshot" width="800"/>
+  <img src="deployment-control/docs/ui.png" alt="Deployment Control Dashboard Screenshot" width="100%"/>
 </p>
 
 ### Infrastructure as Code

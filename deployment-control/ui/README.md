@@ -3,7 +3,7 @@
 A modern, feature-rich deployment control interface built with **Nuxt 3**, **Vue 3**, **TypeScript**, and **Tailwind CSS**.
 
 <p align="center">
-  <img src="../docs/ui.png" alt="Deployment Control Dashboard Screenshot" width="800"/>
+  <img src="../docs/ui.png" alt="Deployment Control Dashboard Screenshot" width="100%"/>
 </p>
 
 ## 🚀 Features

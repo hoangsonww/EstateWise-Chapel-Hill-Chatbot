@@ -3,7 +3,7 @@
 Modern UI and API to run EstateWise blue/green, canary, rolling, and scaling operations without the CLI. Built with **Nuxt 3**, **Vue 3**, **TypeScript**, and **Tailwind CSS**.
 
 <p align="center">
-  <img src="docs/ui.png" alt="Deployment Control Dashboard Screenshot" width="800"/>
+  <img src="docs/ui.png" alt="Deployment Control Dashboard Screenshot" width="100%"/>
 </p>
 
 ## 🚀 Features
