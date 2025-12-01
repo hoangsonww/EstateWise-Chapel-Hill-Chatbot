@@ -1,12 +1,24 @@
 # EstateWise DevOps Guide
 
 <p align="center">
+  <img src="https://img.shields.io/badge/AWS-Cloud-232F3E?logo=task&logoColor=white" alt="AWS"/>
+  <img src="https://img.shields.io/badge/Azure-Cloud-0078D4?logo=travisci&logoColor=white" alt="Azure"/>
+  <img src="https://img.shields.io/badge/GCP-Cloud-4285F4?logo=google-cloud&logoColor=white" alt="GCP"/>
   <img src="https://img.shields.io/badge/Jenkins-CI/CD-D24939?logo=jenkins&logoColor=white" alt="Jenkins"/>
   <img src="https://img.shields.io/badge/Kubernetes-1.29-326CE5?logo=kubernetes&logoColor=white" alt="Kubernetes"/>
   <img src="https://img.shields.io/badge/Docker-Containers-2496ED?logo=docker&logoColor=white" alt="Docker"/>
   <img src="https://img.shields.io/badge/Blue%2FGreen-Deployments-00D084" alt="Blue-Green"/>
   <img src="https://img.shields.io/badge/Canary-Deployments-FF6B6B" alt="Canary"/>
   <img src="https://img.shields.io/badge/Terraform-IaC-844FBA?logo=terraform&logoColor=white" alt="Terraform"/>
+  <img src="https://img.shields.io/badge/Prometheus-Monitoring-E6522C?logo=prometheus&logoColor=white" alt="Prometheus"/>
+  <img src="https://img.shields.io/badge/Grafana-Observability-F46800?logo=grafana&logoColor=white" alt="Grafana"/>
+  <img src="https://img.shields.io/badge/Trivy-Security-blue?logo=aquasecurity&logoColor=white" alt="Trivy"/>
+  <img src="https://img.shields.io/badge/Artillery-Load_Testing-F05A28?logo=artillery&logoColor=white" alt="Artillery"/>
+  <img src="https://img.shields.io/badge/GitHub-Actions-CF222E?logo=github-actions&logoColor=white" alt="GitHub Actions"/>
+  <img src="https://img.shields.io/badge/GitLab-CI/CD-FCA121?logo=gitlab&logoColor=white" alt="GitLab CI/CD"/>
+  <img src="https://img.shields.io/badge/Node.js-20-339933?logo=node.js&logoColor=white" alt="Node.js"/>
+  <img src="https://img.shields.io/badge/Vue-3.2-4FC08D?logo=vue.js&logoColor=white" alt="Vue.js"/>
+  <img src="https://img.shields.io/badge/Nuxt-3.0-00C58E?logo=nuxt&logoColor=white" alt="Nuxt.js"/>
 </p>
 
 This guide provides comprehensive documentation for EstateWise's DevOps practices, deployment strategies, CI/CD pipelines, and operational procedures.
@@ -23,6 +35,7 @@ This guide provides comprehensive documentation for EstateWise's DevOps practice
   - [Rolling Updates](#rolling-updates)
 - [Jenkins Pipeline Configuration](#jenkins-pipeline-configuration)
 - [Kubernetes Operations](#kubernetes-operations)
+- [Deployment Control UI](#deployment-control-ui)
 - [Monitoring and Observability](#monitoring-and-observability)
 - [Disaster Recovery](#disaster-recovery)
 - [Security Best Practices](#security-best-practices)
@@ -600,6 +613,29 @@ kubectl autoscale deployment estatewise-backend \
 # Check autoscaler status
 kubectl get hpa -n estatewise
 ```
+
+---
+
+## Deployment Control UI
+
+The `deployment-control/` directory contains a full-featured dashboard for managing deployments across all supported targets and strategies.
+
+- **Web UI** – Vue 3 + Nuxt 3 frontend with Pinia state management.
+- **API Server** – Express + TypeScript backend handling deployment requests and job tracking.
+- **Features**:
+  - Real-time deployment status and logs
+  - Blue-Green and Canary deployment workflows
+  - Cluster snapshot and health metrics
+  - User notifications and alerts
+  - TypeScript type safety and accessibility support
+  - Hot Module Replacement for rapid development
+  - Extensible architecture for future enhancements
+
+To get started, see [deployment-control/README.md](deployment-control/README.md).
+
+<p align="center">
+  <img src="deployment-control/docs/ui.png" alt="Deployment Control Dashboard Screenshot" width="800"/>
+</p>
 
 ---
 
