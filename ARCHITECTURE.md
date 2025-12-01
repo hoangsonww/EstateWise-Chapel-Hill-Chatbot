@@ -1302,7 +1302,7 @@ gitGraph
 - [Frontend Repository](https://github.com/hoangsonww/EstateWise-Chapel-Hill-Chatbot)
 - [Technical Documentation](TECH_DOCS.md)
 - [Deployment Guide](DEPLOYMENTS.md)
-- [gRPC & tRPC Documentation](GRPC_TRPC_DOCUMENTATION.md)
+- [gRPC & tRPC Documentation](GRPC_TRPC.md)
 
 ---
 
