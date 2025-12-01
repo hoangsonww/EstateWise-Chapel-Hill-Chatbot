@@ -1,7 +1,7 @@
-import { spawn } from 'child_process';
-import { randomUUID } from 'crypto';
-import path from 'path';
-import { JobRecord, JobResponse, JobType } from './types';
+import { spawn } from "child_process";
+import { randomUUID } from "crypto";
+import path from "path";
+import { JobRecord, JobResponse, JobType } from "./types";
 
 const jobs = new Map<string, JobRecord>();
 const MAX_LOG_LINES = 500;
@@ -17,7 +17,7 @@ interface RunJobOptions {
 }
 
 const newId = (): string => {
-  if (typeof randomUUID === 'function') {
+  if (typeof randomUUID === "function") {
     return randomUUID();
   }
 
@@ -32,8 +32,8 @@ const toResponse = (record: JobRecord): JobResponse => ({
 });
 
 const appendOutput = (record: JobRecord, chunk: string): void => {
-  const normalized = chunk.replace(/\r\n/g, '\n');
-  const lines = normalized.split('\n');
+  const normalized = chunk.replace(/\r\n/g, "\n");
+  const lines = normalized.split("\n");
   record.output.push(...lines);
 
   if (record.output.length > MAX_LOG_LINES) {
@@ -48,8 +48,8 @@ export const runJob = (options: RunJobOptions): JobResponse => {
     id,
     type: options.type,
     description: options.description,
-    command: `${options.command} ${args.join(' ')}`.trim(),
-    status: 'running',
+    command: `${options.command} ${args.join(" ")}`.trim(),
+    status: "running",
     createdAt: new Date(),
     startedAt: new Date(),
     output: [],
@@ -64,7 +64,7 @@ export const runJob = (options: RunJobOptions): JobResponse => {
     env: { ...process.env, ...options.env },
   });
 
-  child.stdout.on('data', (data: Buffer) => {
+  child.stdout.on("data", (data: Buffer) => {
     const current = jobs.get(id);
     if (!current) {
       return;
@@ -73,7 +73,7 @@ export const runJob = (options: RunJobOptions): JobResponse => {
     appendOutput(current, data.toString());
   });
 
-  child.stderr.on('data', (data: Buffer) => {
+  child.stderr.on("data", (data: Buffer) => {
     const current = jobs.get(id);
     if (!current) {
       return;
@@ -82,19 +82,19 @@ export const runJob = (options: RunJobOptions): JobResponse => {
     appendOutput(current, data.toString());
   });
 
-  child.on('error', (error: Error) => {
+  child.on("error", (error: Error) => {
     const current = jobs.get(id);
     if (!current) {
       return;
     }
 
     current.error = error.message;
-    current.status = 'failed';
+    current.status = "failed";
     current.exitCode = null;
     current.finishedAt = new Date();
   });
 
-  child.on('close', (code: number | null) => {
+  child.on("close", (code: number | null) => {
     const current = jobs.get(id);
     if (!current) {
       return;
@@ -102,7 +102,7 @@ export const runJob = (options: RunJobOptions): JobResponse => {
 
     current.exitCode = code;
     current.finishedAt = new Date();
-    current.status = code === 0 ? 'succeeded' : 'failed';
+    current.status = code === 0 ? "succeeded" : "failed";
   });
 
   return toResponse(job);
@@ -110,7 +110,7 @@ export const runJob = (options: RunJobOptions): JobResponse => {
 
 export const listJobs = (limit = 50): JobResponse[] => {
   const values = Array.from(jobs.values()).sort(
-    (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
+    (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
   );
 
   return values.slice(0, limit).map(toResponse);

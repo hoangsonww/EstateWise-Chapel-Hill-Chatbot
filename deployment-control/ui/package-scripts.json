@@ -1,0 +1,13 @@
+{
+  "scripts": {
+    "dev:all": "Run both API server and Nuxt UI",
+    "dev:api": "cd .. && npm run dev (port 4100)",
+    "dev:ui": "npm run dev (port 3000)",
+    "build:prod": "npm run build && cd .. && npm run build",
+    "preview:prod": "npm run preview (static build preview)"
+  },
+  "notes": {
+    "concurrent": "To run both servers: npm run dev:all (requires concurrently package)",
+    "separate": "Or run in separate terminals: API in one, UI in another"
+  }
+}

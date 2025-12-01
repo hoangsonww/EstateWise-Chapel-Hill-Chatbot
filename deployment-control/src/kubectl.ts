@@ -1,46 +1,46 @@
-import { spawn } from 'child_process';
-import path from 'path';
+import { spawn } from "child_process";
+import path from "path";
 import {
   ClusterDeploymentSummary,
   ClusterServiceSummary,
   ClusterSummary,
-} from './types';
+} from "./types";
 
-export const repoRoot = path.resolve(__dirname, '..', '..');
-export const scriptsDir = path.join(repoRoot, 'kubernetes', 'scripts');
+export const repoRoot = path.resolve(__dirname, "..", "..");
+export const scriptsDir = path.join(repoRoot, "kubernetes", "scripts");
 
-const kubectlBinary = (): string => process.env.KUBECTL || 'kubectl';
+const kubectlBinary = (): string => process.env.KUBECTL || "kubectl";
 
 export const runKubectl = async (
   args: string[],
-  namespace?: string
+  namespace?: string,
 ): Promise<string> =>
   new Promise((resolve, reject) => {
     const finalArgs = [...args];
     if (namespace) {
-      finalArgs.push('-n', namespace);
+      finalArgs.push("-n", namespace);
     }
 
     const child = spawn(kubectlBinary(), finalArgs, {
       env: process.env,
     });
 
-    let stdout = '';
-    let stderr = '';
+    let stdout = "";
+    let stderr = "";
 
-    child.stdout.on('data', (data: Buffer) => {
+    child.stdout.on("data", (data: Buffer) => {
       stdout += data.toString();
     });
 
-    child.stderr.on('data', (data: Buffer) => {
+    child.stderr.on("data", (data: Buffer) => {
       stderr += data.toString();
     });
 
-    child.on('error', (error: Error) => {
+    child.on("error", (error: Error) => {
       reject(error);
     });
 
-    child.on('close', (code: number | null) => {
+    child.on("close", (code: number | null) => {
       if (code === 0) {
         resolve(stdout.trim());
       } else {
@@ -50,15 +50,15 @@ export const runKubectl = async (
   });
 
 export const getClusterSummary = async (
-  namespace = 'estatewise'
+  namespace = "estatewise",
 ): Promise<ClusterSummary> => {
   const deploymentsJson = await runKubectl(
-    ['get', 'deployments', '-o', 'json'],
-    namespace
+    ["get", "deployments", "-o", "json"],
+    namespace,
   );
   const servicesJson = await runKubectl(
-    ['get', 'service', '-o', 'json'],
-    namespace
+    ["get", "service", "-o", "json"],
+    namespace,
   );
 
   const deploymentsRaw = JSON.parse(deploymentsJson);
@@ -66,7 +66,7 @@ export const getClusterSummary = async (
 
   const deployments: ClusterDeploymentSummary[] =
     deploymentsRaw.items?.map((item: any) => ({
-      name: item?.metadata?.name ?? 'unknown',
+      name: item?.metadata?.name ?? "unknown",
       readyReplicas: Number(item?.status?.readyReplicas ?? 0),
       availableReplicas: Number(item?.status?.availableReplicas ?? 0),
       desiredReplicas: Number(item?.spec?.replicas ?? 0),
@@ -78,9 +78,9 @@ export const getClusterSummary = async (
 
   const services: ClusterServiceSummary[] =
     servicesRaw.items?.map((svc: any) => ({
-      name: svc?.metadata?.name ?? 'unknown',
-      type: svc?.spec?.type ?? 'ClusterIP',
-      clusterIP: svc?.spec?.clusterIP ?? 'n/a',
+      name: svc?.metadata?.name ?? "unknown",
+      type: svc?.spec?.type ?? "ClusterIP",
+      clusterIP: svc?.spec?.clusterIP ?? "n/a",
     })) ?? [];
 
   return {

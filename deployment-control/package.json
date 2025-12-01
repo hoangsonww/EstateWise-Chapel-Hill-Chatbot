@@ -5,8 +5,12 @@
   "description": "Dashboard UI and API to operate EstateWise blue-green, canary, and rolling deployments without the CLI.",
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
-    "build": "tsc",
-    "start": "node dist/server.js"
+    "dev:ui": "cd ui && npm run dev",
+    "build": "tsc && cd ui && npm run build",
+    "build:api": "tsc",
+    "build:ui": "cd ui && npm run build",
+    "start": "node dist/server.js",
+    "install:all": "npm install && cd ui && npm install"
   },
   "dependencies": {
     "cors": "^2.8.5",
