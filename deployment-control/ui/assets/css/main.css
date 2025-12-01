@@ -1,0 +1,111 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-gradient-to-br from-[#1b2b46] via-[#0b1526] to-[#050b14] text-text min-h-screen;
+  }
+
+  input,
+  button {
+    @apply outline-none focus:ring-2 focus:ring-accent/30 transition-all;
+  }
+
+  input[type="checkbox"] {
+    @apply w-4 h-4 accent-accent;
+  }
+}
+
+@layer components {
+  .background-glow {
+    @apply fixed inset-0 pointer-events-none z-0;
+    background:
+      radial-gradient(60% 40% at 80% 20%, rgba(255, 183, 3, 0.12), transparent),
+      radial-gradient(45% 50% at 15% 60%, rgba(20, 203, 168, 0.16), transparent);
+    filter: blur(50px);
+  }
+
+  .btn {
+    @apply px-4 py-2 rounded-xl font-semibold transition-transform active:translate-y-px;
+  }
+
+  .btn-primary {
+    @apply btn bg-gradient-to-r from-accent to-[#f7931a] text-bg shadow-lg shadow-accent/25;
+  }
+
+  .btn-ghost {
+    @apply btn bg-white/5 border border-border hover:bg-white/10;
+  }
+
+  .btn-sm {
+    @apply px-3 py-1.5 text-sm;
+  }
+
+  .panel {
+    @apply bg-panel border border-border rounded-2xl p-5 shadow-glow backdrop-blur-sm;
+  }
+
+  .badge {
+    @apply inline-flex items-center gap-1.5 px-2 py-1 rounded-xl text-xs capitalize;
+  }
+
+  .badge-success {
+    @apply bg-success/10 text-success;
+  }
+
+  .badge-danger {
+    @apply bg-danger/10 text-danger;
+  }
+
+  .badge-warning {
+    @apply bg-warning/10 text-warning;
+  }
+
+  .badge-outline {
+    @apply border border-border text-muted;
+  }
+
+  .pill {
+    @apply px-3 py-1.5 rounded-full text-sm;
+  }
+
+  .pill-soft {
+    @apply bg-accent/10 text-warning border border-accent/20;
+  }
+
+  .pill-accent {
+    @apply bg-accent-2/10 text-accent-2 border border-accent-2/20;
+  }
+
+  .pill-outline {
+    @apply border border-border text-muted bg-white/5;
+  }
+
+  .input {
+    @apply w-full px-3 py-2.5 rounded-xl border border-border bg-white/5 text-text placeholder:text-muted;
+  }
+
+  .eyebrow {
+    @apply uppercase tracking-wider text-xs text-muted;
+  }
+
+  .animate-pulse-slow {
+    animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.slide-in-up {
+  animation: slideInUp 0.2s ease-out;
+}

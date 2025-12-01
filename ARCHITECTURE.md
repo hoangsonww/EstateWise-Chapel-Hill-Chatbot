@@ -676,6 +676,27 @@ flowchart LR
 | **Canary** | Gradual | 1.1-1.5x | Very Low | New features |
 | **Rolling** | Re-deploy | 1x | Moderate | Regular updates |
 
+### Deployment Control UI
+
+The `deployment-control/` directory contains a full-featured dashboard for managing deployments across all supported targets and strategies.
+
+- **Web UI** – Vue 3 + Nuxt 3 frontend with Pinia state management.
+- **API Server** – Express + TypeScript backend handling deployment requests and job tracking.
+- **Features**:
+  - Real-time deployment status and logs
+  - Blue-Green and Canary deployment workflows
+  - Cluster snapshot and health metrics
+  - User notifications and alerts
+  - TypeScript type safety and accessibility support
+  - Hot Module Replacement for rapid development
+  - Extensible architecture for future enhancements
+
+To get started, see [deployment-control/README.md](deployment-control/README.md).
+
+<p align="center">
+  <img src="deployment-control/docs/ui.png" alt="Deployment Control Dashboard Screenshot" width="800"/>
+</p>
+
 ### Infrastructure as Code
 
 ```mermaid

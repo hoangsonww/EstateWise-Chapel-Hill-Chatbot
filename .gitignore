@@ -18,3 +18,4 @@ docs-frontend
 /mcp/dist/
 /agentic-ai/node_modules/
 /agentic-ai/dist/
+/deployment-control/node_modules/

@@ -1,11 +1,11 @@
 export type JobType =
-  | 'blue-green'
-  | 'canary'
-  | 'rolling'
-  | 'scale'
-  | 'cluster-status';
+  | "blue-green"
+  | "canary"
+  | "rolling"
+  | "scale"
+  | "cluster-status";
 
-export type JobStatus = 'queued' | 'running' | 'succeeded' | 'failed';
+export type JobStatus = "queued" | "running" | "succeeded" | "failed";
 
 export interface JobRecord {
   id: string;

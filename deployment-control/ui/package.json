@@ -1,0 +1,26 @@
+{
+  "name": "estatewise-deployment-control-ui",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare"
+  },
+  "dependencies": {
+    "@pinia/nuxt": "^0.5.1",
+    "chart.js": "^4.4.0",
+    "nuxt": "^3.13.0",
+    "pinia": "^2.1.7",
+    "vue": "latest",
+    "vue-chartjs": "^5.3.1"
+  },
+  "devDependencies": {
+    "@nuxt/devtools": "^1.3.9",
+    "@nuxtjs/tailwindcss": "^6.12.0",
+    "typescript": "^5.5.3"
+  }
+}
