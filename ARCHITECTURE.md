@@ -1303,6 +1303,7 @@ gitGraph
 - [Technical Documentation](TECH_DOCS.md)
 - [Deployment Guide](DEPLOYMENTS.md)
 - [gRPC & tRPC Documentation](GRPC_TRPC.md)
+- [RAG Architecture Overview](RAG_SYSTEM.md)
 
 ---
 
