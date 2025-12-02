@@ -1877,6 +1877,8 @@ Thank you for checking out **EstateWise**! We hope you find it useful in your re
 
 [📖 Read the Technical Documentation](TECH_DOCS.md)
 
-[📝 Go to Technical Documentation](TECH_DOCS.md)
+[📝 Go to Architecture Overview](ARCHITECTURE.md)
+
+[🗺️ RAG Architecture Documentation](RAG_SYSTEM.md)
 
 [⬆️ Back to Top](#table-of-contents)
