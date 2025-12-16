@@ -1600,6 +1600,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   });
   const [historyIndex, setHistoryIndex] = useState(inputHistory.length);
   const [draftInput, setDraftInput] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     sessionStorage.setItem("inputHistory", JSON.stringify(inputHistory));
@@ -1635,6 +1636,61 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
 
   /* per-message rating state */
   const [ratings, setRatings] = useState<Record<number, "up" | "down">>({});
+
+  const marqueeRowOne = [
+    "Find a 3 bedroom in Chapel Hill under $750k within 15 minutes of UNC campus.",
+    "Compare Carrboro vs. Southern Village for walkability, trails, and coffee shops.",
+    "Show single-family homes near top-rated Chapel Hill-Carrboro elementary schools.",
+    "Map ranch-style homes in Durham near I-40 with big backyards for dogs.",
+    "Spot new construction around Chatham Park with easy commute to Chapel Hill.",
+    "Find condos near Franklin Street with parking and a quiet study-friendly vibe.",
+  ];
+
+  const marqueeRowTwo = [
+    "Plan an open house route this weekend around Meadowmont and Governors Club.",
+    "Estimate rental potential for a Franklin Street condo during the academic year.",
+    "Find townhomes in Hillsborough with EV charging and low HOA fees.",
+    "Compare Chapel Hill vs. Apex commute times to RTP during rush hour.",
+    "Locate homes within 10 minutes of Duke but still in Chapel Hill-Carrboro schools.",
+    "Show cul-de-sac homes in Chapel Hill with mature trees and half-acre lots.",
+  ];
+
+  // duplicate the prompt sets to enable seamless marquee loops
+  const marqueeRowOneLoop = [...marqueeRowOne, ...marqueeRowOne];
+  const marqueeRowTwoLoop = [...marqueeRowTwo, ...marqueeRowTwo];
+
+  const handlePrefillPrompt = (prompt: string) => {
+    setUserInput(prompt);
+    inputRef.current?.focus();
+  };
+
+  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "ArrowUp") {
+      e.preventDefault();
+      if (historyIndex === inputHistory.length) {
+        setDraftInput(userInput);
+      }
+      if (historyIndex > 0) {
+        const prevIdx = historyIndex - 1;
+        setUserInput(inputHistory[prevIdx]);
+        setHistoryIndex(prevIdx);
+      }
+    } else if (e.key === "ArrowDown") {
+      e.preventDefault();
+      if (historyIndex < inputHistory.length) {
+        const nextIdx = historyIndex + 1;
+        setHistoryIndex(nextIdx);
+        if (nextIdx === inputHistory.length) {
+          setUserInput(draftInput);
+        } else {
+          setUserInput(inputHistory[nextIdx]);
+        }
+      }
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      handleSend();
+    }
+  };
 
   /* ------------------------------------------------------------------ */
   /* sync on conversation switch                                        */
@@ -2480,120 +2536,277 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
     );
   };
 
+  const showEmptyState = messages.length === 0 && !loading && !convLoading;
+
   return (
     <div className="flex flex-col h-full">
       <motion.div
         ref={messagesContainerRef}
-        className="relative overflow-y-auto space-y-2 p-4"
-        style={{ height: "calc(100vh - 64px - 80px)" }}
+        className={`relative overflow-y-auto overflow-x-hidden p-4 ${showEmptyState ? "space-y-0" : "space-y-2"}`}
+        style={{
+          height: showEmptyState
+            ? "calc(100vh - 64px)"
+            : "calc(100vh - 64px - 80px)",
+        }}
         variants={containerVariants}
         initial="hidden"
         animate="visible"
       >
+        {!showEmptyState && (
+          <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+            <motion.div
+              className="absolute -top-10 -left-16 h-64 w-64 bg-primary/14 blur-3xl rounded-full"
+              animate={{ y: [0, 16, 0], opacity: [0.45, 0.65, 0.45] }}
+              transition={{ duration: 16, repeat: Infinity, ease: "easeInOut" }}
+            />
+            <motion.div
+              className="absolute bottom-10 right-0 h-72 w-72 bg-amber-400/14 dark:bg-blue-400/14 blur-3xl rounded-full"
+              animate={{ y: [0, -18, 0], opacity: [0.4, 0.6, 0.4] }}
+              transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
+            />
+            <motion.div
+              className="absolute top-1/3 right-1/4 h-52 w-52 bg-emerald-400/14 blur-3xl rounded-full"
+              animate={{ x: [0, 12, -12, 0], opacity: [0.35, 0.55, 0.35] }}
+              transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
+            />
+          </div>
+        )}
         {convLoading && (
           <div className="absolute inset-0 flex items-center justify-center">
             <Loader2 className="animate-spin w-10 h-10" />
           </div>
         )}
 
-        {messages.length === 0 && !loading && !convLoading && (
-          <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-            <Home className="w-20 h-20 mb-4 text-primary" />
-            <p className="text-xl text-center font-semibold">
-              Hey {localStorage.getItem("username") || "there"} 👋 Send a
-              message to start your home finding journey! 🚀
-            </p>
-          </div>
-        )}
-
-        <AnimatePresence>
-          {!convLoading &&
-            messages.map((m, i) => (
-              <MessageBubble key={i} msg={m} idx={i} isLast={i === lastIdx} />
-            ))}
-        </AnimatePresence>
-
-        {loading && messages.length === 0 && (
-          <motion.div
-            variants={bubbleVariants}
-            initial="hidden"
-            animate="visible"
-            className="flex justify-start mb-2"
-          >
-            <div className="bg-muted p-2 rounded-lg shadow-lg flex items-center gap-2 animate-pulse">
-              {(() => {
-                const { Icon } = loadingPhases[phaseIdx];
-                return <Icon className="w-5 h-5" />;
-              })()}
-              <span className="font-medium">
-                {loadingPhases[phaseIdx].text}
-                <AnimatedDots resetKey={phaseIdx} />
-              </span>
+        {showEmptyState ? (
+          <div className="relative h-full w-full flex items-center justify-center overflow-hidden px-2 sm:px-4">
+            <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-3xl">
+              <motion.div
+                className="absolute -top-24 -left-10 h-72 w-72 bg-primary/15 blur-3xl rounded-full"
+                animate={{ y: [0, 20, 0], opacity: [0.7, 1, 0.7] }}
+                transition={{
+                  duration: 12,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+              />
+              <motion.div
+                className="absolute -bottom-20 right-0 h-80 w-80 bg-amber-400/10 dark:bg-blue-400/10 blur-3xl rounded-full"
+                animate={{ y: [0, -15, 0], opacity: [0.6, 0.9, 0.6] }}
+                transition={{
+                  duration: 14,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+              />
+              <motion.div
+                className="absolute top-10 right-1/3 h-40 w-40 bg-emerald-400/10 blur-3xl rounded-full"
+                animate={{ x: [0, 10, -10, 0], opacity: [0.5, 0.9, 0.5] }}
+                transition={{
+                  duration: 16,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+              />
             </div>
-          </motion.div>
+
+            <div className="relative z-10 w-full max-w-5xl space-y-8 text-center px-4 sm:px-6">
+              <div className="space-y-3">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium">
+                  <BotMessageSquare className="w-4 h-4" />
+                  <span>EstateWise Concierge</span>
+                </div>
+                <h2 className="text-2xl sm:text-3xl font-semibold text-foreground">
+                  Start planning your next move
+                </h2>
+                <p className="text-muted-foreground max-w-2xl mx-auto">
+                  Tell us what you are looking for and we will combine market
+                  data, neighborhood insights, and route planning to help.
+                </p>
+              </div>
+
+              <div className="bg-card/80 border border-border/60 rounded-2xl shadow-2xl backdrop-blur p-4 sm:p-5">
+                <div className="flex flex-col sm:flex-row gap-3 items-center w-full">
+                  <Input
+                    ref={inputRef}
+                    placeholder="Ask about homes, taxes, neighborhoods, or investment returns..."
+                    value={userInput}
+                    onChange={(e) => setUserInput(e.target.value)}
+                    onKeyDown={handleInputKeyDown}
+                    className="flex-1 h-12 min-h-[48px] text-base w-full"
+                  />
+                  <Button
+                    onClick={handleSend}
+                    disabled={loading}
+                    className="flex gap-2 cursor-pointer h-12 min-h-[48px] px-5 w-full sm:w-auto justify-center"
+                    title="Send message"
+                  >
+                    <Send className="h-4 w-4" /> Start chatting
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground mt-3">
+                  We will personalize suggestions based on your prompts. You can
+                  refine or pick a suggestion below.
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Suggested prompts
+                </div>
+                <div className="space-y-3">
+                  <div
+                    className="relative w-full max-w-[calc(100vw-32px)] sm:max-w-full mx-auto overflow-hidden rounded-2xl border border-border/60 bg-background/60 backdrop-blur py-3 sm:py-4"
+                    style={{
+                      maskImage:
+                        "linear-gradient(90deg, transparent 0, #000 14%, #000 86%, transparent 100%)",
+                      WebkitMaskImage:
+                        "linear-gradient(90deg, transparent 0, #000 14%, #000 86%, transparent 100%)",
+                      minHeight: "140px",
+                    }}
+                  >
+                    <div className="absolute inset-0 flex items-center">
+                      <div
+                        className="inline-flex gap-2 sm:gap-3 px-3 animate-marquee-left"
+                        style={{
+                          minWidth: "max-content",
+                          width: "max-content",
+                        }}
+                      >
+                        {marqueeRowOneLoop.map((prompt, idx) => (
+                          <button
+                            key={`row1-${idx}-${prompt}`}
+                            onClick={() => handlePrefillPrompt(prompt)}
+                            className="group flex-shrink-0 text-left rounded-xl border border-border/70 bg-card/90 px-4 py-3 shadow-sm transition-transform duration-200 ease-out hover:-translate-y-0.5 hover:shadow-[0_12px_30px_-20px_rgba(0,0,0,0.45)] hover:border-primary/30 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 whitespace-normal break-words"
+                            style={{
+                              minWidth: "min(210px, 80vw)",
+                              maxWidth: "min(280px, 88vw)",
+                            }}
+                          >
+                            <div className="text-sm font-semibold text-foreground leading-tight">
+                              {prompt}
+                            </div>
+                            <div className="mt-2 text-[11px] text-muted-foreground group-hover:text-foreground">
+                              Tap to prefill
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  <div
+                    className="relative w-full max-w-[calc(100vw-32px)] sm:max-w-full mx-auto overflow-hidden rounded-2xl border border-border/60 bg-background/60 backdrop-blur py-3 sm:py-4"
+                    style={{
+                      maskImage:
+                        "linear-gradient(90deg, transparent 0, #000 14%, #000 86%, transparent 100%)",
+                      WebkitMaskImage:
+                        "linear-gradient(90deg, transparent 0, #000 14%, #000 86%, transparent 100%)",
+                      minHeight: "140px",
+                    }}
+                  >
+                    <div className="absolute inset-0 flex items-center">
+                      <div
+                        className="inline-flex gap-2 sm:gap-3 px-3 animate-marquee-right"
+                        style={{
+                          minWidth: "max-content",
+                          width: "max-content",
+                        }}
+                      >
+                        {marqueeRowTwoLoop.map((prompt, idx) => (
+                          <button
+                            key={`row2-${idx}-${prompt}`}
+                            onClick={() => handlePrefillPrompt(prompt)}
+                            className="group flex-shrink-0 text-left rounded-xl border border-border/70 bg-card/90 px-4 py-3 shadow-sm transition-transform duration-200 ease-out hover:-translate-y-0.5 hover:shadow-[0_12px_30px_-20px_rgba(0,0,0,0.45)] hover:border-primary/30 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 whitespace-normal break-words"
+                            style={{
+                              minWidth: "min(210px, 80vw)",
+                              maxWidth: "min(280px, 88vw)",
+                            }}
+                          >
+                            <div className="text-sm font-semibold text-foreground leading-tight">
+                              {prompt}
+                            </div>
+                            <div className="mt-2 text-[11px] text-muted-foreground group-hover:text-foreground">
+                              Tap to prefill
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <>
+            <AnimatePresence>
+              {!convLoading &&
+                messages.map((m, i) => (
+                  <MessageBubble
+                    key={i}
+                    msg={m}
+                    idx={i}
+                    isLast={i === lastIdx}
+                  />
+                ))}
+            </AnimatePresence>
+
+            {loading && messages.length === 0 && (
+              <motion.div
+                variants={bubbleVariants}
+                initial="hidden"
+                animate="visible"
+                className="flex justify-start mb-2"
+              >
+                <div className="bg-muted p-2 rounded-lg shadow-lg flex items-center gap-2 animate-pulse">
+                  {(() => {
+                    const { Icon } = loadingPhases[phaseIdx];
+                    return <Icon className="w-5 h-5" />;
+                  })()}
+                  <span className="font-medium">
+                    {loadingPhases[phaseIdx].text}
+                    <AnimatedDots resetKey={phaseIdx} />
+                  </span>
+                </div>
+              </motion.div>
+            )}
+          </>
         )}
       </motion.div>
 
-      {/* input */}
-      <div className="flex flex-col flex-shrink-0 h-20 p-4">
-        <div className="flex gap-2">
-          <Input
-            placeholder="Type your message…"
-            value={userInput}
-            onChange={(e) => setUserInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "ArrowUp") {
-                e.preventDefault();
-                // if this is the very first up, stash the current draft
-                if (historyIndex === inputHistory.length) {
-                  setDraftInput(userInput);
-                }
-                if (historyIndex > 0) {
-                  const prevIdx = historyIndex - 1;
-                  setUserInput(inputHistory[prevIdx]);
-                  setHistoryIndex(prevIdx);
-                }
-              } else if (e.key === "ArrowDown") {
-                e.preventDefault();
-                if (historyIndex < inputHistory.length) {
-                  const nextIdx = historyIndex + 1;
-                  setHistoryIndex(nextIdx);
-                  // if we've moved back past the last history entry, restore draft
-                  if (nextIdx === inputHistory.length) {
-                    setUserInput(draftInput);
-                  } else {
-                    setUserInput(inputHistory[nextIdx]);
-                  }
-                }
-              } else if (e.key === "Enter") {
-                e.preventDefault();
-                handleSend();
-              }
-            }}
-            className="flex-1"
-          />
-          <Button
-            onClick={handleSend}
-            disabled={loading}
-            className="flex gap-1 cursor-pointer"
-            title="Send message"
-          >
-            <Send className="h-4 w-4" /> Send
-          </Button>
+      {!showEmptyState && (
+        <div className="flex flex-col flex-shrink-0 h-20 p-4">
+          <div className="flex gap-2">
+            <Input
+              ref={inputRef}
+              placeholder="Type your message…"
+              value={userInput}
+              onChange={(e) => setUserInput(e.target.value)}
+              onKeyDown={handleInputKeyDown}
+              className="flex-1"
+            />
+            <Button
+              onClick={handleSend}
+              disabled={loading}
+              className="flex gap-1 cursor-pointer"
+              title="Send message"
+            >
+              <Send className="h-4 w-4" /> Send
+            </Button>
+          </div>
+          <p className="text-center text-xs mt-1">
+            By using this app, you agree to our{" "}
+            <Link href="/terms" className="underline hover:text-primary">
+              Terms of Service
+            </Link>{" "}
+            and{" "}
+            <Link href="/privacy" className="underline hover:text-primary">
+              Privacy Policy
+            </Link>
+            .
+            <BotMessageSquare className="inline-block w-4 h-4 ml-0.5 hover:text-primary" />
+          </p>
         </div>
-        <p className="text-center text-xs mt-1">
-          By using this app, you agree to our{" "}
-          <Link href="/terms" className="underline hover:text-primary">
-            Terms of Service
-          </Link>{" "}
-          and{" "}
-          <Link href="/privacy" className="underline hover:text-primary">
-            Privacy Policy
-          </Link>
-          .
-          <BotMessageSquare className="inline-block w-4 h-4 ml-0.5 hover:text-primary" />
-        </p>
-      </div>
+      )}
     </div>
   );
 };
@@ -2637,11 +2850,11 @@ export default function ChatPage() {
     if (saved !== null) {
       setSidebarVisible(saved === "true");
     } else {
-      const defaultVisible = window.innerWidth >= 768;
+      const defaultVisible = isAuthed ? window.innerWidth >= 768 : false;
       setSidebarVisible(defaultVisible);
       localStorage.setItem("sidebarVisible", defaultVisible.toString());
     }
-  }, []);
+  }, [isAuthed]);
 
   const toggleSidebar = () => {
     setSidebarVisible((prev) => {
@@ -2692,7 +2905,7 @@ export default function ChatPage() {
         />
       </Head>
       <ClientOnly>
-        <div className="min-h-screen flex dark:bg-background dark:text-foreground relative">
+        <div className="min-h-screen flex dark:bg-background dark:text-foreground relative overflow-hidden bg-[radial-gradient(circle_at_20%_20%,rgba(99,102,241,0.06),transparent_35%),radial-gradient(circle_at_80%_0%,rgba(16,185,129,0.05),transparent_30%)]">
           <style jsx global>{`
             html {
               scroll-behavior: smooth;
@@ -2701,6 +2914,7 @@ export default function ChatPage() {
             html,
             body {
               overscroll-behavior: none;
+              overflow-x: hidden;
             }
 
             @keyframes pulse-gentle {
@@ -2716,7 +2930,50 @@ export default function ChatPage() {
             .animate-pulse-gentle {
               animation: pulse-gentle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
             }
+
+            @keyframes marquee-left {
+              from {
+                transform: translateX(0);
+              }
+              to {
+                transform: translateX(-50%);
+              }
+            }
+
+            @keyframes marquee-right {
+              from {
+                transform: translateX(-50%);
+              }
+              to {
+                transform: translateX(0);
+              }
+            }
+
+            .animate-marquee-left {
+              animation: marquee-left 32s linear infinite;
+            }
+
+            .animate-marquee-right {
+              animation: marquee-right 34s linear infinite;
+            }
           `}</style>
+          <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+            <motion.div
+              className="absolute -left-32 top-10 h-80 w-80 bg-primary/25 blur-3xl rounded-full"
+              animate={{ y: [0, 25, 0], opacity: [0.6, 0.85, 0.6] }}
+              transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
+            />
+            <motion.div
+              className="absolute right-10 bottom-0 h-[22rem] w-[22rem] bg-emerald-400/18 blur-3xl rounded-full"
+              animate={{ y: [0, -20, 0], opacity: [0.5, 0.8, 0.5] }}
+              transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
+            />
+            <motion.div
+              className="absolute left-1/2 top-1/2 h-64 w-64 -translate-x-1/2 -translate-y-1/2 bg-amber-400/18 dark:bg-cyan-400/18 blur-3xl rounded-full"
+              animate={{ x: [0, 12, -12, 0], opacity: [0.45, 0.75, 0.45] }}
+              transition={{ duration: 22, repeat: Infinity, ease: "easeInOut" }}
+            />
+          </div>
           {/* Desktop sidebar and content container */}
           <div className="flex flex-1">
             {/* Sidebar (desktop only) */}
