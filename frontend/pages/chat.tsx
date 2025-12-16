@@ -2655,7 +2655,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
                 </div>
                 <div className="space-y-3">
                   <div
-                  className="relative w-full max-w-[calc(100vw-32px)] sm:max-w-full mx-auto overflow-hidden rounded-2xl border border-border/60 bg-background/60 backdrop-blur py-3 sm:py-4 min-h-[120px] sm:min-h-[140px]"
+                    className="relative w-full max-w-[calc(100vw-32px)] sm:max-w-full mx-auto overflow-hidden rounded-2xl border border-border/60 bg-background/60 backdrop-blur py-3 sm:py-4 min-h-[120px] sm:min-h-[140px]"
                     style={{
                       maskImage:
                         "linear-gradient(90deg, transparent 0, #000 14%, #000 86%, transparent 100%)",
@@ -2693,7 +2693,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
                     </div>
                   </div>
                   <div
-                  className="relative w-full max-w-[calc(100vw-32px)] sm:max-w-full mx-auto overflow-hidden rounded-2xl border border-border/60 bg-background/60 backdrop-blur py-3 sm:py-4 min-h-[120px] sm:min-h-[140px]"
+                    className="relative w-full max-w-[calc(100vw-32px)] sm:max-w-full mx-auto overflow-hidden rounded-2xl border border-border/60 bg-background/60 backdrop-blur py-3 sm:py-4 min-h-[120px] sm:min-h-[140px]"
                     style={{
                       maskImage:
                         "linear-gradient(90deg, transparent 0, #000 14%, #000 86%, transparent 100%)",
