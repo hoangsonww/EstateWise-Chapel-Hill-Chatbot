@@ -2578,7 +2578,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
         )}
 
         {showEmptyState ? (
-          <div className="relative h-full w-full flex items-center justify-center overflow-hidden px-2 sm:px-4">
+          <div className="relative h-full w-full flex items-start sm:items-center justify-center overflow-hidden px-2 sm:px-4 py-4 sm:py-0">
             <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-3xl">
               <motion.div
                 className="absolute -top-24 -left-10 h-72 w-72 bg-primary/15 blur-3xl rounded-full"
@@ -2609,7 +2609,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
               />
             </div>
 
-            <div className="relative z-10 w-full max-w-5xl space-y-8 text-center px-4 sm:px-6">
+            <div className="relative z-10 w-full max-w-5xl space-y-6 sm:space-y-8 text-center px-4 sm:px-6 max-h-full overflow-y-auto sm:overflow-visible pb-6 sm:pb-0">
               <div className="space-y-3">
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium">
                   <BotMessageSquare className="w-4 h-4" />
@@ -2655,13 +2655,12 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
                 </div>
                 <div className="space-y-3">
                   <div
-                    className="relative w-full max-w-[calc(100vw-32px)] sm:max-w-full mx-auto overflow-hidden rounded-2xl border border-border/60 bg-background/60 backdrop-blur py-3 sm:py-4"
+                  className="relative w-full max-w-[calc(100vw-32px)] sm:max-w-full mx-auto overflow-hidden rounded-2xl border border-border/60 bg-background/60 backdrop-blur py-3 sm:py-4 min-h-[120px] sm:min-h-[140px]"
                     style={{
                       maskImage:
                         "linear-gradient(90deg, transparent 0, #000 14%, #000 86%, transparent 100%)",
                       WebkitMaskImage:
                         "linear-gradient(90deg, transparent 0, #000 14%, #000 86%, transparent 100%)",
-                      minHeight: "140px",
                     }}
                   >
                     <div className="absolute inset-0 flex items-center">
@@ -2694,13 +2693,12 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
                     </div>
                   </div>
                   <div
-                    className="relative w-full max-w-[calc(100vw-32px)] sm:max-w-full mx-auto overflow-hidden rounded-2xl border border-border/60 bg-background/60 backdrop-blur py-3 sm:py-4"
+                  className="relative w-full max-w-[calc(100vw-32px)] sm:max-w-full mx-auto overflow-hidden rounded-2xl border border-border/60 bg-background/60 backdrop-blur py-3 sm:py-4 min-h-[120px] sm:min-h-[140px]"
                     style={{
                       maskImage:
                         "linear-gradient(90deg, transparent 0, #000 14%, #000 86%, transparent 100%)",
                       WebkitMaskImage:
                         "linear-gradient(90deg, transparent 0, #000 14%, #000 86%, transparent 100%)",
-                      minHeight: "140px",
                     }}
                   >
                     <div className="absolute inset-0 flex items-center">
