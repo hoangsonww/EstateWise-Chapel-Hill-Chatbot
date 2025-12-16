@@ -81,6 +81,14 @@ function AnimatedInView({ children, className = "", delay = 0 }) {
   );
 }
 
+const SectionBackdrop: React.FC = () => (
+  <div className="pointer-events-none absolute inset-0 overflow-hidden">
+    <div className="absolute -left-24 top-0 h-64 w-64 rounded-full bg-primary/10 blur-3xl" />
+    <div className="absolute right-0 top-10 h-72 w-72 rounded-full bg-emerald-400/12 blur-3xl" />
+    <div className="absolute left-1/3 bottom-0 h-56 w-56 rounded-full bg-amber-400/10 blur-3xl" />
+  </div>
+);
+
 // Slider settings
 const sliderSettings = {
   dots: true,
@@ -104,6 +112,24 @@ const sliderSettings = {
     },
   ],
 };
+
+const heroHighlights = [
+  {
+    label: "Chapel Hill first",
+    detail: "Curated for UNC, Carrboro, and nearby enclaves.",
+    icon: <MapPin className="w-4 h-4" />,
+  },
+  {
+    label: "Fast insights",
+    detail: "Ask, map, and compare in seconds.",
+    icon: <TrendingUp className="w-4 h-4" />,
+  },
+  {
+    label: "Always-on",
+    detail: "Chat anytime — routes, schools, and ROI.",
+    icon: <BotMessageSquare className="w-4 h-4" />,
+  },
+];
 
 const features = [
   {
@@ -352,7 +378,7 @@ export default function Home() {
         />
       </Head>
 
-      <div className="font-sans overflow-x-hidden">
+      <div className="font-sans overflow-x-hidden bg-background text-foreground">
         {/* Global smooth scrolling */}
         <style jsx global>{`
           html {
@@ -366,49 +392,75 @@ export default function Home() {
             height: 100%;
             overscroll-behavior: none;
           }
+
+          @keyframes glowFloat {
+            0% {
+              transform: translate3d(0, 0, 0) scale(1);
+            }
+            50% {
+              transform: translate3d(8px, -8px, 0) scale(1.03);
+            }
+            100% {
+              transform: translate3d(0, 0, 0) scale(1);
+            }
+          }
+
+          .glow-blob {
+            filter: blur(60px);
+            opacity: 0.7;
+            animation: glowFloat 18s ease-in-out infinite;
+          }
         `}</style>
 
         {/* Full Screen Hero Section */}
-        <section
-          className="relative h-screen w-full border-4 border-primary"
-          style={{
-            backgroundImage: "url('/home.webp')",
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-          }}
-        >
-          {/* Overlay for contrast */}
-          <div className="absolute inset-0 bg-black/60"></div>
+        <section className="relative min-h-screen w-full overflow-hidden bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-white">
+          <div
+            className="absolute inset-0 opacity-60"
+            style={{
+              backgroundImage: "url('/home.webp')",
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+            }}
+          />
+          {/* Gradient overlays */}
+          <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-slate-950/60 to-slate-950" />
+          <div className="absolute -left-24 -top-24 h-72 w-72 rounded-full bg-primary/30 glow-blob" />
+          <div className="absolute right-[-6rem] top-10 h-80 w-80 rounded-full bg-emerald-400/25 glow-blob" />
+          <div className="absolute left-1/2 bottom-0 h-72 w-72 -translate-x-1/2 rounded-full bg-amber-400/20 glow-blob" />
+
           <div className="relative z-10 flex flex-col items-center justify-center min-h-screen text-center px-4">
             <AnimatedInView delay={0}>
-              <h1 className="text-5xl md:text-7xl font-bold text-white mb-4">
+              <span className="inline-flex items-center gap-3 rounded-full bg-white/10 px-4 py-2 text-sm font-semibold uppercase tracking-wide backdrop-blur">
+                Chapel Hill · Carrboro · Durham
+              </span>
+            </AnimatedInView>
+            <AnimatedInView delay={0.1}>
+              <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-4 leading-tight drop-shadow-lg">
                 EstateWise
               </h1>
             </AnimatedInView>
             <AnimatedInView delay={0.2}>
-              <p className="text-lg md:text-2xl text-white mb-8">
-                Chat with our intelligent bot for real-time, personalized real
-                estate recommendations.
+              <p className="text-lg md:text-2xl text-white/90 mb-8 max-w-3xl">
+                Chat with a Chapel Hill–first concierge for real-time
+                recommendations, neighborhood context, and mapped routes.
               </p>
             </AnimatedInView>
-            <AnimatedInView delay={0.4}>
-              <Link href="/chat">
-                <Button
-                  className="rounded-full px-8 py-4 text-lg cursor-pointer"
-                  aria-label="Start Chat"
-                  title="Start Chat"
-                >
-                  <BotMessageSquare className="w-5 h-5" />
-                  Explore Properties
-                </Button>
-              </Link>
-            </AnimatedInView>
-            <AnimatedInView delay={0.5}>
-              <div className="mt-3 flex flex-wrap items-center justify-center gap-4">
+            <AnimatedInView delay={0.3}>
+              <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4">
+                <Link href="/chat">
+                  <Button
+                    className="rounded-full px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg cursor-pointer shadow-lg shadow-primary/30"
+                    aria-label="Start Chat"
+                    title="Start Chat"
+                  >
+                    <BotMessageSquare className="w-5 h-5" />
+                    Explore Properties
+                  </Button>
+                </Link>
                 <Link href="/insights">
                   <Button
-                    variant="default"
-                    className="rounded-full px-8 py-4 text-lg cursor-pointer shadow-md"
+                    variant="secondary"
+                    className="rounded-full px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg cursor-pointer bg-white/10 border-white/30 text-white hover:bg-white/20"
                     aria-label="Insights & Tools"
                     title="Insights & Tools"
                   >
@@ -418,8 +470,8 @@ export default function Home() {
                 </Link>
                 <Link href="/map">
                   <Button
-                    variant="secondary"
-                    className="rounded-full px-8 py-4 text-lg cursor-pointer shadow-md"
+                    variant="ghost"
+                    className="rounded-full px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg cursor-pointer text-white hover:bg-white/10"
                     aria-label="Properties Map"
                     title="Properties Map"
                   >
@@ -429,25 +481,137 @@ export default function Home() {
                 </Link>
               </div>
             </AnimatedInView>
+
+            <AnimatedInView delay={0.4}>
+              <div className="mt-8 flex flex-wrap justify-center gap-3 sm:gap-4 max-w-3xl">
+                {heroHighlights.map((item, idx) => (
+                  <motion.div
+                    key={idx}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.45 + idx * 0.08, duration: 0.4 }}
+                    className="flex items-center gap-3 rounded-xl bg-white/10 border border-white/15 px-4 py-3 backdrop-blur shadow-lg"
+                  >
+                    <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-white/15 text-white">
+                      {item.icon}
+                    </span>
+                    <div className="text-left">
+                      <p className="text-sm font-semibold">{item.label}</p>
+                      <p className="text-xs text-white/75">{item.detail}</p>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </AnimatedInView>
+
             <AnimatedInView delay={0.6}>
               <Link href="#features">
                 <Button
-                  className="mt-4 rounded-full px-8 py-4 text-lg transition-transform duration-300 bg-transparent cursor-pointer"
+                  className="mt-6 rounded-full px-8 py-3 text-base sm:text-lg transition-transform duration-300 bg-white/10 text-white hover:bg-white/20 cursor-pointer border border-white/25"
                   aria-label="Learn More"
                   title="Learn More"
                 >
-                  Learn More <ArrowDown className="w-5 h-5 inline-block" />
+                  Learn More <ArrowDown className="w-5 h-5 inline-block ml-2" />
                 </Button>
               </Link>
             </AnimatedInView>
+
+            {/* Floating cards */}
+            <div className="pointer-events-none absolute inset-0">
+              <motion.div
+                className="hidden sm:block absolute left-6 sm:left-10 bottom-14 sm:bottom-16 w-48 sm:w-56 rounded-2xl bg-white/10 backdrop-blur border border-white/20 p-4 text-left shadow-xl"
+                initial={{ opacity: 1, y: 0, rotate: 0, scale: 1 }}
+                animate={{
+                  y: [0, -10, 0],
+                  rotate: [0, 0.8, 0],
+                }}
+                transition={{
+                  duration: 3.5,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                  repeatType: "mirror",
+                }}
+              >
+                <p className="text-xs uppercase text-white/70 mb-1">
+                  Live activity
+                </p>
+                <p className="text-sm font-semibold">
+                  4 Chapel Hill homes under $800k
+                </p>
+                <p className="text-xs text-white/70">Near UNC · Walkable</p>
+              </motion.div>
+              <motion.div
+                className="hidden sm:block absolute right-6 sm:right-10 top-16 sm:top-20 w-48 sm:w-56 rounded-2xl bg-white/10 backdrop-blur border border-white/20 p-4 text-left shadow-xl"
+                initial={{ opacity: 1, y: 0, rotate: 0, scale: 1 }}
+                animate={{
+                  y: [0, 12, 0],
+                  rotate: [0, -0.6, 0],
+                }}
+                transition={{
+                  duration: 3.5,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                  repeatType: "mirror",
+                }}
+              >
+                <p className="text-xs uppercase text-white/70 mb-1">
+                  Map snapshot
+                </p>
+                <p className="text-sm font-semibold">EV-friendly townhomes</p>
+                <p className="text-xs text-white/70">Carrboro · Hillsborough</p>
+              </motion.div>
+              <motion.div
+                className="hidden sm:block absolute right-4 sm:right-12 bottom-10 sm:bottom-14 w-48 sm:w-56 rounded-2xl bg-white/10 backdrop-blur border border-white/20 p-4 text-left shadow-xl"
+                initial={{ opacity: 1, y: 0, rotate: 0, scale: 1 }}
+                animate={{
+                  y: [0, 8, 0],
+                  rotate: [0, 0.4, 0],
+                }}
+                transition={{
+                  duration: 3.5,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                  repeatType: "mirror",
+                }}
+              >
+                <p className="text-xs uppercase text-white/70 mb-1">
+                  Route idea
+                </p>
+                <p className="text-sm font-semibold">
+                  Saturday tour: Meadowmont → Southern Village → Carrboro
+                </p>
+                <p className="text-xs text-white/70">8 stops · 22 min drive</p>
+              </motion.div>
+              <motion.div
+                className="hidden sm:block absolute left-8 sm:left-16 top-10 sm:top-14 w-48 sm:w-56 rounded-2xl bg-white/10 backdrop-blur border border-white/20 p-4 text-left shadow-xl"
+                initial={{ opacity: 1, y: 0, rotate: 0, scale: 1 }}
+                animate={{
+                  y: [0, -6, 0],
+                  rotate: [0, -0.5, 0],
+                }}
+                transition={{
+                  duration: 3.5,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                  repeatType: "mirror",
+                }}
+              >
+                <p className="text-xs uppercase text-white/70 mb-1">Trend</p>
+                <p className="text-sm font-semibold">
+                  Chapel Hill ranches gaining traction
+                </p>
+                <p className="text-xs text-white/70">+12% MoM interest</p>
+              </motion.div>
+            </div>
           </div>
         </section>
 
         {/* Features Section */}
         <section
           id="features"
-          className="bg-background text-foreground py-20 px-4"
+          className="relative bg-background text-foreground py-20 px-4 overflow-hidden"
         >
+          <SectionBackdrop />
           <AnimatedInView delay={0}>
             <div className="max-w-6xl mx-auto text-center mb-12">
               <h2 className="text-4xl font-bold mb-4">Features</h2>
@@ -462,7 +626,7 @@ export default function Home() {
               {features.map((item, index) => (
                 <div key={index} className="px-4">
                   <AnimatedInView>
-                    <Card className="h-64 shadow-lg border-primary">
+                    <Card className="h-64 shadow-lg border-primary transition-shadow duration-300 hover:shadow-2xl bg-card/80 backdrop-blur">
                       <CardHeader className="flex flex-col items-center">
                         {item.icon}
                         <CardTitle className="mt-2 text-2xl font-bold">
@@ -483,8 +647,9 @@ export default function Home() {
         {/* How It Works Section */}
         <section
           id="how-it-works"
-          className="bg-background text-foreground py-20 px-4"
+          className="relative bg-background text-foreground py-20 px-4 overflow-hidden"
         >
+          <SectionBackdrop />
           <AnimatedInView delay={0}>
             <div className="max-w-6xl mx-auto text-center mb-12">
               <h2 className="text-4xl font-bold mb-4">How It Works</h2>
@@ -499,7 +664,7 @@ export default function Home() {
               {howItWorks.map((step, index) => (
                 <div key={index} className="px-4">
                   <AnimatedInView>
-                    <Card className="h-64 shadow-lg border-primary">
+                    <Card className="h-64 shadow-lg border-primary transition-shadow duration-300 hover:shadow-2xl bg-card/80 backdrop-blur">
                       <CardHeader className="flex flex-col items-center">
                         {step.icon}
                         <CardTitle className="mt-2 text-2xl font-bold">
@@ -520,8 +685,9 @@ export default function Home() {
         {/* Interactive Chat Advantage Section */}
         <section
           id="chat-advantage"
-          className="bg-background text-foreground py-20 px-4"
+          className="relative bg-background text-foreground py-20 px-4 overflow-hidden"
         >
+          <SectionBackdrop />
           <AnimatedInView delay={0}>
             <div className="max-w-6xl mx-auto text-center mb-12">
               <h2 className="text-4xl font-bold mb-4">
@@ -538,7 +704,7 @@ export default function Home() {
               {chatAdvantages.map((item, index) => (
                 <div key={index} className="px-4">
                   <AnimatedInView>
-                    <Card className="h-64 shadow-lg border-primary">
+                    <Card className="h-64 shadow-lg border-primary transition-shadow duration-300 hover:shadow-2xl bg-card/80 backdrop-blur">
                       <CardHeader className="flex flex-col items-center">
                         {item.icon}
                         <CardTitle className="mt-2 text-2xl font-bold">
@@ -631,7 +797,7 @@ export default function Home() {
               },
             ].map((it, i) => (
               <AnimatedInView key={i} delay={0.05 * i}>
-                <Card className="h-full">
+                <Card className="h-full transition-shadow duration-300 hover:shadow-xl bg-card/80 backdrop-blur">
                   <CardHeader className="flex flex-row items-center gap-3">
                     {it.icon}
                     <CardTitle className="text-xl">{it.title}</CardTitle>
@@ -648,8 +814,9 @@ export default function Home() {
         {/* Use Cases Section */}
         <section
           id="use-cases"
-          className="bg-background text-foreground py-20 px-4"
+          className="relative bg-background text-foreground py-20 px-4 overflow-hidden"
         >
+          <SectionBackdrop />
           <AnimatedInView delay={0}>
             <div className="max-w-6xl mx-auto text-center mb-12">
               <h2 className="text-4xl font-bold mb-4">Use Cases</h2>
@@ -692,7 +859,7 @@ export default function Home() {
               },
             ].map((it, i) => (
               <AnimatedInView key={i} delay={0.04 * i}>
-                <Card className="h-full">
+                <Card className="h-full transition-shadow duration-300 hover:shadow-xl bg-card/80 backdrop-blur">
                   <CardHeader className="flex flex-row items-center gap-3">
                     {it.icon}
                     <CardTitle className="text-xl">{it.title}</CardTitle>
@@ -709,8 +876,9 @@ export default function Home() {
         {/* Common Workflows Section */}
         <section
           id="workflows"
-          className="bg-background text-foreground py-20 px-4"
+          className="relative bg-background text-foreground py-20 px-4 overflow-hidden"
         >
+          <SectionBackdrop />
           <AnimatedInView delay={0}>
             <div className="max-w-6xl mx-auto text-center mb-12">
               <h2 className="text-4xl font-bold mb-4">Common Workflows</h2>
@@ -738,7 +906,7 @@ export default function Home() {
               },
             ].map((it, i) => (
               <AnimatedInView key={i} delay={0.04 * i}>
-                <Card className="h-full">
+                <Card className="h-full transition-shadow duration-300 hover:shadow-xl bg-card/80 backdrop-blur">
                   <CardHeader className="flex flex-row items-center gap-3">
                     {it.icon}
                     <CardTitle className="text-xl">{it.title}</CardTitle>
@@ -755,8 +923,9 @@ export default function Home() {
         {/* Trust & Privacy Section */}
         <section
           id="trust"
-          className="bg-background text-foreground py-20 px-4"
+          className="relative bg-background text-foreground py-20 px-4 overflow-hidden"
         >
+          <SectionBackdrop />
           <AnimatedInView delay={0}>
             <div className="max-w-6xl mx-auto text-center mb-12">
               <h2 className="text-4xl font-bold mb-4">Trust & Privacy</h2>
@@ -784,7 +953,7 @@ export default function Home() {
               },
             ].map((it, i) => (
               <AnimatedInView key={i} delay={0.04 * i}>
-                <Card className="h-full">
+                <Card className="h-full transition-shadow duration-300 hover:shadow-xl bg-card/80 backdrop-blur">
                   <CardHeader className="flex flex-row items-center gap-3">
                     {it.icon}
                     <CardTitle className="text-xl">{it.title}</CardTitle>
@@ -799,7 +968,11 @@ export default function Home() {
         </section>
 
         {/* Tech Highlights Section */}
-        <section id="tech" className="bg-background text-foreground py-20 px-4">
+        <section
+          id="tech"
+          className="relative bg-background text-foreground py-20 px-4 overflow-hidden"
+        >
+          <SectionBackdrop />
           <AnimatedInView delay={0}>
             <div className="max-w-6xl mx-auto text-center mb-12">
               <h2 className="text-4xl font-bold mb-4">Tech Highlights</h2>
@@ -832,7 +1005,7 @@ export default function Home() {
               },
             ].map((it, i) => (
               <AnimatedInView key={i} delay={0.03 * i}>
-                <Card className="h-full">
+                <Card className="h-full transition-shadow duration-300 hover:shadow-xl bg-card/80 backdrop-blur">
                   <CardHeader className="flex flex-row items-center gap-3">
                     {it.icon}
                     <CardTitle className="text-lg">{it.title}</CardTitle>
@@ -849,8 +1022,9 @@ export default function Home() {
         {/* Performance Section */}
         <section
           id="performance"
-          className="bg-background text-foreground py-20 px-4"
+          className="relative bg-background text-foreground py-20 px-4 overflow-hidden"
         >
+          <SectionBackdrop />
           <AnimatedInView delay={0}>
             <div className="max-w-6xl mx-auto text-center mb-12">
               <h2 className="text-4xl font-bold mb-4">Performance</h2>
@@ -875,7 +1049,7 @@ export default function Home() {
               },
             ].map((it, i) => (
               <AnimatedInView key={i} delay={0.04 * i}>
-                <Card className="h-full">
+                <Card className="h-full transition-shadow duration-300 hover:shadow-xl bg-card/80 backdrop-blur">
                   <CardHeader>
                     <CardTitle className="text-lg">{it.title}</CardTitle>
                   </CardHeader>
@@ -891,8 +1065,9 @@ export default function Home() {
         {/* Accessibility & Themes Section */}
         <section
           id="accessibility"
-          className="bg-background text-foreground py-20 px-4"
+          className="relative bg-background text-foreground py-20 px-4 overflow-hidden"
         >
+          <SectionBackdrop />
           <AnimatedInView delay={0}>
             <div className="max-w-6xl mx-auto text-center mb-12">
               <h2 className="text-4xl font-bold mb-4">
@@ -919,7 +1094,7 @@ export default function Home() {
               },
             ].map((it, i) => (
               <AnimatedInView key={i} delay={0.04 * i}>
-                <Card className="h-full">
+                <Card className="h-full transition-shadow duration-300 hover:shadow-xl bg-card/80 backdrop-blur">
                   <CardHeader>
                     <CardTitle className="text-lg">{it.title}</CardTitle>
                   </CardHeader>
@@ -935,8 +1110,9 @@ export default function Home() {
         {/* Built‑In Tools Section */}
         <section
           id="tools"
-          className="bg-background text-foreground py-20 px-4"
+          className="relative bg-background text-foreground py-20 px-4 overflow-hidden"
         >
+          <SectionBackdrop />
           <AnimatedInView delay={0}>
             <div className="max-w-6xl mx-auto text-center mb-12">
               <h2 className="text-4xl font-bold mb-4">Built‑In Tools</h2>
@@ -980,7 +1156,7 @@ export default function Home() {
               },
             ].map((it, i) => (
               <AnimatedInView key={i} delay={0.04 * i}>
-                <Card className="h-full">
+                <Card className="h-full transition-shadow duration-300 hover:shadow-xl bg-card/80 backdrop-blur">
                   <CardHeader className="flex flex-row items-center gap-3">
                     {it.icon}
                     <CardTitle className="text-xl">{it.title}</CardTitle>
@@ -997,8 +1173,9 @@ export default function Home() {
         {/* Testimonials Section */}
         <section
           id="testimonials"
-          className="bg-background text-foreground py-20 px-4"
+          className="relative bg-background text-foreground py-20 px-4 overflow-hidden"
         >
+          <SectionBackdrop />
           <AnimatedInView delay={0}>
             <div className="max-w-6xl mx-auto text-center mb-12">
               <h2 className="text-4xl font-bold mb-4">Testimonials</h2>
@@ -1075,7 +1252,7 @@ export default function Home() {
               },
             ].map((it, i) => (
               <AnimatedInView key={i} delay={0.05 * i}>
-                <Card className="h-full">
+                <Card className="h-full transition-shadow duration-300 hover:shadow-xl bg-card/80 backdrop-blur">
                   <CardHeader className="flex flex-row items-center gap-3">
                     {it.icon}
                     <CardTitle className="text-xl">{it.title}</CardTitle>
@@ -1146,7 +1323,7 @@ export default function Home() {
               },
             ].map((it, i) => (
               <AnimatedInView key={i} delay={0.03 * i}>
-                <Card className="h-full">
+                <Card className="h-full transition-shadow duration-300 hover:shadow-xl bg-card/80 backdrop-blur">
                   <CardHeader className="flex flex-row items-center gap-3">
                     {it.icon}
                     <CardTitle className="text-lg">{it.title}</CardTitle>
@@ -1199,7 +1376,7 @@ export default function Home() {
               },
             ].map((it, i) => (
               <AnimatedInView key={i} delay={0.03 * i}>
-                <Card className="h-full">
+                <Card className="h-full transition-shadow duration-300 hover:shadow-xl bg-card/80 backdrop-blur">
                   <CardHeader>
                     <CardTitle className="text-lg">{it.title}</CardTitle>
                   </CardHeader>
@@ -1213,7 +1390,11 @@ export default function Home() {
         </section>
 
         {/* FAQs Section */}
-        <section id="faqs" className="bg-background text-foreground py-20 px-4">
+        <section
+          id="faqs"
+          className="relative bg-background text-foreground py-20 px-4 overflow-hidden"
+        >
+          <SectionBackdrop />
           <AnimatedInView delay={0}>
             <div className="max-w-6xl mx-auto text-center mb-12">
               <h2 className="text-4xl font-bold mb-4">
