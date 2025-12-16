@@ -435,7 +435,7 @@ export default function Home() {
               </span>
             </AnimatedInView>
             <AnimatedInView delay={0.1}>
-              <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-4 leading-tight drop-shadow-lg">
+              <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-4 leading-tight drop-shadow-lg mt-4">
                 EstateWise
               </h1>
             </AnimatedInView>
