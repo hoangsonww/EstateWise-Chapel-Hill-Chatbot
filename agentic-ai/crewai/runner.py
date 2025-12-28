@@ -101,6 +101,18 @@ def _run_crewai(goal: str, payload: Dict[str, Any]) -> Dict[str, Any]:
         model = os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
         llm = ChatOpenAI(model=model, temperature=0.2)
 
+        token_usage: Optional[Dict[str, Any]] = None
+        callback_ctx = None
+        try:
+            from langchain_community.callbacks import get_openai_callback  # type: ignore
+            callback_ctx = get_openai_callback()
+        except Exception:
+            try:  # pragma: no cover - legacy fallback
+                from langchain.callbacks import get_openai_callback  # type: ignore
+                callback_ctx = get_openai_callback()
+            except Exception:
+                callback_ctx = None
+
         include = payload.get("include") or {}
         include_planner = bool(include.get("planner", True))
         include_analysis = bool(include.get("analysis", True))
@@ -251,7 +263,16 @@ def _run_crewai(goal: str, payload: Dict[str, Any]) -> Dict[str, Any]:
             process=Process.sequential,
             verbose=False,
         )
-        result = crew.kickoff()
+        if callback_ctx:
+            with callback_ctx as cb:
+                result = crew.kickoff()
+            token_usage = {
+                "promptTokens": getattr(cb, "prompt_tokens", None),
+                "completionTokens": getattr(cb, "completion_tokens", None),
+                "totalTokens": getattr(cb, "total_tokens", None),
+            }
+        else:
+            result = crew.kickoff()
 
         sections: Dict[str, Optional[str]] = {}
         timeline: List[Dict[str, str]] = []
@@ -306,6 +327,8 @@ def _run_crewai(goal: str, payload: Dict[str, Any]) -> Dict[str, Any]:
             "artifacts": artifacts,
             "metadata": {
                 "include": include,
+                "model": model,
+                "tokenUsage": token_usage,
                 "preferences": preferences,
                 "hints": hints,
                 "emphasis": emphasis,
@@ -329,4 +352,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

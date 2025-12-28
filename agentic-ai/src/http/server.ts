@@ -193,6 +193,9 @@ const server = http.createServer(async (req, res) => {
           });
         }
         send({ type: "final", message: result.finalMessage });
+        if (result.costs) {
+          send({ type: "costs", costs: result.costs.summary });
+        }
         send({ type: "done" });
         clearInterval(heartbeat);
         res.end();
@@ -226,6 +229,9 @@ const server = http.createServer(async (req, res) => {
               content: result.output || JSON.stringify(result),
             },
           });
+        }
+        if (result.costs) {
+          send({ type: "costs", costs: result.costs.summary });
         }
         send({ type: "done" });
         clearInterval(heartbeat);

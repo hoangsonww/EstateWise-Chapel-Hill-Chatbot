@@ -1206,6 +1206,17 @@ Set the following environment variables as needed:
 
 Please make sure to have upserted properties to Pinecone and ingested the graph to Neo4j if you plan to use those tools - they will return empty results otherwise!
 
+## Cost Tracking
+
+LangGraph runs automatically record token usage and cost details per model call. The HTTP `/run` response includes a `costs` object (summary plus per-call events), and the CLI prints a compact cost summary after each LangGraph run.
+
+- Pricing comes from `agentic-ai/src/costs/pricing.ts`.
+- If a model is missing from the pricing table or usage metadata is unavailable, the event is recorded as unpriced.
+- Embedding calls are logged with input metadata, but may be unpriced if token usage is not returned by the provider.
+- CrewAI runs attempt to capture token usage via LangChain callbacks; when available, costs are computed in Node and surfaced in the same `costs` payload.
+
+See [COSTS.md](COSTS.md) for details on pricing assumptions and calculations.
+
 ## Error Handling & Retries
 
 The CLI includes robust error handling:
