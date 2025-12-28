@@ -13,7 +13,7 @@ export function getChatModel(): ChatModel {
     string | undefined
   >;
   if (GOOGLE_AI_API_KEY) {
-    const model = process.env.GOOGLE_AI_MODEL || "gemini-1.5-pro-002";
+    const model = process.env.GOOGLE_AI_MODEL || "gemini-2.5-flash";
     return new ChatGoogleGenerativeAI({
       apiKey: GOOGLE_AI_API_KEY,
       model,

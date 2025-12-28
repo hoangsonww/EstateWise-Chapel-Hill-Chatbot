@@ -5,6 +5,10 @@ import {
   chatWithEstateWise,
   chatWithEstateWiseStreaming,
 } from "../services/geminiChat.service";
+import {
+  getGeminiModelCandidates,
+  runWithGeminiModelFallback,
+} from "../services/geminiModels.service";
 import { AuthRequest } from "../middleware/auth.middleware";
 
 /**
@@ -694,21 +698,27 @@ async function autoGenerateConversationName(
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({
-      model: "gemini-2.0-flash-lite",
-      systemInstruction:
-        "You are a helpful assistant that generates concise, descriptive conversation titles. Generate a short title (3-6 words max) that captures the main topic of the conversation. Return ONLY the title text, no quotes, no extra explanation.",
-    });
+    const modelCandidates = await getGeminiModelCandidates(apiKey);
 
     console.log(`[AutoNaming] Calling Gemini API...`);
-    const result = await Promise.race([
-      model.generateContent(
-        `Based on this conversation, generate a short, descriptive title:\n\nuser: ${firstMessage}`,
-      ),
-      new Promise((_, reject) =>
-        setTimeout(() => reject(new Error("Gemini API timeout")), 10000),
-      ),
-    ]);
+    const result = await runWithGeminiModelFallback(
+      modelCandidates,
+      async (modelName) =>
+        Promise.race([
+          genAI
+            .getGenerativeModel({
+              model: modelName,
+              systemInstruction:
+                "You are a helpful assistant that generates concise, descriptive conversation titles. Generate a short title (3-6 words max) that captures the main topic of the conversation. Return ONLY the title text, no quotes, no extra explanation.",
+            })
+            .generateContent(
+              `Based on this conversation, generate a short, descriptive title:\n\nuser: ${firstMessage}`,
+            ),
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error("Gemini API timeout")), 10000),
+          ),
+        ]),
+    );
     console.log(`[AutoNaming] Gemini API responded`);
     const suggestedName = (result as any).response.text().trim();
     console.log(`[AutoNaming] Generated name: ${suggestedName}`);
