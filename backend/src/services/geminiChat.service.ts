@@ -3,6 +3,11 @@ import {
   HarmCategory,
   HarmBlockThreshold,
 } from "@google/generative-ai";
+import {
+  getGeminiModelCandidates,
+  getRotatedModelCandidates,
+  runWithGeminiModelFallback,
+} from "./geminiModels.service";
 import lib from "../utils/lib";
 import {
   queryPropertiesAsString,
@@ -155,6 +160,7 @@ export async function chatWithEstateWise(
     throw new Error("Missing GOOGLE_AI_API_KEY in environment variables");
   }
 
+  const modelCandidates = await getGeminiModelCandidates(apiKey);
   const startTime = Date.now();
   const TIMEOUT_MS = 50_000; // 50 seconds
 
@@ -431,16 +437,21 @@ export async function chatWithEstateWise(
     const systemInstruction = wrapWithHiddenCoT(
       baseSystemInstruction + "\n\n" + expert.instructions,
     );
-    const model = genAI.getGenerativeModel({
-      model: "gemini-2.0-flash-lite",
-      systemInstruction,
-    });
-    const chat = model.startChat({
-      generationConfig,
-      safetySettings,
-      history: effectiveHistory,
-    });
-    const result = await chat.sendMessage(message);
+    const result = await runWithGeminiModelFallback(
+      modelCandidates,
+      async (modelName) => {
+        const model = genAI.getGenerativeModel({
+          model: modelName,
+          systemInstruction,
+        });
+        const chat = model.startChat({
+          generationConfig,
+          safetySettings,
+          history: effectiveHistory,
+        });
+        return chat.sendMessage(message);
+      },
+    );
     return {
       name: expert.name,
       text: result.response.text(),
@@ -492,27 +503,32 @@ export async function chatWithEstateWise(
   `;
 
   // ─── 8) Final, merged call with timeout fallback ─────────────────────────
-  const mergerModel = genAI.getGenerativeModel({
-    model: "gemini-2.0-flash-lite",
-    systemInstruction: wrapWithHiddenCoT(
-      mergerInstruction + "\n\n" + baseSystemInstruction,
-    ),
-  });
-  const mergerChat = mergerModel.startChat({
-    generationConfig,
-    safetySettings,
-    history: effectiveHistory,
-  });
+  const resultOrTimeout = await runWithGeminiModelFallback(
+    modelCandidates,
+    async (modelName) => {
+      const mergerModel = genAI.getGenerativeModel({
+        model: modelName,
+        systemInstruction: wrapWithHiddenCoT(
+          mergerInstruction + "\n\n" + baseSystemInstruction,
+        ),
+      });
+      const mergerChat = mergerModel.startChat({
+        generationConfig,
+        safetySettings,
+        history: effectiveHistory,
+      });
 
-  // race between the merge call and the 50s timer
-  const mergePromise = mergerChat.sendMessage(message);
-  const remaining = TIMEOUT_MS - (Date.now() - startTime);
-  const resultOrTimeout = await Promise.race([
-    mergePromise,
-    new Promise((resolve) =>
-      setTimeout(() => resolve({ timeout: true }), Math.max(0, remaining)),
-    ),
-  ]);
+      // race between the merge call and the 50s timer
+      const mergePromise = mergerChat.sendMessage(message);
+      const remaining = TIMEOUT_MS - (Date.now() - startTime);
+      return Promise.race([
+        mergePromise,
+        new Promise((resolve) =>
+          setTimeout(() => resolve({ timeout: true }), Math.max(0, remaining)),
+        ),
+      ]);
+    },
+  );
 
   let finalText: string;
   if ((resultOrTimeout as any).timeout) {
@@ -561,9 +577,7 @@ export async function* chatWithEstateWiseStreaming(
     return;
   }
 
-  const startTime = Date.now();
-  const TIMEOUT_MS = 50_000;
-
+  const modelCandidates = await getGeminiModelCandidates(apiKey);
   const MAX_HISTORY = 20;
   const effectiveHistory = history.slice(-MAX_HISTORY);
 
@@ -845,16 +859,21 @@ export async function* chatWithEstateWiseStreaming(
       const systemInstruction = wrapWithHiddenCoT(
         baseSystemInstruction + "\n\n" + expert.instructions,
       );
-      const model = genAI.getGenerativeModel({
-        model: "gemini-2.0-flash-lite",
-        systemInstruction,
-      });
-      const chat = model.startChat({
-        generationConfig,
-        safetySettings,
-        history: effectiveHistory,
-      });
-      const result = await chat.sendMessage(message);
+      const result = await runWithGeminiModelFallback(
+        modelCandidates,
+        async (modelName) => {
+          const model = genAI.getGenerativeModel({
+            model: modelName,
+            systemInstruction,
+          });
+          const chat = model.startChat({
+            generationConfig,
+            safetySettings,
+            history: effectiveHistory,
+          });
+          return chat.sendMessage(message);
+        },
+      );
       return {
         name: expert.name,
         text: result.response.text(),
@@ -912,28 +931,46 @@ export async function* chatWithEstateWiseStreaming(
     `;
 
     // ─── 8) Stream the merged response ─────────────────────────────────────
-    const mergerModel = genAI.getGenerativeModel({
-      model: "gemini-2.0-flash-lite",
-      systemInstruction: wrapWithHiddenCoT(
-        mergerInstruction + "\n\n" + baseSystemInstruction,
-      ),
-    });
-    const mergerChat = mergerModel.startChat({
-      generationConfig,
-      safetySettings,
-      history: effectiveHistory,
-    });
-
-    const remaining = TIMEOUT_MS - (Date.now() - startTime);
-
     try {
-      const result = await mergerChat.sendMessageStream(message);
+      let streamed = false;
+      const rotatedCandidates = getRotatedModelCandidates(modelCandidates);
+      let lastError: unknown;
 
-      for await (const chunk of result.stream) {
-        const chunkText = chunk.text();
-        if (chunkText) {
-          yield { type: "token" as const, token: chunkText };
+      for (const modelName of rotatedCandidates) {
+        try {
+          const mergerModel = genAI.getGenerativeModel({
+            model: modelName,
+            systemInstruction: wrapWithHiddenCoT(
+              mergerInstruction + "\n\n" + baseSystemInstruction,
+            ),
+          });
+          const mergerChat = mergerModel.startChat({
+            generationConfig,
+            safetySettings,
+            history: effectiveHistory,
+          });
+          const result = await mergerChat.sendMessageStream(message);
+
+          for await (const chunk of result.stream) {
+            const chunkText = chunk.text();
+            if (chunkText) {
+              streamed = true;
+              yield { type: "token" as const, token: chunkText };
+            }
+          }
+
+          lastError = undefined;
+          break;
+        } catch (err) {
+          lastError = err;
+          if (streamed) {
+            throw err;
+          }
         }
+      }
+
+      if (lastError) {
+        throw lastError;
       }
 
       // Send expert views after streaming completes
