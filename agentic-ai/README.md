@@ -1191,7 +1191,7 @@ agentic-ai/
 Set the following environment variables as needed:
 
 - LLMs
-  - `GOOGLE_AI_API_KEY` (preferred) and optional `GOOGLE_AI_MODEL` (default `gemini-1.5-pro-002`).
+  - `GOOGLE_AI_API_KEY` (preferred) and optional `GOOGLE_AI_MODEL` (default `gemini-2.5-flash`).
   - Or `OPENAI_API_KEY` and optional `OPENAI_MODEL` (default `gpt-4o-mini`).
 - Embeddings
   - `GOOGLE_EMBED_MODEL` (default `text-embedding-004`) or `OPENAI_EMBED_MODEL` (default `text-embedding-3-large`).

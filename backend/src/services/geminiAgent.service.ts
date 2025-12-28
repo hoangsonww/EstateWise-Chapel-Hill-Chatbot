@@ -4,6 +4,10 @@ import {
   HarmBlockThreshold,
 } from "@google/generative-ai";
 import {
+  getGeminiModelCandidates,
+  runWithGeminiModelFallback,
+} from "./geminiModels.service";
+import {
   queryProperties,
   queryPropertiesAsString,
   RawQueryResult,
@@ -35,15 +39,11 @@ export async function runEstateWiseAgent(
     throw new Error("Missing GOOGLE_AI_API_KEY in environment");
   }
   const genAI = new GoogleGenerativeAI(apiKey);
+  const modelCandidates = await getGeminiModelCandidates(apiKey);
 
   // --- 1) Decide via a quick Gemini call whether to fetch property data ---
   const decisionInstruction =
     'Read the user\'s message and reply **exactly** one JSON object with a boolean field "usePropertyData": either {"usePropertyData":true} or {"usePropertyData":false}. No other text.';
-
-  const decisionModel = genAI.getGenerativeModel({
-    model: "gemini-2.0-flash-lite",
-    systemInstruction: decisionInstruction,
-  });
 
   const generationConfig = {
     temperature: 0.0,
@@ -70,13 +70,21 @@ export async function runEstateWiseAgent(
     },
   ];
 
-  const decisionChat = decisionModel.startChat({
-    generationConfig,
-    safetySettings,
-    history: [{ role: "user", parts: [{ text: prompt }] }],
-  });
-
-  const decisionResult = await decisionChat.sendMessage("");
+  const decisionResult = await runWithGeminiModelFallback(
+    modelCandidates,
+    async (modelName) => {
+      const decisionModel = genAI.getGenerativeModel({
+        model: modelName,
+        systemInstruction: decisionInstruction,
+      });
+      const decisionChat = decisionModel.startChat({
+        generationConfig,
+        safetySettings,
+        history: [{ role: "user", parts: [{ text: prompt }] }],
+      });
+      return decisionChat.sendMessage("");
+    },
+  );
   let usePropertyData = false;
   try {
     const parsed = JSON.parse(

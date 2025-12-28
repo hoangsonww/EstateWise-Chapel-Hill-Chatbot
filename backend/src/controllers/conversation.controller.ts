@@ -1,6 +1,10 @@
 import { Request, Response } from "express";
 import Conversation from "../models/Conversation.model";
 import { AuthRequest } from "../middleware/auth.middleware";
+import {
+  getGeminiModelCandidates,
+  runWithGeminiModelFallback,
+} from "../services/geminiModels.service";
 
 /**
  * Handles the creation of a new conversation.
@@ -135,11 +139,7 @@ export const generateConversationName = async (
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({
-      model: "gemini-2.0-flash-lite",
-      systemInstruction:
-        "You are a helpful assistant that generates concise, descriptive conversation titles. Generate a short title (3-6 words max) that captures the main topic of the conversation. Return ONLY the title text, no quotes, no extra explanation.",
-    });
+    const modelCandidates = await getGeminiModelCandidates(apiKey);
 
     let messageSummary: string;
     if (message) {
@@ -151,10 +151,20 @@ export const generateConversationName = async (
         .join("\n");
     }
 
-    const result = await model.generateContent(
-      `Based on this conversation, generate a short, descriptive title:\n\n${messageSummary}`,
-    );
-    const suggestedName = result.response.text().trim();
+    const suggestedName = (
+      await runWithGeminiModelFallback(modelCandidates, async (modelName) => {
+        const model = genAI.getGenerativeModel({
+          model: modelName,
+          systemInstruction:
+            "You are a helpful assistant that generates concise, descriptive conversation titles. Generate a short title (3-6 words max) that captures the main topic of the conversation. Return ONLY the title text, no quotes, no extra explanation.",
+        });
+        return model.generateContent(
+          `Based on this conversation, generate a short, descriptive title:\n\n${messageSummary}`,
+        );
+      })
+    ).response
+      .text()
+      .trim();
 
     if (autoUpdate) {
       conv.title = suggestedName;
