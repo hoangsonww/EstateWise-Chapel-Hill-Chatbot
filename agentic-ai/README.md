@@ -1223,6 +1223,10 @@ LangGraph runs automatically record token usage and cost details per model call.
 
 See [COSTS.md](COSTS.md) for details on pricing assumptions and calculations.
 
+<p align="center">
+  <img src="public/costs.png" alt="Cost Dashboard Screenshot" width="100%"/>
+</p>
+
 ## Error Handling & Retries
 
 The CLI includes robust error handling:

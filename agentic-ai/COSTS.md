@@ -182,6 +182,10 @@ The dashboard can:
 - Accept pasted JSON or uploaded JSON files
 - Visualize cost, tokens, and unpriced events
 
+<p align="center">
+  <img src="public/costs.png" alt="Cost Dashboard Screenshot" width="100%"/>
+</p>
+
 ## Key Files
 
 - `agentic-ai/src/costs/pricing.ts` pricing table and resolution logic

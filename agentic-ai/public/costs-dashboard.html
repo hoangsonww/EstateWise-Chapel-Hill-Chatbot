@@ -6,23 +6,27 @@
       name="viewport"
       content="width=device-width, initial-scale=1, viewport-fit=cover"
     />
+    <link rel="icon" href="favicon.ico" />
     <title>EstateWise Cost Dashboard</title>
     <style>
+      @import url("https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=Space+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap");
+
       :root {
-        --bg: #f6f1e7;
-        --bg-alt: #edf2ea;
+        --bg: #f7f0e6;
+        --bg-alt: #eef2e7;
         --card: #ffffff;
         --ink: #1d1a17;
-        --muted: #5a534b;
+        --muted: #5d564c;
         --accent: #1f6f78;
         --accent-2: #d66a2f;
         --accent-3: #2f3a5f;
-        --border: #e3d8c7;
-        --shadow: 0 10px 30px rgba(40, 33, 24, 0.12);
-        --mono: "Courier New", Courier, monospace;
-        --serif: "Palatino Linotype", "Book Antiqua", Palatino, serif;
-        --sans: "Trebuchet MS", "Lucida Sans Unicode", "Lucida Grande",
-          sans-serif;
+        --accent-4: #f1c97a;
+        --border: #eadfce;
+        --shadow: 0 18px 35px rgba(30, 25, 18, 0.15);
+        --shadow-soft: 0 10px 20px rgba(30, 25, 18, 0.08);
+        --mono: "JetBrains Mono", monospace;
+        --serif: "Playfair Display", serif;
+        --sans: "Space Grotesk", sans-serif;
       }
 
       * {
@@ -33,55 +37,166 @@
         margin: 0;
         font-family: var(--sans);
         color: var(--ink);
-        background: linear-gradient(
-          135deg,
-          var(--bg) 0%,
-          #f1e9db 45%,
-          var(--bg-alt) 100%
-        );
+        background: var(--bg);
         min-height: 100vh;
+        position: relative;
+        overflow-x: hidden;
+      }
+
+      body::before {
+        content: "";
+        position: fixed;
+        inset: -10%;
+        background:
+          radial-gradient(
+            circle at 15% 15%,
+            rgba(214, 106, 47, 0.2),
+            transparent 45%
+          ),
+          radial-gradient(
+            circle at 80% 20%,
+            rgba(31, 111, 120, 0.25),
+            transparent 40%
+          ),
+          radial-gradient(
+            circle at 65% 80%,
+            rgba(47, 58, 95, 0.2),
+            transparent 45%
+          ),
+          linear-gradient(135deg, #f7f0e6 0%, #eff2e5 100%);
+        z-index: -2;
+      }
+
+      body::after {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background-image:
+          linear-gradient(120deg, rgba(29, 26, 23, 0.05), transparent 35%),
+          repeating-linear-gradient(
+            90deg,
+            rgba(29, 26, 23, 0.06),
+            rgba(29, 26, 23, 0.06) 1px,
+            transparent 1px,
+            transparent 28px
+          );
+        opacity: 0.18;
+        z-index: -1;
+        pointer-events: none;
       }
 
       .page {
         position: relative;
-        padding: 40px 28px 64px;
+        padding: 48px 28px 90px;
         max-width: 1200px;
         margin: 0 auto;
       }
 
-      .glow {
+      .orb {
         position: absolute;
-        width: 320px;
-        height: 320px;
+        border-radius: 999px;
+        filter: blur(0px);
+        opacity: 0.6;
+        z-index: -1;
+        animation: float 12s ease-in-out infinite;
+      }
+
+      .orb-1 {
+        width: 220px;
+        height: 220px;
         background: radial-gradient(
           circle,
-          rgba(214, 106, 47, 0.25),
+          rgba(214, 106, 47, 0.35),
           rgba(214, 106, 47, 0)
         );
-        top: 20px;
-        right: -80px;
-        pointer-events: none;
+        top: -40px;
+        right: -40px;
       }
 
-      header {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: baseline;
-        gap: 18px;
-        margin-bottom: 28px;
+      .orb-2 {
+        width: 180px;
+        height: 180px;
+        background: radial-gradient(
+          circle,
+          rgba(31, 111, 120, 0.3),
+          rgba(31, 111, 120, 0)
+        );
+        bottom: 120px;
+        left: -40px;
+        animation-delay: -4s;
       }
 
-      header h1 {
+      .orb-3 {
+        width: 140px;
+        height: 140px;
+        background: radial-gradient(
+          circle,
+          rgba(47, 58, 95, 0.28),
+          rgba(47, 58, 95, 0)
+        );
+        top: 240px;
+        left: 40%;
+        animation-delay: -6s;
+      }
+
+      @keyframes float {
+        0% {
+          transform: translateY(0px);
+        }
+        50% {
+          transform: translateY(-12px);
+        }
+        100% {
+          transform: translateY(0px);
+        }
+      }
+
+      .hero {
+        display: grid;
+        gap: 12px;
+        margin-bottom: 32px;
+      }
+
+      .eyebrow {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        color: var(--accent-3);
+        background: rgba(47, 58, 95, 0.12);
+        padding: 6px 12px;
+        border-radius: 999px;
+        width: fit-content;
+      }
+
+      .hero h1 {
         font-family: var(--serif);
-        font-size: clamp(28px, 4vw, 44px);
+        font-size: clamp(32px, 4vw, 54px);
         margin: 0;
-        letter-spacing: 0.5px;
+        letter-spacing: 0.6px;
       }
 
-      header p {
+      .hero p {
         margin: 0;
         color: var(--muted);
-        max-width: 640px;
+        max-width: 700px;
+      }
+
+      .hero-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .tag {
+        padding: 6px 12px;
+        border-radius: 999px;
+        font-size: 12px;
+        background: linear-gradient(
+          120deg,
+          rgba(31, 111, 120, 0.15),
+          rgba(214, 106, 47, 0.2)
+        );
+        color: var(--accent-3);
       }
 
       .grid {
@@ -98,12 +213,19 @@
       }
 
       .card {
-        background: var(--card);
-        border: 1px solid var(--border);
-        border-radius: 18px;
-        padding: 18px 20px;
+        background:
+          linear-gradient(var(--card), var(--card)) padding-box,
+          linear-gradient(
+              135deg,
+              rgba(31, 111, 120, 0.4),
+              rgba(214, 106, 47, 0.4)
+            )
+            border-box;
+        border: 1px solid transparent;
+        border-radius: 20px;
+        padding: 20px 22px;
         box-shadow: var(--shadow);
-        animation: rise 0.5s ease both;
+        animation: rise 0.6s ease both;
       }
 
       @keyframes rise {
@@ -119,8 +241,15 @@
 
       .card h2 {
         font-family: var(--serif);
-        font-size: 18px;
+        font-size: 20px;
         margin: 0 0 12px;
+      }
+
+      .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
       }
 
       .label {
@@ -145,10 +274,11 @@
       .controls textarea {
         width: 100%;
         border: 1px solid var(--border);
-        border-radius: 12px;
-        padding: 10px 12px;
+        border-radius: 14px;
+        padding: 12px 14px;
         font-family: var(--mono);
         font-size: 13px;
+        background: #fcfbf8;
       }
 
       .controls textarea {
@@ -165,16 +295,18 @@
       button {
         border: none;
         border-radius: 999px;
-        padding: 10px 16px;
+        padding: 10px 18px;
         font-weight: 600;
         cursor: pointer;
-        background: var(--accent);
+        background: linear-gradient(120deg, #1f6f78, #2f8c93);
         color: white;
-        transition: transform 0.15s ease, box-shadow 0.15s ease;
+        transition:
+          transform 0.15s ease,
+          box-shadow 0.15s ease;
       }
 
       button.secondary {
-        background: var(--accent-2);
+        background: linear-gradient(120deg, #d66a2f, #f08a42);
       }
 
       button.ghost {
@@ -185,12 +317,96 @@
 
       button:hover {
         transform: translateY(-1px);
-        box-shadow: 0 8px 18px rgba(31, 111, 120, 0.2);
+        box-shadow: 0 10px 22px rgba(31, 111, 120, 0.25);
       }
 
       .status {
-        font-size: 13px;
+        font-size: 12px;
+        color: var(--accent-3);
+        background: rgba(47, 58, 95, 0.12);
+        padding: 8px 12px;
+        border-radius: 999px;
+        width: fit-content;
+      }
+
+      .status[data-state="loading"] {
+        background: rgba(214, 106, 47, 0.2);
+        color: #8a4a1e;
+      }
+
+      .status[data-state="ok"] {
+        background: rgba(31, 111, 120, 0.2);
+        color: #1f6f78;
+      }
+
+      .status[data-state="error"] {
+        background: rgba(160, 52, 37, 0.2);
+        color: #a03425;
+      }
+
+      .summary-card {
+        background: linear-gradient(180deg, #ffffff 0%, #fbf7f0 100%);
+      }
+
+      .summary-grid {
+        display: grid;
+        gap: 14px;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        margin-top: 12px;
+      }
+
+      .stat {
+        background: #ffffff;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 12px 14px;
+        box-shadow: var(--shadow-soft);
+      }
+
+      .stat .label {
+        font-size: 11px;
+      }
+
+      .stat .value {
+        font-size: 18px;
+      }
+
+      .empty-state {
+        display: none;
+        align-items: center;
+        gap: 16px;
+        padding: 16px;
+        border-radius: 16px;
+        border: 1px dashed rgba(31, 111, 120, 0.35);
+        background: rgba(31, 111, 120, 0.08);
+      }
+
+      .empty-state.show {
+        display: flex;
+      }
+
+      .empty-visual {
+        width: 62px;
+        height: 62px;
+        border-radius: 18px;
+        background: linear-gradient(140deg, #1f6f78, #f1c97a);
+        box-shadow: var(--shadow-soft);
+      }
+
+      .empty-state h3 {
+        margin: 0;
+        font-family: var(--serif);
+        font-size: 18px;
+      }
+
+      .empty-state p {
+        margin: 6px 0 0;
         color: var(--muted);
+        font-size: 13px;
+      }
+
+      .hidden {
+        display: none;
       }
 
       .charts {
@@ -199,9 +415,9 @@
       }
 
       .chart-wrap {
-        background: #fbfaf7;
-        border-radius: 14px;
-        padding: 12px;
+        background: linear-gradient(180deg, #fcfaf6, #f7f1e7);
+        border-radius: 16px;
+        padding: 14px;
         border: 1px dashed #e0d4c3;
       }
 
@@ -218,7 +434,7 @@
 
       .table th,
       .table td {
-        padding: 8px 6px;
+        padding: 9px 6px;
         border-bottom: 1px solid #efe6d7;
         text-align: left;
       }
@@ -230,13 +446,20 @@
         color: var(--muted);
       }
 
+      .table tbody tr:hover {
+        background: rgba(31, 111, 120, 0.06);
+      }
+
       .pill {
-        display: inline-block;
-        padding: 2px 8px;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
         border-radius: 999px;
         background: rgba(31, 111, 120, 0.12);
         color: var(--accent-3);
         font-size: 11px;
+        cursor: pointer;
       }
 
       .footer-note {
@@ -249,23 +472,42 @@
         canvas {
           height: 200px;
         }
+
+        .empty-state {
+          flex-direction: column;
+          align-items: flex-start;
+        }
       }
     </style>
   </head>
   <body>
     <div class="page">
-      <div class="glow"></div>
-      <header>
+      <div class="orb orb-1"></div>
+      <div class="orb orb-2"></div>
+      <div class="orb orb-3"></div>
+
+      <header class="hero">
+        <div class="eyebrow">EstateWise AI Observatory</div>
         <h1>Cost Dashboard</h1>
         <p>
           Visualize token usage, pricing, and model spend. Load a cost report
           from the Agentic AI runtime or paste JSON directly.
         </p>
+        <div class="hero-meta">
+          <div class="tag">Live pricing telemetry</div>
+          <div class="tag">Token transparency</div>
+          <div class="tag">Model spend breakdown</div>
+        </div>
       </header>
 
       <section class="grid grid-2">
         <div class="card controls">
-          <h2>Data Source</h2>
+          <div class="card-header">
+            <h2>Data Source</h2>
+            <div id="status" class="status" data-state="idle">
+              Waiting for data
+            </div>
+          </div>
           <label class="label" for="base-url">Server Base URL</label>
           <input
             id="base-url"
@@ -289,33 +531,53 @@
               Upload JSON
             </label>
           </div>
-          <div id="status" class="status">Waiting for data...</div>
         </div>
 
-        <div class="card">
-          <h2>Summary</h2>
-          <div class="grid grid-3">
+        <div class="card summary-card">
+          <div class="card-header">
+            <h2>Run Summary</h2>
+            <div class="pill">Cost overview</div>
+          </div>
+          <div id="empty-state" class="empty-state">
+            <div class="empty-visual"></div>
             <div>
+              <h3>No cost data yet</h3>
+              <p>
+                Run a query in the Agentic AI server or paste JSON to populate
+                this dashboard.
+              </p>
+            </div>
+          </div>
+          <div id="summary-grid" class="summary-grid">
+            <div class="stat">
               <div class="label">Total Cost</div>
               <div class="value" id="summary-cost">$0.000000</div>
             </div>
-            <div>
+            <div class="stat">
               <div class="label">Input Tokens</div>
               <div class="value" id="summary-input">0</div>
             </div>
-            <div>
+            <div class="stat">
               <div class="label">Output Tokens</div>
               <div class="value" id="summary-output">0</div>
             </div>
-            <div>
+            <div class="stat">
               <div class="label">Cached Input</div>
               <div class="value" id="summary-cached">0</div>
             </div>
-            <div>
+            <div class="stat">
+              <div class="label">Total Events</div>
+              <div class="value" id="summary-events">0</div>
+            </div>
+            <div class="stat">
+              <div class="label">Pricing Coverage</div>
+              <div class="value" id="summary-coverage">0%</div>
+            </div>
+            <div class="stat">
               <div class="label">Priced Events</div>
               <div class="value" id="summary-priced">0</div>
             </div>
-            <div>
+            <div class="stat">
               <div class="label">Unpriced Events</div>
               <div class="value" id="summary-unpriced">0</div>
             </div>
@@ -327,7 +589,7 @@
         </div>
       </section>
 
-      <section class="grid grid-2" style="margin-top: 22px;">
+      <section class="grid grid-2" style="margin-top: 22px">
         <div class="card charts">
           <h2>Cost by Model</h2>
           <div class="chart-wrap">
@@ -342,7 +604,7 @@
         </div>
       </section>
 
-      <section class="grid grid-2" style="margin-top: 22px;">
+      <section class="grid grid-2" style="margin-top: 22px">
         <div class="card charts">
           <h2>Pricing Status</h2>
           <div class="chart-wrap">
@@ -374,8 +636,10 @@
       const chartCost = el("chart-cost");
       const chartTokens = el("chart-tokens");
       const chartStatus = el("chart-status");
-      const chartFont = '12px "Trebuchet MS"';
+      const chartFont = '12px "Space Grotesk"';
       const baseUrlInput = el("base-url");
+      const emptyState = el("empty-state");
+      const summaryGrid = el("summary-grid");
 
       let currentReport = null;
 
@@ -447,6 +711,11 @@
       }
 
       function updateSummary(summary) {
+        const totalEvents = Number(summary.totalEvents || 0);
+        const pricedEvents = Number(summary.pricedEvents || 0);
+        const coverage = totalEvents
+          ? Math.round((pricedEvents / totalEvents) * 100)
+          : 0;
         el("summary-cost").textContent = formatMoney(summary.totalUsd || 0);
         el("summary-input").textContent = formatNumber(
           summary.totalInputTokens || 0,
@@ -457,12 +726,20 @@
         el("summary-cached").textContent = formatNumber(
           summary.totalCachedInputTokens || 0,
         );
+        el("summary-events").textContent = formatNumber(totalEvents);
+        el("summary-coverage").textContent = `${coverage}%`;
         el("summary-priced").textContent = formatNumber(
           summary.pricedEvents || 0,
         );
         el("summary-unpriced").textContent = formatNumber(
           summary.unpricedEvents || 0,
         );
+      }
+
+      function toggleEmptyState(summary) {
+        const hasData = Number(summary.totalEvents || 0) > 0;
+        emptyState.classList.toggle("show", !hasData);
+        summaryGrid.classList.toggle("hidden", !hasData);
       }
 
       function buildModelRows(summary) {
@@ -482,8 +759,7 @@
         tbody.innerHTML = "";
         const rows = summary.unpriced || [];
         if (!rows.length) {
-          tbody.innerHTML =
-            '<tr><td colspan="3">No unpriced events</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="3">No unpriced events</td></tr>';
           return;
         }
         rows.forEach((row) => {
@@ -586,7 +862,11 @@
         const width = canvas.getBoundingClientRect().width;
         const height = canvas.getBoundingClientRect().height;
         ctx.clearRect(0, 0, width, height);
-        const total = values.reduce((sum, v) => sum + v, 0) || 1;
+        const total = values.reduce((sum, v) => sum + v, 0);
+        if (!total) {
+          drawEmpty(canvas, "No pricing data");
+          return;
+        }
         const centerX = width / 2;
         const centerY = height / 2;
         const radius = Math.min(width, height) / 3;
@@ -613,11 +893,7 @@
           ctx.fillStyle = colors[index % colors.length];
           ctx.fillRect(12, 16 + index * 18, 10, 10);
           ctx.fillStyle = "#5a534b";
-          ctx.fillText(
-            `${label}: ${values[index]}`,
-            28,
-            25 + index * 18,
-          );
+          ctx.fillText(`${label}: ${values[index]}`, 28, 25 + index * 18);
         });
       }
 
@@ -645,17 +921,19 @@
         const summary = report.summary || {};
         updateSummary(summary);
         updateUnpriced(summary);
+        toggleEmptyState(summary);
         renderCharts(summary);
       }
 
-      function setStatus(message) {
+      function setStatus(message, state = "idle") {
         statusEl.textContent = message;
+        statusEl.dataset.state = state;
       }
 
       async function loadLatest() {
         const base = el("base-url").value.trim();
         const url = `${base || ""}/costs/latest`;
-        setStatus("Loading latest cost report...");
+        setStatus("Loading latest cost report...", "loading");
         try {
           const res = await fetch(url);
           if (!res.ok) {
@@ -666,16 +944,16 @@
           if (!report) throw new Error("Invalid cost report format");
           currentReport = report;
           renderReport(report);
-          setStatus("Loaded latest report.");
+          setStatus("Loaded latest report.", "ok");
         } catch (err) {
-          setStatus(`Failed to load: ${err.message}`);
+          setStatus(`Failed to load: ${err.message}`, "error");
         }
       }
 
       function applyJson() {
         const text = jsonInput.value.trim();
         if (!text) {
-          setStatus("Paste JSON first.");
+          setStatus("Paste JSON first.", "error");
           return;
         }
         try {
@@ -684,23 +962,27 @@
           if (!report) throw new Error("Invalid cost report format");
           currentReport = report;
           renderReport(report);
-          setStatus("Applied JSON report.");
+          setStatus("Applied JSON report.", "ok");
         } catch (err) {
-          setStatus(`JSON error: ${err.message}`);
+          setStatus(`JSON error: ${err.message}`, "error");
         }
       }
 
       function loadSample() {
         currentReport = sampleReport;
         renderReport(sampleReport);
-        setStatus("Loaded sample report.");
+        setStatus("Loaded sample report.", "ok");
       }
 
       document
         .getElementById("load-latest")
         .addEventListener("click", loadLatest);
-      document.getElementById("apply-json").addEventListener("click", applyJson);
-      document.getElementById("load-sample").addEventListener("click", loadSample);
+      document
+        .getElementById("apply-json")
+        .addEventListener("click", applyJson);
+      document
+        .getElementById("load-sample")
+        .addEventListener("click", loadSample);
 
       fileInput.addEventListener("change", async (event) => {
         const file = event.target.files[0];
@@ -720,7 +1002,8 @@
         }
       });
 
-      loadSample();
+      renderReport({ summary: { totalEvents: 0 } });
+      setStatus("No report loaded. Choose a source to begin.", "idle");
     </script>
   </body>
 </html>
