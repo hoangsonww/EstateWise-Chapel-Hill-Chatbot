@@ -160,7 +160,10 @@ export class CostTracker {
     const cachedInputTokens = toNumber(usage.cachedInputTokens);
     const cacheWriteTokens = toNumber(usage.cacheWriteTokens);
     const cacheRefreshTokens = toNumber(usage.cacheRefreshTokens);
-    const resolved = resolvePricing(model, usage.inputTokens);
+    if (usage.inputTokens === undefined && cachedInputTokens > 0) {
+      inputTokens = cachedInputTokens;
+    }
+    const resolved = resolvePricing(model, inputTokens);
     const provider = resolved?.provider ?? inferProvider(model);
     const rates = resolved?.rates;
     const inputType = usage.inputType ?? "text";
@@ -180,9 +183,6 @@ export class CostTracker {
     if (!hasUsage) {
       reason = "Missing token usage";
     } else if (rates) {
-      if (usage.inputTokens === undefined && cachedInputTokens > 0) {
-        inputTokens = cachedInputTokens;
-      }
       const cached = Math.min(cachedInputTokens, inputTokens);
       const uncached = Math.max(0, inputTokens - cached);
       const rateInput = pickRate(rates, inputType, "input");

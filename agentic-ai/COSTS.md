@@ -170,6 +170,18 @@ Example (truncated):
 }
 ```
 
+## Dashboard UI
+
+A standalone HTML dashboard is available at:
+- `agentic-ai/public/costs-dashboard.html`
+- Served by the Agentic AI HTTP server at `GET /costs/dashboard`
+- Latest cost report (in-memory, resets on restart) is available at `GET /costs/latest`
+
+The dashboard can:
+- Fetch the latest cost report from the running server
+- Accept pasted JSON or uploaded JSON files
+- Visualize cost, tokens, and unpriced events
+
 ## Key Files
 
 - `agentic-ai/src/costs/pricing.ts` pricing table and resolution logic

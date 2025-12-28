@@ -1,0 +1,726 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <title>EstateWise Cost Dashboard</title>
+    <style>
+      :root {
+        --bg: #f6f1e7;
+        --bg-alt: #edf2ea;
+        --card: #ffffff;
+        --ink: #1d1a17;
+        --muted: #5a534b;
+        --accent: #1f6f78;
+        --accent-2: #d66a2f;
+        --accent-3: #2f3a5f;
+        --border: #e3d8c7;
+        --shadow: 0 10px 30px rgba(40, 33, 24, 0.12);
+        --mono: "Courier New", Courier, monospace;
+        --serif: "Palatino Linotype", "Book Antiqua", Palatino, serif;
+        --sans: "Trebuchet MS", "Lucida Sans Unicode", "Lucida Grande",
+          sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: var(--sans);
+        color: var(--ink);
+        background: linear-gradient(
+          135deg,
+          var(--bg) 0%,
+          #f1e9db 45%,
+          var(--bg-alt) 100%
+        );
+        min-height: 100vh;
+      }
+
+      .page {
+        position: relative;
+        padding: 40px 28px 64px;
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      .glow {
+        position: absolute;
+        width: 320px;
+        height: 320px;
+        background: radial-gradient(
+          circle,
+          rgba(214, 106, 47, 0.25),
+          rgba(214, 106, 47, 0)
+        );
+        top: 20px;
+        right: -80px;
+        pointer-events: none;
+      }
+
+      header {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        gap: 18px;
+        margin-bottom: 28px;
+      }
+
+      header h1 {
+        font-family: var(--serif);
+        font-size: clamp(28px, 4vw, 44px);
+        margin: 0;
+        letter-spacing: 0.5px;
+      }
+
+      header p {
+        margin: 0;
+        color: var(--muted);
+        max-width: 640px;
+      }
+
+      .grid {
+        display: grid;
+        gap: 22px;
+      }
+
+      .grid-2 {
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      }
+
+      .grid-3 {
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      }
+
+      .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        padding: 18px 20px;
+        box-shadow: var(--shadow);
+        animation: rise 0.5s ease both;
+      }
+
+      @keyframes rise {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .card h2 {
+        font-family: var(--serif);
+        font-size: 18px;
+        margin: 0 0 12px;
+      }
+
+      .label {
+        color: var(--muted);
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+
+      .value {
+        font-family: var(--mono);
+        font-size: 20px;
+        margin-top: 6px;
+      }
+
+      .controls {
+        display: grid;
+        gap: 12px;
+      }
+
+      .controls input[type="text"],
+      .controls textarea {
+        width: 100%;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 10px 12px;
+        font-family: var(--mono);
+        font-size: 13px;
+      }
+
+      .controls textarea {
+        min-height: 140px;
+        resize: vertical;
+      }
+
+      .buttons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      button {
+        border: none;
+        border-radius: 999px;
+        padding: 10px 16px;
+        font-weight: 600;
+        cursor: pointer;
+        background: var(--accent);
+        color: white;
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+      }
+
+      button.secondary {
+        background: var(--accent-2);
+      }
+
+      button.ghost {
+        background: transparent;
+        color: var(--accent-3);
+        border: 1px solid var(--accent-3);
+      }
+
+      button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 8px 18px rgba(31, 111, 120, 0.2);
+      }
+
+      .status {
+        font-size: 13px;
+        color: var(--muted);
+      }
+
+      .charts {
+        display: grid;
+        gap: 18px;
+      }
+
+      .chart-wrap {
+        background: #fbfaf7;
+        border-radius: 14px;
+        padding: 12px;
+        border: 1px dashed #e0d4c3;
+      }
+
+      canvas {
+        width: 100%;
+        height: 260px;
+      }
+
+      .table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+      }
+
+      .table th,
+      .table td {
+        padding: 8px 6px;
+        border-bottom: 1px solid #efe6d7;
+        text-align: left;
+      }
+
+      .table th {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: var(--muted);
+      }
+
+      .pill {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: rgba(31, 111, 120, 0.12);
+        color: var(--accent-3);
+        font-size: 11px;
+      }
+
+      .footer-note {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 18px;
+      }
+
+      @media (max-width: 680px) {
+        canvas {
+          height: 200px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <div class="glow"></div>
+      <header>
+        <h1>Cost Dashboard</h1>
+        <p>
+          Visualize token usage, pricing, and model spend. Load a cost report
+          from the Agentic AI runtime or paste JSON directly.
+        </p>
+      </header>
+
+      <section class="grid grid-2">
+        <div class="card controls">
+          <h2>Data Source</h2>
+          <label class="label" for="base-url">Server Base URL</label>
+          <input
+            id="base-url"
+            type="text"
+            value=""
+            placeholder="http://localhost:4318"
+          />
+          <div class="buttons">
+            <button id="load-latest">Load Latest</button>
+            <button id="load-sample" class="secondary">Load Sample</button>
+          </div>
+          <label class="label" for="json-input">Paste Cost Report JSON</label>
+          <textarea
+            id="json-input"
+            placeholder='Paste the "costs" JSON payload here'
+          ></textarea>
+          <div class="buttons">
+            <button id="apply-json" class="ghost">Apply JSON</button>
+            <label class="pill">
+              <input id="file-input" type="file" accept=".json" hidden />
+              Upload JSON
+            </label>
+          </div>
+          <div id="status" class="status">Waiting for data...</div>
+        </div>
+
+        <div class="card">
+          <h2>Summary</h2>
+          <div class="grid grid-3">
+            <div>
+              <div class="label">Total Cost</div>
+              <div class="value" id="summary-cost">$0.000000</div>
+            </div>
+            <div>
+              <div class="label">Input Tokens</div>
+              <div class="value" id="summary-input">0</div>
+            </div>
+            <div>
+              <div class="label">Output Tokens</div>
+              <div class="value" id="summary-output">0</div>
+            </div>
+            <div>
+              <div class="label">Cached Input</div>
+              <div class="value" id="summary-cached">0</div>
+            </div>
+            <div>
+              <div class="label">Priced Events</div>
+              <div class="value" id="summary-priced">0</div>
+            </div>
+            <div>
+              <div class="label">Unpriced Events</div>
+              <div class="value" id="summary-unpriced">0</div>
+            </div>
+          </div>
+          <div class="footer-note">
+            Totals are computed from the cost report summary. Unpriced events
+            indicate missing usage or pricing data.
+          </div>
+        </div>
+      </section>
+
+      <section class="grid grid-2" style="margin-top: 22px;">
+        <div class="card charts">
+          <h2>Cost by Model</h2>
+          <div class="chart-wrap">
+            <canvas id="chart-cost"></canvas>
+          </div>
+        </div>
+        <div class="card charts">
+          <h2>Tokens by Model</h2>
+          <div class="chart-wrap">
+            <canvas id="chart-tokens"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <section class="grid grid-2" style="margin-top: 22px;">
+        <div class="card charts">
+          <h2>Pricing Status</h2>
+          <div class="chart-wrap">
+            <canvas id="chart-status"></canvas>
+          </div>
+        </div>
+        <div class="card">
+          <h2>Unpriced Events</h2>
+          <table class="table" id="unpriced-table">
+            <thead>
+              <tr>
+                <th>Model</th>
+                <th>Reason</th>
+                <th>Events</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      const el = (id) => document.getElementById(id);
+      const statusEl = el("status");
+      const fileInput = el("file-input");
+      const jsonInput = el("json-input");
+
+      const chartCost = el("chart-cost");
+      const chartTokens = el("chart-tokens");
+      const chartStatus = el("chart-status");
+      const chartFont = '12px "Trebuchet MS"';
+      const baseUrlInput = el("base-url");
+
+      let currentReport = null;
+
+      const sampleReport = {
+        summary: {
+          totalUsd: 0.029481,
+          totalInputTokens: 13240,
+          totalOutputTokens: 4231,
+          totalCachedInputTokens: 880,
+          totalEvents: 6,
+          pricedEvents: 5,
+          unpricedEvents: 1,
+          byModel: {
+            "gpt-4o-mini": {
+              inputTokens: 10200,
+              outputTokens: 3200,
+              cachedInputTokens: 880,
+              costUsd: 0.0199,
+              events: 3,
+              pricedEvents: 3,
+              unpricedEvents: 0,
+            },
+            "gemini-2.5-flash": {
+              inputTokens: 2200,
+              outputTokens: 900,
+              cachedInputTokens: 0,
+              costUsd: 0.0072,
+              events: 2,
+              pricedEvents: 2,
+              unpricedEvents: 0,
+            },
+          },
+          byProvider: {},
+          unpriced: [
+            {
+              model: "text-embedding-004",
+              provider: "google",
+              operation: "embedding",
+              reason: "Missing token usage",
+              events: 1,
+              inputTokens: 840,
+              outputTokens: 0,
+              cachedInputTokens: 0,
+            },
+          ],
+        },
+        events: [],
+      };
+
+      function normalizeReport(payload) {
+        if (!payload || typeof payload !== "object") return null;
+        if (payload.summary) return payload;
+        if (
+          typeof payload.totalUsd === "number" ||
+          typeof payload.totalInputTokens === "number"
+        ) {
+          return { summary: payload, events: [] };
+        }
+        return null;
+      }
+
+      function formatMoney(value) {
+        const num = Number(value || 0);
+        return `$${num.toFixed(6)}`;
+      }
+
+      function formatNumber(value) {
+        return new Intl.NumberFormat("en-US").format(Number(value || 0));
+      }
+
+      function updateSummary(summary) {
+        el("summary-cost").textContent = formatMoney(summary.totalUsd || 0);
+        el("summary-input").textContent = formatNumber(
+          summary.totalInputTokens || 0,
+        );
+        el("summary-output").textContent = formatNumber(
+          summary.totalOutputTokens || 0,
+        );
+        el("summary-cached").textContent = formatNumber(
+          summary.totalCachedInputTokens || 0,
+        );
+        el("summary-priced").textContent = formatNumber(
+          summary.pricedEvents || 0,
+        );
+        el("summary-unpriced").textContent = formatNumber(
+          summary.unpricedEvents || 0,
+        );
+      }
+
+      function buildModelRows(summary) {
+        const entries = Object.entries(summary.byModel || {}).map(
+          ([name, data]) => ({
+            name,
+            cost: Number(data.costUsd || 0),
+            input: Number(data.inputTokens || 0),
+            output: Number(data.outputTokens || 0),
+          }),
+        );
+        return entries.sort((a, b) => b.cost - a.cost);
+      }
+
+      function updateUnpriced(summary) {
+        const tbody = el("unpriced-table").querySelector("tbody");
+        tbody.innerHTML = "";
+        const rows = summary.unpriced || [];
+        if (!rows.length) {
+          tbody.innerHTML =
+            '<tr><td colspan="3">No unpriced events</td></tr>';
+          return;
+        }
+        rows.forEach((row) => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `<td>${row.model || "unknown"}</td>
+            <td>${row.reason || "unknown"}</td>
+            <td>${formatNumber(row.events || 0)}</td>`;
+          tbody.appendChild(tr);
+        });
+      }
+
+      function resizeCanvas(canvas) {
+        const { width, height } = canvas.getBoundingClientRect();
+        canvas.width = width * window.devicePixelRatio;
+        canvas.height = height * window.devicePixelRatio;
+        const ctx = canvas.getContext("2d");
+        ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+        return ctx;
+      }
+
+      function drawEmpty(canvas, message) {
+        const ctx = resizeCanvas(canvas);
+        const { width, height } = canvas.getBoundingClientRect();
+        ctx.clearRect(0, 0, width, height);
+        ctx.fillStyle = "#5a534b";
+        ctx.font = chartFont;
+        ctx.fillText(message, 16, height / 2);
+      }
+
+      function drawBarChart(canvas, labels, values, options = {}) {
+        if (!values.length) {
+          drawEmpty(canvas, "No model data");
+          return;
+        }
+        const ctx = resizeCanvas(canvas);
+        const width = canvas.getBoundingClientRect().width;
+        const height = canvas.getBoundingClientRect().height;
+        ctx.clearRect(0, 0, width, height);
+
+        const maxValue = Math.max(...values, 1);
+        const padding = 32;
+        const barWidth = (width - padding * 2) / values.length - 12;
+        const baseY = height - padding;
+        ctx.font = chartFont;
+        ctx.fillStyle = "#5a534b";
+
+        values.forEach((value, index) => {
+          const x = padding + index * (barWidth + 12);
+          const barHeight = ((height - padding * 2) * value) / maxValue;
+          ctx.fillStyle = options.color || "#1f6f78";
+          ctx.fillRect(x, baseY - barHeight, barWidth, barHeight);
+          ctx.fillStyle = "#5a534b";
+          ctx.fillText(labels[index], x, baseY + 16);
+        });
+      }
+
+      function drawStackedBars(canvas, labels, stacks, colors) {
+        if (!stacks.length) {
+          drawEmpty(canvas, "No token data");
+          return;
+        }
+        const ctx = resizeCanvas(canvas);
+        const width = canvas.getBoundingClientRect().width;
+        const height = canvas.getBoundingClientRect().height;
+        ctx.clearRect(0, 0, width, height);
+
+        const maxValue = Math.max(
+          ...stacks.map((s) => s.reduce((sum, v) => sum + v, 0)),
+          1,
+        );
+        const padding = 32;
+        const barWidth = (width - padding * 2) / stacks.length - 12;
+        const baseY = height - padding;
+        ctx.font = chartFont;
+
+        stacks.forEach((stack, index) => {
+          let y = baseY;
+          stack.forEach((value, stackIndex) => {
+            const barHeight = ((height - padding * 2) * value) / maxValue;
+            ctx.fillStyle = colors[stackIndex % colors.length];
+            ctx.fillRect(
+              padding + index * (barWidth + 12),
+              y - barHeight,
+              barWidth,
+              barHeight,
+            );
+            y -= barHeight;
+          });
+          ctx.fillStyle = "#5a534b";
+          ctx.fillText(
+            labels[index],
+            padding + index * (barWidth + 12),
+            baseY + 16,
+          );
+        });
+      }
+
+      function drawDonut(canvas, values, colors, labels) {
+        const ctx = resizeCanvas(canvas);
+        const width = canvas.getBoundingClientRect().width;
+        const height = canvas.getBoundingClientRect().height;
+        ctx.clearRect(0, 0, width, height);
+        const total = values.reduce((sum, v) => sum + v, 0) || 1;
+        const centerX = width / 2;
+        const centerY = height / 2;
+        const radius = Math.min(width, height) / 3;
+        let startAngle = -Math.PI / 2;
+
+        values.forEach((value, index) => {
+          const slice = (value / total) * Math.PI * 2;
+          ctx.beginPath();
+          ctx.moveTo(centerX, centerY);
+          ctx.fillStyle = colors[index % colors.length];
+          ctx.arc(centerX, centerY, radius, startAngle, startAngle + slice);
+          ctx.fill();
+          startAngle += slice;
+        });
+
+        ctx.beginPath();
+        ctx.fillStyle = "#fbfaf7";
+        ctx.arc(centerX, centerY, radius * 0.6, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = "#5a534b";
+        ctx.font = chartFont;
+        labels.forEach((label, index) => {
+          ctx.fillStyle = colors[index % colors.length];
+          ctx.fillRect(12, 16 + index * 18, 10, 10);
+          ctx.fillStyle = "#5a534b";
+          ctx.fillText(
+            `${label}: ${values[index]}`,
+            28,
+            25 + index * 18,
+          );
+        });
+      }
+
+      function renderCharts(summary) {
+        const models = buildModelRows(summary).slice(0, 6);
+        const labels = models.map((row) => row.name);
+        const costs = models.map((row) => row.cost);
+        drawBarChart(chartCost, labels, costs, { color: "#d66a2f" });
+
+        const tokenStacks = models.map((row) => [row.input, row.output]);
+        drawStackedBars(chartTokens, labels, tokenStacks, [
+          "#1f6f78",
+          "#2f3a5f",
+        ]);
+
+        drawDonut(
+          chartStatus,
+          [summary.pricedEvents || 0, summary.unpricedEvents || 0],
+          ["#1f6f78", "#d66a2f"],
+          ["Priced", "Unpriced"],
+        );
+      }
+
+      function renderReport(report) {
+        const summary = report.summary || {};
+        updateSummary(summary);
+        updateUnpriced(summary);
+        renderCharts(summary);
+      }
+
+      function setStatus(message) {
+        statusEl.textContent = message;
+      }
+
+      async function loadLatest() {
+        const base = el("base-url").value.trim();
+        const url = `${base || ""}/costs/latest`;
+        setStatus("Loading latest cost report...");
+        try {
+          const res = await fetch(url);
+          if (!res.ok) {
+            throw new Error(`HTTP ${res.status}`);
+          }
+          const data = await res.json();
+          const report = normalizeReport(data);
+          if (!report) throw new Error("Invalid cost report format");
+          currentReport = report;
+          renderReport(report);
+          setStatus("Loaded latest report.");
+        } catch (err) {
+          setStatus(`Failed to load: ${err.message}`);
+        }
+      }
+
+      function applyJson() {
+        const text = jsonInput.value.trim();
+        if (!text) {
+          setStatus("Paste JSON first.");
+          return;
+        }
+        try {
+          const data = JSON.parse(text);
+          const report = normalizeReport(data);
+          if (!report) throw new Error("Invalid cost report format");
+          currentReport = report;
+          renderReport(report);
+          setStatus("Applied JSON report.");
+        } catch (err) {
+          setStatus(`JSON error: ${err.message}`);
+        }
+      }
+
+      function loadSample() {
+        currentReport = sampleReport;
+        renderReport(sampleReport);
+        setStatus("Loaded sample report.");
+      }
+
+      document
+        .getElementById("load-latest")
+        .addEventListener("click", loadLatest);
+      document.getElementById("apply-json").addEventListener("click", applyJson);
+      document.getElementById("load-sample").addEventListener("click", loadSample);
+
+      fileInput.addEventListener("change", async (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+        const text = await file.text();
+        jsonInput.value = text;
+        applyJson();
+      });
+
+      if (window.location.origin && window.location.origin !== "null") {
+        baseUrlInput.value = window.location.origin;
+      }
+
+      window.addEventListener("resize", () => {
+        if (currentReport) {
+          renderReport(currentReport);
+        }
+      });
+
+      loadSample();
+    </script>
+  </body>
+</html>

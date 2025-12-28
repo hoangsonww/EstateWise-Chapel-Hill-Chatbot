@@ -1215,6 +1215,12 @@ LangGraph runs automatically record token usage and cost details per model call.
 - Embedding calls are logged with input metadata, but may be unpriced if token usage is not returned by the provider.
 - CrewAI runs attempt to capture token usage via LangChain callbacks; when available, costs are computed in Node and surfaced in the same `costs` payload.
 
+### Cost Dashboard
+
+- Open `GET /costs/dashboard` when the HTTP server is running.
+- Or open `agentic-ai/public/costs-dashboard.html` directly.
+- Latest in-memory cost report: `GET /costs/latest`.
+
 See [COSTS.md](COSTS.md) for details on pricing assumptions and calculations.
 
 ## Error Handling & Retries
