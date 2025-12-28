@@ -3,6 +3,11 @@ import { createReactAgent } from "@langchain/langgraph/prebuilt";
 import { getCheckpointer } from "./memory.js";
 import { getChatModel, type ChatModel } from "./llm.js";
 import {
+  CostTracker,
+  withCostTracking,
+  type CostReport,
+} from "../costs/tracker.js";
+import {
   mcpToolset,
   setToolObserver,
   startMcp,
@@ -84,6 +89,7 @@ export interface LangGraphRunResult {
     toolCalls: number;
   };
   threadId: string;
+  costs: CostReport;
   raw?: unknown;
 }
 
@@ -254,107 +260,111 @@ export class EstateWiseLangGraphRuntime {
   }
 
   async run(options: LangGraphRunOptions): Promise<LangGraphRunResult> {
-    const startedAt = Date.now();
-    await startMcp();
-    const toolExecutions: ToolExecutionRecord[] = [];
-    setToolObserver({
-      onToolStart: (event) => {
-        toolExecutions.push({
-          callId: event.callId,
-          name: event.toolName,
-          input: event.params,
-          status: "running",
-          output: undefined,
-          error: undefined,
-          startedAt: event.timestamp,
-          finishedAt: event.timestamp,
-          durationMs: 0,
-        });
-      },
-      onToolSuccess: (event) => {
-        const record = toolExecutions.find((t) => t.callId === event.callId);
-        if (record) {
-          record.status = "success";
-          record.output = event.output;
-          record.durationMs = event.durationMs;
-          record.finishedAt = event.timestamp + event.durationMs;
-        }
-      },
-      onToolError: (event) => {
-        const record = toolExecutions.find((t) => t.callId === event.callId);
-        if (record) {
-          record.status = "error";
-          record.error = event.error;
-          record.durationMs = event.durationMs;
-          record.finishedAt = event.timestamp + event.durationMs;
-        }
-      },
-    });
-
-    try {
-      const basePrompt =
-        options.systemPrompt ??
-        this.defaults.systemPrompt ??
-        this.baseSystemPrompt;
-      const mergedContext = options.context ?? this.defaultContext;
-      const mergedInstructions =
-        options.additionalInstructions ?? this.defaultInstructions;
-      const systemPrompt = buildSystemPrompt(
-        basePrompt,
-        mergedContext,
-        mergedInstructions,
-      );
-
-      const tools = options.tools
-        ? resolveTools(options.tools, options.appendTools)
-        : resolveTools(this.baseTools, options.appendTools);
-
-      const checkpointer = options.checkpointer ?? this.baseCheckpointer;
-
-      const { app } = createEstateWiseAgentGraph({
-        systemPrompt,
-        tools,
-        checkpointer,
-        llm: this.llm,
-      });
-      const threadId = options.threadId ?? this.defaultThreadId;
-      const result = await app.invoke(
-        { messages: [{ role: "user", content: options.goal }] },
-        {
-          configurable: { thread_id: threadId },
-        } as any,
-      );
-      const messages = normalizeMessages((result as any)?.messages);
-      const finalMessage = findFinalAssistantMessage(messages);
-
-      const finalizedExecutions = toolExecutions.map((entry) => {
-        if (entry.status === "running") {
-          const now = Date.now();
-          return {
-            ...entry,
-            status: "success" as const,
-            durationMs: now - entry.startedAt,
-            finishedAt: now,
-          } satisfies ToolExecutionRecord;
-        }
-        return entry;
-      });
-
-      return {
-        finalMessage,
-        messages,
-        toolExecutions: finalizedExecutions,
-        metrics: {
-          durationMs: Date.now() - startedAt,
-          toolCalls: finalizedExecutions.length,
+    const costTracker = new CostTracker();
+    return await withCostTracking(costTracker, async () => {
+      const startedAt = Date.now();
+      await startMcp();
+      const toolExecutions: ToolExecutionRecord[] = [];
+      setToolObserver({
+        onToolStart: (event) => {
+          toolExecutions.push({
+            callId: event.callId,
+            name: event.toolName,
+            input: event.params,
+            status: "running",
+            output: undefined,
+            error: undefined,
+            startedAt: event.timestamp,
+            finishedAt: event.timestamp,
+            durationMs: 0,
+          });
         },
-        threadId,
-        raw: result,
-      } satisfies LangGraphRunResult;
-    } finally {
-      setToolObserver(null);
-      await stopMcp();
-    }
+        onToolSuccess: (event) => {
+          const record = toolExecutions.find((t) => t.callId === event.callId);
+          if (record) {
+            record.status = "success";
+            record.output = event.output;
+            record.durationMs = event.durationMs;
+            record.finishedAt = event.timestamp + event.durationMs;
+          }
+        },
+        onToolError: (event) => {
+          const record = toolExecutions.find((t) => t.callId === event.callId);
+          if (record) {
+            record.status = "error";
+            record.error = event.error;
+            record.durationMs = event.durationMs;
+            record.finishedAt = event.timestamp + event.durationMs;
+          }
+        },
+      });
+
+      try {
+        const basePrompt =
+          options.systemPrompt ??
+          this.defaults.systemPrompt ??
+          this.baseSystemPrompt;
+        const mergedContext = options.context ?? this.defaultContext;
+        const mergedInstructions =
+          options.additionalInstructions ?? this.defaultInstructions;
+        const systemPrompt = buildSystemPrompt(
+          basePrompt,
+          mergedContext,
+          mergedInstructions,
+        );
+
+        const tools = options.tools
+          ? resolveTools(options.tools, options.appendTools)
+          : resolveTools(this.baseTools, options.appendTools);
+
+        const checkpointer = options.checkpointer ?? this.baseCheckpointer;
+
+        const { app } = createEstateWiseAgentGraph({
+          systemPrompt,
+          tools,
+          checkpointer,
+          llm: this.llm,
+        });
+        const threadId = options.threadId ?? this.defaultThreadId;
+        const result = await app.invoke(
+          { messages: [{ role: "user", content: options.goal }] },
+          {
+            configurable: { thread_id: threadId },
+          } as any,
+        );
+        const messages = normalizeMessages((result as any)?.messages);
+        const finalMessage = findFinalAssistantMessage(messages);
+
+        const finalizedExecutions = toolExecutions.map((entry) => {
+          if (entry.status === "running") {
+            const now = Date.now();
+            return {
+              ...entry,
+              status: "success" as const,
+              durationMs: now - entry.startedAt,
+              finishedAt: now,
+            } satisfies ToolExecutionRecord;
+          }
+          return entry;
+        });
+
+        return {
+          finalMessage,
+          messages,
+          toolExecutions: finalizedExecutions,
+          metrics: {
+            durationMs: Date.now() - startedAt,
+            toolCalls: finalizedExecutions.length,
+          },
+          threadId,
+          costs: costTracker.getReport(),
+          raw: result,
+        } satisfies LangGraphRunResult;
+      } finally {
+        setToolObserver(null);
+        await stopMcp();
+      }
+    });
   }
 }
 

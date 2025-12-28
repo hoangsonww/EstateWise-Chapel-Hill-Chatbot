@@ -1,11 +1,12 @@
 import { z } from "zod";
 import { DynamicStructuredTool } from "@langchain/core/tools";
 import { randomUUID } from "node:crypto";
-import { getEmbeddings, getChatModel } from "./llm.js";
+import { getEmbeddings, getChatModel, getEmbeddingModelName } from "./llm.js";
 import { Pinecone } from "@pinecone-database/pinecone";
 import { PineconeStore } from "@langchain/pinecone";
 import neo4j, { Driver } from "neo4j-driver";
 import { ToolClient } from "../mcp/ToolClient.js";
+import { getActiveCostTracker } from "../costs/tracker.js";
 
 /** Alias for LangChain structured tool type. */
 export type LangTool = DynamicStructuredTool; // structured tools with Zod schemas
@@ -140,6 +141,15 @@ export function vectorSearchTool(): LangTool | null {
         "retrieval.vectorSearch",
         { query, topK },
         async () => {
+          const tracker = getActiveCostTracker();
+          if (tracker) {
+            tracker.recordEmbeddingUsage({
+              model: getEmbeddingModelName(),
+              inputText: query,
+              inputType: "text",
+              metadata: { tool: "retrieval.vectorSearch" },
+            });
+          }
           const pinecone = new Pinecone({ apiKey });
           const pcIndex = pinecone.Index(index);
           const store = await PineconeStore.fromExistingIndex(getEmbeddings(), {

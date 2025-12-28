@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { CostTracker, type CostReport } from "../costs/tracker.js";
 
 export interface CrewTimelineEntry {
   agent: string;
@@ -25,6 +26,7 @@ export interface CrewRunResult {
   output?: string;
   json?: unknown;
   structured?: CrewStructuredResult;
+  costs?: CostReport;
   error?: string;
   stderr?: string;
 }
@@ -127,6 +129,32 @@ function extractStructured(json: any): CrewStructuredResult | undefined {
   return structured;
 }
 
+function extractTokenUsage(json: any): {
+  model?: string;
+  promptTokens?: number;
+  completionTokens?: number;
+  totalTokens?: number;
+  cachedTokens?: number;
+} | null {
+  if (!json || typeof json !== "object") return null;
+  const metadata = (json as any).metadata;
+  if (!metadata || typeof metadata !== "object") return null;
+  const usage = (metadata as any).tokenUsage;
+  if (!usage || typeof usage !== "object") return null;
+  const toNumber = (value: unknown) =>
+    typeof value === "number" && Number.isFinite(value) ? value : undefined;
+  return {
+    model:
+      typeof (metadata as any).model === "string"
+        ? String((metadata as any).model)
+        : undefined,
+    promptTokens: toNumber((usage as any).promptTokens),
+    completionTokens: toNumber((usage as any).completionTokens),
+    totalTokens: toNumber((usage as any).totalTokens),
+    cachedTokens: toNumber((usage as any).cachedTokens),
+  };
+}
+
 /** Execute the Python runner and translate the response. */
 export class CrewRuntime {
   private readonly python: string;
@@ -150,6 +178,7 @@ export class CrewRuntime {
     const timeoutMs = opts.timeoutMs ?? this.timeoutMs;
     const script = path.join(cwd, "runner.py");
 
+    const costTracker = new CostTracker();
     const response = await runPythonJson(python, script, payload, {
       cwd,
       env,
@@ -177,12 +206,54 @@ export class CrewRuntime {
     }
 
     const structured = extractStructured(json);
+    const usage = extractTokenUsage(json);
+    if (usage) {
+      let inputTokens = usage.promptTokens;
+      let outputTokens = usage.completionTokens;
+      if (
+        inputTokens !== undefined &&
+        outputTokens === undefined &&
+        usage.totalTokens !== undefined
+      ) {
+        outputTokens = Math.max(0, usage.totalTokens - inputTokens);
+      } else if (
+        inputTokens === undefined &&
+        outputTokens !== undefined &&
+        usage.totalTokens !== undefined
+      ) {
+        inputTokens = Math.max(0, usage.totalTokens - outputTokens);
+      } else if (
+        inputTokens === undefined &&
+        outputTokens === undefined &&
+        usage.totalTokens !== undefined
+      ) {
+        inputTokens = usage.totalTokens;
+        outputTokens = 0;
+      }
+      costTracker.recordLLMUsage({
+        model: usage.model,
+        usage: {
+          inputTokens,
+          outputTokens,
+          cachedInputTokens: usage.cachedTokens,
+          inputType: "text",
+          outputType: "text",
+        },
+        operation: "chat",
+        estimated:
+          usage.totalTokens !== undefined &&
+          (usage.promptTokens === undefined ||
+            usage.completionTokens === undefined),
+        metadata: { source: "crewai" },
+      });
+    }
 
     return {
       ok: true,
       output: response.stdout || undefined,
       json,
       structured,
+      costs: costTracker.getReport(),
       stderr: response.stderr || undefined,
     } satisfies CrewRunResult;
   }

@@ -1,5 +1,7 @@
 import http from "node:http";
-import { URL } from "node:url";
+import { URL, fileURLToPath } from "node:url";
+import path from "node:path";
+import fs from "node:fs/promises";
 import { PlannerAgent } from "../agents/PlannerAgent.js";
 import { GraphAnalystAgent } from "../agents/GraphAnalystAgent.js";
 import { PropertyAnalystAgent } from "../agents/PropertyAnalystAgent.js";
@@ -14,6 +16,7 @@ import { ComplianceAgent } from "../agents/ComplianceAgent.js";
 import { AgentOrchestrator } from "../orchestrator/AgentOrchestrator.js";
 import { runEstateWiseAgent } from "../lang/graph.js";
 import { runCrewAIGoal } from "../crewai/CrewRunner.js";
+import type { CostReport } from "../costs/tracker.js";
 
 /** JSON-like payload type for responses. */
 type Json =
@@ -35,6 +38,12 @@ function sendJson(res: http.ServerResponse, status: number, body: Json) {
   });
   res.end(typeof body === "string" ? body : data);
 }
+
+const dashboardPath = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "../../public/costs-dashboard.html",
+);
+let lastCostReport: CostReport | null = null;
 
 /** Parse a small JSON body into an object. */
 function parseBody(req: http.IncomingMessage): Promise<any> {
@@ -69,16 +78,19 @@ async function handleRun(body: any) {
   try {
     if (runtime === "langgraph") {
       const result = await runEstateWiseAgent({ input: goal, threadId });
+      lastCostReport = result.costs ?? null;
       const durationMs = Date.now() - startedAt;
       return { status: 200, json: { runtime, goal, result, durationMs } };
     }
     if (runtime === "crewai") {
       const result = await runCrewAIGoal(goal);
+      lastCostReport = result.costs ?? null;
       const durationMs = Date.now() - startedAt;
       return { status: 200, json: { runtime, goal, result, durationMs } };
     }
 
     // default orchestrator
+    lastCostReport = null;
     const orchestrator = new AgentOrchestrator().register(
       new PlannerAgent(),
       new CoordinatorAgent(),
@@ -131,6 +143,24 @@ const server = http.createServer(async (req, res) => {
   if (req.method === "GET" && url.pathname === "/health") {
     return sendJson(res, 200, { ok: true });
   }
+  if (req.method === "GET" && url.pathname === "/costs/latest") {
+    if (!lastCostReport) {
+      return sendJson(res, 404, { error: "No cost data available" });
+    }
+    return sendJson(res, 200, lastCostReport);
+  }
+  if (req.method === "GET" && url.pathname === "/costs/dashboard") {
+    try {
+      const html = await fs.readFile(dashboardPath, "utf-8");
+      res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+      res.end(html);
+      return;
+    } catch (err: any) {
+      return sendJson(res, 500, {
+        error: err?.message || "Failed to load dashboard",
+      });
+    }
+  }
   if (req.method === "GET" && url.pathname === "/config") {
     return sendJson(res, 200, {
       runtimes: ["default", "langgraph", "crewai"],
@@ -171,6 +201,7 @@ const server = http.createServer(async (req, res) => {
           input: goal,
           threadId: threadId || undefined,
         });
+        lastCostReport = result.costs ?? null;
         for (const msg of result.messages) {
           send({
             type: "message",
@@ -193,6 +224,9 @@ const server = http.createServer(async (req, res) => {
           });
         }
         send({ type: "final", message: result.finalMessage });
+        if (result.costs) {
+          send({ type: "costs", costs: result.costs.summary });
+        }
         send({ type: "done" });
         clearInterval(heartbeat);
         res.end();
@@ -201,6 +235,7 @@ const server = http.createServer(async (req, res) => {
       if (runtime === "crewai") {
         send({ type: "start", runtime, goal, rounds });
         const result = await runCrewAIGoal(goal);
+        lastCostReport = result.costs ?? null;
         if (result.structured) {
           send({
             type: "message",
@@ -226,6 +261,9 @@ const server = http.createServer(async (req, res) => {
               content: result.output || JSON.stringify(result),
             },
           });
+        }
+        if (result.costs) {
+          send({ type: "costs", costs: result.costs.summary });
         }
         send({ type: "done" });
         clearInterval(heartbeat);

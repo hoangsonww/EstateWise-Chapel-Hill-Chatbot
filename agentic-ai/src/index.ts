@@ -12,6 +12,7 @@ import { ComplianceAgent } from "./agents/ComplianceAgent.js";
 import { AgentOrchestrator } from "./orchestrator/AgentOrchestrator.js";
 import { runEstateWiseAgent } from "./lang/graph.js";
 import { runCrewAIGoal } from "./crewai/CrewRunner.js";
+import type { CostReport } from "./costs/tracker.js";
 
 /**
  * Agentic AI CLI entrypoint.
@@ -57,6 +58,7 @@ async function main() {
       console.log("\nFinal:");
       console.log(result.finalMessage);
     }
+    printCostSummary(result.costs);
     console.log("\n=== LangGraph Run Complete ===");
     return;
   }
@@ -83,6 +85,7 @@ async function main() {
       if (result.stderr) console.error(result.stderr);
       process.exitCode = 1;
     }
+    printCostSummary(result.costs);
     console.log("\n=== CrewAI Run Complete ===");
     return;
   }
@@ -107,6 +110,31 @@ async function main() {
   console.log("\n=== Agentic AI Run Complete ===");
   for (const m of history) {
     console.log(`[${m.from}] ${m.content}`);
+  }
+}
+
+function printCostSummary(report?: CostReport) {
+  if (!report) return;
+  const summary = report.summary;
+  if (!summary.totalEvents) return;
+  const totalUsd = summary.totalUsd.toFixed(6);
+  console.log("\n--- Cost Summary ---");
+  console.log(
+    `Total: $${totalUsd} | Input tokens: ${summary.totalInputTokens} | Output tokens: ${summary.totalOutputTokens} | Cached input tokens: ${summary.totalCachedInputTokens}`,
+  );
+  if (summary.unpricedEvents > 0) {
+    console.log(`Unpriced events: ${summary.unpricedEvents}`);
+  }
+  const topModels = Object.entries(summary.byModel)
+    .map(([model, data]) => ({ model, costUsd: data.costUsd }))
+    .filter((entry) => entry.costUsd > 0)
+    .sort((a, b) => b.costUsd - a.costUsd)
+    .slice(0, 5);
+  if (topModels.length > 0) {
+    console.log("Top models:");
+    for (const entry of topModels) {
+      console.log(`- ${entry.model}: $${entry.costUsd.toFixed(6)}`);
+    }
   }
 }
 
