@@ -763,6 +763,7 @@ EstateWise is cloud-agnostic and deployable to:
 - **AWS ECS Fargate** – CloudFormation + CodePipeline
 - **Azure Container Apps** – Bicep + Azure DevOps
 - **GCP Cloud Run** – Deployment Manager + Cloud Build
+- **Oracle Cloud (OCI)** – Terraform + OCIR + Compute/LB
 - **Kubernetes** – Kustomize/Helm on any cluster (EKS, AKS, GKE, self-managed)
 - **Vercel** – Frontend + optional backend edge functions
 
@@ -794,7 +795,7 @@ pipeline {
 
     // Multi-Cloud Deploy
     stage('Multi-Cloud Deploy') {
-      /* AWS/Azure/GCP/Kubernetes parallel deployment */
+      /* AWS/Azure/GCP/OCI/Kubernetes parallel deployment */
     }
   }
 }

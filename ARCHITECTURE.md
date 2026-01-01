@@ -553,6 +553,7 @@ flowchart TB
     ECR[AWS ECR]
     ACR[Azure ACR]
     GAR[Google Artifact Registry]
+    OCIR[OCI Container Registry]
   end
 
   subgraph "Compute Platforms"
@@ -569,6 +570,11 @@ flowchart TB
     subgraph "GCP"
       CloudRun[Cloud Run]
       GLB[Global Load Balancer]
+    end
+
+    subgraph "OCI"
+      OCICompute[Compute Instance]
+      OCILB[OCI Load Balancer]
     end
 
     subgraph "Kubernetes"
@@ -598,11 +604,13 @@ flowchart TB
   Jenkins --> ECR
   Jenkins --> ACR
   Jenkins --> GAR
+  Jenkins --> OCIR
 
   GHCR --> ECS
   ECR --> ECS
   ACR --> ACA
   GAR --> CloudRun
+  OCIR --> OCICompute
   GHCR --> K8s
 
   BGDeploy --> K8s
