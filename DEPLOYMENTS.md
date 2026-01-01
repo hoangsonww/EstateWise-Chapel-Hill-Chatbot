@@ -4,18 +4,20 @@
   <img src="https://img.shields.io/badge/AWS-ECS%20Fargate-FF9900?logo=amazonaws&logoColor=white" alt="AWS"/>
   <img src="https://img.shields.io/badge/Azure-Container%20Apps-0078D4?logo=microsoftazure&logoColor=white" alt="Azure"/>
   <img src="https://img.shields.io/badge/GCP-Cloud%20Run-4285F4?logo=googlecloud&logoColor=white" alt="GCP"/>
+  <img src="https://img.shields.io/badge/Oracle%20Cloud-OCI-FF0000?logo=oracle&logoColor=white" alt="OCI"/>
   <img src="https://img.shields.io/badge/HashiCorp-Terraform,%20Consul,%20Nomad-844FBA?logo=hashicorp&logoColor=white" alt="HashiCorp"/>
   <img src="https://img.shields.io/badge/Kubernetes-1.29-326CE5?logo=kubernetes&logoColor=white" alt="Kubernetes"/>
   <img src="https://img.shields.io/badge/Vercel-Frontend%20%26%20Edge-000000?logo=vercel&logoColor=white" alt="Vercel"/>
   <img src="https://img.shields.io/badge/Jenkins-Multi--cloud%20CI/CD-D24939?logo=jenkins&logoColor=white" alt="Jenkins"/>
 </p>
 
-EstateWise ships with four production-grade deployment tracks so you can choose the cloud that best fits your stack:
+EstateWise ships with five production-grade deployment tracks so you can choose the cloud that best fits your stack:
 
 1. **AWS** – ECS on Fargate behind an ALB with CodePipeline / CodeBuild CI/CD.
 2. **Azure** – Azure Container Apps + Key Vault, driven by Bicep modules and Azure DevOps.
 3. **Google Cloud** – Cloud Run with Cloud Build, Artifact Registry, and VPC Access.
-4. **HashiCorp Platform** – Terraform-orchestrated Kubernetes (EKS/AKS/GKE or self-managed) with Consul service mesh and Nomad batch runners.
+4. **Oracle Cloud (OCI)** – Terraform-based VCN, compute, optional load balancer, OCIR images, and Docker Compose runtime.
+5. **HashiCorp Platform** – Terraform-orchestrated Kubernetes (EKS/AKS/GKE or self-managed) with Consul service mesh and Nomad batch runners.
 
 In addition, the monorepo already supports **Vercel** deployments for the frontend (and optional backend edge functions) for teams that prefer Vercel’s serverless workflow.
 
@@ -36,6 +38,7 @@ It also supports advanced deployment strategies like **Blue-Green** and **Canary
 - [AWS Deployment](#aws-deployment)
 - [Azure Deployment](#azure-deployment)
 - [Google Cloud Deployment](#google-cloud-deployment)
+- [Oracle Cloud Deployment](#oracle-cloud-deployment)
 - [HashiCorp + Kubernetes Stack](#hashicorp--kubernetes-stack)
 - [Agentic AI Orchestrator](#agentic-ai-orchestrator)
 - [MCP Server](#mcp-server)
@@ -61,6 +64,7 @@ flowchart LR
     AWS[(AWS ECS Fargate)]
     AZ[(Azure Container Apps)]
     GCP[(GCP Cloud Run)]
+    OCI[(Oracle Cloud OCI)]
     HC[(Kubernetes + Consul + Nomad)]
     VC[(Vercel Frontend)]
   end
@@ -70,6 +74,7 @@ flowchart LR
   CP -->|deploy.sh| AWS
   CP -->|az containerapp update| AZ
   CP -->|gcloud run deploy| GCP
+  CP -->|terraform apply| OCI
   CP -->|terraform apply| HC
   CP -->|vercel deploy| VC
 
@@ -302,6 +307,35 @@ sequenceDiagram
   CB->>CR: gcloud run deploy
   Secret-->>CR: Inject env secrets
   CR->>Users: HTTPS request handling
+```
+
+---
+
+## Oracle Cloud Deployment
+
+Path: [`oracle-cloud/`](oracle-cloud/README.md)
+
+**Stack highlights**
+- Terraform creates VCN, public/private subnets, NAT/IGW, NSGs, compute instance, and optional OCI Load Balancer.
+- Docker Compose runs backend and optional agentic-ai services from OCIR images.
+- Designed for production use with flex shapes and load balancer support.
+
+**Quick start**
+```bash
+cp oracle-cloud/terraform/terraform.tfvars.example oracle-cloud/terraform/terraform.tfvars
+cd oracle-cloud/terraform
+terraform init
+terraform apply
+```
+
+**Mermaid – OCI flow**
+```mermaid
+flowchart TD
+  Dev[Developer] -->|docker build + push| OCIR[(OCI Container Registry)]
+  Dev -->|terraform apply| OCI[OCI VCN + Compute + LB]
+  OCIR --> Compute[(Compute Instance)]
+  LB[(OCI Load Balancer)] --> Compute
+  Compute --> Users
 ```
 
 ---

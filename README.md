@@ -91,6 +91,7 @@ _Feel free to use the app as a guest or sign up for an account to save your conv
 ![Amazon Web Services](https://img.shields.io/badge/Amazon%20Web%20Services-124568?style=for-the-badge&logo=task&logoColor=white)
 ![Google Cloud Platform](https://img.shields.io/badge/Google%20Cloud%20Platform-4285F4?style=for-the-badge&logo=googlecloud&logoColor=white)
 ![Microsoft Azure](https://img.shields.io/badge/Microsoft%20Azure-0078D4?style=for-the-badge&logo=micropython&logoColor=white)
+![Oracle Cloud Infrastructure](https://img.shields.io/badge/Oracle%20Cloud-red?style=for-the-badge&logo=circle&logoColor=white)
 ![Terraform](https://img.shields.io/badge/Terraform-623CE4?style=for-the-badge&logo=terraform&logoColor=white)
 ![Vercel](https://img.shields.io/badge/Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
@@ -671,6 +672,10 @@ See [DEVOPS.md](DEVOPS.md) for detailed guides and [kubernetes/scripts/](kuberne
 - **GCP Cloud Run Stack** – [`gcp/`](gcp/README.md)
   Deployment Manager configs (VPC + NAT + Serverless connector, Cloud Run, IAM, Storage), Cloud Build pipeline, and `deploy.sh` wrapper.
   <sub>Secrets from Secret Manager, instrumentation via Cloud Logging/Monitoring.</sub>
+
+- **Oracle Cloud (OCI) Stack** – [`oracle-cloud/`](oracle-cloud/README.md)
+  Terraform-based VCN, compute, optional load balancer, and OCIR-backed container deployment with Docker Compose.
+  <sub>Production-ready OCI deployment with optional load balancer for TLS and stable ingress.</sub>
 
 - **HashiCorp + Kubernetes Stack** – [`hashicorp/`](hashicorp/README.md) & [`kubernetes/`](kubernetes/README.md)
   Terraform installs Consul + Nomad on any Kubernetes cluster, with Kubernetes manifests including HPA, PDB, NetworkPolicies, RBAC, and monitoring.

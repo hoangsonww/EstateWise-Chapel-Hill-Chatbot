@@ -4,6 +4,7 @@
   <img src="https://img.shields.io/badge/AWS-Cloud-232F3E?logo=task&logoColor=white" alt="AWS"/>
   <img src="https://img.shields.io/badge/Azure-Cloud-0078D4?logo=travisci&logoColor=white" alt="Azure"/>
   <img src="https://img.shields.io/badge/GCP-Cloud-4285F4?logo=google-cloud&logoColor=white" alt="GCP"/>
+  <img src="https://img.shields.io/badge/OCI-Cloud-FF0000?logo=oracle&logoColor=white" alt="OCI"/>
   <img src="https://img.shields.io/badge/Jenkins-CI/CD-D24939?logo=jenkins&logoColor=white" alt="Jenkins"/>
   <img src="https://img.shields.io/badge/Kubernetes-1.29-326CE5?logo=kubernetes&logoColor=white" alt="Kubernetes"/>
   <img src="https://img.shields.io/badge/Docker-Containers-2496ED?logo=docker&logoColor=white" alt="Docker"/>
@@ -52,7 +53,7 @@ EstateWise employs enterprise-grade DevOps practices with multiple deployment st
 - **Multi-Strategy Deployments**: Blue-Green, Canary, and Rolling Updates
 - **Zero-Downtime Deployments**: Traffic switching without service interruption
 - **Automated Rollbacks**: Health checks and metrics-based automatic rollbacks
-- **Multi-Cloud Support**: AWS, Azure, GCP, and Kubernetes deployments
+- **Multi-Cloud Support**: AWS, Azure, GCP, OCI, and Kubernetes deployments
 - **Container-First**: Docker-based builds with vulnerability scanning
 - **Infrastructure as Code**: Terraform, CloudFormation, Bicep support
 
@@ -97,6 +98,7 @@ flowchart TB
         AWS[AWS ECS/Fargate]
         Azure[Azure Container Apps]
         GCP[GCP Cloud Run]
+        OCI[OCI Compute + LB]
     end
 
     subgraph Monitoring
@@ -486,6 +488,7 @@ kubectl rollout undo deployment/estatewise-backend -n estatewise
 | `DEPLOY_AWS` | `0` | Deploy to AWS ECS Fargate |
 | `DEPLOY_AZURE` | `0` | Deploy to Azure Container Apps |
 | `DEPLOY_GCP` | `0` | Deploy to GCP Cloud Run |
+| `DEPLOY_OCI` | `0` | Deploy to Oracle Cloud Infrastructure (OCI) |
 | `DEPLOY_HASHICORP` | `0` | Deploy via Terraform to Kubernetes |
 | `DEPLOY_K8S_MANIFESTS` | `0` | Apply Kubernetes manifests directly |
 
