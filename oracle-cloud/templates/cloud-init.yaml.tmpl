@@ -1,0 +1,73 @@
+#cloud-config
+bootcmd:
+  - mkdir -p /opt/estatewise /opt/estatewise/scripts
+package_update: true
+package_upgrade: true
+packages:
+  - docker.io
+  - docker-compose-plugin
+  - curl
+  - ca-certificates
+  - gnupg
+
+write_files:
+  - path: /etc/docker/daemon.json
+    permissions: "0644"
+    content: |
+      {
+        "log-driver": "json-file",
+        "log-opts": {
+          "max-size": "10m",
+          "max-file": "5"
+        }
+      }
+  - path: /opt/estatewise/docker-compose.yml
+    permissions: "0644"
+    content: |
+${docker_compose}
+  - path: /opt/estatewise/.env
+    permissions: "0600"
+    content: |
+${env_file}
+  - path: /opt/estatewise/scripts/ocir-login.sh
+    permissions: "0755"
+    content: |
+      #!/usr/bin/env bash
+      set -euo pipefail
+      REGISTRY="${ocir_registry}"
+      USERNAME="${ocir_username}"
+      TOKEN="${ocir_auth_token}"
+      if [[ -n "$REGISTRY" && -n "$USERNAME" && -n "$TOKEN" ]]; then
+        echo "$TOKEN" | docker login "$REGISTRY" -u "$USERNAME" --password-stdin
+      fi
+  - path: /opt/estatewise/scripts/update-env.sh
+    permissions: "0755"
+    content: |
+      #!/usr/bin/env bash
+      set -euo pipefail
+      echo "Edit /opt/estatewise/.env or /opt/estatewise/docker-compose.yml, then restart services:"
+      echo "sudo docker compose -f /opt/estatewise/docker-compose.yml up -d"
+  - path: /etc/systemd/system/estatewise.service
+    permissions: "0644"
+    content: |
+      [Unit]
+      Description=EstateWise Docker Compose
+      Requires=docker.service
+      After=docker.service network-online.target
+
+      [Service]
+      Type=oneshot
+      RemainAfterExit=yes
+      WorkingDirectory=/opt/estatewise
+      ExecStart=/usr/bin/docker compose -f /opt/estatewise/docker-compose.yml up -d
+      ExecStop=/usr/bin/docker compose -f /opt/estatewise/docker-compose.yml down
+      TimeoutStartSec=0
+
+      [Install]
+      WantedBy=multi-user.target
+
+runcmd:
+  - systemctl enable --now docker
+  - systemctl daemon-reload
+  - /opt/estatewise/scripts/ocir-login.sh
+  - systemctl enable --now estatewise.service

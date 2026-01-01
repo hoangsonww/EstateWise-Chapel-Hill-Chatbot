@@ -1,0 +1,30 @@
+version: "3.9"
+
+services:
+  backend:
+    image: ${backend_image}
+    restart: unless-stopped
+    env_file:
+      - /opt/estatewise/.env
+    environment:
+      NODE_ENV: "production"
+      PORT: "${backend_port}"
+    ports:
+      - "${backend_port}:${backend_port}"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:${backend_port}/status"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+
+  agentic-ai:
+    image: ${agentic_image}
+    restart: unless-stopped
+    env_file:
+      - /opt/estatewise/.env
+    environment:
+      NODE_ENV: "production"
+      PORT: "${agentic_port}"
+    ports:
+      - "${agentic_port}:${agentic_port}"
+    profiles: ["agentic"]

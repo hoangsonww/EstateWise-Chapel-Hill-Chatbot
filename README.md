@@ -672,6 +672,10 @@ See [DEVOPS.md](DEVOPS.md) for detailed guides and [kubernetes/scripts/](kuberne
   Deployment Manager configs (VPC + NAT + Serverless connector, Cloud Run, IAM, Storage), Cloud Build pipeline, and `deploy.sh` wrapper.
   <sub>Secrets from Secret Manager, instrumentation via Cloud Logging/Monitoring.</sub>
 
+- **Oracle Cloud (OCI) Stack** – [`oracle-cloud/`](oracle-cloud/README.md)
+  Terraform-based VCN, compute, optional load balancer, and OCIR-backed container deployment with Docker Compose.
+  <sub>Production-ready OCI deployment with optional load balancer for TLS and stable ingress.</sub>
+
 - **HashiCorp + Kubernetes Stack** – [`hashicorp/`](hashicorp/README.md) & [`kubernetes/`](kubernetes/README.md)
   Terraform installs Consul + Nomad on any Kubernetes cluster, with Kubernetes manifests including HPA, PDB, NetworkPolicies, RBAC, and monitoring.
   <sub>Full observability with Prometheus/Grafana, chaos engineering tests, and automated backups.</sub>

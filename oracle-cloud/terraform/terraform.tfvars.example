@@ -1,0 +1,41 @@
+tenancy_ocid       = "ocid1.tenancy.oc1..example"
+user_ocid          = "ocid1.user.oc1..example"
+fingerprint        = "aa:bb:cc:dd:ee:ff"
+private_key_path   = "~/.oci/oci_api_key.pem"
+region             = "us-ashburn-1"
+compartment_ocid   = "ocid1.compartment.oc1..example"
+ssh_authorized_keys = "ssh-rsa AAAAB3Nza..."
+
+backend_image = "iad.ocir.io/<namespace>/estatewise-backend:latest"
+agentic_image = "iad.ocir.io/<namespace>/estatewise-agentic:latest"
+ocir_registry = "iad.ocir.io"
+ocir_username = "<tenancy>/<username>"
+ocir_auth_token = "<ocir-auth-token>"
+
+instance_shape       = "VM.Standard.E4.Flex"
+instance_ocpus       = 2
+instance_memory_gbs  = 16
+boot_volume_size_gbs = 50
+
+mongo_uri         = "mongodb+srv://..."
+jwt_secret        = "replace-me"
+google_ai_api_key = "replace-me"
+pinecone_api_key  = "replace-me"
+pinecone_index    = "estatewise-index"
+
+neo4j_enable   = "false"
+neo4j_uri      = ""
+neo4j_username = ""
+neo4j_password = ""
+neo4j_database = "neo4j"
+
+openai_api_key = ""
+
+enable_load_balancer     = true
+instance_in_private_subnet = true
+admin_cidr               = "203.0.113.0/24"
+
+# TLS (optional)
+# tls_certificate_path     = "./certs/fullchain.pem"
+# tls_private_key_path     = "./certs/privkey.pem"
+# tls_ca_certificate_path  = ""
