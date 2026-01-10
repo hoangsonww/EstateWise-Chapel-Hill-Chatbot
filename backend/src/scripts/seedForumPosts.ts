@@ -261,6 +261,112 @@ const seedPosts: SeedPost[] = [
       },
     ],
   },
+  {
+    title: "How Do You Evaluate Flood Risk for a Property?",
+    content:
+      "Flood zones are confusing to me. What tools or data sources do you trust when evaluating flood risk? Do you only look at FEMA maps, or do you use other sources too? I'd love a step-by-step approach that helps buyers make an informed call.",
+    category: "Advice",
+    author: {
+      email: "risk@estatewise.com",
+      username: "Risk Analyst",
+    },
+    comments: [
+      {
+        content:
+          "Start with FEMA but cross-check with local GIS portals. Some cities publish historical flood incident layers that are more detailed.",
+        author: {
+          email: "insights@estatewise.com",
+          username: "Market Insights Lead",
+        },
+      },
+      {
+        content:
+          "Also check elevation changes within a 2-3 block radius. A single low spot can flip the whole property's risk profile.",
+        author: {
+          email: "advisor@estatewise.com",
+          username: "Neighborhood Advisor",
+        },
+      },
+    ],
+  },
+  {
+    title: "HOA Fees: When Do They Make Sense?",
+    content:
+      "I'm comparing condos with higher HOA fees against townhomes with minimal fees. How do you decide if the HOA cost is worth it? What amenities or services justify the price?",
+    category: "Investment",
+    author: {
+      email: "numbers@estatewise.com",
+      username: "HOA Cost Tracker",
+    },
+    comments: [
+      {
+        content:
+          "I normalize by square footage and compare the included services. If the fee covers roof, exterior, and insurance, it can be a solid tradeoff.",
+        author: {
+          email: "investor@estatewise.com",
+          username: "Investor Ally",
+        },
+      },
+      {
+        content:
+          "Ask for the reserve study. Underfunded reserves now mean special assessments later.",
+        author: DEFAULT_POST_AUTHOR,
+      },
+    ],
+  },
+  {
+    title: "Seasonality: Best Months to Buy or Sell",
+    content:
+      "Do you see meaningful seasonal pricing changes in your market? I'm trying to time a purchase and wondering if waiting for winter really makes a difference. Share the months you think are most buyer-friendly.",
+    category: "Market Analysis",
+    author: {
+      email: "analytics@estatewise.com",
+      username: "Seasonality Analyst",
+    },
+    comments: [
+      {
+        content:
+          "Inventory dips in December but competition does too. If you are flexible on selection, late winter can be a strong negotiating window.",
+        author: {
+          email: "advisor@estatewise.com",
+          username: "Neighborhood Advisor",
+        },
+      },
+      {
+        content:
+          "Spring is when listings spike. Pricing can run hotter, but you get more options and faster inspections.",
+        author: DEFAULT_POST_AUTHOR,
+      },
+    ],
+  },
+  {
+    title: "What Should Be in a Rental Lease Addendum?",
+    content:
+      "For landlords: what addendums do you always include in a lease? I'm thinking about pets, maintenance response times, and smart-home device access. Would love a checklist.",
+    category: "Investment",
+    author: {
+      email: "landlord@estatewise.com",
+      username: "Landlord Partner",
+    },
+    comments: [
+      {
+        content:
+          "Spell out appliance responsibilities and filter replacement schedules. It reduces friction when maintenance requests come in.",
+        author: {
+          email: "investor@estatewise.com",
+          username: "Investor Ally",
+        },
+      },
+      {
+        content:
+          "Pet addendums should clarify breed restrictions, pet rent, and liability coverage. Keep it simple and explicit.",
+        author: {
+          email: "advisor@estatewise.com",
+          username: "Neighborhood Advisor",
+        },
+      },
+    ],
+  },
 ];
 
 const seederCache = new Map<string, Awaited<ReturnType<typeof User.findOne>>>();
@@ -369,27 +475,25 @@ async function seedWithRetry(
         let postDoc: IPost;
 
         if (existing) {
-          logger.info(
-            `⏭️ Post "${postData.title}" already exists, ensuring comments.`,
-          );
-          postDoc = existing;
-        } else {
-          const post = new Post({
-            // @ts-ignore
-            author: author._id,
-            title: postData.title,
-            content: postData.content,
-            category: postData.category,
-            upvotes: [],
-            downvotes: [],
-            commentCount: 0,
-            viewCount: 0,
-          });
-          await post.save();
-          createdPosts.push(postData.title);
-          logger.info(`✅ Created post: "${postData.title}"`);
-          postDoc = post;
+          logger.info(`⏭️ Post "${postData.title}" already exists, skipping.`);
+          continue;
         }
+
+        const post = new Post({
+          // @ts-ignore
+          author: author._id,
+          title: postData.title,
+          content: postData.content,
+          category: postData.category,
+          upvotes: [],
+          downvotes: [],
+          commentCount: 0,
+          viewCount: 0,
+        });
+        await post.save();
+        createdPosts.push(postData.title);
+        logger.info(`✅ Created post: "${postData.title}"`);
+        postDoc = post;
 
         totalCommentsCreated += await ensureCommentsForPost(
           postDoc,
@@ -398,7 +502,7 @@ async function seedWithRetry(
       }
 
       logger.info(
-        `🎉 Forum seeding complete. Posts created: ${createdPosts.length}. Comments ensured: ${totalCommentsCreated}.`,
+        `🎉 Forum seeding complete. Posts created: ${createdPosts.length}. Comments created: ${totalCommentsCreated}.`,
       );
       return;
     } catch (err: any) {

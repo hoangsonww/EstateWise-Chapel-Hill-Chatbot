@@ -30,6 +30,7 @@ import {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   MapPin,
   ChevronLeft,
+  Calculator,
 } from "lucide-react";
 
 import { trpc } from "@/lib/trpc";
@@ -249,6 +250,16 @@ export default function MarketPulsePage() {
                   <ChevronLeft className="h-5 w-5" /> Back to Insights
                 </Link>
               </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon" asChild>
+                    <Link href="/analyzer" aria-label="Deal Analyzer">
+                      <Calculator className="h-5 w-5" />
+                    </Link>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Deal Analyzer</TooltipContent>
+              </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <span className="inline-flex">
