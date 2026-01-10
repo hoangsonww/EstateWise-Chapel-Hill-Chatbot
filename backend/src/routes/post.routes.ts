@@ -66,6 +66,18 @@ router.post("/", authMiddleware, createPost);
  *         schema:
  *           type: number
  *         description: Posts per page
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *           enum: [createdAt, updatedAt, commentCount, viewCount, upvotes]
+ *         description: Field to sort by
+ *       - in: query
+ *         name: sortOrder
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *         description: Sort direction (default desc)
  *     responses:
  *       200:
  *         description: A list of posts.
@@ -92,6 +104,18 @@ router.get("/", getPosts);
  *         schema:
  *           type: string
  *         description: Filter by category
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *           enum: [createdAt, updatedAt, commentCount, viewCount, upvotes]
+ *         description: Field to sort by
+ *       - in: query
+ *         name: sortOrder
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *         description: Sort direction (default desc)
  *     responses:
  *       200:
  *         description: Search results.

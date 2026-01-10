@@ -257,11 +257,15 @@ export async function getPosts(params?: {
   category?: string;
   page?: number;
   limit?: number;
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
 }) {
   const qp = new URLSearchParams();
   if (params?.category) qp.set("category", params.category);
   if (params?.page) qp.set("page", String(params.page));
   if (params?.limit) qp.set("limit", String(params.limit));
+  if (params?.sortBy) qp.set("sortBy", params.sortBy);
+  if (params?.sortOrder) qp.set("sortOrder", params.sortOrder);
 
   const url = `${API_BASE_URL}/api/posts${qp.toString() ? `?${qp.toString()}` : ""}`;
   const res = await fetch(url);
@@ -362,9 +366,16 @@ export async function downvotePost(id: string, token: string): Promise<Post> {
   return await res.json();
 }
 
-export async function searchPosts(query: string, category?: string) {
+export async function searchPosts(
+  query: string,
+  category?: string,
+  sortBy?: string,
+  sortOrder?: "asc" | "desc",
+) {
   const qp = new URLSearchParams({ q: query });
   if (category) qp.set("category", category);
+  if (sortBy) qp.set("sortBy", sortBy);
+  if (sortOrder) qp.set("sortOrder", sortOrder);
 
   const url = `${API_BASE_URL}/api/posts/search?${qp.toString()}`;
   const res = await fetch(url);

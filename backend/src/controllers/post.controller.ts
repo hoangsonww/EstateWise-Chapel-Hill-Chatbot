@@ -4,6 +4,38 @@ import Post from "../models/Post.model";
 import Comment from "../models/Comment.model";
 import { AuthRequest } from "../middleware/auth.middleware";
 
+const SORTABLE_FIELDS = new Set([
+  "createdAt",
+  "updatedAt",
+  "commentCount",
+  "viewCount",
+  "upvotes",
+]);
+
+const parsePositiveInt = (value: unknown, fallback: number) => {
+  const parsed = Number.parseInt(String(value), 10);
+  if (Number.isNaN(parsed) || parsed <= 0) {
+    return fallback;
+  }
+  return parsed;
+};
+
+const resolveSort = (sortBy?: string, sortOrder?: string) => {
+  const resolvedSortBy =
+    sortBy && SORTABLE_FIELDS.has(sortBy) ? sortBy : "createdAt";
+  const resolvedSortOrder = sortOrder === "asc" ? 1 : -1;
+  return { sortBy: resolvedSortBy, sortOrder: resolvedSortOrder };
+};
+
+const buildSort = (sortBy: string, sortOrder: 1 | -1) => {
+  const field = sortBy === "upvotes" ? "upvoteCount" : sortBy;
+  const sort: Record<string, 1 | -1> = { [field]: sortOrder };
+  if (sortBy !== "createdAt") {
+    sort.createdAt = -1;
+  }
+  return sort;
+};
+
 /**
  * Creates a new forum post.
  *
@@ -46,25 +78,55 @@ export const createPost = async (req: AuthRequest, res: Response) => {
  */
 export const getPosts = async (req: Request, res: Response) => {
   try {
-    const { category, page = 1, limit = 20 } = req.query;
+    const { category } = req.query;
+    const pageNumber = parsePositiveInt(req.query.page, 1);
+    const limitNumber = parsePositiveInt(req.query.limit, 20);
+    const { sortBy, sortOrder } = resolveSort(
+      typeof req.query.sortBy === "string" ? req.query.sortBy : undefined,
+      typeof req.query.sortOrder === "string" ? req.query.sortOrder : undefined,
+    );
     const filter: any = {};
     if (category && category !== "All") {
       filter.category = category;
     }
 
+    const total = await Post.countDocuments(filter);
+    const skip = (pageNumber - 1) * limitNumber;
+    const sort = buildSort(sortBy, sortOrder);
+
+    if (sortBy === "upvotes") {
+      const posts = await Post.aggregate([
+        { $match: filter },
+        { $addFields: { upvoteCount: { $size: "$upvotes" } } },
+        { $sort: sort },
+        { $skip: skip },
+        { $limit: limitNumber },
+        { $project: { upvoteCount: 0 } },
+      ]);
+      const populatedPosts = await Post.populate(posts, {
+        path: "author",
+        select: "username email",
+      });
+
+      return res.json({
+        posts: populatedPosts,
+        total,
+        page: pageNumber,
+        totalPages: Math.ceil(total / limitNumber),
+      });
+    }
+
     const posts = await Post.find(filter)
       .populate("author", "username email")
-      .sort({ createdAt: -1 })
-      .limit(Number(limit))
-      .skip((Number(page) - 1) * Number(limit));
-
-    const total = await Post.countDocuments(filter);
+      .sort(sort)
+      .limit(limitNumber)
+      .skip(skip);
 
     res.json({
       posts,
       total,
-      page: Number(page),
-      totalPages: Math.ceil(total / Number(limit)),
+      page: pageNumber,
+      totalPages: Math.ceil(total / limitNumber),
     });
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch posts" });
@@ -244,6 +306,10 @@ export const searchPosts = async (req: Request, res: Response) => {
     if (!q) {
       return res.status(400).json({ error: "Search query is required" });
     }
+    const { sortBy, sortOrder } = resolveSort(
+      typeof req.query.sortBy === "string" ? req.query.sortBy : undefined,
+      typeof req.query.sortOrder === "string" ? req.query.sortOrder : undefined,
+    );
 
     const regex = new RegExp(q as string, "i");
     const filter: any = {
@@ -254,9 +320,26 @@ export const searchPosts = async (req: Request, res: Response) => {
       filter.category = category;
     }
 
+    const sort = buildSort(sortBy, sortOrder);
+
+    if (sortBy === "upvotes") {
+      const posts = await Post.aggregate([
+        { $match: filter },
+        { $addFields: { upvoteCount: { $size: "$upvotes" } } },
+        { $sort: sort },
+        { $limit: 50 },
+        { $project: { upvoteCount: 0 } },
+      ]);
+      const populatedPosts = await Post.populate(posts, {
+        path: "author",
+        select: "username email",
+      });
+      return res.json(populatedPosts);
+    }
+
     const posts = await Post.find(filter)
       .populate("author", "username email")
-      .sort({ createdAt: -1 })
+      .sort(sort)
       .limit(50);
 
     res.json(posts);
