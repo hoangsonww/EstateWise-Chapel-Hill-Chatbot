@@ -65,6 +65,32 @@ const CATEGORIES = [
   "Sustainability",
 ];
 
+const SORT_OPTIONS = [
+  { value: "newest", label: "Newest" },
+  { value: "oldest", label: "Oldest" },
+  { value: "mostUpvoted", label: "Most Upvoted" },
+  { value: "mostCommented", label: "Most Commented" },
+  { value: "mostViewed", label: "Most Viewed" },
+] as const;
+
+type SortOption = (typeof SORT_OPTIONS)[number]["value"];
+
+const resolveSortParams = (sortOption: SortOption) => {
+  switch (sortOption) {
+    case "oldest":
+      return { sortBy: "createdAt", sortOrder: "asc" as const };
+    case "mostUpvoted":
+      return { sortBy: "upvotes", sortOrder: "desc" as const };
+    case "mostCommented":
+      return { sortBy: "commentCount", sortOrder: "desc" as const };
+    case "mostViewed":
+      return { sortBy: "viewCount", sortOrder: "desc" as const };
+    case "newest":
+    default:
+      return { sortBy: "createdAt", sortOrder: "desc" as const };
+  }
+};
+
 const getStoredToken = () =>
   Cookies.get("estatewise_token") || Cookies.get("token") || null;
 
@@ -74,6 +100,7 @@ export default function ForumsPage() {
   const [loading, setLoading] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
+  const [sortOption, setSortOption] = useState<SortOption>("newest");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newPostTitle, setNewPostTitle] = useState("");
   const [newPostContent, setNewPostContent] = useState("");
@@ -88,7 +115,7 @@ export default function ForumsPage() {
     if (!searchQuery.trim()) {
       fetchPosts();
     }
-  }, [selectedCategory]);
+  }, [selectedCategory, sortOption]);
 
   useEffect(() => {
     const debounceTimer = setTimeout(() => {
@@ -98,7 +125,7 @@ export default function ForumsPage() {
     }, 300);
 
     return () => clearTimeout(debounceTimer);
-  }, [searchQuery, selectedCategory]);
+  }, [searchQuery, selectedCategory, sortOption]);
 
   useEffect(() => {
     if (isAuthed) {
@@ -118,8 +145,11 @@ export default function ForumsPage() {
     setLoading(true);
     setPosts([]);
     try {
+      const { sortBy, sortOrder } = resolveSortParams(sortOption);
       const params =
-        selectedCategory !== "All" ? { category: selectedCategory } : {};
+        selectedCategory !== "All"
+          ? { category: selectedCategory, sortBy, sortOrder }
+          : { sortBy, sortOrder };
       const data = await getPosts(params);
       setPosts(data.posts || data);
     } catch (error: any) {
@@ -138,9 +168,12 @@ export default function ForumsPage() {
     setLoading(true);
     setPosts([]);
     try {
+      const { sortBy, sortOrder } = resolveSortParams(sortOption);
       const results = await searchPosts(
         searchQuery,
         selectedCategory !== "All" ? selectedCategory : undefined,
+        sortBy,
+        sortOrder,
       );
       setPosts(results);
     } catch (error: any) {
@@ -173,12 +206,24 @@ export default function ForumsPage() {
         authToken,
       );
 
-      setPosts([newPost, ...posts]);
       setToken(authToken);
       setShowCreateModal(false);
       setNewPostTitle("");
       setNewPostContent("");
       setNewPostCategory("General");
+      const shouldRefetch =
+        searchQuery.trim() ||
+        sortOption !== "newest" ||
+        (selectedCategory !== "All" && selectedCategory !== newPost.category);
+      if (shouldRefetch) {
+        if (searchQuery.trim()) {
+          await handleSearch();
+        } else {
+          await fetchPosts();
+        }
+      } else {
+        setPosts((prev) => [newPost, ...prev]);
+      }
       toast.success("Post created successfully!");
     } catch (error: any) {
       toast.error(error.message || "Failed to create post");
@@ -411,23 +456,51 @@ export default function ForumsPage() {
             </Button>
           </div>
 
-          {/* Category Filter */}
-          <div className="mb-6 flex gap-2 flex-wrap">
-            {CATEGORIES.map((cat) => (
-              <Button
-                key={cat}
-                variant={selectedCategory === cat ? "default" : "outline"}
-                size="sm"
-                onClick={() => setSelectedCategory(cat)}
-                className={cn(
-                  selectedCategory === cat
-                    ? "shadow-sm"
-                    : "bg-muted/60 text-foreground hover:bg-muted/80 dark:bg-muted/30 dark:text-foreground dark:hover:bg-muted/50",
-                )}
+          {/* Category Filter + Sort */}
+          <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div className="flex gap-2 flex-wrap">
+              {CATEGORIES.map((cat) => (
+                <Button
+                  key={cat}
+                  variant={selectedCategory === cat ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setSelectedCategory(cat)}
+                  className={cn(
+                    selectedCategory === cat
+                      ? "shadow-sm"
+                      : "bg-muted/60 text-foreground hover:bg-muted/80 dark:bg-muted/30 dark:text-foreground dark:hover:bg-muted/50",
+                  )}
+                >
+                  {cat}
+                </Button>
+              ))}
+            </div>
+            <div className="flex items-center gap-2">
+              <Label
+                htmlFor="sort-posts"
+                className="text-sm text-muted-foreground"
               >
-                {cat}
-              </Button>
-            ))}
+                Sort by
+              </Label>
+              <select
+                id="sort-posts"
+                value={sortOption}
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                  setSortOption(e.target.value as SortOption)
+                }
+                className="min-w-[170px] rounded-md border border-input bg-background text-foreground px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:bg-input/30"
+              >
+                {SORT_OPTIONS.map((option) => (
+                  <option
+                    key={option.value}
+                    value={option.value}
+                    className="bg-background text-foreground"
+                  >
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <Separator className="mb-6" />
