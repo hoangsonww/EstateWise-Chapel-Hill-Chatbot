@@ -17,6 +17,7 @@ import {
   Moon,
   ChevronLeft,
   BarChart3,
+  Calculator,
   MessageCircleMore,
   MapPin,
   GitBranch,
@@ -327,6 +328,18 @@ export default function ChartsPage() {
                   </Link>
                 </TooltipTrigger>
                 <TooltipContent>Insights</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Link
+                    href="/analyzer"
+                    className="inline-flex h-8 w-8 items-center justify-center hover:text-primary transition-colors"
+                    aria-label="Deal Analyzer"
+                  >
+                    <Calculator className="w-5 h-5" />
+                  </Link>
+                </TooltipTrigger>
+                <TooltipContent>Deal Analyzer</TooltipContent>
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>

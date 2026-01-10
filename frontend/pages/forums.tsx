@@ -17,6 +17,7 @@ import {
   Search,
   X,
   BarChart3,
+  Calculator,
   GitBranch,
   MapPin,
   MessageCircle,
@@ -266,6 +267,18 @@ export default function ForumsPage() {
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Link
+                      href="/analyzer"
+                      className="inline-flex h-8 w-8 items-center justify-center text-foreground hover:text-primary transition-colors"
+                      aria-label="Deal Analyzer"
+                    >
+                      <Calculator className="w-5 h-5" />
+                    </Link>
+                  </TooltipTrigger>
+                  <TooltipContent>Deal Analyzer</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Link
                       href="/map"
                       className="inline-flex h-8 w-8 items-center justify-center text-foreground hover:text-primary transition-colors"
                       aria-label="Map"
@@ -507,7 +520,7 @@ export default function ForumsPage() {
 
         {/* Create Post Dialog */}
         <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-2xl text-foreground">
             <DialogHeader>
               <DialogTitle>Create a New Post</DialogTitle>
             </DialogHeader>
@@ -529,14 +542,18 @@ export default function ForumsPage() {
                 <Label htmlFor="category">Category</Label>
                 <select
                   id="category"
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 mt-2"
+                  className="w-full rounded-md border border-input bg-background text-foreground px-3 py-2 mt-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:bg-input/30"
                   value={newPostCategory}
                   onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
                     setNewPostCategory(e.target.value)
                   }
                 >
                   {CATEGORIES.filter((c) => c !== "All").map((cat) => (
-                    <option key={cat} value={cat}>
+                    <option
+                      key={cat}
+                      value={cat}
+                      className="bg-background text-foreground"
+                    >
                       {cat}
                     </option>
                   ))}
