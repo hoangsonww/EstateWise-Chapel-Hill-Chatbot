@@ -196,6 +196,7 @@ app.get("/api/cluster/summary", async (req: Request, res: Response) => {
 app.listen(port, () => {
   // eslint-disable-next-line no-console
   console.log(`Deployment Control API running on http://localhost:${port}`);
+  // eslint-disable-next-line no-console
   console.log(
     `UI available at http://localhost:3000 (run 'cd ui && npm run dev')`,
   );
