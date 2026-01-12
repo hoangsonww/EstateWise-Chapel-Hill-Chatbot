@@ -3182,7 +3182,7 @@ export default function ChatPage() {
   return (
     <>
       <Head>
-        <title>EstateWise | Chat</title>
+        <title>Chat | EstateWise</title>
         <meta
           name="description"
           content="Chat with EstateWise for personalized property recommendations"

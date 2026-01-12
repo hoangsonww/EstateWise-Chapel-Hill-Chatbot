@@ -53,7 +53,7 @@ export default function NotFoundPage() {
   return (
     <>
       <Head>
-        <title>EstateWise | Page Not Found</title>
+        <title>Page Not Found | EstateWise</title>
         <meta
           name="description"
           content="Oops! The page you are looking for was not found. Please return to EstateWise to continue your journey."

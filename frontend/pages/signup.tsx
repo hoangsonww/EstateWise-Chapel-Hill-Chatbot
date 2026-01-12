@@ -95,7 +95,7 @@ export default function SignUpPage() {
   return (
     <>
       <Head>
-        <title>EstateWise | Sign Up</title>
+        <title>Sign Up | EstateWise</title>
         <meta name="description" content="Sign up for EstateWise" />
       </Head>
       <div className="min-h-screen flex items-center justify-center animated-gradient px-4">

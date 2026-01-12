@@ -107,7 +107,7 @@ export default function ResetPasswordPage() {
   return (
     <>
       <Head>
-        <title>EstateWise | Reset Password</title>
+        <title>Reset Password | EstateWise</title>
         <meta name="description" content="Reset your password for EstateWise" />
       </Head>
       <div className="min-h-screen flex items-center justify-center animated-gradient px-4">
