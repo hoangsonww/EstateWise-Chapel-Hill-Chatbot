@@ -23,6 +23,7 @@ import {
   GitBranch,
   Users,
 } from "lucide-react";
+import { motion } from "framer-motion";
 import {
   Tooltip,
   TooltipTrigger,
@@ -95,6 +96,26 @@ const normalizeLabel = (label: string): string =>
     .split(/[_\s]+/)
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
     .join(" ");
+
+const fadeUpContainer = {
+  hidden: { opacity: 1 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.08,
+      delayChildren: 0.05,
+    },
+  },
+};
+
+const fadeUpItem = {
+  hidden: { opacity: 0, y: 12 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.35, ease: "easeOut" },
+  },
+};
 
 // ------------------------------------------------------------------
 // ChartBlock: create chart once, only update colors on theme change
@@ -377,7 +398,12 @@ export default function ChartsPage() {
           </div>
         </header>
 
-        <section className="mx-auto max-w-4xl px-6 py-10 text-center space-y-3">
+        <motion.section
+          className="mx-auto max-w-4xl px-6 py-10 text-center space-y-3"
+          variants={fadeUpItem}
+          initial="hidden"
+          animate="show"
+        >
           <h1 className="text-3xl md:text-4xl font-bold leading-tight">
             Chapel Hill Real-Estate Visualized 📊
           </h1>
@@ -386,19 +412,28 @@ export default function ChartsPage() {
             trends, and neighborhood popularity, giving you the data-driven edge
             in your home search.
           </p>
-        </section>
+        </motion.section>
 
-        <main className="flex-1 px-6 pb-16">
+        <motion.main
+          className="flex-1 px-6 pb-16"
+          variants={fadeUpContainer}
+          initial="hidden"
+          animate="show"
+        >
           {loading ? (
-            <div className="flex items-center justify-center h-60">
+            <motion.div
+              className="flex items-center justify-center h-60"
+              variants={fadeUpItem}
+            >
               <div className="h-12 w-12 rounded-full border-4 border-primary border-t-transparent animate-spin" />
-            </div>
+            </motion.div>
           ) : charts ? (
             <div className="max-w-7xl mx-auto grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-              {Object.entries(charts).map(([key, spec]) => (
+              {Object.entries(charts).map(([key, spec], index) => (
                 <Card
                   key={key}
-                  className="bg-card border border-border rounded-2xl shadow-sm hover:shadow-xl transition-shadow duration-200"
+                  className="bg-card border border-border rounded-2xl chart-reveal"
+                  style={{ animationDelay: `${index * 60}ms` }}
                 >
                   <CardHeader className="pb-2 flex-col items-start gap-1">
                     <div className="flex-row flex items-center gap-2">
@@ -418,11 +453,17 @@ export default function ChartsPage() {
               ))}
             </div>
           ) : (
-            <p className="text-center text-red-500">
+            <motion.p
+              className="text-center text-red-500"
+              variants={fadeUpItem}
+            >
               Couldn’t load chart data — please try again later.
-            </p>
+            </motion.p>
           )}
-          <div className="w-full flex justify-center mt-8">
+          <motion.div
+            className="w-full flex justify-center mt-8"
+            variants={fadeUpItem}
+          >
             <Button
               asChild
               variant="default"
@@ -434,8 +475,26 @@ export default function ChartsPage() {
                 Back to Chat
               </Link>
             </Button>
-          </div>
-        </main>
+          </motion.div>
+        </motion.main>
+        <style jsx>{`
+          .chart-reveal {
+            opacity: 0;
+            transform: translateY(12px);
+            animation: chart-fade-up 480ms ease-out forwards;
+          }
+
+          @keyframes chart-fade-up {
+            from {
+              opacity: 0;
+              transform: translateY(12px);
+            }
+            to {
+              opacity: 1;
+              transform: translateY(0);
+            }
+          }
+        `}</style>
       </div>
     </>
   );
