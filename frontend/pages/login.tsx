@@ -70,7 +70,7 @@ export default function LoginPage() {
   return (
     <>
       <Head>
-        <title>EstateWise | Login</title>
+        <title>Login | EstateWise</title>
         <meta name="description" content="Login to EstateWise" />
       </Head>
       <div className="min-h-screen flex items-center justify-center animated-gradient px-4">
