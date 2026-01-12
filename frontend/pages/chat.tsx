@@ -537,9 +537,66 @@ type ChatMessage = {
   expertViews?: Record<string, string>;
 };
 
+const LOCAL_CHAT_KEY = "estateWiseChat";
+const LOCAL_CONVOS_KEY = "estateWiseConvos";
+
+const createGuestId = () =>
+  `guest-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
+
+const deriveGuestTitle = (messages: ChatMessage[], fallback: string) => {
+  const firstUser = messages.find(
+    (message) => message.role === "user" && message.text.trim(),
+  );
+  if (!firstUser) return fallback;
+  const cleaned = firstUser.text.trim().replace(/\s+/g, " ");
+  return cleaned.length > 48 ? `${cleaned.slice(0, 48)}...` : cleaned;
+};
+
+const buildGuestConversation = (messages: ChatMessage[]) => {
+  const now = new Date().toISOString();
+  return {
+    _id: createGuestId(),
+    title: deriveGuestTitle(messages, "New Conversation"),
+    messages,
+    createdAt: now,
+    updatedAt: now,
+  };
+};
+
+const loadGuestConvos = () => {
+  if (typeof window === "undefined") return [];
+  try {
+    const stored = localStorage.getItem(LOCAL_CONVOS_KEY);
+    if (stored) return JSON.parse(stored);
+  } catch {
+    // ignore malformed storage
+  }
+
+  try {
+    const single = localStorage.getItem(LOCAL_CHAT_KEY);
+    if (single) {
+      const messages = JSON.parse(single);
+      if (Array.isArray(messages) && messages.length > 0) {
+        const convos = [buildGuestConversation(messages)];
+        localStorage.setItem(LOCAL_CONVOS_KEY, JSON.stringify(convos));
+        return convos;
+      }
+    }
+  } catch {
+    // ignore malformed storage
+  }
+
+  return [];
+};
+
+const persistGuestConvos = (convos: unknown[]) => {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(LOCAL_CONVOS_KEY, JSON.stringify(convos));
+};
+
 const getInitialMessages = (): ChatMessage[] => {
   if (typeof window !== "undefined" && !Cookies.get("estatewise_token")) {
-    const stored = localStorage.getItem("estateWiseChat");
+    const stored = localStorage.getItem(LOCAL_CHAT_KEY);
     if (stored) {
       try {
         return JSON.parse(stored);
@@ -610,15 +667,19 @@ const DarkModeToggle: React.FC = () => {
 // ----------------------------------------------------------
 type TopBarProps = {
   onNewConvo: () => void;
+  onDeleteConvo?: () => void;
   toggleSidebar: () => void;
   sidebarVisible: boolean;
+  isStreaming: boolean;
 };
 
 const TopBar: React.FC<TopBarProps> = ({
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   onNewConvo,
+  onDeleteConvo,
   toggleSidebar,
   sidebarVisible,
+  isStreaming,
 }) => {
   const isAuthed = !!Cookies.get("estatewise_token");
   const username = localStorage.getItem("username") || "Guest";
@@ -724,8 +785,21 @@ const TopBar: React.FC<TopBarProps> = ({
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
-                  onClick={() => window.location.reload()}
-                  className="inline-flex h-8 w-8 items-center justify-center hover:text-primary transition-colors cursor-pointer"
+                  onClick={() => {
+                    if (isStreaming) {
+                      toast.error(
+                        "Please wait for the current response to complete before starting a new conversation",
+                      );
+                      return;
+                    }
+                    window.location.reload();
+                  }}
+                  disabled={isStreaming}
+                  className={`inline-flex h-8 w-8 items-center justify-center transition-colors ${
+                    isStreaming
+                      ? "cursor-not-allowed opacity-60"
+                      : "hover:text-primary cursor-pointer"
+                  }`}
                   aria-label="New Conversation"
                   title="New Conversation"
                 >
@@ -755,6 +829,32 @@ const TopBar: React.FC<TopBarProps> = ({
           </>
         ) : (
           <>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => {
+                    if (isStreaming) {
+                      toast.error(
+                        "Please wait for the current response to complete before starting a new conversation",
+                      );
+                      return;
+                    }
+                    onNewConvo();
+                  }}
+                  disabled={isStreaming}
+                  className={`inline-flex h-8 w-8 items-center justify-center transition-colors ${
+                    isStreaming
+                      ? "cursor-not-allowed opacity-60"
+                      : "hover:text-primary cursor-pointer"
+                  }`}
+                  aria-label="New Conversation"
+                  title="New Conversation"
+                >
+                  <PlusCircle className="w-5 h-5" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>New conversation</TooltipContent>
+            </Tooltip>
             <div className="relative">
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -798,7 +898,11 @@ const TopBar: React.FC<TopBarProps> = ({
               <TooltipTrigger asChild>
                 <button
                   onClick={() => {
-                    localStorage.removeItem("estateWiseChat");
+                    if (onDeleteConvo) {
+                      onDeleteConvo();
+                      return;
+                    }
+                    localStorage.removeItem(LOCAL_CHAT_KEY);
                     toast.success("Conversation deleted successfully");
                     window.location.reload();
                   }}
@@ -926,7 +1030,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             toast.error("Conversation search failed");
           }
         } else {
-          const local = localStorage.getItem("estateWiseConvos");
+          const local = localStorage.getItem(LOCAL_CONVOS_KEY);
           if (local) {
             const convos = JSON.parse(local);
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -947,6 +1051,19 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   const handleRename = async (convId: string) => {
     try {
+      if (!isAuthed) {
+        if (!newTitle.trim()) return;
+        const local = loadGuestConvos();
+        const next = local.map((conv) =>
+          conv._id === convId ? { ...conv, title: newTitle } : conv,
+        );
+        persistGuestConvos(next);
+        toast.success("Conversation renamed");
+        setRenamingId(null);
+        setNewTitle("");
+        refreshConvos();
+        return;
+      }
       const token = Cookies.get("estatewise_token");
       const res = await fetch(`${API_BASE_URL}/api/conversations/${convId}`, {
         method: "PUT",
@@ -972,6 +1089,10 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   const handleGenerateName = async (convId: string) => {
     try {
+      if (!isAuthed) {
+        toast.error("Log in to generate AI titles");
+        return;
+      }
       setGeneratingName(true);
       const token = Cookies.get("estatewise_token");
       const res = await fetch(
@@ -1047,7 +1168,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             variant="outline"
             className="w-full cursor-pointer bg-background hover:bg-muted text-foreground border-input"
             onClick={() => handleGenerateName(conv._id)}
-            disabled={generatingName}
+            disabled={generatingName || !isAuthed}
           >
             {generatingName ? (
               <>
@@ -1093,6 +1214,20 @@ const Sidebar: React.FC<SidebarProps> = ({
   const handleDelete = async () => {
     if (!deleteId) return;
     try {
+      if (!isAuthed) {
+        const local = loadGuestConvos();
+        const next = local.filter((conv) => conv._id !== deleteId);
+        persistGuestConvos(next);
+        if (selectedConvoId === deleteId) {
+          localStorage.setItem(
+            LOCAL_CHAT_KEY,
+            JSON.stringify(next[0]?.messages ?? []),
+          );
+        }
+        toast.success("Conversation deleted");
+        refreshConvos();
+        return;
+      }
       const token = Cookies.get("estatewise_token");
       const res = await fetch(`${API_BASE_URL}/api/conversations/${deleteId}`, {
         method: "DELETE",
@@ -1116,15 +1251,19 @@ const Sidebar: React.FC<SidebarProps> = ({
    * Motion variants for conversation rows
    * ---------------------------------------------------------- */
   const rowVariants = {
-    initial: { opacity: 0, x: -15 },
-    animate: { opacity: 1, x: 0, transition: { duration: 0.25 } },
+    hidden: { opacity: 0, y: 12 },
+    show: (index: number) => ({
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.3, ease: "easeOut", delay: index * 0.05 },
+    }),
   };
 
   /* ----------------------------------------------------------
    * Helper to render a single conversation row
    * ---------------------------------------------------------- */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const ConversationRow = ({ conv }: { conv: any }) => {
+  const ConversationRow = ({ conv, index }: { conv: any; index: number }) => {
     const isSelected = conv._id === selectedConvoId;
     const isNaming = namingInProgress.has(conv._id);
     const isLoading = loadingConversations.has(conv._id);
@@ -1148,8 +1287,9 @@ const Sidebar: React.FC<SidebarProps> = ({
           // @ts-ignore
           ref={(el) => (itemRefs.current[conv._id] = el)}
           variants={rowVariants}
-          initial={highlightId === conv._id ? "initial" : false}
-          animate="animate"
+          custom={index}
+          initial={isAuthed ? "hidden" : false}
+          animate={isAuthed ? "show" : false}
           layout
           className={`flex items-center justify-between border-b border-sidebar-border p-2 shadow-sm transition-colors duration-500 m-2 rounded-md dark:rounded-bl-none dark:rounded-br-none
             ${isSelected ? "bg-muted dark:bg-primary/50" : "hover:bg-muted"}
@@ -1263,9 +1403,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                       <LogIn className="w-8 h-8 text-muted-foreground" />
                     )}
                     <p className="text-center text-sm text-muted-foreground">
-                      {isAuthed
-                        ? "No conversations"
-                        : "Log in to save conversations"}
+                      {isAuthed ? "No conversations" : "No conversations yet"}
                     </p>
                   </div>
                 ) : (
@@ -1275,8 +1413,12 @@ const Sidebar: React.FC<SidebarProps> = ({
                     initial={false}
                     animate={false}
                   >
-                    {conversations.map((conv) => (
-                      <ConversationRow key={conv._id} conv={conv} />
+                    {conversations.map((conv, index) => (
+                      <ConversationRow
+                        key={conv._id}
+                        conv={conv}
+                        index={index}
+                      />
                     ))}
                   </motion.div>
                 )}
@@ -1420,7 +1562,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                 <LogIn className="w-8 h-8 text-muted-foreground" />
               )}
               <p className="text-center text-sm text-muted-foreground">
-                {isAuthed ? "No conversations" : "Log in to save conversations"}
+                {isAuthed ? "No conversations" : "No conversations yet"}
               </p>
             </div>
           ) : (
@@ -1430,8 +1572,8 @@ const Sidebar: React.FC<SidebarProps> = ({
               initial={false}
               animate={false}
             >
-              {conversations.map((conv) => (
-                <ConversationRow key={conv._id} conv={conv} />
+              {conversations.map((conv, index) => (
+                <ConversationRow key={conv._id} conv={conv} index={index} />
               ))}
             </motion.div>
           )}
@@ -1614,6 +1756,46 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   const [historyIndex, setHistoryIndex] = useState(inputHistory.length);
   const [draftInput, setDraftInput] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+  const lastGuestConvoIdRef = useRef<string | null>(selectedConvoId);
+
+  const createGuestConversation = (seedMessages: ChatMessage[] = []) => {
+    const convo = buildGuestConversation(seedMessages);
+    setLocalConvos((prev) => {
+      const next = [convo, ...prev];
+      persistGuestConvos(next);
+      return next;
+    });
+    onSetSelectedConvo(convo);
+    prevConvoId.current = convo._id;
+    localStorage.setItem(LOCAL_CHAT_KEY, JSON.stringify(seedMessages));
+    return convo;
+  };
+
+  const upsertGuestConversation = (nextMessages: ChatMessage[]) => {
+    if (!selectedConvoId) return;
+    setLocalConvos((prev) => {
+      const index = prev.findIndex((conv) => conv._id === selectedConvoId);
+      const now = new Date().toISOString();
+      const base = index >= 0 ? prev[index] : { _id: selectedConvoId };
+      const title = deriveGuestTitle(
+        nextMessages,
+        typeof base.title === "string" ? base.title : "New Conversation",
+      );
+      const updated = {
+        ...base,
+        title,
+        messages: nextMessages,
+        updatedAt: now,
+        createdAt: base.createdAt ?? now,
+      };
+      const next =
+        index >= 0
+          ? [updated, ...prev.filter((_, idx) => idx !== index)]
+          : [updated, ...prev];
+      persistGuestConvos(next);
+      return next;
+    });
+  };
 
   useEffect(() => {
     sessionStorage.setItem("inputHistory", JSON.stringify(inputHistory));
@@ -1709,11 +1891,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   /* sync on conversation switch                                        */
   /* ------------------------------------------------------------------ */
   useEffect(() => {
-    if (
-      isAuthed &&
-      selectedConvoId &&
-      prevConvoId.current !== selectedConvoId
-    ) {
+    if (selectedConvoId && prevConvoId.current !== selectedConvoId) {
       setConvLoading(true);
       const found = localConvos.find((c) => c._id === selectedConvoId);
       setMessages(found?.messages ?? []);
@@ -1721,7 +1899,15 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
       setRatings({}); // clear ratings when switching convo
       setTimeout(() => setConvLoading(false), 250);
     }
-  }, [selectedConvoId, isAuthed, localConvos]);
+  }, [selectedConvoId, localConvos]);
+
+  useEffect(() => {
+    if (!isAuthed && !selectedConvoId) {
+      setMessages([]);
+      prevConvoId.current = null;
+      setRatings({});
+    }
+  }, [isAuthed, selectedConvoId]);
 
   const loadingPhases = [
     { text: "Understanding Your Query", Icon: Search, spin: false },
@@ -1756,8 +1942,8 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   /* persist guest history */
   useEffect(() => {
     if (!Cookies.get("estatewise_token")) {
-      localStorage.setItem("estateWiseChat", JSON.stringify(messages));
-      const hasTimeoutNote = messages.some((m) => m.text?.includes("⚠️"));
+      localStorage.setItem(LOCAL_CHAT_KEY, JSON.stringify(messages));
+      const hasTimeoutNote = messages.some((m) => m?.text?.includes("⚠️"));
       if (hasTimeoutNote) {
         console.log(
           "[Frontend-Guest] Saved messages with timeout note to localStorage",
@@ -1765,6 +1951,19 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
       }
     }
   }, [messages]);
+
+  useEffect(() => {
+    if (isAuthed || loading || convLoading) return;
+    if (!selectedConvoId) {
+      lastGuestConvoIdRef.current = null;
+      return;
+    }
+    if (lastGuestConvoIdRef.current !== selectedConvoId) {
+      lastGuestConvoIdRef.current = selectedConvoId;
+      return;
+    }
+    upsertGuestConversation(messages);
+  }, [isAuthed, loading, convLoading, messages, selectedConvoId]);
 
   /* smarter autoscroll - only scroll if user is at bottom */
   useEffect(() => {
@@ -1832,11 +2031,19 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
 
     const isFirstMessage = messages.length === 0;
 
+    let activeGuestConvoId = selectedConvoId;
+    if (!isAuthed && !activeGuestConvoId) {
+      const convo = createGuestConversation();
+      activeGuestConvoId = convo._id;
+    }
+
     // Add user message immediately
     setMessages((m) => [...m, { role: "user", text }]);
 
     // Track this conversation as loading immediately
-    const currentConvoId = selectedConvoId || "pending";
+    const currentConvoId = isAuthed
+      ? selectedConvoId || "pending"
+      : activeGuestConvoId || "pending";
     setLoadingConversations((prev) => {
       const next = new Set(prev);
       next.add(currentConvoId);
@@ -2330,6 +2537,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
     idx: number;
     isLast: boolean;
   }> = ({ msg, idx, isLast }) => {
+    if (!msg) return null;
     const [view, setView] = useState<string>("Combined");
     const [pickerOpen, setPickerOpen] = useState<boolean>(false);
     const pickerRef = useRef<HTMLDivElement>(null);
@@ -2357,8 +2565,8 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
 
     const displayedText =
       view === "Combined" || !msg.expertViews
-        ? msg.text
-        : msg.expertViews[view];
+        ? (msg.text ?? "")
+        : (msg.expertViews[view] ?? "");
 
     const text =
       view === "Combined" || !msg.expertViews
@@ -2891,8 +3099,8 @@ export default function ChatPage() {
           toast.error("Failed to load conversations");
         }
       } else {
-        const local = localStorage.getItem("estateWiseConvos");
-        if (local) setConversations(JSON.parse(local));
+        const local = loadGuestConvos();
+        setConversations(local);
       }
     } catch (err) {
       console.error("Error fetching conversations:", err);
@@ -2905,6 +3113,55 @@ export default function ChatPage() {
   useEffect(() => {
     refreshConvos();
   }, [isAuthed]);
+
+  useEffect(() => {
+    if (isAuthed) return;
+    if (conversations.length === 0) {
+      if (selectedConvo) setSelectedConvo(null);
+      return;
+    }
+    const stillExists = selectedConvo
+      ? conversations.some((conv) => conv._id === selectedConvo._id)
+      : false;
+    if (!stillExists) {
+      setSelectedConvo(conversations[0]);
+    }
+  }, [isAuthed, conversations, selectedConvo]);
+
+  const handleGuestNewConvo = () => {
+    if (isAuthed) return;
+    const convo = buildGuestConversation([]);
+    setConversations((prev) => {
+      const next = [convo, ...prev];
+      persistGuestConvos(next);
+      return next;
+    });
+    setSelectedConvo(convo);
+    localStorage.setItem(LOCAL_CHAT_KEY, JSON.stringify([]));
+  };
+
+  const handleGuestDeleteConvo = () => {
+    if (isAuthed) return;
+    if (!selectedConvo) {
+      localStorage.setItem(LOCAL_CHAT_KEY, JSON.stringify([]));
+      return;
+    }
+    const local = loadGuestConvos();
+    const next = local.filter((conv) => conv._id !== selectedConvo._id);
+    persistGuestConvos(next);
+    setConversations(next);
+    if (next.length > 0) {
+      setSelectedConvo(next[0]);
+      localStorage.setItem(
+        LOCAL_CHAT_KEY,
+        JSON.stringify(next[0]?.messages ?? []),
+      );
+    } else {
+      setSelectedConvo(null);
+      localStorage.setItem(LOCAL_CHAT_KEY, JSON.stringify([]));
+    }
+    toast.success("Conversation deleted successfully");
+  };
 
   return (
     <>
@@ -3013,12 +3270,11 @@ export default function ChatPage() {
             {/* Main content */}
             <div className="flex-1 flex flex-col duration-600 ease-in-out">
               <TopBar
-                onNewConvo={() => {
-                  setSelectedConvo(null);
-                  if (!isAuthed) localStorage.removeItem("estateWiseChat");
-                }}
+                onNewConvo={handleGuestNewConvo}
+                onDeleteConvo={handleGuestDeleteConvo}
                 toggleSidebar={toggleSidebar}
                 sidebarVisible={sidebarVisible}
+                isStreaming={loadingConversations.size > 0}
               />
               <ChatWindow
                 isAuthed={isAuthed}

@@ -67,6 +67,26 @@ import {
 const getStoredToken = () =>
   Cookies.get("estatewise_token") || Cookies.get("token") || null;
 
+const fadeUpContainer = {
+  hidden: { opacity: 1 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.08,
+      delayChildren: 0.05,
+    },
+  },
+};
+
+const fadeUpItem = {
+  hidden: { opacity: 0, y: 12 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.35, ease: "easeOut" },
+  },
+};
+
 const decodeJwtPayload = (jwt: string) => {
   try {
     const [, payload] = jwt.split(".");
@@ -490,129 +510,138 @@ export default function PostDetailPage() {
         </header>
 
         {/* Main Content */}
-        <main className="container mx-auto px-4 py-8 max-w-4xl">
+        <motion.main
+          className="container mx-auto px-4 py-8 max-w-4xl"
+          variants={fadeUpContainer}
+          initial="hidden"
+          animate="show"
+        >
           {/* Post Card */}
-          <Card className="mb-8">
-            <CardHeader>
-              <div className="flex items-start justify-between gap-4 mb-4">
-                <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
-                    {post.category}
-                  </span>
+          <motion.div variants={fadeUpItem}>
+            <Card className="mb-8">
+              <CardHeader>
+                <div className="flex items-start justify-between gap-4 mb-4">
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
+                      {post.category}
+                    </span>
+                  </div>
+                  {isPostAuthor && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowDeletePostDialog(true)}
+                      className="text-destructive hover:text-destructive"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  )}
                 </div>
-                {isPostAuthor && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowDeletePostDialog(true)}
-                    className="text-destructive hover:text-destructive"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                )}
-              </div>
-              <CardTitle className="text-3xl mb-4">{post.title}</CardTitle>
-              <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                <div className="flex items-center gap-1">
-                  <User className="w-4 h-4" />
-                  <span>{post.author?.username || "Anonymous"}</span>
+                <CardTitle className="text-3xl mb-4">{post.title}</CardTitle>
+                <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-1">
+                    <User className="w-4 h-4" />
+                    <span>{post.author?.username || "Anonymous"}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Clock className="w-4 h-4" />
+                    <span>{formatTimeAgo(post.createdAt)}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Eye className="w-4 h-4" />
+                    <span>{post.viewCount} views</span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1">
-                  <Clock className="w-4 h-4" />
-                  <span>{formatTimeAgo(post.createdAt)}</span>
+              </CardHeader>
+              <CardContent>
+                <div className="prose dark:prose-invert max-w-none mb-6">
+                  {post.content.split("\n").map((paragraph, idx) => (
+                    <p key={idx} className="mb-3">
+                      {paragraph}
+                    </p>
+                  ))}
                 </div>
-                <div className="flex items-center gap-1">
-                  <Eye className="w-4 h-4" />
-                  <span>{post.viewCount} views</span>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="prose dark:prose-invert max-w-none mb-6">
-                {post.content.split("\n").map((paragraph, idx) => (
-                  <p key={idx} className="mb-3">
-                    {paragraph}
-                  </p>
-                ))}
-              </div>
 
-              <Separator className="my-4" />
+                <Separator className="my-4" />
 
-              {/* Voting Section */}
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleVote("upvote")}
-                    className={
-                      userId && post.upvotes?.includes(userId)
-                        ? "text-primary"
-                        : ""
-                    }
-                  >
-                    <ThumbsUp className="w-4 h-4 mr-1" />
-                    {post.upvotes?.length || 0}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleVote("downvote")}
-                    className={
-                      userId && post.downvotes?.includes(userId)
-                        ? "text-destructive"
-                        : ""
-                    }
-                  >
-                    <ThumbsDown className="w-4 h-4 mr-1" />
-                    {post.downvotes?.length || 0}
-                  </Button>
+                {/* Voting Section */}
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleVote("upvote")}
+                      className={
+                        userId && post.upvotes?.includes(userId)
+                          ? "text-primary"
+                          : ""
+                      }
+                    >
+                      <ThumbsUp className="w-4 h-4 mr-1" />
+                      {post.upvotes?.length || 0}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleVote("downvote")}
+                      className={
+                        userId && post.downvotes?.includes(userId)
+                          ? "text-destructive"
+                          : ""
+                      }
+                    >
+                      <ThumbsDown className="w-4 h-4 mr-1" />
+                      {post.downvotes?.length || 0}
+                    </Button>
+                  </div>
+                  <div className="flex items-center gap-1 text-muted-foreground dark:text-foreground">
+                    <MessageSquare className="w-4 h-4" />
+                    <span>{post.commentCount} comments</span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1 text-muted-foreground dark:text-foreground">
-                  <MessageSquare className="w-4 h-4" />
-                  <span>{post.commentCount} comments</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </motion.div>
 
           {/* Comment Input */}
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle className="text-lg">Add a Comment</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <Textarea
-                  placeholder={
-                    isAuthed
-                      ? "Share your thoughts..."
-                      : "Please log in to comment"
-                  }
-                  value={commentText}
-                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
-                    setCommentText(e.target.value)
-                  }
-                  disabled={!isAuthed}
-                  rows={4}
-                  className="resize-none"
-                />
-                <div className="flex justify-end">
-                  <Button
-                    onClick={handleSubmitComment}
-                    disabled={!isAuthed || submitting || !commentText.trim()}
-                    className="gap-2"
-                  >
-                    <Send className="w-4 h-4" />
-                    {submitting ? "Posting..." : "Post Comment"}
-                  </Button>
+          <motion.div variants={fadeUpItem}>
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle className="text-lg">Add a Comment</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <Textarea
+                    placeholder={
+                      isAuthed
+                        ? "Share your thoughts..."
+                        : "Please log in to comment"
+                    }
+                    value={commentText}
+                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                      setCommentText(e.target.value)
+                    }
+                    disabled={!isAuthed}
+                    rows={4}
+                    className="resize-none"
+                  />
+                  <div className="flex justify-end">
+                    <Button
+                      onClick={handleSubmitComment}
+                      disabled={!isAuthed || submitting || !commentText.trim()}
+                      className="gap-2"
+                    >
+                      <Send className="w-4 h-4" />
+                      {submitting ? "Posting..." : "Post Comment"}
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </motion.div>
 
           {/* Comments List */}
-          <div className="space-y-4">
+          <motion.div className="space-y-4" variants={fadeUpItem}>
             <h2 className="text-2xl font-bold mb-4 text-foreground">
               Comments ({comments.length})
             </h2>
@@ -700,8 +729,8 @@ export default function PostDetailPage() {
                 </motion.div>
               ))
             )}
-          </div>
-        </main>
+          </motion.div>
+        </motion.main>
 
         {/* Delete Post Dialog */}
         <Dialog

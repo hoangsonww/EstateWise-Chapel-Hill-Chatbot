@@ -49,6 +49,7 @@ import {
   Users,
 } from "lucide-react";
 import { DarkModeToggle } from "@/components/dark-mode-toggle";
+import { motion } from "framer-motion";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type GraphNode = Record<string, any>;
@@ -62,6 +63,26 @@ function prettyMoney(n?: number | null) {
     maximumFractionDigits: 0,
   });
 }
+
+const fadeUpContainer = {
+  hidden: { opacity: 1 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.08,
+      delayChildren: 0.05,
+    },
+  },
+};
+
+const fadeUpItem = {
+  hidden: { opacity: 0, y: 12 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.35, ease: "easeOut" },
+  },
+};
 
 //
 
@@ -796,8 +817,13 @@ export default function InsightsPage() {
             </nav>
           </div>
         </header>
-        <main className="flex-1 p-4 md:p-8 max-w-6xl mx-auto w-full">
-          <header className="mb-6">
+        <motion.main
+          className="flex-1 p-4 md:p-8 max-w-6xl mx-auto w-full"
+          variants={fadeUpContainer}
+          initial="hidden"
+          animate="show"
+        >
+          <motion.header className="mb-6" variants={fadeUpItem}>
             <h1 className="text-3xl font-bold flex items-center gap-2">
               <BarChart3 className="w-7 h-7" /> Insights & Tools
             </h1>
@@ -805,69 +831,78 @@ export default function InsightsPage() {
               Graph explanations, neighborhood insights, and mortgage
               calculators.
             </p>
-          </header>
+          </motion.header>
 
-          <Card className="mb-8 overflow-hidden border-primary/30 bg-gradient-to-r from-primary/20 via-primary/10 to-transparent shadow-sm">
-            <CardContent className="p-6 md:p-8">
-              <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-                <div className="space-y-3 max-w-2xl">
-                  <span className="inline-flex items-center gap-2 rounded-full bg-primary/15 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-primary">
-                    <TrendingUp className="h-4 w-4" /> Market Pulse
-                  </span>
-                  <h2 className="text-2xl font-semibold leading-tight">
-                    Live market dashboards for the neighborhoods you monitor
-                  </h2>
-                  <p className="text-muted-foreground">
-                    Track listing velocity, median price shifts, and absorption
-                    rates without leaving your workflow. Market Pulse distills
-                    the essentials into actionable visuals.
-                  </p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-muted-foreground">
-                    <div className="rounded-lg border border-primary/20 bg-background/70 px-3 py-2">
-                      Rolling price change snapshots
-                    </div>
-                    <div className="rounded-lg border border-primary/20 bg-background/70 px-3 py-2">
-                      Inventory &amp; demand ratio alerts
-                    </div>
-                    <div className="rounded-lg border border-primary/20 bg-background/70 px-3 py-2">
-                      Fresh comp highlights
-                    </div>
-                    <div className="rounded-lg border border-primary/20 bg-background/70 px-3 py-2">
-                      Export-friendly chart views
-                    </div>
-                  </div>
-                </div>
-                <div className="flex flex-col items-start gap-4 md:items-end">
-                  <div className="rounded-full border border-primary/30 bg-background/70 px-4 py-1 text-xs font-semibold uppercase tracking-wide text-primary">
-                    Updated daily
-                  </div>
-                  <Button asChild size="lg" className="group">
-                    <Link href="/market-pulse">
-                      Explore Market Pulse
-                      <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-                    </Link>
-                  </Button>
-                  <p className="text-xs text-muted-foreground md:text-right">
-                    Preview coverage for Raleigh-Durham, Charlotte, and coastal
-                    NC markets.
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-            {/* Graph Tools */}
-            <div className="flex flex-col gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <span className="flex items-center gap-2">
-                      <GitBranch className="w-5 h-5" /> Explain Relationship
+          <motion.div variants={fadeUpItem}>
+            <Card className="mb-8 overflow-hidden border-primary/30 bg-gradient-to-r from-primary/20 via-primary/10 to-transparent shadow-sm">
+              <CardContent className="p-6 md:p-8">
+                <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+                  <div className="space-y-3 max-w-2xl">
+                    <span className="inline-flex items-center gap-2 rounded-full bg-primary/15 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-primary">
+                      <TrendingUp className="h-4 w-4" /> Market Pulse
                     </span>
-                    <HelpDialog
-                      title="How to Use Explain Relationship"
-                      content={`This tool finds and displays the shortest connection path between two properties in our graph database.
+                    <h2 className="text-2xl font-semibold leading-tight">
+                      Live market dashboards for the neighborhoods you monitor
+                    </h2>
+                    <p className="text-muted-foreground">
+                      Track listing velocity, median price shifts, and
+                      absorption rates without leaving your workflow. Market
+                      Pulse distills the essentials into actionable visuals.
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-muted-foreground">
+                      <div className="rounded-lg border border-primary/20 bg-background/70 px-3 py-2">
+                        Rolling price change snapshots
+                      </div>
+                      <div className="rounded-lg border border-primary/20 bg-background/70 px-3 py-2">
+                        Inventory &amp; demand ratio alerts
+                      </div>
+                      <div className="rounded-lg border border-primary/20 bg-background/70 px-3 py-2">
+                        Fresh comp highlights
+                      </div>
+                      <div className="rounded-lg border border-primary/20 bg-background/70 px-3 py-2">
+                        Export-friendly chart views
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-start gap-4 md:items-end">
+                    <div className="rounded-full border border-primary/30 bg-background/70 px-4 py-1 text-xs font-semibold uppercase tracking-wide text-primary">
+                      Updated daily
+                    </div>
+                    <Button asChild size="lg" className="group">
+                      <Link href="/market-pulse">
+                        Explore Market Pulse
+                        <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                      </Link>
+                    </Button>
+                    <p className="text-xs text-muted-foreground md:text-right">
+                      Preview coverage for Raleigh-Durham, Charlotte, and
+                      coastal NC markets.
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <motion.div
+            className="grid grid-cols-1 xl:grid-cols-2 gap-6"
+            variants={fadeUpContainer}
+          >
+            {/* Graph Tools */}
+            <motion.div
+              className="flex flex-col gap-6"
+              variants={fadeUpContainer}
+            >
+              <motion.div variants={fadeUpItem}>
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                      <span className="flex items-center gap-2">
+                        <GitBranch className="w-5 h-5" /> Explain Relationship
+                      </span>
+                      <HelpDialog
+                        title="How to Use Explain Relationship"
+                        content={`This tool finds and displays the shortest connection path between two properties in our graph database.
 
 **What you need:**
 • From ZPID: The starting property's Zillow ID
@@ -883,110 +918,112 @@ The tool searches for connections through:
 • Use the "Get ZPID" button if you don't know a property's ZPID
 • The visual graph shows how properties are connected
 • Shorter paths indicate stronger relationships`}
-                    />
-                  </CardTitle>
-                  <CardDescription>
-                    Return the shortest path between two properties via same
-                    ZIP, same neighborhood, or similarity edges.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="flex flex-col gap-3">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
-                    <Field label="From ZPID">
-                      <Input
-                        type="number"
-                        value={fromZpid || ""}
-                        onChange={(e) => setFromZpid(Number(e.target.value))}
-                        onKeyDown={(e) => {
-                          if (
-                            e.key === "Enter" &&
-                            fromZpid &&
-                            toZpid &&
-                            !explainLoading
-                          ) {
-                            onExplain();
-                          }
-                        }}
-                        placeholder="e.g. 123456"
                       />
-                    </Field>
-                    <Field label="To ZPID">
-                      <Input
-                        type="number"
-                        value={toZpid || ""}
-                        onChange={(e) => setToZpid(Number(e.target.value))}
-                        onKeyDown={(e) => {
-                          if (
-                            e.key === "Enter" &&
-                            fromZpid &&
-                            toZpid &&
-                            !explainLoading
-                          ) {
-                            onExplain();
-                          }
-                        }}
-                        placeholder="e.g. 789012"
-                      />
-                    </Field>
-                    <Button
-                      onClick={onExplain}
-                      disabled={explainLoading || !fromZpid || !toZpid}
-                    >
-                      {explainLoading ? "Explaining..." : "Explain"}
-                    </Button>
-                  </div>
-                  <div className="flex justify-end">
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      size="sm"
-                      className="mt-2 cursor-pointer"
-                      onClick={() => {
-                        setLookupMode("explain");
-                        setLookupOpen(true);
-                      }}
-                    >
-                      Get ZPID
-                    </Button>
-                  </div>
-                  <Separator />
-                  {pathData ? (
-                    <div className="space-y-3">
-                      <div className="flex flex-wrap items-center gap-2">
-                        {pathData.nodes.map((n, i) => (
-                          <React.Fragment key={i}>
-                            <NodeChip node={n} />
-                            {i < pathData.rels.length && (
-                              <RelChip type={pathData.rels[i].type} />
-                            )}
-                          </React.Fragment>
-                        ))}
-                      </div>
-                      <div className="rounded-md border p-2 bg-muted/30">
-                        <PathGraph
-                          nodes={pathData.nodes}
-                          rels={pathData.rels}
+                    </CardTitle>
+                    <CardDescription>
+                      Return the shortest path between two properties via same
+                      ZIP, same neighborhood, or similarity edges.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="flex flex-col gap-3">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
+                      <Field label="From ZPID">
+                        <Input
+                          type="number"
+                          value={fromZpid || ""}
+                          onChange={(e) => setFromZpid(Number(e.target.value))}
+                          onKeyDown={(e) => {
+                            if (
+                              e.key === "Enter" &&
+                              fromZpid &&
+                              toZpid &&
+                              !explainLoading
+                            ) {
+                              onExplain();
+                            }
+                          }}
+                          placeholder="e.g. 123456"
                         />
-                      </div>
+                      </Field>
+                      <Field label="To ZPID">
+                        <Input
+                          type="number"
+                          value={toZpid || ""}
+                          onChange={(e) => setToZpid(Number(e.target.value))}
+                          onKeyDown={(e) => {
+                            if (
+                              e.key === "Enter" &&
+                              fromZpid &&
+                              toZpid &&
+                              !explainLoading
+                            ) {
+                              onExplain();
+                            }
+                          }}
+                          placeholder="e.g. 789012"
+                        />
+                      </Field>
+                      <Button
+                        onClick={onExplain}
+                        disabled={explainLoading || !fromZpid || !toZpid}
+                      >
+                        {explainLoading ? "Explaining..." : "Explain"}
+                      </Button>
                     </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground flex items-center gap-2">
-                      <Info className="w-4 h-4" /> Enter two zpids to see their
-                      connection.
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
+                    <div className="flex justify-end">
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        className="mt-2 cursor-pointer"
+                        onClick={() => {
+                          setLookupMode("explain");
+                          setLookupOpen(true);
+                        }}
+                      >
+                        Get ZPID
+                      </Button>
+                    </div>
+                    <Separator />
+                    {pathData ? (
+                      <div className="space-y-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                          {pathData.nodes.map((n, i) => (
+                            <React.Fragment key={i}>
+                              <NodeChip node={n} />
+                              {i < pathData.rels.length && (
+                                <RelChip type={pathData.rels[i].type} />
+                              )}
+                            </React.Fragment>
+                          ))}
+                        </div>
+                        <div className="rounded-md border p-2 bg-muted/30">
+                          <PathGraph
+                            nodes={pathData.nodes}
+                            rels={pathData.rels}
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground flex items-center gap-2">
+                        <Info className="w-4 h-4" /> Enter two zpids to see
+                        their connection.
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+              </motion.div>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <span className="flex items-center gap-2">
-                      <House className="w-5 h-5" /> Graph Similar Properties
-                    </span>
-                    <HelpDialog
-                      title="How to Use Graph Similar Properties"
-                      content={`This tool finds properties similar to your target property based on graph relationships.
+              <motion.div variants={fadeUpItem}>
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                      <span className="flex items-center gap-2">
+                        <House className="w-5 h-5" /> Graph Similar Properties
+                      </span>
+                      <HelpDialog
+                        title="How to Use Graph Similar Properties"
+                        content={`This tool finds properties similar to your target property based on graph relationships.
 
 **What you need:**
 • ZPID: The property's Zillow ID to find similar homes for
@@ -1006,136 +1043,141 @@ The tool searches for connections through:
 • Finding comparable properties for pricing
 • Discovering alternative homes to consider
 • Market analysis in specific areas`}
-                    />
-                  </CardTitle>
-                  <CardDescription>
-                    Find similar homes by explicit graph relationships with
-                    reasons.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="flex flex-col gap-3">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
-                    <Field label="ZPID">
-                      <Input
-                        type="number"
-                        value={similarZpid || ""}
-                        onChange={(e) => setSimilarZpid(Number(e.target.value))}
-                        onKeyDown={(e) => {
-                          if (
-                            e.key === "Enter" &&
-                            similarZpid &&
-                            !similarLoading
-                          ) {
-                            onFetchSimilar();
+                      />
+                    </CardTitle>
+                    <CardDescription>
+                      Find similar homes by explicit graph relationships with
+                      reasons.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="flex flex-col gap-3">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
+                      <Field label="ZPID">
+                        <Input
+                          type="number"
+                          value={similarZpid || ""}
+                          onChange={(e) =>
+                            setSimilarZpid(Number(e.target.value))
                           }
+                          onKeyDown={(e) => {
+                            if (
+                              e.key === "Enter" &&
+                              similarZpid &&
+                              !similarLoading
+                            ) {
+                              onFetchSimilar();
+                            }
+                          }}
+                          placeholder="e.g. 123456"
+                        />
+                      </Field>
+                      <Field
+                        label={`Limit: ${similarLimit}`}
+                        className="md:self-center md:h-full md:justify-center"
+                      >
+                        <Slider
+                          value={[similarLimit]}
+                          min={1}
+                          max={20}
+                          step={1}
+                          onValueChange={(v) => setSimilarLimit(v[0])}
+                          className="w-full"
+                        />
+                      </Field>
+                      <Button
+                        onClick={onFetchSimilar}
+                        disabled={similarLoading || !similarZpid}
+                      >
+                        {similarLoading ? "Loading..." : "Fetch"}
+                      </Button>
+                    </div>
+                    <div className="flex justify-end">
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        className="mt-2 cursor-pointer"
+                        onClick={() => {
+                          setLookupMode("similar");
+                          setLookupOpen(true);
                         }}
-                        placeholder="e.g. 123456"
-                      />
-                    </Field>
-                    <Field
-                      label={`Limit: ${similarLimit}`}
-                      className="md:self-center md:h-full md:justify-center"
-                    >
-                      <Slider
-                        value={[similarLimit]}
-                        min={1}
-                        max={20}
-                        step={1}
-                        onValueChange={(v) => setSimilarLimit(v[0])}
-                        className="w-full"
-                      />
-                    </Field>
-                    <Button
-                      onClick={onFetchSimilar}
-                      disabled={similarLoading || !similarZpid}
-                    >
-                      {similarLoading ? "Loading..." : "Fetch"}
-                    </Button>
-                  </div>
-                  <div className="flex justify-end">
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      size="sm"
-                      className="mt-2 cursor-pointer"
-                      onClick={() => {
-                        setLookupMode("similar");
-                        setLookupOpen(true);
-                      }}
-                    >
-                      Get ZPID
-                    </Button>
-                  </div>
-                  <Separator />
-                  <div className="flex flex-col gap-2">
-                    {similarData && similarData.length > 0 ? (
-                      <>
-                        <ul className="space-y-2">
-                          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                          {similarData.map((item: any, idx: number) => (
-                            <li key={idx} className="rounded border p-3">
-                              <div className="flex justify-between text-sm">
-                                <div>
-                                  <div className="font-medium">
-                                    {item.property.streetAddress || "Property"}
-                                    {item.property.city
-                                      ? `, ${item.property.city}`
-                                      : ""}
-                                    {item.property.state
-                                      ? `, ${item.property.state}`
-                                      : ""}
-                                    {item.property.zipcode
-                                      ? ` ${item.property.zipcode}`
-                                      : ""}
+                      >
+                        Get ZPID
+                      </Button>
+                    </div>
+                    <Separator />
+                    <div className="flex flex-col gap-2">
+                      {similarData && similarData.length > 0 ? (
+                        <>
+                          <ul className="space-y-2">
+                            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                            {similarData.map((item: any, idx: number) => (
+                              <li key={idx} className="rounded border p-3">
+                                <div className="flex justify-between text-sm">
+                                  <div>
+                                    <div className="font-medium">
+                                      {item.property.streetAddress ||
+                                        "Property"}
+                                      {item.property.city
+                                        ? `, ${item.property.city}`
+                                        : ""}
+                                      {item.property.state
+                                        ? `, ${item.property.state}`
+                                        : ""}
+                                      {item.property.zipcode
+                                        ? ` ${item.property.zipcode}`
+                                        : ""}
+                                    </div>
+                                    <div className="text-muted-foreground">
+                                      {prettyMoney(item.property.price)} •{" "}
+                                      {item.property.bedrooms ?? "?"} bd •{" "}
+                                      {item.property.bathrooms ?? "?"} ba •{" "}
+                                      {item.property.livingArea ?? "?"} sqft
+                                    </div>
                                   </div>
-                                  <div className="text-muted-foreground">
-                                    {prettyMoney(item.property.price)} •{" "}
-                                    {item.property.bedrooms ?? "?"} bd •{" "}
-                                    {item.property.bathrooms ?? "?"} ba •{" "}
-                                    {item.property.livingArea ?? "?"} sqft
+                                  <div className="text-xs text-muted-foreground">
+                                    score{" "}
+                                    {item.score?.toFixed
+                                      ? item.score.toFixed(3)
+                                      : item.score}
                                   </div>
                                 </div>
-                                <div className="text-xs text-muted-foreground">
-                                  score{" "}
-                                  {item.score?.toFixed
-                                    ? item.score.toFixed(3)
-                                    : item.score}
-                                </div>
-                              </div>
-                              {Array.isArray(item.reasons) &&
-                                item.reasons.length > 0 && (
-                                  <div className="mt-1 text-xs">
-                                    Reasons: {item.reasons.join(", ")}
-                                  </div>
-                                )}
-                            </li>
-                          ))}
-                        </ul>
-                        <div className="rounded-md border p-2 bg-muted/30 mt-3">
-                          <SimilarGraph
-                            centerLabel={`ZPID ${lastFetchedZpid || "?"}`}
-                            nodes={similarGraphNodes}
-                          />
-                        </div>
-                      </>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">
-                        Enter a zpid to find graph-based similarities.
-                      </p>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
+                                {Array.isArray(item.reasons) &&
+                                  item.reasons.length > 0 && (
+                                    <div className="mt-1 text-xs">
+                                      Reasons: {item.reasons.join(", ")}
+                                    </div>
+                                  )}
+                              </li>
+                            ))}
+                          </ul>
+                          <div className="rounded-md border p-2 bg-muted/30 mt-3">
+                            <SimilarGraph
+                              centerLabel={`ZPID ${lastFetchedZpid || "?"}`}
+                              nodes={similarGraphNodes}
+                            />
+                          </div>
+                        </>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">
+                          Enter a zpid to find graph-based similarities.
+                        </p>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <span className="flex items-center gap-2">
-                      <MapPin className="w-5 h-5" /> Neighborhood Stats
-                    </span>
-                    <HelpDialog
-                      title="How to Use Neighborhood Stats"
-                      content={`This tool provides statistical summaries and property samples for specific neighborhoods.
+              <motion.div variants={fadeUpItem}>
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                      <span className="flex items-center gap-2">
+                        <MapPin className="w-5 h-5" /> Neighborhood Stats
+                      </span>
+                      <HelpDialog
+                        title="How to Use Neighborhood Stats"
+                        content={`This tool provides statistical summaries and property samples for specific neighborhoods.
 
 **What you need:**
 • Neighborhood Name: Enter the name (e.g., "Meadowmont")
@@ -1153,114 +1195,120 @@ The tool searches for connections through:
 • Drag nodes in the graph to explore relationships
 • Larger nodes indicate higher-priced properties
 • Use for quick neighborhood market overviews`}
-                    />
-                  </CardTitle>
-                  <CardDescription>
-                    Summaries by neighborhood with a sample list of properties.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="flex flex-col gap-3">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
-                    <Field label="Neighborhood Name">
-                      <Input
-                        value={hoodName}
-                        onChange={(e) => setHoodName(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (
-                            e.key === "Enter" &&
-                            hoodName.trim() &&
-                            !hoodLoading
-                          ) {
-                            onFetchHood();
-                          }
-                        }}
-                        placeholder="e.g. Meadowmont"
                       />
-                    </Field>
-                    <Field
-                      label={`Limit: ${hoodLimit}`}
-                      className="md:self-center md:h-full md:justify-center"
-                    >
-                      <Slider
-                        value={[hoodLimit]}
-                        min={5}
-                        max={100}
-                        step={5}
-                        onValueChange={(v) => setHoodLimit(v[0])}
-                        className="w-full"
-                      />
-                    </Field>
-                    <Button
-                      onClick={onFetchHood}
-                      disabled={hoodLoading || !hoodName.trim()}
-                    >
-                      {hoodLoading ? "Loading..." : "Fetch"}
-                    </Button>
-                  </div>
-                  <Separator />
-                  {hoodData ? (
-                    <div className="space-y-2">
-                      <div className="text-sm">
-                        <span className="font-medium">Count:</span>{" "}
-                        {hoodData.count} •{" "}
-                        <span className="font-medium">Avg Price:</span>{" "}
-                        {prettyMoney(hoodData.avgPrice)} •{" "}
-                        <span className="font-medium">Avg Area:</span>{" "}
-                        {hoodData.avgArea
-                          ? Math.round(hoodData.avgArea) + " sqft"
-                          : "N/A"}
-                      </div>
-                      <ul className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                        {Array.isArray(hoodData.properties) &&
-                          hoodData.properties
-                            .slice(0, hoodLimit)
-                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                            .map((p: any, i: number) => (
-                              <li
-                                key={i}
-                                className="rounded border p-3 text-sm"
-                              >
-                                <div className="font-medium">
-                                  {p.streetAddress || "Property"}
-                                  {p.city ? `, ${p.city}` : ""}
-                                  {p.state ? `, ${p.state}` : ""}{" "}
-                                  {p.zipcode || ""}
-                                </div>
-                                <div className="text-muted-foreground">
-                                  {prettyMoney(p.price)} • {p.bedrooms ?? "?"}{" "}
-                                  bd • {p.bathrooms ?? "?"} ba
-                                </div>
-                              </li>
-                            ))}
-                      </ul>
-                      <div className="rounded-md border p-2 bg-muted/30">
-                        <NeighborhoodForceGraph
-                          name={hoodData.neighborhood || hoodName}
-                          properties={hoodData.properties || []}
+                    </CardTitle>
+                    <CardDescription>
+                      Summaries by neighborhood with a sample list of
+                      properties.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="flex flex-col gap-3">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
+                      <Field label="Neighborhood Name">
+                        <Input
+                          value={hoodName}
+                          onChange={(e) => setHoodName(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (
+                              e.key === "Enter" &&
+                              hoodName.trim() &&
+                              !hoodLoading
+                            ) {
+                              onFetchHood();
+                            }
+                          }}
+                          placeholder="e.g. Meadowmont"
                         />
-                      </div>
+                      </Field>
+                      <Field
+                        label={`Limit: ${hoodLimit}`}
+                        className="md:self-center md:h-full md:justify-center"
+                      >
+                        <Slider
+                          value={[hoodLimit]}
+                          min={5}
+                          max={100}
+                          step={5}
+                          onValueChange={(v) => setHoodLimit(v[0])}
+                          className="w-full"
+                        />
+                      </Field>
+                      <Button
+                        onClick={onFetchHood}
+                        disabled={hoodLoading || !hoodName.trim()}
+                      >
+                        {hoodLoading ? "Loading..." : "Fetch"}
+                      </Button>
                     </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">
-                      Enter a neighborhood name to see summary stats.
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
+                    <Separator />
+                    {hoodData ? (
+                      <div className="space-y-2">
+                        <div className="text-sm">
+                          <span className="font-medium">Count:</span>{" "}
+                          {hoodData.count} •{" "}
+                          <span className="font-medium">Avg Price:</span>{" "}
+                          {prettyMoney(hoodData.avgPrice)} •{" "}
+                          <span className="font-medium">Avg Area:</span>{" "}
+                          {hoodData.avgArea
+                            ? Math.round(hoodData.avgArea) + " sqft"
+                            : "N/A"}
+                        </div>
+                        <ul className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                          {Array.isArray(hoodData.properties) &&
+                            hoodData.properties
+                              .slice(0, hoodLimit)
+                              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                              .map((p: any, i: number) => (
+                                <li
+                                  key={i}
+                                  className="rounded border p-3 text-sm"
+                                >
+                                  <div className="font-medium">
+                                    {p.streetAddress || "Property"}
+                                    {p.city ? `, ${p.city}` : ""}
+                                    {p.state ? `, ${p.state}` : ""}{" "}
+                                    {p.zipcode || ""}
+                                  </div>
+                                  <div className="text-muted-foreground">
+                                    {prettyMoney(p.price)} • {p.bedrooms ?? "?"}{" "}
+                                    bd • {p.bathrooms ?? "?"} ba
+                                  </div>
+                                </li>
+                              ))}
+                        </ul>
+                        <div className="rounded-md border p-2 bg-muted/30">
+                          <NeighborhoodForceGraph
+                            name={hoodData.neighborhood || hoodName}
+                            properties={hoodData.properties || []}
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">
+                        Enter a neighborhood name to see summary stats.
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </motion.div>
 
             {/* Mortgage & Calculators */}
-            <div className="flex flex-col gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <span className="flex items-center gap-2">
-                      <Calculator className="w-5 h-5" /> Mortgage Calculator
-                    </span>
-                    <HelpDialog
-                      title="How to Use Mortgage Calculator"
-                      content={`This comprehensive calculator helps you understand the true cost of homeownership.
+            <motion.div
+              className="flex flex-col gap-6"
+              variants={fadeUpContainer}
+            >
+              <motion.div variants={fadeUpItem}>
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                      <span className="flex items-center gap-2">
+                        <Calculator className="w-5 h-5" /> Mortgage Calculator
+                      </span>
+                      <HelpDialog
+                        title="How to Use Mortgage Calculator"
+                        content={`This comprehensive calculator helps you understand the true cost of homeownership.
 
 **Main inputs:**
 • Home Price: Total purchase price
@@ -1284,258 +1332,269 @@ The tool searches for connections through:
 • Use sliders for quick adjustments
 • Charts update automatically
 • Consider all costs, not just principal & interest`}
-                    />
-                  </CardTitle>
-                  <CardDescription>
-                    Interactive monthly payment breakdown with taxes, insurance,
-                    and HOA.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="flex flex-col gap-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Field label="Home Price">
+                      />
+                    </CardTitle>
+                    <CardDescription>
+                      Interactive monthly payment breakdown with taxes,
+                      insurance, and HOA.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="flex flex-col gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <Field label="Home Price">
+                        <Input
+                          type="number"
+                          value={price}
+                          onChange={(e) => setPrice(Number(e.target.value))}
+                        />
+                      </Field>
+                      <Field
+                        label={`Down Payment: ${downPct}%`}
+                        className="md:self-center md:h-full md:justify-center"
+                      >
+                        <Slider
+                          value={[downPct]}
+                          min={0}
+                          max={50}
+                          step={1}
+                          onValueChange={(v) => setDownPct(v[0])}
+                        />
+                      </Field>
+                      <Field
+                        label={`Interest Rate (APR): ${rate}%`}
+                        className="md:self-center md:h-full md:justify-center"
+                      >
+                        <Slider
+                          value={[rate]}
+                          min={1}
+                          max={12}
+                          step={0.125}
+                          onValueChange={(v) => setRate(v[0])}
+                        />
+                      </Field>
+                      <Field
+                        label={`Term: ${termYears} years`}
+                        className="md:self-center md:h-full md:justify-center"
+                      >
+                        <Slider
+                          value={[termYears]}
+                          min={10}
+                          max={30}
+                          step={5}
+                          onValueChange={(v) => setTermYears(v[0])}
+                        />
+                      </Field>
+                      <Field
+                        label={`Property Tax Rate: ${taxRatePct}%`}
+                        className="md:self-center md:h-full md:justify-center"
+                      >
+                        <Slider
+                          value={[taxRatePct]}
+                          min={0.2}
+                          max={2.0}
+                          step={0.05}
+                          onValueChange={(v) =>
+                            setTaxRatePct(Number(v[0].toFixed(2)))
+                          }
+                        />
+                      </Field>
+                      <Field label="Insurance (monthly)">
+                        <Input
+                          type="number"
+                          value={insMonthly}
+                          onChange={(e) =>
+                            setInsMonthly(Number(e.target.value))
+                          }
+                        />
+                      </Field>
+                      <Field label="HOA (monthly)">
+                        <Input
+                          type="number"
+                          value={hoaMonthly}
+                          onChange={(e) =>
+                            setHoaMonthly(Number(e.target.value))
+                          }
+                        />
+                      </Field>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <Card className="h-full">
+                        <CardHeader>
+                          <CardTitle className="text-base">
+                            Monthly Breakdown
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="h-64">
+                          <BreakdownChart data={breakdown} />
+                        </CardContent>
+                      </Card>
+                      <Card className="h-full">
+                        <CardHeader>
+                          <CardTitle className="text-base">Summary</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-2">
+                          <div className="text-sm">
+                            Loan Amount:{" "}
+                            <span className="font-medium">
+                              {prettyMoney(loanAmt)}
+                            </span>
+                          </div>
+                          <div className="text-sm">
+                            P&I:{" "}
+                            <span className="font-medium">
+                              {prettyMoney(pAndI)}
+                            </span>
+                          </div>
+                          <div className="text-sm">
+                            Taxes:{" "}
+                            <span className="font-medium">
+                              {prettyMoney(taxesMonthly)}
+                            </span>
+                          </div>
+                          <div className="text-sm">
+                            Insurance:{" "}
+                            <span className="font-medium">
+                              {prettyMoney(insMonthly)}
+                            </span>
+                          </div>
+                          <div className="text-sm">
+                            HOA:{" "}
+                            <span className="font-medium">
+                              {prettyMoney(hoaMonthly)}
+                            </span>
+                          </div>
+                          <Separator />
+                          <div className="text-lg">
+                            Total Monthly:{" "}
+                            <span className="font-semibold">
+                              {prettyMoney(totalMonthly)}
+                            </span>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                      <Card className="h-full">
+                        <CardHeader>
+                          <CardTitle className="text-base">
+                            Rate Sensitivity
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="h-64">
+                          <RateSensitivityChart
+                            loanAmt={loanAmt}
+                            termYears={termYears}
+                          />
+                        </CardContent>
+                      </Card>
+                      <Card className="h-full">
+                        <CardHeader>
+                          <CardTitle className="text-base">
+                            Down Payment Impact
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="h-64">
+                          <DownPaymentImpactChart
+                            price={price}
+                            rate={rate}
+                            termYears={termYears}
+                          />
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+              <motion.div variants={fadeUpItem}>
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">
+                      Affordability Estimator
+                    </CardTitle>
+                    <CardDescription>
+                      Estimate a maximum home price from income, target DTI and
+                      other debts.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Field label="Monthly Income">
                       <Input
                         type="number"
-                        value={price}
-                        onChange={(e) => setPrice(Number(e.target.value))}
-                      />
-                    </Field>
-                    <Field
-                      label={`Down Payment: ${downPct}%`}
-                      className="md:self-center md:h-full md:justify-center"
-                    >
-                      <Slider
-                        value={[downPct]}
-                        min={0}
-                        max={50}
-                        step={1}
-                        onValueChange={(v) => setDownPct(v[0])}
-                      />
-                    </Field>
-                    <Field
-                      label={`Interest Rate (APR): ${rate}%`}
-                      className="md:self-center md:h-full md:justify-center"
-                    >
-                      <Slider
-                        value={[rate]}
-                        min={1}
-                        max={12}
-                        step={0.125}
-                        onValueChange={(v) => setRate(v[0])}
-                      />
-                    </Field>
-                    <Field
-                      label={`Term: ${termYears} years`}
-                      className="md:self-center md:h-full md:justify-center"
-                    >
-                      <Slider
-                        value={[termYears]}
-                        min={10}
-                        max={30}
-                        step={5}
-                        onValueChange={(v) => setTermYears(v[0])}
-                      />
-                    </Field>
-                    <Field
-                      label={`Property Tax Rate: ${taxRatePct}%`}
-                      className="md:self-center md:h-full md:justify-center"
-                    >
-                      <Slider
-                        value={[taxRatePct]}
-                        min={0.2}
-                        max={2.0}
-                        step={0.05}
-                        onValueChange={(v) =>
-                          setTaxRatePct(Number(v[0].toFixed(2)))
+                        value={monthlyIncome}
+                        onChange={(e) =>
+                          setMonthlyIncome(Number(e.target.value))
                         }
                       />
                     </Field>
-                    <Field label="Insurance (monthly)">
-                      <Input
-                        type="number"
-                        value={insMonthly}
-                        onChange={(e) => setInsMonthly(Number(e.target.value))}
+                    <Field
+                      label={`Target DTI: ${targetDTI}%`}
+                      className="md:self-center md:h-full md:justify-center"
+                    >
+                      <Slider
+                        value={[targetDTI]}
+                        min={25}
+                        max={45}
+                        step={1}
+                        onValueChange={(v) => setTargetDTI(v[0])}
                       />
                     </Field>
-                    <Field label="HOA (monthly)">
+                    <Field label="Other Debts (monthly)">
                       <Input
                         type="number"
-                        value={hoaMonthly}
-                        onChange={(e) => setHoaMonthly(Number(e.target.value))}
+                        value={otherDebts}
+                        onChange={(e) => setOtherDebts(Number(e.target.value))}
                       />
                     </Field>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Card className="h-full">
-                      <CardHeader>
-                        <CardTitle className="text-base">
-                          Monthly Breakdown
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="h-64">
-                        <BreakdownChart data={breakdown} />
-                      </CardContent>
-                    </Card>
-                    <Card className="h-full">
-                      <CardHeader>
-                        <CardTitle className="text-base">Summary</CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-2">
-                        <div className="text-sm">
-                          Loan Amount:{" "}
-                          <span className="font-medium">
-                            {prettyMoney(loanAmt)}
-                          </span>
-                        </div>
-                        <div className="text-sm">
-                          P&I:{" "}
-                          <span className="font-medium">
-                            {prettyMoney(pAndI)}
-                          </span>
-                        </div>
-                        <div className="text-sm">
-                          Taxes:{" "}
-                          <span className="font-medium">
-                            {prettyMoney(taxesMonthly)}
-                          </span>
-                        </div>
-                        <div className="text-sm">
-                          Insurance:{" "}
-                          <span className="font-medium">
-                            {prettyMoney(insMonthly)}
-                          </span>
-                        </div>
-                        <div className="text-sm">
-                          HOA:{" "}
-                          <span className="font-medium">
-                            {prettyMoney(hoaMonthly)}
-                          </span>
-                        </div>
-                        <Separator />
-                        <div className="text-lg">
-                          Total Monthly:{" "}
-                          <span className="font-semibold">
-                            {prettyMoney(totalMonthly)}
-                          </span>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                    <Card className="h-full">
-                      <CardHeader>
-                        <CardTitle className="text-base">
-                          Rate Sensitivity
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="h-64">
-                        <RateSensitivityChart
-                          loanAmt={loanAmt}
-                          termYears={termYears}
-                        />
-                      </CardContent>
-                    </Card>
-                    <Card className="h-full">
-                      <CardHeader>
-                        <CardTitle className="text-base">
-                          Down Payment Impact
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="h-64">
-                        <DownPaymentImpactChart
-                          price={price}
-                          rate={rate}
-                          termYears={termYears}
-                        />
-                      </CardContent>
-                    </Card>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">
-                    Affordability Estimator
-                  </CardTitle>
-                  <CardDescription>
-                    Estimate a maximum home price from income, target DTI and
-                    other debts.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Field label="Monthly Income">
-                    <Input
-                      type="number"
-                      value={monthlyIncome}
-                      onChange={(e) => setMonthlyIncome(Number(e.target.value))}
-                    />
-                  </Field>
-                  <Field
-                    label={`Target DTI: ${targetDTI}%`}
-                    className="md:self-center md:h-full md:justify-center"
-                  >
-                    <Slider
-                      value={[targetDTI]}
-                      min={25}
-                      max={45}
-                      step={1}
-                      onValueChange={(v) => setTargetDTI(v[0])}
-                    />
-                  </Field>
-                  <Field label="Other Debts (monthly)">
-                    <Input
-                      type="number"
-                      value={otherDebts}
-                      onChange={(e) => setOtherDebts(Number(e.target.value))}
-                    />
-                  </Field>
-                  <div className="space-y-1">
-                    <div className="text-sm">
-                      Max Housing Budget:{" "}
-                      <span className="font-medium">
-                        {prettyMoney(maxHousingBudget)}
-                      </span>
+                    <div className="space-y-1">
+                      <div className="text-sm">
+                        Max Housing Budget:{" "}
+                        <span className="font-medium">
+                          {prettyMoney(maxHousingBudget)}
+                        </span>
+                      </div>
+                      <div className="text-sm">
+                        Est. Max P&I:{" "}
+                        <span className="font-medium">
+                          {prettyMoney(estMaxPAndI)}
+                        </span>
+                      </div>
+                      <div className="text-sm">
+                        Est. Max Loan:{" "}
+                        <span className="font-medium">
+                          {prettyMoney(estMaxLoan)}
+                        </span>
+                      </div>
+                      <div className="text-base">
+                        Estimated Max Price:{" "}
+                        <span className="font-semibold">
+                          {prettyMoney(estMaxPrice)}
+                        </span>
+                      </div>
                     </div>
-                    <div className="text-sm">
-                      Est. Max P&I:{" "}
-                      <span className="font-medium">
-                        {prettyMoney(estMaxPAndI)}
-                      </span>
-                    </div>
-                    <div className="text-sm">
-                      Est. Max Loan:{" "}
-                      <span className="font-medium">
-                        {prettyMoney(estMaxLoan)}
-                      </span>
-                    </div>
-                    <div className="text-base">
-                      Estimated Max Price:{" "}
-                      <span className="font-semibold">
-                        {prettyMoney(estMaxPrice)}
-                      </span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              </motion.div>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">Quick Tools</CardTitle>
-                  <CardDescription>
-                    Extra calculators for quick checks.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <QuickPricePerSqft />
-                  <QuickDownPayment price={price} downPct={downPct} />
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </main>
+              <motion.div variants={fadeUpItem}>
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Quick Tools</CardTitle>
+                    <CardDescription>
+                      Extra calculators for quick checks.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <QuickPricePerSqft />
+                    <QuickDownPayment price={price} downPct={downPct} />
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </motion.div>
+          </motion.div>
+        </motion.main>
         <GetZpidDialog
           open={lookupOpen}
           onOpenChange={setLookupOpen}

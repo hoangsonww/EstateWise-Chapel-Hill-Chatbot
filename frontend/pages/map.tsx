@@ -31,6 +31,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { motion } from "framer-motion";
 
 type Listing = {
   id: string;
@@ -48,6 +49,26 @@ type Listing = {
 const DEFAULT_CENTER = { lat: 35.9132, lng: -79.0558 }; // Chapel Hill
 const MAX_POINTS = 200;
 const DEFAULT_BOOTSTRAP_POINTS = 50;
+
+const fadeUpContainer = {
+  hidden: { opacity: 1 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.08,
+      delayChildren: 0.05,
+    },
+  },
+};
+
+const fadeUpItem = {
+  hidden: { opacity: 0, y: 12 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.35, ease: "easeOut" },
+  },
+};
 
 declare global {
   interface Window {
@@ -426,9 +447,17 @@ export default function MapPage() {
             </nav>
           </div>
         </header>
-        <main className="flex-1 p-4 md:p-6">
-          <div className="max-w-6xl mx-auto w-full">
-            <header className="mb-6">
+        <motion.main
+          className="flex-1 p-4 md:p-6"
+          variants={fadeUpContainer}
+          initial="hidden"
+          animate="show"
+        >
+          <motion.div
+            className="max-w-6xl mx-auto w-full"
+            variants={fadeUpContainer}
+          >
+            <motion.header className="mb-6" variants={fadeUpItem}>
               <h1 className="text-3xl font-bold flex items-center gap-2">
                 <MapPin className="w-7 h-7" /> Property Map
               </h1>
@@ -436,29 +465,35 @@ export default function MapPage() {
                 Find and view properties on an interactive map with quick
                 filters.
               </p>
-            </header>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Card className="md:col-span-2">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <MapPin className="w-5 h-5" /> Property Map
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div
-                    ref={mapRef}
-                    className="w-full h-[70vh] rounded-lg overflow-hidden border"
-                  />
-                </CardContent>
-              </Card>
+            </motion.header>
+            <motion.div
+              className="grid grid-cols-1 md:grid-cols-3 gap-4"
+              variants={fadeUpContainer}
+            >
+              <motion.div variants={fadeUpItem} className="md:col-span-2">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <MapPin className="w-5 h-5" /> Property Map
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div
+                      ref={mapRef}
+                      className="w-full h-[70vh] rounded-lg overflow-hidden border"
+                    />
+                  </CardContent>
+                </Card>
+              </motion.div>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <span>Filters</span>
-                    <HelpDialog
-                      title="How to Use Map Filters"
-                      content={`This tool helps you search and display properties on an interactive map.
+              <motion.div variants={fadeUpItem}>
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                      <span>Filters</span>
+                      <HelpDialog
+                        title="How to Use Map Filters"
+                        content={`This tool helps you search and display properties on an interactive map.
 
 **Search Options:**
 • **Text Search**: Enter keywords like "3 bed homes" or "condos under 500k"
@@ -480,40 +515,41 @@ export default function MapPage() {
 **URL Parameters:**
 • **?q=**: Search query (e.g., ?q=3+bed+homes)
 • **?zpids=**: Comma-separated ZPIDs (e.g., ?zpids=123,456,789)`}
-                    />
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex gap-2">
-                    <Input
-                      value={q}
-                      onChange={(e) => setQ(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && !loading) {
-                          handleSearch();
-                        }
-                      }}
-                      placeholder="Search e.g. 3 bed homes"
-                    />
-                    <Button
-                      onClick={handleSearch}
-                      disabled={loading}
-                      className="cursor-pointer"
-                    >
-                      Go
-                    </Button>
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    Showing {listings.length} results. Use the search to refine.
-                    For specific homes, pass <code>?zpids=123,456</code> in the
-                    URL.
-                  </div>
-                  {/* Removed current map link display per request */}
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </main>
+                      />
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="flex gap-2">
+                      <Input
+                        value={q}
+                        onChange={(e) => setQ(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && !loading) {
+                            handleSearch();
+                          }
+                        }}
+                        placeholder="Search e.g. 3 bed homes"
+                      />
+                      <Button
+                        onClick={handleSearch}
+                        disabled={loading}
+                        className="cursor-pointer"
+                      >
+                        Go
+                      </Button>
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      Showing {listings.length} results. Use the search to
+                      refine. For specific homes, pass{" "}
+                      <code>?zpids=123,456</code> in the URL.
+                    </div>
+                    {/* Removed current map link display per request */}
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </motion.div>
+          </motion.div>
+        </motion.main>
       </div>
     </>
   );

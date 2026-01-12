@@ -35,6 +35,7 @@ import {
   Users,
   Wallet,
 } from "lucide-react";
+import { motion } from "framer-motion";
 
 const currencyFormatter = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -209,6 +210,26 @@ const SCENARIOS: Scenario[] = [
   },
 ];
 
+const fadeUpContainer = {
+  hidden: { opacity: 1 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.08,
+      delayChildren: 0.05,
+    },
+  },
+};
+
+const fadeUpItem = {
+  hidden: { opacity: 0, y: 12 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.35, ease: "easeOut" },
+  },
+};
+
 function Field({
   label,
   hint,
@@ -336,6 +357,9 @@ export default function AnalyzerPage() {
     const grm = inputs.rentMonthly > 0 ? price / (inputs.rentMonthly * 12) : 0;
     const ltv = price > 0 ? loanAmount / price : 0;
     const totalInterest = monthlyPI * inputs.termYears * 12 - loanAmount;
+    const operatingExpenseRatio =
+      effectiveIncome > 0 ? operatingExpenses / effectiveIncome : 0;
+    const debtYield = loanAmount > 0 ? (noiMonthly * 12) / loanAmount : 0;
 
     const annualDebtService = debtService * 12;
     const annualIncome = grossIncome * 12;
@@ -390,6 +414,12 @@ export default function AnalyzerPage() {
     if (inputs.downPaymentPct < 15) {
       riskFlags.push("Low down payment increases leverage risk.");
     }
+    if (operatingExpenseRatio > 0.5) {
+      riskFlags.push("Operating expense ratio above 50%.");
+    }
+    if (debtYield > 0 && debtYield < 0.08) {
+      riskFlags.push("Debt yield below 8% on current NOI.");
+    }
 
     const strengths = [];
     if (cashFlowMonthly > 250) {
@@ -407,6 +437,12 @@ export default function AnalyzerPage() {
     if (rentToPrice >= 0.01) {
       strengths.push("Rent to price ratio is near the 1% rule.");
     }
+    if (operatingExpenseRatio > 0 && operatingExpenseRatio <= 0.45) {
+      strengths.push("Operating expense ratio under 45%.");
+    }
+    if (debtYield >= 0.09) {
+      strengths.push("Debt yield above 9%.");
+    }
 
     const recommendations = [];
     if (cashFlowMonthly < 0) {
@@ -419,6 +455,16 @@ export default function AnalyzerPage() {
     }
     if (capRate < 0.05) {
       recommendations.push("Validate comps or trim expenses to lift NOI.");
+    }
+    if (operatingExpenseRatio > 0.5) {
+      recommendations.push(
+        "Trim operating expenses to improve the expense ratio.",
+      );
+    }
+    if (debtYield > 0 && debtYield < 0.08) {
+      recommendations.push(
+        "Lower purchase price or lift NOI to raise debt yield.",
+      );
     }
     if (recommendations.length === 0) {
       recommendations.push(
@@ -542,6 +588,8 @@ export default function AnalyzerPage() {
       grm,
       ltv,
       totalInterest,
+      operatingExpenseRatio,
+      debtYield,
       annualNoi,
       annualCashFlow,
       annualIncome,
@@ -663,9 +711,17 @@ export default function AnalyzerPage() {
           </div>
         </header>
 
-        <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-          <section className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr] items-stretch">
-            <div className="space-y-4 reveal">
+        <motion.main
+          className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8"
+          variants={fadeUpContainer}
+          initial="hidden"
+          animate="show"
+        >
+          <motion.section
+            className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr] items-stretch"
+            variants={fadeUpContainer}
+          >
+            <motion.div className="space-y-4" variants={fadeUpItem}>
               <span className="inline-flex items-center gap-2 rounded-full bg-primary/15 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-primary">
                 <Calculator className="h-4 w-4" /> Deal Analyzer
               </span>
@@ -703,699 +759,749 @@ export default function AnalyzerPage() {
                   </p>
                 </div>
               </div>
-            </div>
+            </motion.div>
 
-            <Card className="reveal overflow-hidden border-primary/20 shadow-sm">
-              <CardHeader className="space-y-2">
-                <CardTitle className="flex items-center gap-2 text-xl">
-                  <LineChart className="h-5 w-5 text-primary" /> Scenario
-                  presets
-                </CardTitle>
-                <CardDescription>
-                  Apply a preset to move fast, then fine tune inputs below.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="grid gap-3">
-                  {SCENARIOS.map((scenario) => (
-                    <button
-                      key={scenario.name}
-                      onClick={() => applyScenario(scenario)}
-                      className={`rounded-xl border px-4 py-3 text-left transition-all ${
-                        activeScenario === scenario.name
-                          ? "border-primary/60 bg-primary/10 shadow-sm"
-                          : "border-border/60 bg-background/80 hover:border-primary/40 hover:bg-primary/5"
-                      }`}
-                    >
-                      <p className="text-sm font-semibold">{scenario.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {scenario.tagline}
-                      </p>
-                    </button>
-                  ))}
-                </div>
-                <div className="flex items-center justify-between rounded-lg border border-border/60 bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
-                  <span>Active preset: {activeScenario}</span>
-                  <Button variant="ghost" size="sm" onClick={resetDefaults}>
-                    Reset
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </section>
-
-          <section className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-            <div className="space-y-6">
-              <Card className="reveal" data-delay="1">
-                <CardHeader>
-                  <CardTitle>Property and financing</CardTitle>
-                  <CardDescription>
-                    Acquisition price, leverage, and loan structure.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <Field label="Purchase price">
-                      <Input
-                        type="number"
-                        min={0}
-                        step={1000}
-                        value={inputs.purchasePrice}
-                        onChange={handleNumberChange("purchasePrice")}
-                      />
-                    </Field>
-                    <Field label="Loan term (years)">
-                      <Input
-                        type="number"
-                        min={5}
-                        step={1}
-                        value={inputs.termYears}
-                        onChange={handleNumberChange("termYears")}
-                      />
-                    </Field>
-                    <Field
-                      label="Down payment (%)"
-                      hint={`Cash: ${formatMoney(metrics.downPayment)}`}
-                    >
-                      <div className="grid gap-2">
-                        <Input
-                          type="number"
-                          min={0}
-                          max={50}
-                          step={0.5}
-                          value={inputs.downPaymentPct}
-                          onChange={handleNumberChange("downPaymentPct")}
-                        />
-                        <Slider
-                          value={[inputs.downPaymentPct]}
-                          min={0}
-                          max={40}
-                          step={0.5}
-                          onValueChange={handleSliderChange("downPaymentPct")}
-                        />
-                      </div>
-                    </Field>
-                    <Field label="Interest rate (APR %)">
-                      <div className="grid gap-2">
-                        <Input
-                          type="number"
-                          min={0}
-                          step={0.05}
-                          value={inputs.interestRate}
-                          onChange={handleNumberChange("interestRate")}
-                        />
-                        <Slider
-                          value={[inputs.interestRate]}
-                          min={0}
-                          max={12}
-                          step={0.05}
-                          onValueChange={handleSliderChange("interestRate")}
-                        />
-                      </div>
-                    </Field>
-                    <Field label="Closing costs (%)">
-                      <Input
-                        type="number"
-                        min={0}
-                        step={0.1}
-                        value={inputs.closingCostPct}
-                        onChange={handleNumberChange("closingCostPct")}
-                      />
-                    </Field>
-                    <Field label="Loan points (%)">
-                      <Input
-                        type="number"
-                        min={0}
-                        step={0.1}
-                        value={inputs.loanPointsPct}
-                        onChange={handleNumberChange("loanPointsPct")}
-                      />
-                    </Field>
-                    <Field label="Rehab budget">
-                      <Input
-                        type="number"
-                        min={0}
-                        step={1000}
-                        value={inputs.rehabBudget}
-                        onChange={handleNumberChange("rehabBudget")}
-                      />
-                    </Field>
-                    <Field label="Mortgage insurance (monthly)">
-                      <Input
-                        type="number"
-                        min={0}
-                        step={10}
-                        value={inputs.mortgageInsuranceMonthly}
-                        onChange={handleNumberChange(
-                          "mortgageInsuranceMonthly",
-                        )}
-                      />
-                    </Field>
-                  </div>
-                  <div className="flex items-center justify-between rounded-lg border border-border/60 bg-muted/30 px-3 py-2">
-                    <div>
-                      <p className="text-sm font-medium">
-                        Finance rehab in loan
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        Adds rehab budget to the loan balance.
-                      </p>
-                    </div>
-                    <Switch
-                      checked={inputs.financeRehab}
-                      onCheckedChange={(checked) =>
-                        updateInput("financeRehab", checked)
-                      }
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="reveal" data-delay="2">
-                <CardHeader>
-                  <CardTitle>Income assumptions</CardTitle>
-                  <CardDescription>
-                    Rental income, vacancy, and growth outlook.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <Field label="Monthly rent">
-                      <Input
-                        type="number"
-                        min={0}
-                        step={50}
-                        value={inputs.rentMonthly}
-                        onChange={handleNumberChange("rentMonthly")}
-                      />
-                    </Field>
-                    <Field label="Other monthly income">
-                      <Input
-                        type="number"
-                        min={0}
-                        step={10}
-                        value={inputs.otherIncomeMonthly}
-                        onChange={handleNumberChange("otherIncomeMonthly")}
-                      />
-                    </Field>
-                    <Field label="Vacancy (%)">
-                      <div className="grid gap-2">
-                        <Input
-                          type="number"
-                          min={0}
-                          max={20}
-                          step={0.5}
-                          value={inputs.vacancyPct}
-                          onChange={handleNumberChange("vacancyPct")}
-                        />
-                        <Slider
-                          value={[inputs.vacancyPct]}
-                          min={0}
-                          max={20}
-                          step={0.5}
-                          onValueChange={handleSliderChange("vacancyPct")}
-                        />
-                      </div>
-                    </Field>
-                    <Field label="Annual rent growth (%)">
-                      <Input
-                        type="number"
-                        min={0}
-                        step={0.1}
-                        value={inputs.rentGrowthRate}
-                        onChange={handleNumberChange("rentGrowthRate")}
-                      />
-                    </Field>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="reveal" data-delay="3">
-                <CardHeader>
-                  <CardTitle>Operating expenses</CardTitle>
-                  <CardDescription>
-                    Taxes, insurance, reserves, and management fees.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <Field label="Property tax rate (%)">
-                      <Input
-                        type="number"
-                        min={0}
-                        step={0.05}
-                        value={inputs.propertyTaxRate}
-                        onChange={handleNumberChange("propertyTaxRate")}
-                      />
-                    </Field>
-                    <Field label="Insurance (monthly)">
-                      <Input
-                        type="number"
-                        min={0}
-                        step={10}
-                        value={inputs.insuranceMonthly}
-                        onChange={handleNumberChange("insuranceMonthly")}
-                      />
-                    </Field>
-                    <Field label="HOA (monthly)">
-                      <Input
-                        type="number"
-                        min={0}
-                        step={10}
-                        value={inputs.hoaMonthly}
-                        onChange={handleNumberChange("hoaMonthly")}
-                      />
-                    </Field>
-                    <Field label="Utilities (monthly)">
-                      <Input
-                        type="number"
-                        min={0}
-                        step={10}
-                        value={inputs.utilitiesMonthly}
-                        onChange={handleNumberChange("utilitiesMonthly")}
-                      />
-                    </Field>
-                    <Field label="Maintenance (% of rent)">
-                      <Input
-                        type="number"
-                        min={0}
-                        step={0.5}
-                        value={inputs.maintenancePct}
-                        onChange={handleNumberChange("maintenancePct")}
-                      />
-                    </Field>
-                    <Field label="Management (% of income)">
-                      <Input
-                        type="number"
-                        min={0}
-                        step={0.5}
-                        value={inputs.managementPct}
-                        onChange={handleNumberChange("managementPct")}
-                      />
-                    </Field>
-                    <Field label="Capital reserves (% of rent)">
-                      <Input
-                        type="number"
-                        min={0}
-                        step={0.5}
-                        value={inputs.capexPct}
-                        onChange={handleNumberChange("capexPct")}
-                      />
-                    </Field>
-                    <Field label="Other expenses (monthly)">
-                      <Input
-                        type="number"
-                        min={0}
-                        step={10}
-                        value={inputs.otherExpenseMonthly}
-                        onChange={handleNumberChange("otherExpenseMonthly")}
-                      />
-                    </Field>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="reveal" data-delay="4">
-                <CardHeader>
-                  <CardTitle>Growth and targets</CardTitle>
-                  <CardDescription>
-                    Tune your long term assumptions and lender targets.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="grid gap-4 sm:grid-cols-2">
-                  <Field label="Appreciation (%)">
-                    <Input
-                      type="number"
-                      min={0}
-                      step={0.1}
-                      value={inputs.appreciationRate}
-                      onChange={handleNumberChange("appreciationRate")}
-                    />
-                  </Field>
-                  <Field label="Expense growth (%)">
-                    <Input
-                      type="number"
-                      min={0}
-                      step={0.1}
-                      value={inputs.expenseGrowthRate}
-                      onChange={handleNumberChange("expenseGrowthRate")}
-                    />
-                  </Field>
-                  <Field label="DSCR target">
-                    <Input
-                      type="number"
-                      min={1}
-                      step={0.05}
-                      value={inputs.dscrTarget}
-                      onChange={handleNumberChange("dscrTarget")}
-                    />
-                  </Field>
-                </CardContent>
-              </Card>
-            </div>
-
-            <div className="space-y-6">
-              <Card className="reveal" data-delay="1">
-                <CardHeader>
-                  <div className="flex items-center justify-between gap-3">
-                    <CardTitle className="flex items-center gap-2">
-                      <ShieldAlert className="h-5 w-5 text-primary" /> Deal
-                      score
-                    </CardTitle>
-                    <span
-                      className={`rounded-full px-3 py-1 text-xs font-semibold ${metrics.scoreTone}`}
-                    >
-                      {metrics.scoreLabel}
-                    </span>
-                  </div>
-                  <CardDescription>
-                    Composite score across cash flow, leverage, and coverage.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-baseline gap-3">
-                    <p className="text-4xl font-bold">
-                      {Math.round(metrics.score)}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      score out of 100
-                    </p>
-                  </div>
-                  <div className="h-2 rounded-full bg-muted overflow-hidden">
-                    <div
-                      className="h-full bg-primary"
-                      style={{ width: `${Math.round(metrics.score)}%` }}
-                    />
-                  </div>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <Metric
-                      label="Monthly cash flow"
-                      value={formatMoney(metrics.cashFlowMonthly, true)}
-                      detail={`Annual: ${formatMoney(metrics.annualCashFlow)}`}
-                      tone={
-                        metrics.cashFlowMonthly >= 0 ? "positive" : "negative"
-                      }
-                    />
-                    <Metric
-                      label="Cap rate"
-                      value={formatPercent(metrics.capRate * 100, 2)}
-                      detail={`NOI: ${formatMoney(metrics.annualNoi)}`}
-                      tone={metrics.capRate >= 0.06 ? "positive" : "neutral"}
-                    />
-                    <Metric
-                      label="Cash on cash"
-                      value={formatPercent(metrics.cashOnCash * 100, 2)}
-                      detail={`Cash needed: ${formatMoney(metrics.cashNeeded)}`}
-                      tone={metrics.cashOnCash >= 0.1 ? "positive" : "neutral"}
-                    />
-                    <Metric
-                      label="DSCR"
-                      value={formatRatio(metrics.dscr)}
-                      detail={`Target: ${inputs.dscrTarget.toFixed(2)}`}
-                      tone={
-                        metrics.dscr >= inputs.dscrTarget
-                          ? "positive"
-                          : "negative"
-                      }
-                    />
-                  </div>
-                  <Separator />
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <Metric
-                      label="Loan amount"
-                      value={formatMoney(metrics.loanAmount)}
-                      detail={`LTV: ${formatPercent(metrics.ltv * 100, 1)}`}
-                    />
-                    <Metric
-                      label="Payment (P&I)"
-                      value={formatMoney(metrics.monthlyPI, true)}
-                      detail={`Total interest: ${formatMoney(metrics.totalInterest)}`}
-                    />
-                  </div>
-                  <Separator />
-                  <div className="grid gap-3 sm:grid-cols-3">
-                    <Metric
-                      label="Rent to price"
-                      value={formatPercent(metrics.rentToPrice * 100, 2)}
-                      detail="Annual rent / price"
-                    />
-                    <Metric
-                      label="GRM"
-                      value={
-                        Number.isFinite(metrics.grm)
-                          ? formatRatio(metrics.grm, 1)
-                          : "N/A"
-                      }
-                      detail="Price / gross rent"
-                    />
-                    <Metric
-                      label="Payback"
-                      value={
-                        metrics.paybackYears
-                          ? `${metrics.paybackYears.toFixed(1)} yrs`
-                          : "N/A"
-                      }
-                      detail="Cash needed / cash flow"
-                      tone={
-                        metrics.paybackYears && metrics.paybackYears <= 10
-                          ? "positive"
-                          : "neutral"
-                      }
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="reveal" data-delay="2">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Wallet className="h-5 w-5 text-primary" /> Monthly
-                    breakdown
+            <motion.div variants={fadeUpItem}>
+              <Card className="overflow-hidden border-primary/20 shadow-sm">
+                <CardHeader className="space-y-2">
+                  <CardTitle className="flex items-center gap-2 text-xl">
+                    <LineChart className="h-5 w-5 text-primary" /> Scenario
+                    presets
                   </CardTitle>
                   <CardDescription>
-                    Expense composition and operating performance.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    <div className="rounded-lg border border-border/60 bg-background/80 p-3">
-                      <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                        Effective income
-                      </p>
-                      <p className="text-lg font-semibold">
-                        {formatMoney(metrics.effectiveIncome, true)}
-                      </p>
-                    </div>
-                    <div className="rounded-lg border border-border/60 bg-background/80 p-3">
-                      <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                        NOI
-                      </p>
-                      <p className="text-lg font-semibold">
-                        {formatMoney(metrics.noiMonthly, true)}
-                      </p>
-                    </div>
-                    <div className="rounded-lg border border-border/60 bg-background/80 p-3">
-                      <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                        Debt service
-                      </p>
-                      <p className="text-lg font-semibold">
-                        {formatMoney(metrics.debtService, true)}
-                      </p>
-                    </div>
-                    <div className="rounded-lg border border-border/60 bg-background/80 p-3">
-                      <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                        Break even
-                      </p>
-                      <p className="text-lg font-semibold">
-                        {formatPercent(metrics.breakEven * 100, 1)}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="space-y-3">
-                    <div className="h-3 rounded-full bg-muted overflow-hidden flex">
-                      {metrics.breakdownItems.map((item) => (
-                        <div
-                          key={item.label}
-                          className={item.color}
-                          style={{
-                            width: `${Math.max(
-                              (item.value / Math.max(outflowTotal, 1)) * 100,
-                              2,
-                            )}%`,
-                          }}
-                        />
-                      ))}
-                    </div>
-                    <div className="grid gap-2 text-sm">
-                      {metrics.breakdownItems.map((item) => (
-                        <div
-                          key={item.label}
-                          className="flex items-center justify-between"
-                        >
-                          <div className="flex items-center gap-2">
-                            <span
-                              className={`h-2 w-2 rounded-full ${item.color}`}
-                            />
-                            <span>{item.label}</span>
-                          </div>
-                          <span className="font-medium">
-                            {formatMoney(item.value, true)}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="reveal" data-delay="3">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <LineChart className="h-5 w-5 text-primary" /> Sensitivity
-                  </CardTitle>
-                  <CardDescription>
-                    Monthly cash flow under rent and vacancy shifts.
+                    Apply a preset to move fast, then fine tune inputs below.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <div className="grid grid-cols-4 gap-2 text-xs">
-                    <div />
-                    {["-5% rent", "Base rent", "+5% rent"].map((label) => (
-                      <div
-                        key={label}
-                        className="text-center font-semibold text-muted-foreground"
+                  <div className="grid gap-3">
+                    {SCENARIOS.map((scenario) => (
+                      <button
+                        key={scenario.name}
+                        onClick={() => applyScenario(scenario)}
+                        className={`rounded-xl border px-4 py-3 text-left transition-all ${
+                          activeScenario === scenario.name
+                            ? "border-primary/60 bg-primary/10 shadow-sm"
+                            : "border-border/60 bg-background/80 hover:border-primary/40 hover:bg-primary/5"
+                        }`}
                       >
-                        {label}
-                      </div>
+                        <p className="text-sm font-semibold">{scenario.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {scenario.tagline}
+                        </p>
+                      </button>
                     ))}
-                    {metrics.sensitivity.map((row) => (
-                      <React.Fragment key={row.vacancyDelta}>
-                        <div className="rounded-lg border border-border/60 bg-muted/30 px-2 py-2 text-center font-semibold text-muted-foreground">
-                          {row.vacancyDelta >= 0 ? "+" : ""}
-                          {row.vacancyDelta}% vac
+                  </div>
+                  <div className="flex items-center justify-between rounded-lg border border-border/60 bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+                    <span>Active preset: {activeScenario}</span>
+                    <Button variant="ghost" size="sm" onClick={resetDefaults}>
+                      Reset
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </motion.section>
+
+          <motion.section
+            className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]"
+            variants={fadeUpContainer}
+          >
+            <motion.div className="space-y-6" variants={fadeUpContainer}>
+              <motion.div variants={fadeUpItem}>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Property and financing</CardTitle>
+                    <CardDescription>
+                      Acquisition price, leverage, and loan structure.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <Field label="Purchase price">
+                        <Input
+                          type="number"
+                          min={0}
+                          step={1000}
+                          value={inputs.purchasePrice}
+                          onChange={handleNumberChange("purchasePrice")}
+                        />
+                      </Field>
+                      <Field label="Loan term (years)">
+                        <Input
+                          type="number"
+                          min={5}
+                          step={1}
+                          value={inputs.termYears}
+                          onChange={handleNumberChange("termYears")}
+                        />
+                      </Field>
+                      <Field
+                        label="Down payment (%)"
+                        hint={`Cash: ${formatMoney(metrics.downPayment)}`}
+                      >
+                        <div className="grid gap-2">
+                          <Input
+                            type="number"
+                            min={0}
+                            max={50}
+                            step={0.5}
+                            value={inputs.downPaymentPct}
+                            onChange={handleNumberChange("downPaymentPct")}
+                          />
+                          <Slider
+                            value={[inputs.downPaymentPct]}
+                            min={0}
+                            max={40}
+                            step={0.5}
+                            onValueChange={handleSliderChange("downPaymentPct")}
+                          />
                         </div>
-                        {row.values.map((value, idx) => {
-                          const tone =
-                            value >= 250
-                              ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
-                              : value >= 0
-                                ? "bg-amber-500/15 text-amber-700 dark:text-amber-300"
-                                : "bg-rose-500/15 text-rose-700 dark:text-rose-300";
-                          return (
-                            <div
-                              key={`${row.vacancyDelta}-${idx}`}
-                              className={`rounded-lg px-2 py-2 text-center font-semibold ${tone}`}
-                            >
-                              {formatMoney(value, true)}
+                      </Field>
+                      <Field label="Interest rate (APR %)">
+                        <div className="grid gap-2">
+                          <Input
+                            type="number"
+                            min={0}
+                            step={0.05}
+                            value={inputs.interestRate}
+                            onChange={handleNumberChange("interestRate")}
+                          />
+                          <Slider
+                            value={[inputs.interestRate]}
+                            min={0}
+                            max={12}
+                            step={0.05}
+                            onValueChange={handleSliderChange("interestRate")}
+                          />
+                        </div>
+                      </Field>
+                      <Field label="Closing costs (%)">
+                        <Input
+                          type="number"
+                          min={0}
+                          step={0.1}
+                          value={inputs.closingCostPct}
+                          onChange={handleNumberChange("closingCostPct")}
+                        />
+                      </Field>
+                      <Field label="Loan points (%)">
+                        <Input
+                          type="number"
+                          min={0}
+                          step={0.1}
+                          value={inputs.loanPointsPct}
+                          onChange={handleNumberChange("loanPointsPct")}
+                        />
+                      </Field>
+                      <Field label="Rehab budget">
+                        <Input
+                          type="number"
+                          min={0}
+                          step={1000}
+                          value={inputs.rehabBudget}
+                          onChange={handleNumberChange("rehabBudget")}
+                        />
+                      </Field>
+                      <Field label="Mortgage insurance (monthly)">
+                        <Input
+                          type="number"
+                          min={0}
+                          step={10}
+                          value={inputs.mortgageInsuranceMonthly}
+                          onChange={handleNumberChange(
+                            "mortgageInsuranceMonthly",
+                          )}
+                        />
+                      </Field>
+                    </div>
+                    <div className="flex items-center justify-between rounded-lg border border-border/60 bg-muted/30 px-3 py-2">
+                      <div>
+                        <p className="text-sm font-medium">
+                          Finance rehab in loan
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Adds rehab budget to the loan balance.
+                        </p>
+                      </div>
+                      <Switch
+                        checked={inputs.financeRehab}
+                        onCheckedChange={(checked) =>
+                          updateInput("financeRehab", checked)
+                        }
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+              <motion.div variants={fadeUpItem}>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Income assumptions</CardTitle>
+                    <CardDescription>
+                      Rental income, vacancy, and growth outlook.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <Field label="Monthly rent">
+                        <Input
+                          type="number"
+                          min={0}
+                          step={50}
+                          value={inputs.rentMonthly}
+                          onChange={handleNumberChange("rentMonthly")}
+                        />
+                      </Field>
+                      <Field label="Other monthly income">
+                        <Input
+                          type="number"
+                          min={0}
+                          step={10}
+                          value={inputs.otherIncomeMonthly}
+                          onChange={handleNumberChange("otherIncomeMonthly")}
+                        />
+                      </Field>
+                      <Field label="Vacancy (%)">
+                        <div className="grid gap-2">
+                          <Input
+                            type="number"
+                            min={0}
+                            max={20}
+                            step={0.5}
+                            value={inputs.vacancyPct}
+                            onChange={handleNumberChange("vacancyPct")}
+                          />
+                          <Slider
+                            value={[inputs.vacancyPct]}
+                            min={0}
+                            max={20}
+                            step={0.5}
+                            onValueChange={handleSliderChange("vacancyPct")}
+                          />
+                        </div>
+                      </Field>
+                      <Field label="Annual rent growth (%)">
+                        <Input
+                          type="number"
+                          min={0}
+                          step={0.1}
+                          value={inputs.rentGrowthRate}
+                          onChange={handleNumberChange("rentGrowthRate")}
+                        />
+                      </Field>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+              <motion.div variants={fadeUpItem}>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Operating expenses</CardTitle>
+                    <CardDescription>
+                      Taxes, insurance, reserves, and management fees.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <Field label="Property tax rate (%)">
+                        <Input
+                          type="number"
+                          min={0}
+                          step={0.05}
+                          value={inputs.propertyTaxRate}
+                          onChange={handleNumberChange("propertyTaxRate")}
+                        />
+                      </Field>
+                      <Field label="Insurance (monthly)">
+                        <Input
+                          type="number"
+                          min={0}
+                          step={10}
+                          value={inputs.insuranceMonthly}
+                          onChange={handleNumberChange("insuranceMonthly")}
+                        />
+                      </Field>
+                      <Field label="HOA (monthly)">
+                        <Input
+                          type="number"
+                          min={0}
+                          step={10}
+                          value={inputs.hoaMonthly}
+                          onChange={handleNumberChange("hoaMonthly")}
+                        />
+                      </Field>
+                      <Field label="Utilities (monthly)">
+                        <Input
+                          type="number"
+                          min={0}
+                          step={10}
+                          value={inputs.utilitiesMonthly}
+                          onChange={handleNumberChange("utilitiesMonthly")}
+                        />
+                      </Field>
+                      <Field label="Maintenance (% of rent)">
+                        <Input
+                          type="number"
+                          min={0}
+                          step={0.5}
+                          value={inputs.maintenancePct}
+                          onChange={handleNumberChange("maintenancePct")}
+                        />
+                      </Field>
+                      <Field label="Management (% of income)">
+                        <Input
+                          type="number"
+                          min={0}
+                          step={0.5}
+                          value={inputs.managementPct}
+                          onChange={handleNumberChange("managementPct")}
+                        />
+                      </Field>
+                      <Field label="Capital reserves (% of rent)">
+                        <Input
+                          type="number"
+                          min={0}
+                          step={0.5}
+                          value={inputs.capexPct}
+                          onChange={handleNumberChange("capexPct")}
+                        />
+                      </Field>
+                      <Field label="Other expenses (monthly)">
+                        <Input
+                          type="number"
+                          min={0}
+                          step={10}
+                          value={inputs.otherExpenseMonthly}
+                          onChange={handleNumberChange("otherExpenseMonthly")}
+                        />
+                      </Field>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+              <motion.div variants={fadeUpItem}>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Growth and targets</CardTitle>
+                    <CardDescription>
+                      Tune your long term assumptions and lender targets.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="grid gap-4 sm:grid-cols-2">
+                    <Field label="Appreciation (%)">
+                      <Input
+                        type="number"
+                        min={0}
+                        step={0.1}
+                        value={inputs.appreciationRate}
+                        onChange={handleNumberChange("appreciationRate")}
+                      />
+                    </Field>
+                    <Field label="Expense growth (%)">
+                      <Input
+                        type="number"
+                        min={0}
+                        step={0.1}
+                        value={inputs.expenseGrowthRate}
+                        onChange={handleNumberChange("expenseGrowthRate")}
+                      />
+                    </Field>
+                    <Field label="DSCR target">
+                      <Input
+                        type="number"
+                        min={1}
+                        step={0.05}
+                        value={inputs.dscrTarget}
+                        onChange={handleNumberChange("dscrTarget")}
+                      />
+                    </Field>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </motion.div>
+
+            <motion.div className="space-y-6" variants={fadeUpContainer}>
+              <motion.div variants={fadeUpItem}>
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center justify-between gap-3">
+                      <CardTitle className="flex items-center gap-2">
+                        <ShieldAlert className="h-5 w-5 text-primary" /> Deal
+                        score
+                      </CardTitle>
+                      <span
+                        className={`rounded-full px-3 py-1 text-xs font-semibold ${metrics.scoreTone}`}
+                      >
+                        {metrics.scoreLabel}
+                      </span>
+                    </div>
+                    <CardDescription>
+                      Composite score across cash flow, leverage, and coverage.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex items-baseline gap-3">
+                      <p className="text-4xl font-bold">
+                        {Math.round(metrics.score)}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        score out of 100
+                      </p>
+                    </div>
+                    <div className="h-2 rounded-full bg-muted overflow-hidden">
+                      <div
+                        className="h-full bg-primary"
+                        style={{ width: `${Math.round(metrics.score)}%` }}
+                      />
+                    </div>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <Metric
+                        label="Monthly cash flow"
+                        value={formatMoney(metrics.cashFlowMonthly, true)}
+                        detail={`Annual: ${formatMoney(metrics.annualCashFlow)}`}
+                        tone={
+                          metrics.cashFlowMonthly >= 0 ? "positive" : "negative"
+                        }
+                      />
+                      <Metric
+                        label="Cap rate"
+                        value={formatPercent(metrics.capRate * 100, 2)}
+                        detail={`NOI: ${formatMoney(metrics.annualNoi)}`}
+                        tone={metrics.capRate >= 0.06 ? "positive" : "neutral"}
+                      />
+                      <Metric
+                        label="Cash on cash"
+                        value={formatPercent(metrics.cashOnCash * 100, 2)}
+                        detail={`Cash needed: ${formatMoney(metrics.cashNeeded)}`}
+                        tone={
+                          metrics.cashOnCash >= 0.1 ? "positive" : "neutral"
+                        }
+                      />
+                      <Metric
+                        label="DSCR"
+                        value={formatRatio(metrics.dscr)}
+                        detail={`Target: ${inputs.dscrTarget.toFixed(2)}`}
+                        tone={
+                          metrics.dscr >= inputs.dscrTarget
+                            ? "positive"
+                            : "negative"
+                        }
+                      />
+                    </div>
+                    <Separator />
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <Metric
+                        label="Loan amount"
+                        value={formatMoney(metrics.loanAmount)}
+                        detail={`LTV: ${formatPercent(metrics.ltv * 100, 1)}`}
+                      />
+                      <Metric
+                        label="Payment (P&I)"
+                        value={formatMoney(metrics.monthlyPI, true)}
+                        detail={`Total interest: ${formatMoney(metrics.totalInterest)}`}
+                      />
+                    </div>
+                    <Separator />
+                    <div className="grid gap-3 sm:grid-cols-3">
+                      <Metric
+                        label="Rent to price"
+                        value={formatPercent(metrics.rentToPrice * 100, 2)}
+                        detail="Annual rent / price"
+                      />
+                      <Metric
+                        label="GRM"
+                        value={
+                          Number.isFinite(metrics.grm)
+                            ? formatRatio(metrics.grm, 1)
+                            : "N/A"
+                        }
+                        detail="Price / gross rent"
+                      />
+                      <Metric
+                        label="Payback"
+                        value={
+                          metrics.paybackYears
+                            ? `${metrics.paybackYears.toFixed(1)} yrs`
+                            : "N/A"
+                        }
+                        detail="Cash needed / cash flow"
+                        tone={
+                          metrics.paybackYears && metrics.paybackYears <= 10
+                            ? "positive"
+                            : "neutral"
+                        }
+                      />
+                    </div>
+                    <Separator />
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <Metric
+                        label="OpEx ratio"
+                        value={formatPercent(
+                          metrics.operatingExpenseRatio * 100,
+                          1,
+                        )}
+                        detail="OpEx / effective income"
+                        tone={
+                          metrics.operatingExpenseRatio > 0 &&
+                          metrics.operatingExpenseRatio <= 0.45
+                            ? "positive"
+                            : "neutral"
+                        }
+                      />
+                      <Metric
+                        label="Debt yield"
+                        value={formatPercent(metrics.debtYield * 100, 2)}
+                        detail="NOI / loan amount"
+                        tone={
+                          metrics.debtYield >= 0.08 ? "positive" : "neutral"
+                        }
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+              <motion.div variants={fadeUpItem}>
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Wallet className="h-5 w-5 text-primary" /> Monthly
+                      breakdown
+                    </CardTitle>
+                    <CardDescription>
+                      Expense composition and operating performance.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      <div className="rounded-lg border border-border/60 bg-background/80 p-3">
+                        <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                          Effective income
+                        </p>
+                        <p className="text-lg font-semibold">
+                          {formatMoney(metrics.effectiveIncome, true)}
+                        </p>
+                      </div>
+                      <div className="rounded-lg border border-border/60 bg-background/80 p-3">
+                        <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                          NOI
+                        </p>
+                        <p className="text-lg font-semibold">
+                          {formatMoney(metrics.noiMonthly, true)}
+                        </p>
+                      </div>
+                      <div className="rounded-lg border border-border/60 bg-background/80 p-3">
+                        <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                          Debt service
+                        </p>
+                        <p className="text-lg font-semibold">
+                          {formatMoney(metrics.debtService, true)}
+                        </p>
+                      </div>
+                      <div className="rounded-lg border border-border/60 bg-background/80 p-3">
+                        <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                          Break even
+                        </p>
+                        <p className="text-lg font-semibold">
+                          {formatPercent(metrics.breakEven * 100, 1)}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="space-y-3">
+                      <div className="h-3 rounded-full bg-muted overflow-hidden flex">
+                        {metrics.breakdownItems.map((item) => (
+                          <div
+                            key={item.label}
+                            className={item.color}
+                            style={{
+                              width: `${Math.max(
+                                (item.value / Math.max(outflowTotal, 1)) * 100,
+                                2,
+                              )}%`,
+                            }}
+                          />
+                        ))}
+                      </div>
+                      <div className="grid gap-2 text-sm">
+                        {metrics.breakdownItems.map((item) => (
+                          <div
+                            key={item.label}
+                            className="flex items-center justify-between"
+                          >
+                            <div className="flex items-center gap-2">
+                              <span
+                                className={`h-2 w-2 rounded-full ${item.color}`}
+                              />
+                              <span>{item.label}</span>
                             </div>
-                          );
-                        })}
-                      </React.Fragment>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="reveal" data-delay="4">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <TrendingUp className="h-5 w-5 text-primary" /> Projection
-                  </CardTitle>
-                  <CardDescription>
-                    Estimated equity and cash flow over time.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="grid gap-3 sm:grid-cols-3">
-                  {metrics.projection.map((point) => (
-                    <div
-                      key={point.year}
-                      className="rounded-xl border border-border/60 bg-background/80 p-4"
-                    >
-                      <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                        Year {point.year}
-                      </p>
-                      <p className="text-lg font-semibold">
-                        {formatMoney(point.value)}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        Property value
-                      </p>
-                      <div className="mt-3 space-y-1 text-xs text-muted-foreground">
-                        <div className="flex items-center justify-between">
-                          <span>Equity</span>
-                          <span className="font-semibold text-foreground">
-                            {formatMoney(point.equity)}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span>Annual cash flow</span>
-                          <span className="font-semibold text-foreground">
-                            {formatMoney(point.cashFlow)}
-                          </span>
-                        </div>
+                            <span className="font-medium">
+                              {formatMoney(item.value, true)}
+                            </span>
+                          </div>
+                        ))}
                       </div>
                     </div>
-                  ))}
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              </motion.div>
 
-              <Card className="reveal" data-delay="5">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <AlertTriangle className="h-5 w-5 text-primary" /> Risk and
-                    action plan
-                  </CardTitle>
-                  <CardDescription>
-                    Strengths, red flags, and the next best moves.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="grid gap-4 sm:grid-cols-2">
-                  <div className="rounded-xl border border-border/60 bg-background/80 p-4">
-                    <div className="flex items-center gap-2 text-sm font-semibold">
-                      <TrendingUp className="h-4 w-4 text-emerald-500" />
-                      Strengths
-                    </div>
-                    <ul className="mt-2 space-y-2 text-sm text-muted-foreground list-disc list-inside">
-                      {metrics.strengths.length ? (
-                        metrics.strengths.map((item) => (
-                          <li key={item}>{item}</li>
-                        ))
-                      ) : (
-                        <li>No clear strengths yet. Tighten assumptions.</li>
-                      )}
-                    </ul>
-                  </div>
-                  <div className="rounded-xl border border-border/60 bg-background/80 p-4">
-                    <div className="flex items-center gap-2 text-sm font-semibold">
-                      <AlertTriangle className="h-4 w-4 text-amber-500" />
-                      Watchlist
-                    </div>
-                    <ul className="mt-2 space-y-2 text-sm text-muted-foreground list-disc list-inside">
-                      {metrics.riskFlags.length ? (
-                        metrics.riskFlags.map((item) => (
-                          <li key={item}>{item}</li>
-                        ))
-                      ) : (
-                        <li>No material risks flagged at this time.</li>
-                      )}
-                    </ul>
-                  </div>
-                  <div className="rounded-xl border border-border/60 bg-primary/5 p-4 sm:col-span-2">
-                    <div className="flex items-center gap-2 text-sm font-semibold">
-                      <ShieldAlert className="h-4 w-4 text-primary" />
-                      Recommended moves
-                    </div>
-                    <ul className="mt-2 space-y-2 text-sm text-muted-foreground list-disc list-inside">
-                      {metrics.recommendations.map((item) => (
-                        <li key={item}>{item}</li>
+              <motion.div variants={fadeUpItem}>
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <LineChart className="h-5 w-5 text-primary" /> Sensitivity
+                    </CardTitle>
+                    <CardDescription>
+                      Monthly cash flow under rent and vacancy shifts.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="grid grid-cols-4 gap-2 text-xs">
+                      <div />
+                      {["-5% rent", "Base rent", "+5% rent"].map((label) => (
+                        <div
+                          key={label}
+                          className="text-center font-semibold text-muted-foreground"
+                        >
+                          {label}
+                        </div>
                       ))}
-                    </ul>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </section>
-        </main>
+                      {metrics.sensitivity.map((row) => (
+                        <React.Fragment key={row.vacancyDelta}>
+                          <div className="rounded-lg border border-border/60 bg-muted/30 px-2 py-2 text-center font-semibold text-muted-foreground">
+                            {row.vacancyDelta >= 0 ? "+" : ""}
+                            {row.vacancyDelta}% vac
+                          </div>
+                          {row.values.map((value, idx) => {
+                            const tone =
+                              value >= 250
+                                ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
+                                : value >= 0
+                                  ? "bg-amber-500/15 text-amber-700 dark:text-amber-300"
+                                  : "bg-rose-500/15 text-rose-700 dark:text-rose-300";
+                            return (
+                              <div
+                                key={`${row.vacancyDelta}-${idx}`}
+                                className={`rounded-lg px-2 py-2 text-center font-semibold ${tone}`}
+                              >
+                                {formatMoney(value, true)}
+                              </div>
+                            );
+                          })}
+                        </React.Fragment>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+              <motion.div variants={fadeUpItem}>
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <TrendingUp className="h-5 w-5 text-primary" /> Projection
+                    </CardTitle>
+                    <CardDescription>
+                      Estimated equity and cash flow over time.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="grid gap-3 sm:grid-cols-3">
+                    {metrics.projection.map((point) => (
+                      <div
+                        key={point.year}
+                        className="rounded-xl border border-border/60 bg-background/80 p-4"
+                      >
+                        <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                          Year {point.year}
+                        </p>
+                        <p className="text-lg font-semibold">
+                          {formatMoney(point.value)}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Property value
+                        </p>
+                        <div className="mt-3 space-y-1 text-xs text-muted-foreground">
+                          <div className="flex items-center justify-between">
+                            <span>Equity</span>
+                            <span className="font-semibold text-foreground">
+                              {formatMoney(point.equity)}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span>Annual cash flow</span>
+                            <span className="font-semibold text-foreground">
+                              {formatMoney(point.cashFlow)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+              <motion.div variants={fadeUpItem}>
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <AlertTriangle className="h-5 w-5 text-primary" /> Risk
+                      and action plan
+                    </CardTitle>
+                    <CardDescription>
+                      Strengths, red flags, and the next best moves.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="grid gap-4 sm:grid-cols-2">
+                    <div className="rounded-xl border border-border/60 bg-background/80 p-4">
+                      <div className="flex items-center gap-2 text-sm font-semibold">
+                        <TrendingUp className="h-4 w-4 text-emerald-500" />
+                        Strengths
+                      </div>
+                      <ul className="mt-2 space-y-2 text-sm text-muted-foreground list-disc list-inside">
+                        {metrics.strengths.length ? (
+                          metrics.strengths.map((item) => (
+                            <li key={item}>{item}</li>
+                          ))
+                        ) : (
+                          <li>No clear strengths yet. Tighten assumptions.</li>
+                        )}
+                      </ul>
+                    </div>
+                    <div className="rounded-xl border border-border/60 bg-background/80 p-4">
+                      <div className="flex items-center gap-2 text-sm font-semibold">
+                        <AlertTriangle className="h-4 w-4 text-amber-500" />
+                        Watchlist
+                      </div>
+                      <ul className="mt-2 space-y-2 text-sm text-muted-foreground list-disc list-inside">
+                        {metrics.riskFlags.length ? (
+                          metrics.riskFlags.map((item) => (
+                            <li key={item}>{item}</li>
+                          ))
+                        ) : (
+                          <li>No material risks flagged at this time.</li>
+                        )}
+                      </ul>
+                    </div>
+                    <div className="rounded-xl border border-border/60 bg-primary/5 p-4 sm:col-span-2">
+                      <div className="flex items-center gap-2 text-sm font-semibold">
+                        <ShieldAlert className="h-4 w-4 text-primary" />
+                        Recommended moves
+                      </div>
+                      <ul className="mt-2 space-y-2 text-sm text-muted-foreground list-disc list-inside">
+                        {metrics.recommendations.map((item) => (
+                          <li key={item}>{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </motion.div>
+          </motion.section>
+        </motion.main>
         <style jsx>{`
           .deal-analyzer-bg {
             position: absolute;
@@ -1450,41 +1556,6 @@ export default function AnalyzerPage() {
                 rgba(255, 255, 255, 0.06) 1px,
                 transparent 1px
               );
-          }
-
-          .reveal {
-            animation: fade-up 600ms ease both;
-          }
-
-          .reveal[data-delay="1"] {
-            animation-delay: 80ms;
-          }
-
-          .reveal[data-delay="2"] {
-            animation-delay: 160ms;
-          }
-
-          .reveal[data-delay="3"] {
-            animation-delay: 240ms;
-          }
-
-          .reveal[data-delay="4"] {
-            animation-delay: 320ms;
-          }
-
-          .reveal[data-delay="5"] {
-            animation-delay: 400ms;
-          }
-
-          @keyframes fade-up {
-            from {
-              opacity: 0;
-              transform: translateY(14px);
-            }
-            to {
-              opacity: 1;
-              transform: translateY(0);
-            }
           }
         `}</style>
       </div>
