@@ -537,6 +537,14 @@ type ChatMessage = {
   expertViews?: Record<string, string>;
 };
 
+type GuestConversation = {
+  _id: string;
+  title: string;
+  messages: ChatMessage[];
+  createdAt: string;
+  updatedAt: string;
+};
+
 const LOCAL_CHAT_KEY = "estateWiseChat";
 const LOCAL_CONVOS_KEY = "estateWiseConvos";
 
@@ -552,7 +560,7 @@ const deriveGuestTitle = (messages: ChatMessage[], fallback: string) => {
   return cleaned.length > 48 ? `${cleaned.slice(0, 48)}...` : cleaned;
 };
 
-const buildGuestConversation = (messages: ChatMessage[]) => {
+const buildGuestConversation = (messages: ChatMessage[]): GuestConversation => {
   const now = new Date().toISOString();
   return {
     _id: createGuestId(),
@@ -563,11 +571,11 @@ const buildGuestConversation = (messages: ChatMessage[]) => {
   };
 };
 
-const loadGuestConvos = () => {
+const loadGuestConvos = (): GuestConversation[] => {
   if (typeof window === "undefined") return [];
   try {
     const stored = localStorage.getItem(LOCAL_CONVOS_KEY);
-    if (stored) return JSON.parse(stored);
+    if (stored) return JSON.parse(stored) as GuestConversation[];
   } catch {
     // ignore malformed storage
   }
@@ -589,7 +597,7 @@ const loadGuestConvos = () => {
   return [];
 };
 
-const persistGuestConvos = (convos: unknown[]) => {
+const persistGuestConvos = (convos: GuestConversation[]) => {
   if (typeof window === "undefined") return;
   localStorage.setItem(LOCAL_CONVOS_KEY, JSON.stringify(convos));
 };
@@ -1713,7 +1721,7 @@ type ChatWindowProps = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   localConvos: any[];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  setLocalConvos: (convos: any[]) => void;
+  setLocalConvos: React.Dispatch<React.SetStateAction<any[]>>;
   selectedConvoId: string | null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onSetSelectedConvo: (conv: any) => void;
@@ -1757,6 +1765,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   const [draftInput, setDraftInput] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const lastGuestConvoIdRef = useRef<string | null>(selectedConvoId);
+  const skipGuestUpsertRef = useRef(false);
 
   const createGuestConversation = (seedMessages: ChatMessage[] = []) => {
     const convo = buildGuestConversation(seedMessages);
@@ -1896,6 +1905,9 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
       const found = localConvos.find((c) => c._id === selectedConvoId);
       setMessages(found?.messages ?? []);
       prevConvoId.current = selectedConvoId;
+      if (!isAuthed) {
+        skipGuestUpsertRef.current = true;
+      }
       setRatings({}); // clear ratings when switching convo
       setTimeout(() => setConvLoading(false), 250);
     }
@@ -1960,6 +1972,10 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
     }
     if (lastGuestConvoIdRef.current !== selectedConvoId) {
       lastGuestConvoIdRef.current = selectedConvoId;
+      return;
+    }
+    if (skipGuestUpsertRef.current) {
+      skipGuestUpsertRef.current = false;
       return;
     }
     upsertGuestConversation(messages);
