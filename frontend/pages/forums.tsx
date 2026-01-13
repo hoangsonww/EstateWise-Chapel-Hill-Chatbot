@@ -21,6 +21,7 @@ import {
   GitBranch,
   MapPin,
   MessageCircle,
+  MessageCircleMore,
   LogOut,
   User as UserIcon,
   Loader2,
@@ -112,7 +113,7 @@ export default function ForumsPage() {
 
   const isAuthed = Boolean(token);
   const navLinks = [
-    { href: "/chat", label: "Chat", Icon: MessageSquare },
+    { href: "/chat", label: "Chat", Icon: MessageCircleMore },
     { href: "/charts", label: "Charts", Icon: BarChart3 },
     { href: "/insights", label: "Insights", Icon: GitBranch },
     { href: "/analyzer", label: "Deal Analyzer", Icon: Calculator },
@@ -542,8 +543,8 @@ export default function ForumsPage() {
                         </div>
                       </CardHeader>
                       <CardContent>
-                        <div className="flex items-center justify-between text-sm text-muted-foreground dark:text-foreground">
-                          <div className="flex items-center gap-4">
+                        <div className="flex flex-col gap-3 text-sm text-muted-foreground dark:text-foreground md:flex-row md:items-center md:justify-between">
+                          <div className="flex flex-wrap items-center gap-3">
                             <div className="flex items-center gap-1">
                               <User className="w-4 h-4" />
                               <span>
@@ -556,7 +557,7 @@ export default function ForumsPage() {
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-4">
+                          <div className="flex flex-wrap items-center gap-3">
                             <div className="flex items-center gap-1">
                               <ThumbsUp className="w-4 h-4" />
                               <span>{post.upvotes?.length || 0}</span>
