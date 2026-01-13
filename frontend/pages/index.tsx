@@ -25,6 +25,7 @@ import {
   GithubIcon,
   BarChart3,
   BotMessageSquare,
+  Calculator,
 } from "lucide-react";
 
 // Dynamically load react-slick to avoid SSR issues
@@ -471,12 +472,23 @@ export default function Home() {
                 <Link href="/map">
                   <Button
                     variant="ghost"
-                    className="rounded-full px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg cursor-pointer text-white hover:bg-white/10"
+                    className="rounded-full px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg cursor-pointer text-white hover:bg-white/10 hover:text-white"
                     aria-label="Properties Map"
                     title="Properties Map"
                   >
                     <MapPin className="w-5 h-5" />
                     Properties Map
+                  </Button>
+                </Link>
+                <Link href="/analyzer">
+                  <Button
+                    variant="ghost"
+                    className="rounded-full px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg cursor-pointer text-white hover:bg-white/10 hover:text-white border border-white/25"
+                    aria-label="Deal Analyzer"
+                    title="Deal Analyzer"
+                  >
+                    <Calculator className="w-5 h-5" />
+                    Deal Analyzer
                   </Button>
                 </Link>
               </div>

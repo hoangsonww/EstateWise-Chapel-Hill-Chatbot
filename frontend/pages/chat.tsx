@@ -698,7 +698,7 @@ const TopBar: React.FC<TopBarProps> = ({
   };
 
   return (
-    <div className="sticky top-0 z-20 flex items-center justify-between p-4 border-b border-border bg-background shadow-md h-16 overflow-visible whitespace-nowrap">
+    <div className="sticky top-0 z-20 flex items-center justify-between p-4 border-b border-border bg-background h-16 overflow-visible whitespace-nowrap">
       <div className="flex items-center gap-2">
         {!sidebarVisible && (
           <Tooltip>
