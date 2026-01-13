@@ -695,6 +695,7 @@ const TopBar: React.FC<TopBarProps> = ({
   const [navMenuOpen, setNavMenuOpen] = useState(false);
 
   const handleAuthIconClick = () => {
+    setNavMenuOpen(false);
     setAuthMenuOpen((prev) => !prev);
   };
 
@@ -751,7 +752,10 @@ const TopBar: React.FC<TopBarProps> = ({
               <button
                 className="inline-flex h-8 w-8 items-center justify-center hover:text-primary transition-colors cursor-pointer"
                 aria-label="Open navigation menu"
-                onClick={() => setNavMenuOpen((prev) => !prev)}
+                onClick={() => {
+                  setAuthMenuOpen(false);
+                  setNavMenuOpen((prev) => !prev);
+                }}
               >
                 <Settings className="w-5 h-5" />
               </button>

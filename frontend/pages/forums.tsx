@@ -148,6 +148,7 @@ export default function ForumsPage() {
   }, [router.asPath]);
 
   const handleAuthIconClick = () => {
+    setNavMenuOpen(false);
     setAuthMenuOpen((prev) => !prev);
   };
 
@@ -300,7 +301,10 @@ export default function ForumsPage() {
                       <button
                         className="inline-flex h-8 w-8 items-center justify-center text-foreground hover:text-primary transition-colors cursor-pointer"
                         aria-label="Open navigation menu"
-                        onClick={() => setNavMenuOpen((prev) => !prev)}
+                        onClick={() => {
+                          setAuthMenuOpen(false);
+                          setNavMenuOpen((prev) => !prev);
+                        }}
                       >
                         <Settings className="w-5 h-5" />
                       </button>

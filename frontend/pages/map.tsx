@@ -388,7 +388,7 @@ export default function MapPage() {
                 Property Map
               </span>
             </div>
-            <nav className="ml-auto flex items-center gap-3 text-sm">
+            <nav className="ml-auto flex items-center gap-3">
               <div className="hidden md:flex items-center gap-4">
                 {navLinks.map(({ href, label, Icon }) => (
                   <Tooltip key={href}>
@@ -419,7 +419,7 @@ export default function MapPage() {
                   <TooltipContent>Menu</TooltipContent>
                 </Tooltip>
                 {navMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-40 bg-card rounded shadow-lg py-2 z-50">
+                  <div className="absolute right-0 mt-2 w-52 bg-card rounded shadow-lg py-2 z-50">
                     {navLinks.map(({ href, label, Icon }) => (
                       <Link href={href} key={href}>
                         <div
