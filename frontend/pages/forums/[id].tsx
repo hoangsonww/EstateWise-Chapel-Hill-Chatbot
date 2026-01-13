@@ -22,6 +22,7 @@ import {
   GitBranch,
   MapPin,
   MessageCircle,
+  MessageCircleMore,
   LogOut,
   User as UserIcon,
   Loader2,
@@ -128,7 +129,7 @@ export default function PostDetailPage() {
 
   const isAuthed = Boolean(token ?? getStoredToken());
   const navLinks = [
-    { href: "/chat", label: "Chat", Icon: MessageSquare },
+    { href: "/chat", label: "Chat", Icon: MessageCircleMore },
     { href: "/charts", label: "Charts", Icon: BarChart3 },
     { href: "/insights", label: "Insights", Icon: GitBranch },
     { href: "/analyzer", label: "Deal Analyzer", Icon: Calculator },
