@@ -868,10 +868,13 @@ export default function InsightsPage() {
                     <div className="rounded-full border border-primary/30 bg-background/70 px-4 py-1 text-xs font-semibold uppercase tracking-wide text-primary">
                       Updated daily
                     </div>
-                    <Button asChild size="lg" className="group">
-                      <Link href="/market-pulse">
+                    <Button asChild size="lg">
+                      <Link
+                        href="/market-pulse"
+                        className="inline-flex items-center gap-1"
+                      >
                         Explore Market Pulse
-                        <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                        <ArrowRight className="h-4 w-4" />
                       </Link>
                     </Button>
                     <p className="text-xs text-muted-foreground md:text-right">
@@ -2356,7 +2359,7 @@ function QuickPricePerSqft() {
   const [area, setArea] = useState(2000);
   const ppsf = useMemo(() => (area ? price / area : 0), [price, area]);
   return (
-    <div className="flex flex-col gap-3 rounded border p-4">
+    <div className="flex flex-col gap-3 rounded border border-border/60 p-4 shadow-sm">
       <div className="font-medium">Price per Sqft</div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <Field label="Price">
@@ -2394,7 +2397,7 @@ function QuickDownPayment({
 }) {
   const down = useMemo(() => price * (downPct / 100), [price, downPct]);
   return (
-    <div className="flex flex-col gap-3 rounded border p-4">
+    <div className="flex flex-col gap-3 rounded border border-border/60 p-4 shadow-sm">
       <div className="font-medium">Down Payment</div>
       <div className="text-sm">
         Given price {prettyMoney(price)} and {downPct}% down

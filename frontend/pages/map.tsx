@@ -81,15 +81,18 @@ function HelpDialog({ title, content }: { title: string; content: string }) {
   const [open, setOpen] = useState(false);
 
   const renderInline = (text: string, keyPrefix: string) =>
-    text
-      .split("**")
-      .map((part, index) =>
-        index % 2 === 0 ? (
-          part
-        ) : (
-          <strong key={`${keyPrefix}-strong-${index}`}>{part}</strong>
-        ),
-      );
+    text.split("**").map((part, index) =>
+      index % 2 === 0 ? (
+        part
+      ) : (
+        <strong
+          key={`${keyPrefix}-strong-${index}`}
+          className="font-semibold text-black dark:text-white"
+        >
+          {part}
+        </strong>
+      ),
+    );
 
   return (
     <>
@@ -102,11 +105,11 @@ function HelpDialog({ title, content }: { title: string; content: string }) {
         <HelpCircle className="h-4 w-4 text-muted-foreground" />
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-auto z-[9999]">
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-auto z-[9999] text-black dark:text-white">
           <DialogHeader>
             <DialogTitle>{title}</DialogTitle>
           </DialogHeader>
-          <div className="prose prose-sm dark:prose-invert max-w-none">
+          <div className="text-sm text-black dark:text-white max-w-none">
             {content.split(/\n{2,}/).map((block, blockIndex) => {
               const lines = block
                 .split("\n")
@@ -139,7 +142,7 @@ function HelpDialog({ title, content }: { title: string; content: string }) {
                 blockParts.push(
                   <p
                     key={`text-${blockIndex}-${lineIndex}`}
-                    className="text-sm text-muted-foreground mb-3"
+                    className="mb-3 text-black dark:text-white"
                   >
                     {renderInline(line, `${blockIndex}-text-${lineIndex}`)}
                   </p>,
@@ -150,7 +153,7 @@ function HelpDialog({ title, content }: { title: string; content: string }) {
                 blockParts.push(
                   <ul
                     key={`list-${blockIndex}`}
-                    className="list-disc pl-5 space-y-1"
+                    className="list-disc pl-5 space-y-1 text-black dark:text-white"
                   >
                     {bulletLines.map((item, itemIndex) => {
                       const itemText = item.replace(/^[-•]\s*/, "").trim();
@@ -478,10 +481,21 @@ export default function MapPage() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div
-                      ref={mapRef}
-                      className="w-full h-[70vh] rounded-lg overflow-hidden border"
-                    />
+                    <div className="relative z-0 isolate">
+                      <div
+                        ref={mapRef}
+                        className="w-full h-[70vh] rounded-lg overflow-hidden border"
+                      />
+                      {(loading || !leafletReady) && (
+                        <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-background/70">
+                          <div
+                            className="h-10 w-10 animate-spin rounded-full border-2 border-foreground border-t-transparent"
+                            role="status"
+                            aria-label="Loading map results"
+                          />
+                        </div>
+                      )}
+                    </div>
                   </CardContent>
                 </Card>
               </motion.div>

@@ -14,6 +14,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
@@ -70,6 +77,54 @@ const ACTION_IMPACT_BADGE: Record<"low" | "medium" | "high", string> = {
   high: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-300",
 };
 
+const SUPPORTED_MARKETS = [
+  "Atlanta, GA",
+  "Austin, TX",
+  "Boston, MA",
+  "Boise, ID",
+  "Baltimore, MD",
+  "Chapel Hill, NC",
+  "Charlotte, NC",
+  "Chicago, IL",
+  "Columbus, OH",
+  "Cincinnati, OH",
+  "Cleveland, OH",
+  "Dallas-Fort Worth, TX",
+  "Denver, CO",
+  "Detroit, MI",
+  "Durham, NC",
+  "Houston, TX",
+  "Kansas City, MO",
+  "Las Vegas, NV",
+  "Los Angeles, CA",
+  "Miami, FL",
+  "Minneapolis-St. Paul, MN",
+  "Nashville, TN",
+  "New York, NY",
+  "New Orleans, LA",
+  "Orlando, FL",
+  "Philadelphia, PA",
+  "Phoenix, AZ",
+  "Portland, OR",
+  "Providence, RI",
+  "Raleigh, NC",
+  "Richmond, VA",
+  "Riverside, CA",
+  "Sacramento, CA",
+  "Salt Lake City, UT",
+  "San Jose, CA",
+  "San Antonio, TX",
+  "San Diego, CA",
+  "San Francisco, CA",
+  "Seattle, WA",
+  "St. Louis, MO",
+  "Tampa, FL",
+  "Virginia Beach, VA",
+  "Washington, DC",
+  "Milwaukee, WI",
+  "Indianapolis, IN",
+];
+
 type TimelinePoint = MarketSnapshot["timeline"][number];
 type HotZipPoint = MarketSnapshot["topZips"][number];
 type ActionItem = MarketSnapshot["recommendedActions"][number];
@@ -78,10 +133,18 @@ export default function MarketPulsePage() {
   const [query, setQuery] = useState("Austin, TX");
   const [submittedQuery, setSubmittedQuery] = useState("Austin, TX");
   const [mounted, setMounted] = useState(false);
+  const [marketsOpen, setMarketsOpen] = useState(false);
+  const [marketFilter, setMarketFilter] = useState("");
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (!marketsOpen) {
+      setMarketFilter("");
+    }
+  }, [marketsOpen]);
 
   const marketSnapshotQuery = trpc.insights.marketSnapshot.useQuery(
     { query: submittedQuery },
@@ -92,6 +155,14 @@ export default function MarketPulsePage() {
   );
 
   const snapshot = marketSnapshotQuery.data;
+
+  const filteredMarkets = useMemo(() => {
+    const term = marketFilter.trim().toLowerCase();
+    if (!term) return SUPPORTED_MARKETS;
+    return SUPPORTED_MARKETS.filter((market) =>
+      market.toLowerCase().includes(term),
+    );
+  }, [marketFilter]);
 
   const scoreItems = useMemo(() => {
     if (!snapshot) return [];
@@ -212,6 +283,59 @@ export default function MarketPulsePage() {
         />
       </Head>
       <div className="min-h-screen bg-background text-foreground">
+        <Dialog open={marketsOpen} onOpenChange={setMarketsOpen}>
+          <DialogContent className="max-w-3xl dark:[&_[data-slot=dialog-close]]:text-white">
+            <DialogHeader>
+              <DialogTitle className="text-foreground dark:text-white">
+                Supported markets
+              </DialogTitle>
+              <DialogDescription>
+                Scan by city + state. We match the closest curated dataset.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <Input
+                  value={marketFilter}
+                  onChange={(event) => setMarketFilter(event.target.value)}
+                  placeholder="Filter by city or state"
+                  className="sm:max-w-xs text-foreground dark:text-white"
+                />
+                <div className="text-xs text-muted-foreground">
+                  {filteredMarkets.length} markets available
+                </div>
+              </div>
+              <div className="max-h-[50vh] overflow-auto pr-1">
+                {filteredMarkets.length === 0 ? (
+                  <div className="rounded-lg border border-border/60 bg-muted/30 p-4 text-sm text-muted-foreground">
+                    No matches yet. Try a broader search like "Texas" or "NC".
+                  </div>
+                ) : (
+                  <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                    {filteredMarkets.map((market) => (
+                      <button
+                        key={market}
+                        type="button"
+                        onClick={() => {
+                          setQuery(market);
+                          setSubmittedQuery(market);
+                          setMarketsOpen(false);
+                        }}
+                        className="inline-flex items-center justify-center rounded-full border border-border/60 bg-muted/40 px-3 py-1.5 text-sm text-foreground shadow-sm transition-colors hover:bg-muted/60 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 cursor-pointer"
+                      >
+                        {market}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="rounded-lg border border-border/60 bg-muted/30 p-3 text-xs text-muted-foreground">
+                Tip: You can also search by county or metro nickname (e.g.
+                "Philly", "Twin Cities", "DFW").
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
         <header className="border-b border-border bg-background/90 backdrop-blur">
           <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-4 sm:h-16 sm:px-6">
             <div className="flex items-center gap-3">
@@ -252,9 +376,14 @@ export default function MarketPulsePage() {
               </Button>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button variant="ghost" size="icon" asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    asChild
+                    className="h-7 w-7"
+                  >
                     <Link href="/analyzer" aria-label="Deal Analyzer">
-                      <Calculator className="h-5 w-5" />
+                      <Calculator className="size-5" />
                     </Link>
                   </Button>
                 </TooltipTrigger>
@@ -273,10 +402,20 @@ export default function MarketPulsePage() {
         </header>
         <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-6 sm:px-6 sm:py-8">
           <Card className="transition-opacity duration-1000 ease-out">
-            <CardHeader className="space-y-2">
-              <CardTitle className="flex items-center gap-2 text-xl">
-                <TrendingUp className="h-5 w-5 text-primary" /> Run a metro scan
-              </CardTitle>
+            <CardHeader className="space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <CardTitle className="flex items-center gap-2 text-xl">
+                  <TrendingUp className="h-5 w-5 text-primary" /> Run a metro
+                  scan
+                </CardTitle>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setMarketsOpen(true)}
+                >
+                  View {SUPPORTED_MARKETS.length} supported cities
+                </Button>
+              </div>
               <CardDescription>
                 Search by metro or market label. We surface the closest curated
                 dataset when an exact match is unavailable.
@@ -417,7 +556,7 @@ export default function MarketPulsePage() {
                       {scoreItems.map((item, index) => (
                         <div
                           key={item.key}
-                          className="rounded-lg border bg-background p-4 shadow-sm transition-all duration-300 ease-in-out hover:shadow-lg hover:-translate-y-0.5"
+                          className="rounded-lg border border-border/60 bg-background p-4 shadow-sm transition-all duration-300 ease-in-out hover:shadow-lg hover:-translate-y-0.5"
                         >
                           <div className="flex items-center justify-between gap-2">
                             <span className="flex items-center gap-2 text-sm font-medium">
@@ -612,7 +751,7 @@ export default function MarketPulsePage() {
                           (zip: HotZipPoint, index: number) => (
                             <li
                               key={zip.name}
-                              className="rounded-md border p-3"
+                              className="rounded-md border border-border/60 p-3 shadow-sm"
                             >
                               <div className="flex items-center justify-between gap-2 text-sm text-foreground">
                                 <span className="font-medium break-words">
