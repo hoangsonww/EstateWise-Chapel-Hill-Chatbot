@@ -25,6 +25,7 @@ import {
   LogOut,
   User as UserIcon,
   Loader2,
+  Settings,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -126,6 +127,14 @@ export default function PostDetailPage() {
   const [authMenuOpen, setAuthMenuOpen] = useState(false);
 
   const isAuthed = Boolean(token ?? getStoredToken());
+  const navLinks = [
+    { href: "/chat", label: "Chat", Icon: MessageSquare },
+    { href: "/charts", label: "Charts", Icon: BarChart3 },
+    { href: "/insights", label: "Insights", Icon: GitBranch },
+    { href: "/analyzer", label: "Deal Analyzer", Icon: Calculator },
+    { href: "/map", label: "Map", Icon: MapPin },
+  ];
+  const [navMenuOpen, setNavMenuOpen] = useState(false);
 
   useEffect(() => {
     const storedToken = getStoredToken();
@@ -360,78 +369,65 @@ export default function PostDetailPage() {
         {/* Header with Navigation */}
         <header className="sticky top-0 z-30 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border/60">
           <div className="container mx-auto px-4 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
                 <Link
                   href="/forums"
                   className="flex items-center gap-2 text-foreground hover:text-primary transition-colors"
                 >
                   <ArrowLeft className="w-5 h-5" />
-                  <span className="hidden sm:inline">Back to Forums</span>
+                  <span className="hidden sm:inline truncate">
+                    Back to Forums
+                  </span>
                 </Link>
               </div>
 
-              <div className="flex items-center gap-4 text-foreground overflow-visible">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Link
-                      href="/chat"
-                      className="inline-flex h-8 w-8 items-center justify-center text-foreground hover:text-primary transition-colors"
-                      aria-label="Chat"
-                    >
-                      <MessageSquare className="w-5 h-5" />
-                    </Link>
-                  </TooltipTrigger>
-                  <TooltipContent>Chat</TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Link
-                      href="/charts"
-                      className="inline-flex h-8 w-8 items-center justify-center text-foreground hover:text-primary transition-colors"
-                      aria-label="Charts"
-                    >
-                      <BarChart3 className="w-5 h-5" />
-                    </Link>
-                  </TooltipTrigger>
-                  <TooltipContent>Charts</TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Link
-                      href="/insights"
-                      className="inline-flex h-8 w-8 items-center justify-center text-foreground hover:text-primary transition-colors"
-                      aria-label="Insights"
-                    >
-                      <GitBranch className="w-5 h-5" />
-                    </Link>
-                  </TooltipTrigger>
-                  <TooltipContent>Insights</TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Link
-                      href="/analyzer"
-                      className="inline-flex h-8 w-8 items-center justify-center text-foreground hover:text-primary transition-colors"
-                      aria-label="Deal Analyzer"
-                    >
-                      <Calculator className="w-5 h-5" />
-                    </Link>
-                  </TooltipTrigger>
-                  <TooltipContent>Deal Analyzer</TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Link
-                      href="/map"
-                      className="inline-flex h-8 w-8 items-center justify-center text-foreground hover:text-primary transition-colors"
-                      aria-label="Map"
-                    >
-                      <MapPin className="w-5 h-5" />
-                    </Link>
-                  </TooltipTrigger>
-                  <TooltipContent>Map</TooltipContent>
-                </Tooltip>
+              <div className="flex items-center gap-3 text-foreground">
+                <div className="hidden md:flex items-center gap-4">
+                  {navLinks.map(({ href, label, Icon }) => (
+                    <Tooltip key={href}>
+                      <TooltipTrigger asChild>
+                        <Link
+                          href={href}
+                          className="inline-flex h-8 w-8 items-center justify-center text-foreground hover:text-primary transition-colors"
+                          aria-label={label}
+                        >
+                          <Icon className="w-5 h-5" />
+                        </Link>
+                      </TooltipTrigger>
+                      <TooltipContent>{label}</TooltipContent>
+                    </Tooltip>
+                  ))}
+                </div>
+                <div className="md:hidden relative">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        className="inline-flex h-8 w-8 items-center justify-center text-foreground hover:text-primary transition-colors cursor-pointer"
+                        aria-label="Open navigation menu"
+                        onClick={() => setNavMenuOpen((prev) => !prev)}
+                      >
+                        <Settings className="w-5 h-5" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>Menu</TooltipContent>
+                  </Tooltip>
+                  {navMenuOpen && (
+                    <div className="absolute right-0 mt-2 w-40 bg-card rounded shadow-lg py-2 z-50">
+                      {navLinks.map(({ href, label, Icon }) => (
+                        <Link href={href} key={href}>
+                          <div
+                            className="px-4 py-2 hover:bg-muted cursor-pointer select-none flex items-center gap-2"
+                            onClick={() => setNavMenuOpen(false)}
+                          >
+                            <Icon className="w-4 h-4" />
+                            <span>{label}</span>
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <span>

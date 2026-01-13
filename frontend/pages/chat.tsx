@@ -692,14 +692,23 @@ const TopBar: React.FC<TopBarProps> = ({
   const isAuthed = !!Cookies.get("estatewise_token");
   const username = localStorage.getItem("username") || "Guest";
   const [authMenuOpen, setAuthMenuOpen] = useState(false);
+  const [navMenuOpen, setNavMenuOpen] = useState(false);
 
   const handleAuthIconClick = () => {
     setAuthMenuOpen((prev) => !prev);
   };
 
+  const navLinks = [
+    { href: "/charts", label: "Charts", Icon: BarChart3 },
+    { href: "/insights", label: "Insights", Icon: GitBranch },
+    { href: "/analyzer", label: "Deal Analyzer", Icon: Calculator },
+    { href: "/map", label: "Map", Icon: MapPin },
+    { href: "/forums", label: "Forums", Icon: Users },
+  ];
+
   return (
-    <div className="sticky top-0 z-20 flex items-center justify-between p-4 border-b border-border bg-background h-16 overflow-visible whitespace-nowrap">
-      <div className="flex items-center gap-2">
+    <div className="sticky top-0 z-20 flex items-center justify-between p-4 border-b border-border bg-background h-16 overflow-visible gap-2">
+      <div className="flex items-center gap-2 min-w-0 flex-1">
         {!sidebarVisible && (
           <Tooltip>
             <TooltipTrigger asChild>
@@ -719,67 +728,52 @@ const TopBar: React.FC<TopBarProps> = ({
           Hi {username}, welcome to EstateWise! 🏠
         </span>
       </div>
-      <div className="flex items-center gap-4">
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Link
-              href="/charts"
-              className="inline-flex h-8 w-8 items-center justify-center hover:text-primary transition-colors"
-              aria-label="Charts"
-            >
-              <BarChart3 className="w-5 h-5" />
-            </Link>
-          </TooltipTrigger>
-          <TooltipContent>Charts</TooltipContent>
-        </Tooltip>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Link
-              href="/insights"
-              className="inline-flex h-8 w-8 items-center justify-center hover:text-primary transition-colors"
-              aria-label="Insights"
-            >
-              <GitBranch className="w-5 h-5" />
-            </Link>
-          </TooltipTrigger>
-          <TooltipContent>Insights</TooltipContent>
-        </Tooltip>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Link
-              href="/analyzer"
-              className="inline-flex h-8 w-8 items-center justify-center hover:text-primary transition-colors"
-              aria-label="Deal Analyzer"
-            >
-              <Calculator className="w-5 h-5" />
-            </Link>
-          </TooltipTrigger>
-          <TooltipContent>Deal Analyzer</TooltipContent>
-        </Tooltip>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Link
-              href="/map"
-              className="inline-flex h-8 w-8 items-center justify-center hover:text-primary transition-colors"
-              aria-label="Map"
-            >
-              <MapPin className="w-5 h-5" />
-            </Link>
-          </TooltipTrigger>
-          <TooltipContent>Map</TooltipContent>
-        </Tooltip>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Link
-              href="/forums"
-              className="inline-flex h-8 w-8 items-center justify-center hover:text-primary transition-colors"
-              aria-label="Forums"
-            >
-              <Users className="w-5 h-5" />
-            </Link>
-          </TooltipTrigger>
-          <TooltipContent>Forums</TooltipContent>
-        </Tooltip>
+      <div className="flex items-center gap-3">
+        <div className="hidden md:flex items-center gap-4">
+          {navLinks.map(({ href, label, Icon }) => (
+            <Tooltip key={href}>
+              <TooltipTrigger asChild>
+                <Link
+                  href={href}
+                  className="inline-flex h-8 w-8 items-center justify-center hover:text-primary transition-colors"
+                  aria-label={label}
+                >
+                  <Icon className="w-5 h-5" />
+                </Link>
+              </TooltipTrigger>
+              <TooltipContent>{label}</TooltipContent>
+            </Tooltip>
+          ))}
+        </div>
+        <div className="md:hidden relative">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                className="inline-flex h-8 w-8 items-center justify-center hover:text-primary transition-colors cursor-pointer"
+                aria-label="Open navigation menu"
+                onClick={() => setNavMenuOpen((prev) => !prev)}
+              >
+                <Settings className="w-5 h-5" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>Menu</TooltipContent>
+          </Tooltip>
+          {navMenuOpen && (
+            <div className="absolute right-0 mt-2 w-40 bg-card rounded shadow-lg py-2 z-50">
+              {navLinks.map(({ href, label, Icon }) => (
+                <Link href={href} key={href}>
+                  <div
+                    className="px-4 py-2 hover:bg-muted cursor-pointer select-none flex items-center gap-2"
+                    onClick={() => setNavMenuOpen(false)}
+                  >
+                    <Icon className="w-4 h-4" />
+                    <span>{label}</span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
         <Tooltip>
           <TooltipTrigger asChild>
             <span>
@@ -2776,15 +2770,10 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   const showEmptyState = messages.length === 0 && !loading && !convLoading;
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-1 flex-col min-h-0">
       <motion.div
         ref={messagesContainerRef}
-        className={`relative overflow-y-auto overflow-x-hidden p-4 ${showEmptyState ? "space-y-0" : "space-y-2"}`}
-        style={{
-          height: showEmptyState
-            ? "calc(100vh - 64px)"
-            : "calc(100vh - 64px - 80px)",
-        }}
+        className={`relative flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-4 ${showEmptyState ? "space-y-0" : "space-y-2"}`}
         variants={containerVariants}
         initial="hidden"
         animate="visible"
@@ -3009,7 +2998,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
       </motion.div>
 
       {!showEmptyState && (
-        <div className="flex flex-col flex-shrink-0 h-20 p-4">
+        <div className="flex flex-col flex-shrink-0 px-4 pb-4 pt-3">
           <div className="flex gap-2">
             <Input
               ref={inputRef}
@@ -3189,7 +3178,7 @@ export default function ChatPage() {
         />
       </Head>
       <ClientOnly>
-        <div className="min-h-screen flex dark:bg-background dark:text-foreground relative overflow-hidden bg-[radial-gradient(circle_at_20%_20%,rgba(99,102,241,0.06),transparent_35%),radial-gradient(circle_at_80%_0%,rgba(16,185,129,0.05),transparent_30%)]">
+        <div className="min-h-[100dvh] h-[100dvh] flex dark:bg-background dark:text-foreground relative overflow-hidden bg-[radial-gradient(circle_at_20%_20%,rgba(99,102,241,0.06),transparent_35%),radial-gradient(circle_at_80%_0%,rgba(16,185,129,0.05),transparent_30%)]">
           <style jsx global>{`
             html {
               scroll-behavior: smooth;
@@ -3284,7 +3273,7 @@ export default function ChatPage() {
               </motion.div>
             </div>
             {/* Main content */}
-            <div className="flex-1 flex flex-col duration-600 ease-in-out">
+            <div className="flex-1 flex flex-col min-h-0 duration-600 ease-in-out">
               <TopBar
                 onNewConvo={handleGuestNewConvo}
                 onDeleteConvo={handleGuestDeleteConvo}
