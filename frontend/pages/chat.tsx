@@ -960,15 +960,14 @@ const Sidebar: React.FC<SidebarProps> = ({
   loadingConversations,
   isStreaming,
 }) => {
-  const [showSearchModal, setShowSearchModal] = useState(false);
+  const [showSearchInput, setShowSearchInput] = useState(false);
   const [query, setQuery] = useState("");
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [searchResults, setSearchResults] = useState<any[]>([]);
-  const [searchLoading, setSearchLoading] = useState(false);
+  const [debouncedQuery, setDebouncedQuery] = useState("");
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [newTitle, setNewTitle] = useState("");
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  const searchTimeout = useRef<NodeJS.Timeout | null>(null);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [generatingName, setGeneratingName] = useState(false);
 
@@ -1008,52 +1007,55 @@ const Sidebar: React.FC<SidebarProps> = ({
     return () => window.removeEventListener("resize", updateWidth);
   }, []);
 
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setQuery(value);
-    if (searchTimeout.current) clearTimeout(searchTimeout.current);
-    if (value.trim() === "") {
-      setSearchResults([]);
-      setSearchLoading(false);
-      return;
-    }
-    setSearchLoading(true);
-    searchTimeout.current = setTimeout(async () => {
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        let results: any[] = [];
-        if (isAuthed) {
-          const token = Cookies.get("estatewise_token");
-          const res = await fetch(
-            `${API_BASE_URL}/api/conversations/search?q=${value}`,
-            {
-              headers: { Authorization: `Bearer ${token}` },
-            },
-          );
-          if (res.ok) {
-            results = await res.json();
-          } else {
-            toast.error("Conversation search failed");
-          }
-        } else {
-          const local = localStorage.getItem(LOCAL_CONVOS_KEY);
-          if (local) {
-            const convos = JSON.parse(local);
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            results = convos.filter((conv: any) =>
-              String(conv.title).toLowerCase().includes(value.toLowerCase()),
-            );
-          }
-        }
-        setSearchResults(results);
-      } catch (error) {
-        console.error("Search error:", error);
-        toast.error("Error searching conversations");
-      } finally {
-        setSearchLoading(false);
+  useEffect(() => {
+    if (!showSearchInput) return;
+    const timer = window.setTimeout(() => {
+      searchInputRef.current?.focus();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [showSearchInput]);
+
+  useEffect(() => {
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    searchDebounceRef.current = setTimeout(() => {
+      setDebouncedQuery(query.trim());
+    }, 200);
+    return () => {
+      if (searchDebounceRef.current) {
+        clearTimeout(searchDebounceRef.current);
       }
-    }, 500);
+    };
+  }, [query]);
+
+  const toggleSearchInput = () => {
+    setShowSearchInput((prev) => {
+      const next = !prev;
+      if (prev) {
+        setQuery("");
+        setDebouncedQuery("");
+      }
+      return next;
+    });
   };
+
+  const filteredConversations = useMemo(() => {
+    const normalized = debouncedQuery.toLowerCase();
+    if (!normalized) return conversations;
+    return conversations.filter((conv) =>
+      String(conv.title || "")
+        .toLowerCase()
+        .includes(normalized),
+    );
+  }, [conversations, debouncedQuery]);
+
+  const isFiltering = debouncedQuery.trim().length > 0;
+  const searchActive = showSearchInput || isFiltering;
+  const enableRowAnimations = isAuthed && !searchActive;
+  const enableLayout = !searchActive;
+  const noMatches =
+    conversations.length > 0 &&
+    isFiltering &&
+    filteredConversations.length === 0;
 
   const handleRename = async (convId: string) => {
     try {
@@ -1292,11 +1294,11 @@ const Sidebar: React.FC<SidebarProps> = ({
           // eslint-disable-next-line @typescript-eslint/ban-ts-comment
           // @ts-ignore
           ref={(el) => (itemRefs.current[conv._id] = el)}
-          variants={rowVariants}
+          variants={enableRowAnimations ? rowVariants : undefined}
           custom={index}
-          initial={isAuthed ? "hidden" : false}
-          animate={isAuthed ? "show" : false}
-          layout
+          initial={enableRowAnimations ? "hidden" : false}
+          animate={enableRowAnimations ? "show" : false}
+          layout={enableLayout}
           className={`flex items-center justify-between border-b border-sidebar-border p-2 shadow-sm transition-colors duration-500 m-2 rounded-md dark:rounded-bl-none dark:rounded-br-none
             ${isSelected ? "bg-muted dark:bg-primary/50" : "hover:bg-muted"}
             ${highlightId === conv._id ? "bg-primary/10 dark:bg-primary/20" : ""}
@@ -1366,21 +1368,24 @@ const Sidebar: React.FC<SidebarProps> = ({
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-bold select-none">Conversations</h2>
                 <div className="flex items-center gap-2">
-                  {isAuthed && (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <button
-                          onClick={() => setShowSearchModal(true)}
-                          className="p-1 cursor-pointer hover:bg-muted rounded"
-                          title="Search Conversations"
-                          aria-label="Search Conversations"
-                        >
-                          <Search className="w-5 h-5" />
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent>Search conversations</TooltipContent>
-                    </Tooltip>
-                  )}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={toggleSearchInput}
+                        className="p-1 cursor-pointer rounded hover:bg-muted"
+                        title="Search Conversations"
+                        aria-label="Search Conversations"
+                        aria-pressed={showSearchInput}
+                      >
+                        <Search className="w-5 h-5" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      {showSearchInput
+                        ? "Close search"
+                        : "Search conversations"}
+                    </TooltipContent>
+                  </Tooltip>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <button
@@ -1396,6 +1401,18 @@ const Sidebar: React.FC<SidebarProps> = ({
                   </Tooltip>
                 </div>
               </div>
+              {showSearchInput && (
+                <div className="mb-3">
+                  <Input
+                    ref={searchInputRef}
+                    placeholder="Search conversations..."
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    className="cursor-text bg-background text-foreground border-input"
+                    aria-label="Search conversations"
+                  />
+                </div>
+              )}
               <div className="flex-1 overflow-y-auto">
                 {conversationLoading ? (
                   <div className="min-h-full flex items-center justify-center">
@@ -1412,14 +1429,20 @@ const Sidebar: React.FC<SidebarProps> = ({
                       {isAuthed ? "No conversations" : "No conversations yet"}
                     </p>
                   </div>
+                ) : noMatches ? (
+                  <div className="min-h-full flex items-center justify-center">
+                    <p className="text-center text-sm text-muted-foreground">
+                      No matches found
+                    </p>
+                  </div>
                 ) : (
                   <motion.div
-                    layout
+                    layout={enableLayout}
                     className="space-y-2"
                     initial={false}
                     animate={false}
                   >
-                    {conversations.map((conv, index) => (
+                    {filteredConversations.map((conv, index) => (
                       <ConversationRow
                         key={conv._id}
                         conv={conv}
@@ -1432,75 +1455,6 @@ const Sidebar: React.FC<SidebarProps> = ({
             </motion.aside>
           )}
         </AnimatePresence>
-        {showSearchModal && (
-          <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
-            onClick={() => setShowSearchModal(false)}
-          >
-            <motion.div
-              className="bg-card p-6 rounded-lg shadow-xl w-96"
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.8, opacity: 0 }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <Search className="w-5 h-5 text-primary" />
-                  <h3 className="text-lg font-bold">Search Conversations</h3>
-                </div>
-                <button
-                  onClick={() => setShowSearchModal(false)}
-                  className="text-primary font-bold cursor-pointer"
-                  title="Close Search Modal"
-                  aria-label="Close Search Modal"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-              <Input
-                placeholder="Enter search term..."
-                value={query}
-                onChange={handleSearchChange}
-                className="mb-4 cursor-text"
-              />
-              <div className="max-h-60 overflow-y-auto space-y-2">
-                {searchLoading ? (
-                  <div className="flex items-center justify-center">
-                    <Loader2 className="animate-spin w-5 h-5" />
-                  </div>
-                ) : query.trim() === "" ? null : searchResults.length === 0 ? (
-                  <p className="text-center text-sm text-muted-foreground"></p>
-                ) : (
-                  searchResults.map((conv) => (
-                    <div
-                      key={conv._id}
-                      className={`p-2 bg-muted rounded shadow-sm ${
-                        isStreaming
-                          ? "cursor-not-allowed opacity-60"
-                          : "cursor-pointer hover:bg-muted-foreground"
-                      }`}
-                      onClick={() => {
-                        if (isStreaming) {
-                          toast.error(
-                            "Please wait for the current response to complete before switching conversations",
-                          );
-                          return;
-                        }
-                        onSelect(conv);
-                        setShowSearchModal(false);
-                      }}
-                    >
-                      <p className="text-sm truncate text-foreground select-none">
-                        {conv.title || "Untitled Conversation"}
-                      </p>
-                    </div>
-                  ))
-                )}
-              </div>
-            </motion.div>
-          </div>
-        )}
         {deleteId && (
           <DeleteConfirmationDialog
             open={true}
@@ -1523,21 +1477,22 @@ const Sidebar: React.FC<SidebarProps> = ({
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-bold select-none">Conversations</h2>
           <div className="flex items-center gap-2">
-            {isAuthed && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    onClick={() => setShowSearchModal(true)}
-                    className="p-1 cursor-pointer hover:bg-muted rounded"
-                    title="Search Conversations"
-                    aria-label="Search Conversations"
-                  >
-                    <Search className="w-5 h-5" />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent>Search conversations</TooltipContent>
-              </Tooltip>
-            )}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={toggleSearchInput}
+                  className="p-1 cursor-pointer rounded hover:bg-muted"
+                  title="Search Conversations"
+                  aria-label="Search Conversations"
+                  aria-pressed={showSearchInput}
+                >
+                  <Search className="w-5 h-5" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>
+                {showSearchInput ? "Close search" : "Search conversations"}
+              </TooltipContent>
+            </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
@@ -1553,6 +1508,18 @@ const Sidebar: React.FC<SidebarProps> = ({
             </Tooltip>
           </div>
         </div>
+        {showSearchInput && (
+          <div className="mb-3">
+            <Input
+              ref={searchInputRef}
+              placeholder="Search conversations..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="cursor-text bg-background text-foreground border-input"
+              aria-label="Search conversations"
+            />
+          </div>
+        )}
         <div className="flex-1 overflow-y-auto">
           {conversationLoading ? (
             <div className="min-h-full flex items-center justify-center">
@@ -1571,91 +1538,32 @@ const Sidebar: React.FC<SidebarProps> = ({
                 {isAuthed ? "No conversations" : "No conversations yet"}
               </p>
             </div>
+          ) : noMatches ? (
+            <div className="min-h-full flex items-center justify-center">
+              <p className="text-center text-sm text-muted-foreground">
+                No matches found
+              </p>
+            </div>
           ) : (
             <motion.div
-              layout
+              layout={enableLayout}
               className="space-y-2"
               initial={false}
               animate={false}
             >
-              {conversations.map((conv, index) => (
+              {filteredConversations.map((conv, index) => (
                 <ConversationRow key={conv._id} conv={conv} index={index} />
               ))}
             </motion.div>
           )}
         </div>
-        <AnimatePresence>
-          {showSearchModal && (
-            <motion.div
-              className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowSearchModal(false)}
-            >
-              <motion.div
-                className="bg-card p-6 rounded-lg shadow-xl w-96"
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.8, opacity: 0 }}
-                onClick={(e) => e.stopPropagation()}
-              >
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <Search className="w-5 h-5 text-primary" />
-                    <h3 className="text-lg font-bold">Search Conversations</h3>
-                  </div>
-                  <button
-                    onClick={() => setShowSearchModal(false)}
-                    className="text-primary font-bold cursor-pointer"
-                    title="Close Search Modal"
-                    aria-label="Close Search Modal"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
-                <Input
-                  placeholder="Enter search term..."
-                  value={query}
-                  onChange={handleSearchChange}
-                  className="mb-4 cursor-text"
-                />
-                <div className="max-h-60 overflow-y-auto space-y-2 p-1">
-                  {searchLoading ? (
-                    <div className="flex items-center justify-center">
-                      <Loader2 className="animate-spin w-5 h-5" />
-                    </div>
-                  ) : query.trim() === "" ? null : searchResults.length ===
-                    0 ? (
-                    <p className="text-center text-sm text-muted-foreground"></p>
-                  ) : (
-                    searchResults.map((conv) => (
-                      <div
-                        key={conv._id}
-                        className="p-2 bg-muted rounded cursor-pointer hover:bg-background shadow-sm hover:shadow-2xl"
-                        onClick={() => {
-                          onSelect(conv);
-                          setShowSearchModal(false);
-                        }}
-                      >
-                        <p className="text-sm truncate text-foreground select-none">
-                          {conv.title || "Untitled Conversation"}
-                        </p>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </motion.div>
-            </motion.div>
-          )}
-          {deleteId && (
-            <DeleteConfirmationDialog
-              open={true}
-              onConfirm={handleDelete}
-              onCancel={() => setDeleteId(null)}
-            />
-          )}
-        </AnimatePresence>
+        {deleteId && (
+          <DeleteConfirmationDialog
+            open={true}
+            onConfirm={handleDelete}
+            onCancel={() => setDeleteId(null)}
+          />
+        )}
       </motion.aside>
     </div>
   );
