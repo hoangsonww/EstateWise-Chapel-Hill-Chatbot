@@ -3373,7 +3373,6 @@ const MARKET_DATASETS: MarketDataset[] = [
       "orleans parish",
       "jefferson parish",
     ],
-
     summary:
       "Tourism and port employment support demand; investors see strong yields in mid-tier neighborhoods with careful insurance underwriting.",
     datasetVersion: "2024-Q4",
