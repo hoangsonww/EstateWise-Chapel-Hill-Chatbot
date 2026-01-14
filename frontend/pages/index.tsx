@@ -293,7 +293,7 @@ const testimonials = [
   },
   {
     testimonial:
-      "I love the interactive approach. It’s not just browsing listings – it’s a conversation that guides me.",
+      "I love the interactive approach. It’s not just browsing listings - it’s a conversation that guides me.",
     author: "- Charlie",
   },
   {
@@ -443,7 +443,7 @@ export default function Home() {
             </AnimatedInView>
             <AnimatedInView delay={0.2}>
               <p className="text-lg md:text-2xl text-white/90 mb-8 max-w-3xl">
-                Chat with a Chapel Hill–first concierge for real-time
+                Chat with a Chapel Hill-first concierge for real-time
                 recommendations, neighborhood context, and mapped routes.
               </p>
             </AnimatedInView>
@@ -1493,43 +1493,47 @@ export default function Home() {
               </AnimatedInView>
             </div>
 
-            <div className="mt-8">
-              <p className="text-center text-xs font-semibold uppercase tracking-[0.3em] text-muted-foreground mb-4">
-                More starting points
-              </p>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-                <Button asChild variant="outline" className="w-full">
-                  <Link href="/analyzer">Deal Analyzer</Link>
-                </Button>
-                <Button asChild variant="outline" className="w-full">
-                  <Link href="/market-pulse">Market Pulse</Link>
-                </Button>
-                <Button asChild variant="outline" className="w-full">
-                  <Link href="/forums">Forums</Link>
-                </Button>
-                <Button asChild variant="outline" className="w-full">
-                  <Link href="/charts">Charts</Link>
-                </Button>
-                <Button asChild variant="secondary" className="w-full">
-                  <Link href="/login">Log In</Link>
-                </Button>
-                <Button asChild className="w-full">
-                  <Link href="/signup">Sign Up</Link>
-                </Button>
+            <AnimatedInView delay={0.2}>
+              <div className="mt-8">
+                <p className="text-center text-xs font-semibold uppercase tracking-[0.3em] text-muted-foreground mb-4">
+                  More starting points
+                </p>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+                  <Button asChild variant="outline" className="w-full">
+                    <Link href="/analyzer">Deal Analyzer</Link>
+                  </Button>
+                  <Button asChild variant="outline" className="w-full">
+                    <Link href="/market-pulse">Market Pulse</Link>
+                  </Button>
+                  <Button asChild variant="outline" className="w-full">
+                    <Link href="/forums">Forums</Link>
+                  </Button>
+                  <Button asChild variant="outline" className="w-full">
+                    <Link href="/charts">Charts</Link>
+                  </Button>
+                  <Button asChild variant="secondary" className="w-full">
+                    <Link href="/login">Log In</Link>
+                  </Button>
+                  <Button asChild className="w-full">
+                    <Link href="/signup">Sign Up</Link>
+                  </Button>
+                </div>
               </div>
-            </div>
+            </AnimatedInView>
 
-            <div className="mt-6 flex flex-wrap items-center justify-center gap-2 text-xs">
-              <span className="px-3 py-1 rounded-full bg-muted text-muted-foreground">
-                No sign‑up required
-              </span>
-              <span className="px-3 py-1 rounded-full bg-muted text-muted-foreground">
-                Dark‑mode ready
-              </span>
-              <span className="px-3 py-1 rounded-full bg-muted text-muted-foreground">
-                Mobile friendly
-              </span>
-            </div>
+            <AnimatedInView delay={0.25}>
+              <div className="mt-6 flex flex-wrap items-center justify-center gap-2 text-xs">
+                <span className="px-3 py-1 rounded-full bg-muted text-muted-foreground">
+                  No sign‑up required
+                </span>
+                <span className="px-3 py-1 rounded-full bg-muted text-muted-foreground">
+                  Dark‑mode ready
+                </span>
+                <span className="px-3 py-1 rounded-full bg-muted text-muted-foreground">
+                  Mobile friendly
+                </span>
+              </div>
+            </AnimatedInView>
           </div>
         </section>
 
