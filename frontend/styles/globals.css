@@ -212,3 +212,12 @@ body {
 .animate-spin-slow {
   animation: spin-slow 3s linear infinite;
 }
+
+.landing-carousel .slick-track {
+  transition-property: none;
+}
+
+.landing-carousel .slick-slide,
+.landing-carousel .slick-slide > div {
+  transition-property: background-color, border-color, box-shadow;
+}

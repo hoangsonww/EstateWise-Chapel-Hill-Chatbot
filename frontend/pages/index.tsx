@@ -92,6 +92,7 @@ const SectionBackdrop: React.FC = () => (
 
 // Slider settings
 const sliderSettings = {
+  className: "landing-carousel",
   dots: true,
   arrows: true,
   infinite: true,
@@ -127,7 +128,7 @@ const heroHighlights = [
   },
   {
     label: "Always-on",
-    detail: "Chat anytime — routes, schools, and ROI.",
+    detail: "Chat anytime - routes, schools, and ROI.",
     icon: <BotMessageSquare className="w-4 h-4" />,
   },
 ];
@@ -142,7 +143,7 @@ const features = [
   {
     title: "Smart Property Mapping",
     description:
-      "Map properties instantly — explore clusters, zoom into neighborhoods, and get oriented fast.",
+      "Map properties instantly - explore clusters, zoom into neighborhoods, and get oriented fast.",
     icon: <MapPin className="w-16 h-16 text-primary" />,
   },
   {
@@ -177,7 +178,7 @@ const features = [
   {
     title: "Privacy & Security",
     description:
-      "Data handled with care; no surprises — just a faster path to the right home.",
+      "Data handled with care; no surprises - just a faster path to the right home.",
     icon: <Shield className="w-16 h-16 text-primary" />,
   },
 ];
@@ -283,37 +284,37 @@ const testimonials = [
   {
     testimonial:
       "EstateWise made finding my dream home in Chapel Hill a breeze. The interactive chat is a total game changer!",
-    author: "— Alice",
+    author: "- Alice",
   },
   {
     testimonial:
       "The property recommendations feel so personalized. I truly enjoyed chatting with the bot.",
-    author: "— Bob",
+    author: "- Bob",
   },
   {
     testimonial:
       "I love the interactive approach. It’s not just browsing listings – it’s a conversation that guides me.",
-    author: "— Charlie",
+    author: "- Charlie",
   },
   {
     testimonial:
       "I appreciate how quickly it responds. It saved me so much time finding the perfect home!",
-    author: "— Diane",
+    author: "- Diane",
   },
   {
     testimonial:
       "The personalized recommendations are spot-on. This is the future of home buying!",
-    author: "— Edward",
+    author: "- Edward",
   },
   {
     testimonial:
       "A revolutionary approach to real estate. It’s like having a personal advisor at your fingertips.",
-    author: "— Fiona",
+    author: "- Fiona",
   },
   {
     testimonial:
       "The chatbot is incredibly intuitive. I felt like I was chatting with a friend who knows the market well.",
-    author: "— George",
+    author: "- George",
   },
 ];
 
@@ -637,19 +638,17 @@ export default function Home() {
             <Slider {...sliderSettings}>
               {features.map((item, index) => (
                 <div key={index} className="px-4">
-                  <AnimatedInView>
-                    <Card className="h-64 shadow-lg border-primary transition-shadow duration-300 hover:shadow-2xl bg-card/80 backdrop-blur">
-                      <CardHeader className="flex flex-col items-center">
-                        {item.icon}
-                        <CardTitle className="mt-2 text-2xl font-bold">
-                          {item.title}
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="flex-1 text-center text-muted-foreground">
-                        {item.description}
-                      </CardContent>
-                    </Card>
-                  </AnimatedInView>
+                  <Card className="h-64 shadow-lg border-primary transition-shadow duration-300 hover:shadow-2xl bg-card/80 backdrop-blur">
+                    <CardHeader className="flex flex-col items-center">
+                      {item.icon}
+                      <CardTitle className="mt-2 text-2xl font-bold">
+                        {item.title}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="flex-1 text-center text-muted-foreground">
+                      {item.description}
+                    </CardContent>
+                  </Card>
                 </div>
               ))}
             </Slider>
@@ -675,19 +674,17 @@ export default function Home() {
             <Slider {...sliderSettings}>
               {howItWorks.map((step, index) => (
                 <div key={index} className="px-4">
-                  <AnimatedInView>
-                    <Card className="h-64 shadow-lg border-primary transition-shadow duration-300 hover:shadow-2xl bg-card/80 backdrop-blur">
-                      <CardHeader className="flex flex-col items-center">
-                        {step.icon}
-                        <CardTitle className="mt-2 text-2xl font-bold">
-                          {step.title}
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="flex-1 text-center text-muted-foreground">
-                        {step.description}
-                      </CardContent>
-                    </Card>
-                  </AnimatedInView>
+                  <Card className="h-64 shadow-lg border-primary transition-shadow duration-300 hover:shadow-2xl bg-card/80 backdrop-blur">
+                    <CardHeader className="flex flex-col items-center">
+                      {step.icon}
+                      <CardTitle className="mt-2 text-2xl font-bold">
+                        {step.title}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="flex-1 text-center text-muted-foreground">
+                      {step.description}
+                    </CardContent>
+                  </Card>
                 </div>
               ))}
             </Slider>
@@ -715,19 +712,17 @@ export default function Home() {
             <Slider {...sliderSettings}>
               {chatAdvantages.map((item, index) => (
                 <div key={index} className="px-4">
-                  <AnimatedInView>
-                    <Card className="h-64 shadow-lg border-primary transition-shadow duration-300 hover:shadow-2xl bg-card/80 backdrop-blur">
-                      <CardHeader className="flex flex-col items-center">
-                        {item.icon}
-                        <CardTitle className="mt-2 text-2xl font-bold">
-                          {item.title}
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="flex-1 text-center text-muted-foreground">
-                        {item.description}
-                      </CardContent>
-                    </Card>
-                  </AnimatedInView>
+                  <Card className="h-64 shadow-lg border-primary transition-shadow duration-300 hover:shadow-2xl bg-card/80 backdrop-blur">
+                    <CardHeader className="flex flex-col items-center">
+                      {item.icon}
+                      <CardTitle className="mt-2 text-2xl font-bold">
+                        {item.title}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="flex-1 text-center text-muted-foreground">
+                      {item.description}
+                    </CardContent>
+                  </Card>
                 </div>
               ))}
             </Slider>
@@ -748,16 +743,14 @@ export default function Home() {
             <Slider {...sliderSettings}>
               {testimonials.map((item, index) => (
                 <div key={index} className="px-4">
-                  <AnimatedInView>
-                    <Card className="h-35 shadow-lg border-primary">
-                      <CardContent className="flex flex-col justify-evenly text-center">
-                        <p className="italic">{item.testimonial}</p>
-                        <div className="flex items-center justify-center space-x-2">
-                          <span className="font-bold">{item.author}</span>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </AnimatedInView>
+                  <Card className="h-35 shadow-lg border-primary">
+                    <CardContent className="flex flex-col justify-evenly text-center">
+                      <p className="italic">{item.testimonial}</p>
+                      <div className="flex items-center justify-center space-x-2">
+                        <span className="font-bold">{item.author}</span>
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
               ))}
             </Slider>
@@ -942,7 +935,7 @@ export default function Home() {
             <div className="max-w-6xl mx-auto text-center mb-12">
               <h2 className="text-4xl font-bold mb-4">Trust & Privacy</h2>
               <p className="text-lg text-muted-foreground">
-                Built to inform, not overwhelm — with privacy in mind.
+                Built to inform, not overwhelm - with privacy in mind.
               </p>
             </div>
           </AnimatedInView>
@@ -1129,7 +1122,7 @@ export default function Home() {
             <div className="max-w-6xl mx-auto text-center mb-12">
               <h2 className="text-4xl font-bold mb-4">Built‑In Tools</h2>
               <p className="text-lg text-muted-foreground">
-                Everything you need to explore, compare, and plan — in one
+                Everything you need to explore, compare, and plan - in one
                 place.
               </p>
             </div>
@@ -1200,16 +1193,14 @@ export default function Home() {
             <Slider {...sliderSettings}>
               {testimonials.map((item, index) => (
                 <div key={index} className="px-4">
-                  <AnimatedInView>
-                    <Card className="h-35 shadow-lg border-primary">
-                      <CardContent className="flex flex-col justify-evenly text-center">
-                        <p className="italic">{item.testimonial}</p>
-                        <div className="flex items-center justify-center space-x-2">
-                          <span className="font-bold">{item.author}</span>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </AnimatedInView>
+                  <Card className="h-35 shadow-lg border-primary">
+                    <CardContent className="flex flex-col justify-evenly text-center">
+                      <p className="italic">{item.testimonial}</p>
+                      <div className="flex items-center justify-center space-x-2">
+                        <span className="font-bold">{item.author}</span>
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
               ))}
             </Slider>
@@ -1316,7 +1307,7 @@ export default function Home() {
               {
                 icon: <CheckSquare className="w-7 h-7 text-primary" />,
                 title: "Busy professionals",
-                desc: "Cut through noise — get to shortlist faster.",
+                desc: "Cut through noise - get to shortlist faster.",
               },
               {
                 icon: <BotMessageSquare className="w-7 h-7 text-primary" />,
@@ -1355,7 +1346,7 @@ export default function Home() {
             <div className="max-w-6xl mx-auto text-center mb-12">
               <h2 className="text-4xl font-bold mb-4">Why EstateWise</h2>
               <p className="text-lg text-muted-foreground">
-                Clear, fast, and helpful — from first chat to confident
+                Clear, fast, and helpful - from first chat to confident
                 decisions.
               </p>
             </div>
@@ -1364,7 +1355,7 @@ export default function Home() {
             {[
               {
                 title: "Clarity over clutter",
-                desc: "No noisy feeds — just the right tools at the right time.",
+                desc: "No noisy feeds - just the right tools at the right time.",
               },
               {
                 title: "Context that matters",
@@ -1376,7 +1367,7 @@ export default function Home() {
               },
               {
                 title: "Actionable by design",
-                desc: "From chat to map to calculator — every step moves you forward.",
+                desc: "From chat to map to calculator - every step moves you forward.",
               },
               {
                 title: "Always improving",
@@ -1442,7 +1433,7 @@ export default function Home() {
               <div className="text-center mb-12">
                 <h2 className="text-4xl font-bold mb-4">Get Started</h2>
                 <p className="text-lg text-muted-foreground">
-                  Pick a starting point and dive in — no sign‑up required.
+                  Pick a starting point and dive in - no sign‑up required.
                 </p>
               </div>
             </AnimatedInView>
