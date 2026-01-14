@@ -1,8 +1,3 @@
-resource "aws_iam_role" "ecs_execution" {
-  name = "estatewise-ecs-execution-role"
-  assume_role_policy = data.aws_iam_policy_document.ecs_task_assume.json
-}
-
 data "aws_iam_policy_document" "ecs_task_assume" {
   statement {
     actions = ["sts:AssumeRole"]
@@ -13,27 +8,31 @@ data "aws_iam_policy_document" "ecs_task_assume" {
   }
 }
 
-resource "aws_iam_role_policy_attachment" "exec_policy" {
+resource "aws_iam_role" "ecs_execution" {
+  name               = "${local.name_prefix}-ecs-execution-role"
+  assume_role_policy = data.aws_iam_policy_document.ecs_task_assume.json
+
+  tags = merge(local.common_tags, {
+    Name = "${local.name_prefix}-ecs-execution-role"
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "ecs_execution" {
   role       = aws_iam_role.ecs_execution.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
-resource "aws_iam_role" "ecs_service" {
-  name = "estatewise-ecs-service-role"
-  assume_role_policy = data.aws_iam_policy_document.ecs_service_assume.json
+resource "aws_iam_role" "ecs_task" {
+  name               = "${local.name_prefix}-ecs-task-role"
+  assume_role_policy = data.aws_iam_policy_document.ecs_task_assume.json
+
+  tags = merge(local.common_tags, {
+    Name = "${local.name_prefix}-ecs-task-role"
+  })
 }
 
-data "aws_iam_policy_document" "ecs_service_assume" {
-  statement {
-    actions = ["sts:AssumeRole"]
-    principals {
-      type        = "Service"
-      identifiers = ["ecs.amazonaws.com"]
-    }
-  }
-}
-
-resource "aws_iam_role_policy_attachment" "service_policy" {
-  role       = aws_iam_role.ecs_service.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSServiceRolePolicy"
+resource "aws_iam_role_policy_attachment" "ecs_task_additional" {
+  for_each  = toset(var.task_role_policy_arns)
+  role      = aws_iam_role.ecs_task.name
+  policy_arn = each.value
 }

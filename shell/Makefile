@@ -4,80 +4,144 @@
 # Description:
 #   Provides convenient Make targets to invoke the various shell scripts
 #   in this directory for building images, deploying, setting up services,
-#   and running both backend & frontend locally.
-#
-# Prerequisites:
-#   • Ensure this Makefile lives in the "shell/" directory alongside:
-#       - build_images.sh
-#       - push_images.sh
-#       - deploy.sh
-#       - setup_backend.sh
-#       - setup_frontend.sh
-#       - run_local.sh
-#   • Make sure all scripts are executable: chmod +x *.sh
+#   and running backend & frontend locally.
 #
 # Usage:
 #   cd shell
 #   make <target>
 #
-# Common targets:
-#   help               Show this help message
-#   build-images       Build Docker images (backend, crawler, newsletters)
-#   push-images        Push Docker images to registry
-#   deploy             Build & launch services via deploy.sh
-#
-#   setup-backend      Install, build & start backend in dev mode
-#   setup-frontend     Install, build & start frontend in dev mode
-#   run-local          Run both backend & frontend concurrently
-#
 ###############################################################################
 
 .DEFAULT_GOAL := help
 
-.PHONY: help build-images push-images deploy \
-        setup-backend setup-frontend run-local
+.PHONY: help doctor bootstrap \
+        build-images push-images docker-build-backend docker-build-frontend \
+        docker-push-backend docker-push-frontend deploy \
+        setup-backend setup-frontend run-local \
+        build-backend build-frontend build-all \
+        test-backend test-frontend test-all \
+        lint-frontend lint-all \
+        format-backend format-frontend format-all \
+        tf-plan tf-apply tf-destroy health-check
 
 help:
 	@echo ""
 	@echo "Usage: make <target>"
 	@echo ""
-	@echo "  help               Show this help message"
+	@echo "  doctor             Validate local toolchain"
+	@echo "  bootstrap          Install backend + frontend dependencies"
 	@echo ""
-	@echo "  build-images       Build all Docker images:"
-	@echo "                       ./build_images.sh"
-	@echo "  push-images        Push all Docker images:"
-	@echo "                       ./push_images.sh"
-	@echo "  deploy             Deploy services via deploy.sh:"
-	@echo "                       ./deploy.sh"
+	@echo "  build-images       Build backend + frontend Docker images"
+	@echo "  push-images        Push backend + frontend Docker images"
+	@echo "  docker-build-backend  Build backend Docker image"
+	@echo "  docker-build-frontend Build frontend Docker image"
+	@echo "  docker-push-backend   Push backend Docker image"
+	@echo "  docker-push-frontend  Push frontend Docker image"
+	@echo "  deploy             Deploy via legacy deploy.sh"
 	@echo ""
-	@echo "  setup-backend      Install, build & start backend in dev mode:"
-	@echo "                       ./setup_backend.sh"
-	@echo "  setup-frontend     Install, build & start frontend in dev mode:"
-	@echo "                       ./setup_frontend.sh"
-	@echo "  run-local          Run backend & frontend concurrently:"
-	@echo "                       ./run_local.sh"
+	@echo "  setup-backend      Install/build/start backend in dev mode"
+	@echo "  setup-frontend     Install/build/start frontend in dev mode"
+	@echo "  run-local          Run backend + frontend concurrently"
 	@echo ""
+	@echo "  build-backend      Build backend"
+	@echo "  build-frontend     Build frontend"
+	@echo "  build-all          Build backend + frontend"
+	@echo ""
+	@echo "  test-backend       Run backend tests"
+	@echo "  test-frontend      Run frontend tests"
+	@echo "  test-all           Run backend + frontend tests"
+	@echo ""
+	@echo "  lint-frontend      Lint frontend"
+	@echo "  lint-all           Lint frontend"
+	@echo ""
+	@echo "  format-backend     Format backend"
+	@echo "  format-frontend    Format frontend"
+	@echo "  format-all         Format backend + frontend"
+	@echo ""
+	@echo "  tf-plan            Terraform plan"
+	@echo "  tf-apply           Terraform apply"
+	@echo "  tf-destroy         Terraform destroy"
+	@echo ""
+	@echo "  health-check       Run health check (HEALTHCHECK_URL required)"
+	@echo ""
+
+doctor:
+	@bash doctor.sh
+
+bootstrap:
+	@bash bootstrap.sh
 
 build-images:
-	@echo "📦 Building Docker images..."
-	./build_images.sh
+	@bash build_images.sh
 
 push-images:
-	@echo "🚀 Pushing Docker images..."
-	./push_images.sh
+	@bash push_images.sh
+
+docker-build-backend:
+	@bash docker_build_backend.sh
+
+docker-build-frontend:
+	@bash docker_build_frontend.sh
+
+docker-push-backend:
+	@bash docker_push_backend.sh
+
+docker-push-frontend:
+	@bash docker_push_frontend.sh
 
 deploy:
-	@echo "🔧 Deploying services..."
-	./deploy.sh
+	@bash deploy.sh
 
 setup-backend:
-	@echo "🛠 Setting up backend..."
-	./setup_backend.sh
+	@bash setup_backend.sh
 
 setup-frontend:
-	@echo "🛠 Setting up frontend..."
-	./setup_frontend.sh
+	@bash setup_frontend.sh
 
 run-local:
-	@echo "🔄 Running backend & frontend concurrently..."
-	./run_local.sh
+	@bash run_local.sh
+
+build-backend:
+	@bash build_backend.sh
+
+build-frontend:
+	@bash build_frontend.sh
+
+build-all:
+	@bash build_all.sh
+
+test-backend:
+	@bash test_backend.sh
+
+test-frontend:
+	@bash test_frontend.sh
+
+test-all:
+	@bash test_all.sh
+
+lint-frontend:
+	@bash lint_frontend.sh
+
+lint-all:
+	@bash lint_all.sh
+
+format-backend:
+	@bash format_backend.sh
+
+format-frontend:
+	@bash format_frontend.sh
+
+format-all:
+	@bash format_all.sh
+
+tf-plan:
+	@bash terraform_plan.sh
+
+tf-apply:
+	@bash terraform_apply.sh
+
+tf-destroy:
+	@bash terraform_destroy.sh
+
+health-check:
+	@bash health_check.sh

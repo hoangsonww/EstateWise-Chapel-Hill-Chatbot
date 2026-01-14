@@ -1,11 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-echo "🚀  Pushing backend image..."
-bash shell/publish_estatewise.sh
+source "$(dirname "$0")/lib/common.sh"
 
-echo "🚀  Pushing crawler image..."
-bash crawler/publish_crawler.sh
+info "Pushing backend image..."
+bash shell/docker_push_backend.sh
 
-echo "🚀  Pushing newsletters image..."
-bash newsletters/publish_newsletters.sh
+info "Pushing frontend image..."
+bash shell/docker_push_frontend.sh

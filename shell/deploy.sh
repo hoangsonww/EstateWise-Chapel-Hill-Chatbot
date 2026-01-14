@@ -8,7 +8,7 @@
 #
 # Usage:
 #   Ensure AWS CLI is configured (aws configure) and you have sufficient IAM permissions.
-#   Run this script from the project root (next to frontend/ and server/ directories).
+#   Run this script from the project root (next to frontend/ and backend/ directories).
 #
 # Prerequisites:
 #   • AWS CLI v2 installed
@@ -110,7 +110,7 @@ aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS 
 
 # 4.1 Build and push backend
 echo "📦 Building backend Docker image..."
-pushd server >/dev/null
+pushd backend >/dev/null
   docker build -t estatewise-backend .
   docker tag estatewise-backend:latest "$BACKEND_ECR_URI:latest"
   echo "🚀 Pushing backend image to ECR..."
