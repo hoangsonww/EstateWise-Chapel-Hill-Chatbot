@@ -92,6 +92,7 @@ const SectionBackdrop: React.FC = () => (
 
 // Slider settings
 const sliderSettings = {
+  className: "landing-carousel",
   dots: true,
   arrows: true,
   infinite: true,
@@ -637,19 +638,17 @@ export default function Home() {
             <Slider {...sliderSettings}>
               {features.map((item, index) => (
                 <div key={index} className="px-4">
-                  <AnimatedInView>
-                    <Card className="h-64 shadow-lg border-primary transition-shadow duration-300 hover:shadow-2xl bg-card/80 backdrop-blur">
-                      <CardHeader className="flex flex-col items-center">
-                        {item.icon}
-                        <CardTitle className="mt-2 text-2xl font-bold">
-                          {item.title}
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="flex-1 text-center text-muted-foreground">
-                        {item.description}
-                      </CardContent>
-                    </Card>
-                  </AnimatedInView>
+                  <Card className="h-64 shadow-lg border-primary transition-shadow duration-300 hover:shadow-2xl bg-card/80 backdrop-blur">
+                    <CardHeader className="flex flex-col items-center">
+                      {item.icon}
+                      <CardTitle className="mt-2 text-2xl font-bold">
+                        {item.title}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="flex-1 text-center text-muted-foreground">
+                      {item.description}
+                    </CardContent>
+                  </Card>
                 </div>
               ))}
             </Slider>
@@ -675,19 +674,17 @@ export default function Home() {
             <Slider {...sliderSettings}>
               {howItWorks.map((step, index) => (
                 <div key={index} className="px-4">
-                  <AnimatedInView>
-                    <Card className="h-64 shadow-lg border-primary transition-shadow duration-300 hover:shadow-2xl bg-card/80 backdrop-blur">
-                      <CardHeader className="flex flex-col items-center">
-                        {step.icon}
-                        <CardTitle className="mt-2 text-2xl font-bold">
-                          {step.title}
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="flex-1 text-center text-muted-foreground">
-                        {step.description}
-                      </CardContent>
-                    </Card>
-                  </AnimatedInView>
+                  <Card className="h-64 shadow-lg border-primary transition-shadow duration-300 hover:shadow-2xl bg-card/80 backdrop-blur">
+                    <CardHeader className="flex flex-col items-center">
+                      {step.icon}
+                      <CardTitle className="mt-2 text-2xl font-bold">
+                        {step.title}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="flex-1 text-center text-muted-foreground">
+                      {step.description}
+                    </CardContent>
+                  </Card>
                 </div>
               ))}
             </Slider>
@@ -715,19 +712,17 @@ export default function Home() {
             <Slider {...sliderSettings}>
               {chatAdvantages.map((item, index) => (
                 <div key={index} className="px-4">
-                  <AnimatedInView>
-                    <Card className="h-64 shadow-lg border-primary transition-shadow duration-300 hover:shadow-2xl bg-card/80 backdrop-blur">
-                      <CardHeader className="flex flex-col items-center">
-                        {item.icon}
-                        <CardTitle className="mt-2 text-2xl font-bold">
-                          {item.title}
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="flex-1 text-center text-muted-foreground">
-                        {item.description}
-                      </CardContent>
-                    </Card>
-                  </AnimatedInView>
+                  <Card className="h-64 shadow-lg border-primary transition-shadow duration-300 hover:shadow-2xl bg-card/80 backdrop-blur">
+                    <CardHeader className="flex flex-col items-center">
+                      {item.icon}
+                      <CardTitle className="mt-2 text-2xl font-bold">
+                        {item.title}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="flex-1 text-center text-muted-foreground">
+                      {item.description}
+                    </CardContent>
+                  </Card>
                 </div>
               ))}
             </Slider>
@@ -748,16 +743,14 @@ export default function Home() {
             <Slider {...sliderSettings}>
               {testimonials.map((item, index) => (
                 <div key={index} className="px-4">
-                  <AnimatedInView>
-                    <Card className="h-35 shadow-lg border-primary">
-                      <CardContent className="flex flex-col justify-evenly text-center">
-                        <p className="italic">{item.testimonial}</p>
-                        <div className="flex items-center justify-center space-x-2">
-                          <span className="font-bold">{item.author}</span>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </AnimatedInView>
+                  <Card className="h-35 shadow-lg border-primary">
+                    <CardContent className="flex flex-col justify-evenly text-center">
+                      <p className="italic">{item.testimonial}</p>
+                      <div className="flex items-center justify-center space-x-2">
+                        <span className="font-bold">{item.author}</span>
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
               ))}
             </Slider>
@@ -1200,16 +1193,14 @@ export default function Home() {
             <Slider {...sliderSettings}>
               {testimonials.map((item, index) => (
                 <div key={index} className="px-4">
-                  <AnimatedInView>
-                    <Card className="h-35 shadow-lg border-primary">
-                      <CardContent className="flex flex-col justify-evenly text-center">
-                        <p className="italic">{item.testimonial}</p>
-                        <div className="flex items-center justify-center space-x-2">
-                          <span className="font-bold">{item.author}</span>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </AnimatedInView>
+                  <Card className="h-35 shadow-lg border-primary">
+                    <CardContent className="flex flex-col justify-evenly text-center">
+                      <p className="italic">{item.testimonial}</p>
+                      <div className="flex items-center justify-center space-x-2">
+                        <span className="font-bold">{item.author}</span>
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
               ))}
             </Slider>
