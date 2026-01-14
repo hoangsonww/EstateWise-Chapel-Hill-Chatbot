@@ -1,16 +1,34 @@
-# Use a Node base image with a full OS for development (bullseye is a good balance)
-FROM node:18-bullseye
+# Terraform runner with AWS CLI v2
+FROM public.ecr.aws/aws-cli/aws-cli:2.15.3
 
-# Set the working directory for the container
+ARG TERRAFORM_VERSION=1.6.6
+ARG USER=terraform
+ARG UID=1000
+ARG GID=1000
+
 WORKDIR /workspace
 
-# Update npm and install globally required packages (concurrently lets you run multiple scripts in one terminal)
-RUN npm install -g npm@latest concurrently
+RUN yum install -y \
+    curl \
+    unzip \
+    jq \
+    tar \
+    gzip \
+  && arch="$(uname -m)" \
+  && case "$arch" in \
+    aarch64|arm64) tf_arch="arm64" ;; \
+    x86_64) tf_arch="amd64" ;; \
+    *) echo "Unsupported architecture: $arch"; exit 1 ;; \
+  esac \
+  && curl -fsSL "https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_${tf_arch}.zip" -o /tmp/terraform.zip \
+  && unzip /tmp/terraform.zip -d /usr/local/bin \
+  && rm -f /tmp/terraform.zip \
+  && yum clean all
 
-# Expose the default ports for our applications:
-# - Port 3000: Next.js dev server (frontend)
-# - Port 3001: Express backend dev server
-EXPOSE 3000 3001
+RUN groupadd -g ${GID} ${USER} \
+  && useradd -m -u ${UID} -g ${GID} -s /bin/bash ${USER}
 
-# Open a bash shell by default; the devcontainer configuration may provide additional tasks.
-CMD ["bash"]
+USER ${USER}
+
+ENTRYPOINT ["terraform"]
+CMD ["-help"]

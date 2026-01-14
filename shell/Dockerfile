@@ -1,16 +1,46 @@
-# Use a Node base image with a full OS for development (bullseye is a good balance)
+# Tooling container for development and CI workflows
 FROM node:18-bullseye
 
-# Set the working directory for the container
+ARG TERRAFORM_VERSION=1.6.6
+ARG AWSCLI_VERSION=2.15.3
+ARG USER=dev
+ARG UID=1000
+ARG GID=1000
+
 WORKDIR /workspace
 
-# Update npm and install globally required packages (concurrently lets you run multiple scripts in one terminal)
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends \
+    bash \
+    ca-certificates \
+    curl \
+    git \
+    jq \
+    make \
+    openssh-client \
+    unzip \
+  && rm -rf /var/lib/apt/lists/*
+
+RUN arch="$(uname -m)" \
+  && case "$arch" in \
+    aarch64|arm64) tf_arch="arm64"; aws_arch="aarch64" ;; \
+    x86_64) tf_arch="amd64"; aws_arch="x86_64" ;; \
+    *) echo "Unsupported architecture: $arch"; exit 1 ;; \
+  esac \
+  && curl -fsSL "https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_${tf_arch}.zip" -o /tmp/terraform.zip \
+  && unzip /tmp/terraform.zip -d /usr/local/bin \
+  && rm -f /tmp/terraform.zip \
+  && curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-${aws_arch}-${AWSCLI_VERSION}.zip" -o /tmp/awscliv2.zip \
+  && unzip /tmp/awscliv2.zip -d /tmp \
+  && /tmp/aws/install \
+  && rm -rf /tmp/aws /tmp/awscliv2.zip
+
 RUN npm install -g npm@latest concurrently
 
-# Expose the default ports for our applications:
-# - Port 3000: Next.js dev server (frontend)
-# - Port 3001: Express backend dev server
-EXPOSE 3000 3001
+RUN groupadd -g ${GID} ${USER} \
+  && useradd -m -u ${UID} -g ${GID} -s /bin/bash ${USER}
 
-# Open a bash shell by default; the devcontainer configuration may provide additional tasks.
+USER ${USER}
+
+EXPOSE 3000 3001
 CMD ["bash"]
