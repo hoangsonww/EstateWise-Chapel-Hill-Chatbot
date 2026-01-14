@@ -2964,7 +2964,7 @@ const AnimatedDots: React.FC<{ resetKey: number }> = ({ resetKey }) => {
 };
 
 // ----------------------------------------------------------
-// Main ChatPage Layout: Sidebar + Top Bar + ChatWindow
+//  Main ChatPage Layout: Sidebar + Top Bar + ChatWindow
 // ----------------------------------------------------------
 export default function ChatPage() {
   const isAuthed = !!Cookies.get("estatewise_token");
