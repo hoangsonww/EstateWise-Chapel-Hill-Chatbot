@@ -1,6 +1,7 @@
 # Travis CI
 
-This project includes a Travis CI pipeline that keeps the backend and frontend healthy by installing dependencies, building the code, and running automated tests in separate stages. The configuration lives in `.travis.yml` at the repository root.
+This project includes a Travis CI pipeline that keeps the backend and frontend healthy by installing dependencies, building the code, and running automated tests in separate stages. 
+The configuration lives in `.travis.yml` at the repository root.
 
 > [!NOTE]
 > **Note:** While Travis CI is still supported, EstateWise has evolved to use **Jenkins** as the primary CI/CD platform for production deployments with advanced features like Blue-Green and Canary deployments. See [jenkins/README.md](jenkins/README.md) and [DEVOPS.md](DEVOPS.md) for comprehensive CI/CD documentation.
