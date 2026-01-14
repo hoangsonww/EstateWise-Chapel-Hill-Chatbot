@@ -66,7 +66,7 @@ Large Language Models (LLMs), a Mixture‑of‑Experts ensemble, blue/green & ca
 
 Visit the live app on **Vercel** at **[https://estatewise.vercel.app](https://estatewise.vercel.app/)** and explore the intelligent estate assistant! 🚀
 
-The backend API & its documentation are also available **[here](https://estatewise-backend.vercel.app/).** ✨
+The backend API & its documentation are also available at **[https://estatewise-backend.vercel.app](https://estatewise-backend.vercel.app/).** ✨
 
 _Feel free to use the app as a guest or sign up for an account to save your conversations!_
 
