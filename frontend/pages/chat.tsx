@@ -730,7 +730,7 @@ const TopBar: React.FC<TopBarProps> = ({
         </span>
       </div>
       <div className="flex items-center gap-3">
-        <div className="hidden md:flex items-center gap-4">
+        <div className="hidden min-[1065px]:flex items-center gap-4">
           {navLinks.map(({ href, label, Icon }) => (
             <Tooltip key={href}>
               <TooltipTrigger asChild>
@@ -746,7 +746,7 @@ const TopBar: React.FC<TopBarProps> = ({
             </Tooltip>
           ))}
         </div>
-        <div className="md:hidden relative">
+        <div className="min-[1065px]:hidden relative">
           <Tooltip>
             <TooltipTrigger asChild>
               <button
@@ -2964,7 +2964,7 @@ const AnimatedDots: React.FC<{ resetKey: number }> = ({ resetKey }) => {
 };
 
 // ----------------------------------------------------------
-// Main ChatPage Layout: Sidebar + Top Bar + ChatWindow
+//  Main ChatPage Layout: Sidebar + Top Bar + ChatWindow
 // ----------------------------------------------------------
 export default function ChatPage() {
   const isAuthed = !!Cookies.get("estatewise_token");
@@ -2982,14 +2982,19 @@ export default function ChatPage() {
   );
 
   useEffect(() => {
+    const isMobile = window.innerWidth < 768;
+    if (isMobile) {
+      setSidebarVisible(false);
+      return;
+    }
     const saved = localStorage.getItem("sidebarVisible");
     if (saved !== null) {
       setSidebarVisible(saved === "true");
-    } else {
-      const defaultVisible = isAuthed ? window.innerWidth >= 768 : false;
-      setSidebarVisible(defaultVisible);
-      localStorage.setItem("sidebarVisible", defaultVisible.toString());
+      return;
     }
+    const defaultVisible = isAuthed ? window.innerWidth >= 768 : false;
+    setSidebarVisible(defaultVisible);
+    localStorage.setItem("sidebarVisible", defaultVisible.toString());
   }, [isAuthed]);
 
   const toggleSidebar = () => {
