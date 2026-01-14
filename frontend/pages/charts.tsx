@@ -410,7 +410,7 @@ export default function ChartsPage() {
         </motion.section>
 
         <motion.main
-          className="flex-1 px-6 pb-16"
+          className="flex-1 px-6 pb-8"
           variants={fadeUpContainer}
           initial="hidden"
           animate="show"
