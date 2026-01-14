@@ -649,7 +649,7 @@ export default function AnalyzerPage() {
               </span>
             </div>
             <nav className="ml-auto flex items-center gap-3">
-              <div className="hidden md:flex items-center gap-4">
+              <div className="hidden min-[1065px]:flex items-center gap-4">
                 {navLinks.map(({ href, label, Icon }) => (
                   <Tooltip key={href}>
                     <TooltipTrigger asChild>
@@ -665,7 +665,7 @@ export default function AnalyzerPage() {
                   </Tooltip>
                 ))}
               </div>
-              <div className="md:hidden relative">
+              <div className="min-[1065px]:hidden relative">
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <button

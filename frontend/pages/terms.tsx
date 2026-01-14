@@ -126,7 +126,7 @@ const TermsPage = () => {
               </span>
             </div>
             <nav className="ml-auto flex items-center gap-3">
-              <div className="hidden lg:flex items-center gap-4">
+              <div className="hidden min-[1065px]:flex items-center gap-4">
                 {navLinks.map(({ href, label, Icon }) => (
                   <Tooltip key={href}>
                     <TooltipTrigger asChild>
@@ -142,7 +142,7 @@ const TermsPage = () => {
                   </Tooltip>
                 ))}
               </div>
-              <div className="lg:hidden relative">
+              <div className="min-[1065px]:hidden relative">
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <button

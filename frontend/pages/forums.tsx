@@ -279,7 +279,7 @@ export default function ForumsPage() {
               </div>
 
               <div className="flex items-center gap-3 text-foreground">
-                <div className="hidden md:flex items-center gap-4">
+                <div className="hidden min-[1065px]:flex items-center gap-4">
                   {navLinks.map(({ href, label, Icon }) => (
                     <Tooltip key={href}>
                       <TooltipTrigger asChild>
@@ -295,7 +295,7 @@ export default function ForumsPage() {
                     </Tooltip>
                   ))}
                 </div>
-                <div className="md:hidden relative">
+                <div className="min-[1065px]:hidden relative">
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <button
@@ -482,7 +482,7 @@ export default function ForumsPage() {
                 onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
                   setSortOption(e.target.value as SortOption)
                 }
-                className="min-w-[170px] rounded-md border border-input bg-background text-foreground px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:bg-input/30"
+                className="min-w-[170px] rounded-md border border-input bg-background text-foreground pl-2 pr-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:bg-input/30"
               >
                 {SORT_OPTIONS.map((option) => (
                   <option
