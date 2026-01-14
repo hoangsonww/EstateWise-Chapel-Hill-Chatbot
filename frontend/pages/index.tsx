@@ -94,7 +94,7 @@ const SectionBackdrop: React.FC = () => (
 const sliderSettings = {
   dots: true,
   arrows: true,
-  infinite: false,
+  infinite: true,
   autoplay: true,
   autoplaySpeed: 3000,
   speed: 500,
@@ -1442,7 +1442,7 @@ export default function Home() {
               <div className="text-center mb-12">
                 <h2 className="text-4xl font-bold mb-4">Get Started</h2>
                 <p className="text-lg text-muted-foreground">
-                  Pick a starting point — you can always switch.
+                  Pick a starting point and dive in — no sign‑up required.
                 </p>
               </div>
             </AnimatedInView>
@@ -1500,6 +1500,32 @@ export default function Home() {
                   </CardContent>
                 </Card>
               </AnimatedInView>
+            </div>
+
+            <div className="mt-8">
+              <p className="text-center text-xs font-semibold uppercase tracking-[0.3em] text-muted-foreground mb-4">
+                More starting points
+              </p>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+                <Button asChild variant="outline" className="w-full">
+                  <Link href="/analyzer">Deal Analyzer</Link>
+                </Button>
+                <Button asChild variant="outline" className="w-full">
+                  <Link href="/market-pulse">Market Pulse</Link>
+                </Button>
+                <Button asChild variant="outline" className="w-full">
+                  <Link href="/forums">Forums</Link>
+                </Button>
+                <Button asChild variant="outline" className="w-full">
+                  <Link href="/charts">Charts</Link>
+                </Button>
+                <Button asChild variant="secondary" className="w-full">
+                  <Link href="/login">Log In</Link>
+                </Button>
+                <Button asChild className="w-full">
+                  <Link href="/signup">Sign Up</Link>
+                </Button>
+              </div>
             </div>
 
             <div className="mt-6 flex flex-wrap items-center justify-center gap-2 text-xs">
