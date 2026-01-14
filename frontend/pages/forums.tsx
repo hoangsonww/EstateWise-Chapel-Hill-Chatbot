@@ -583,6 +583,23 @@ export default function ForumsPage() {
               ))}
             </div>
           )}
+          <div className="mt-10 pt-6 border-t border-border/60 text-xs text-muted-foreground text-center">
+            By using EstateWise, you agree to our{" "}
+            <Link
+              href="/terms"
+              className="font-medium text-foreground/80 hover:text-primary transition-colors"
+            >
+              Terms of Service
+            </Link>{" "}
+            and{" "}
+            <Link
+              href="/privacy"
+              className="font-medium text-foreground/80 hover:text-primary transition-colors"
+            >
+              Privacy Policy
+            </Link>
+            .
+          </div>
         </main>
 
         {/* Create Post Dialog */}

@@ -2930,7 +2930,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
             </Button>
           </div>
           <p className="text-center text-xs mt-1">
-            By using this app, you agree to our{" "}
+            By using EstateWise, you agree to our{" "}
             <Link href="/terms" className="underline hover:text-primary">
               Terms of Service
             </Link>{" "}
