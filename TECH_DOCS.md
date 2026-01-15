@@ -962,6 +962,12 @@ kubernetes/chaos/
 └── manual-chaos-tests.sh         # Manual test suite
 ```
 
+**Helm packaging** (for CI/CD and multi-cloud clusters):
+- Chart lives in `helm/estatewise/` and mirrors the base manifests with configurable values.
+- Includes templates for Deployments, Services, Ingress, HPA, PDB, NetworkPolicy, RBAC, and ServiceMonitor.
+- Cloud-specific annotations can be injected via `global.cloud.*` for EKS/AKS/GKE/OCI.
+- See `helm/estatewise/README.md` for install and override examples.
+
 ### 10.3 Multi-Cloud Deployment Options
 
 EstateWise is cloud-agnostic and deployable to:

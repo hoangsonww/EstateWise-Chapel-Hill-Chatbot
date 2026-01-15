@@ -763,6 +763,8 @@ graph LR
   Kustomize --> Security
 ```
 
+Helm charts live in `helm/estatewise/` and mirror the Kubernetes base manifests with values tuned for CI/CD pipelines and cloud-specific annotations (EKS/AKS/GKE/OCI). Kustomize overlays remain available in `kubernetes/` for environment-specific patching.
+
 ### Production Kubernetes Architecture
 
 ```mermaid
