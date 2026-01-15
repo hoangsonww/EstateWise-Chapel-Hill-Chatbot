@@ -10,6 +10,8 @@ Below, we outline the architecture, key components, and challenges faced during 
 ![React](https://img.shields.io/badge/React-61DAFB?style=for-the-badge&logo=react&logoColor=black)
 ![Next.js](https://img.shields.io/badge/Next.js-000000?style=for-the-badge&logo=nextdotjs&logoColor=white)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-06B6D4?style=for-the-badge&logo=tailwind-css&logoColor=white)
+![Vue](https://img.shields.io/badge/Vue-4FC08D?style=for-the-badge&logo=vuedotjs&logoColor=white)
+![Nuxt](https://img.shields.io/badge/Nuxt-00C58E?style=for-the-badge&logo=nuxt&logoColor=white)
 ![Framer Motion](https://img.shields.io/badge/Framer%20Motion-000000?style=for-the-badge&logo=framer&logoColor=white)
 ![Chart.js](https://img.shields.io/badge/Chart.js-F38B4A?style=for-the-badge&logo=chartdotjs&logoColor=white)
 ![Shadcn UI](https://img.shields.io/badge/Shadcn%20UI-000000?style=for-the-badge&logo=shadcn/ui&logoColor=white)
@@ -20,6 +22,8 @@ Below, we outline the architecture, key components, and challenges faced during 
 ![JWT](https://img.shields.io/badge/JWT-black?style=for-the-badge&logo=json-web-tokens)
 ![Amazon Web Services](https://img.shields.io/badge/Amazon%20Web%20Services-124568?style=for-the-badge&logo=task&logoColor=white)
 ![Google Cloud Platform](https://img.shields.io/badge/Google%20Cloud%20Platform-4285F4?style=for-the-badge&logo=googlecloud&logoColor=white)
+![Microsoft Azure](https://img.shields.io/badge/Microsoft%20Azure-0078D4?style=for-the-badge&logo=micropython&logoColor=white)
+![Oracle Cloud Infrastructure](https://img.shields.io/badge/Oracle%20Cloud-red?style=for-the-badge&logo=circle&logoColor=white)
 ![Terraform](https://img.shields.io/badge/Terraform-623CE4?style=for-the-badge&logo=terraform&logoColor=white)
 ![Vercel](https://img.shields.io/badge/Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
@@ -32,17 +36,29 @@ Below, we outline the architecture, key components, and challenges faced during 
 ![Jest](https://img.shields.io/badge/Jest-C21325?style=for-the-badge&logo=jest&logoColor=white)
 ![Selenium WebDriver](https://img.shields.io/badge/Selenium%20WebDriver-43B02A?style=for-the-badge&logo=selenium&logoColor=white)
 ![Cypress](https://img.shields.io/badge/Cypress-17202C?style=for-the-badge&logo=cypress&logoColor=white)
+![VS Code Extension](https://img.shields.io/badge/VS%20Code%20Extension-007ACC?style=for-the-badge&logo=gitextensions&logoColor=white)
+![Neo4j](https://img.shields.io/badge/Neo4j-008CC1?style=for-the-badge&logo=neo4j&logoColor=white)
+![Leaflet](https://img.shields.io/badge/Leaflet-199900?style=for-the-badge&logo=leaflet&logoColor=white)
+![MCP](https://img.shields.io/badge/MCP-Model%20Context%20Protocol-6E56CF?style=for-the-badge&logo=modelcontextprotocol&logoColor=white)
+![Zod](https://img.shields.io/badge/Zod-3068B7?style=for-the-badge&logo=zod&logoColor=white)
+![D3.js](https://img.shields.io/badge/D3.js-F9A03C?style=for-the-badge&logo=d3&logoColor=white)
+![OpenAPI](https://img.shields.io/badge/OpenAPI-6E6E6E?style=for-the-badge&logo=openapiinitiative&logoColor=white)
 ![GitHub Actions](https://img.shields.io/badge/GitHub%20Actions-2088FF?style=for-the-badge&logo=github-actions&logoColor=white)
 ![GitHub Packages](https://img.shields.io/badge/GitHub%20Packages-2EA44F?style=for-the-badge&logo=github&logoColor=white)
 ![Dependabot](https://img.shields.io/badge/Dependabot-blue?style=for-the-badge&logo=dependabot&logoColor=white)
 ![Trivy](https://img.shields.io/badge/Trivy-5B8FF9?style=for-the-badge&logo=trivy&logoColor=white)
 ![CodeQL](https://img.shields.io/badge/CodeQL-2B7489?style=for-the-badge&logo=codeblocks&logoColor=white)
-![Git](https://img.shields.io/badge/Git-F05032?style=for-the-badge&logo=git&logoColor=white)
-![ESLint](https://img.shields.io/badge/ESLint-4B3263?style=for-the-badge&logo=eslint&logoColor=white)
-![Prettier](https://img.shields.io/badge/Prettier-F7B93E?style=for-the-badge&logo=prettier&logoColor=black)
-![Markdown](https://img.shields.io/badge/Markdown-000000?style=for-the-badge&logo=markdown&logoColor=white)
-![JSDoc](https://img.shields.io/badge/JSDoc-FF2B2B?style=for-the-badge&logo=json&logoColor=white)
-![TypeDoc](https://img.shields.io/badge/TypeDoc-2B7489?style=for-the-badge&logo=readthedocs&logoColor=white)
+![Yelp Detect Secrets](https://img.shields.io/badge/Yelp%20Detect--Secrets-red?style=for-the-badge&logo=yelp&logoColor=white)
+![Jenkins](https://img.shields.io/badge/Jenkins-D24939?style=for-the-badge&logo=jenkins&logoColor=white)
+![Travis CI](https://img.shields.io/badge/Travis%20CI-3EAAAF?style=for-the-badge&logo=travis&logoColor=white)
+![Helm](https://img.shields.io/badge/Helm-0F1689?style=for-the-badge&logo=helm&logoColor=white)
+![Kustomize & K8s](https://img.shields.io/badge/Kustomize_&_Kubernetes-326CE5?style=for-the-badge&logo=kubernetes&logoColor=white)
+![Consul](https://img.shields.io/badge/Consul-CA2171?style=for-the-badge&logo=consul&logoColor=white)
+![Nomad](https://img.shields.io/badge/Nomad-00BC7F?style=for-the-badge&logo=hashicorp&logoColor=white)
+![HashiCorp](https://img.shields.io/badge/HashiCorp-4F5D95?style=for-the-badge&logo=hashicorp&logoColor=white)
+![tRPC](https://img.shields.io/badge/tRPC-2596BE?style=for-the-badge&logo=trpc&logoColor=white)
+![gRPC](https://img.shields.io/badge/gRPC-4285F4?style=for-the-badge&logo=grocy&logoColor=white)
+![Protocol Buffers](https://img.shields.io/badge/Protocol%20Buffers-4285F4?style=for-the-badge&logo=proton&logoColor=white)
 
 > [!IMPORTANT]
 > For a CLI version of the chatbot, as well as the EDA (Exploratory Data Analysis) of the properties data and interactive geospatial visualizations, check out the Jupyter notebooks in the root directory: [EDA-CLI-Chatbot.ipynb](EDA-CLI-Chatbot.ipynb). Alternatively, feel free to go to this [Colaboratory Notebook](https://colab.research.google.com/drive/1-Z3h0LUHl0v-e0RaZgwruL8q180Uk4Z-?usp=sharing) to directly view and run the code in this notebook & see the results in real time.
@@ -65,6 +81,7 @@ Below, we outline the architecture, key components, and challenges faced during 
   - [3.1 KNN Query Implementation](#31-knn-query-implementation)
   - [3.2 Assembling Retrieval Context](#32-assembling-retrieval-context)
   - [3.3 Caching Frequent Queries](#33-caching-frequent-queries)
+  - [3.4 Hybrid RAG (Vector + Graph)](#34-hybrid-rag-vector--graph)
 - [4. RAG‑Decision Orchestration Layer](#4-ragdecision-orchestration-layer)
   - [4.1 JSON‑Only Decision Protocol](#41-jsononly-decision-protocol)
   - [4.2 Simplified Control Flow](#42-simplified-control-flow)
@@ -79,15 +96,20 @@ Below, we outline the architecture, key components, and challenges faced during 
   - [6.3 Weight Normalization & Feedback Loop](#63-weight-normalization--feedback-loop)
   - [6.4 Master Merger Model](#64-master-merger-model)
   - [6.5 Prompt Engineering](#65-prompt-engineering)
+  - [6.6 Agentic AI Runtime](#66-agentic-ai-runtime)
 - [7. Chain-of-Thought Reasoning](#7-chain-of-thought-reasoning)
   - [7.1 Implementation](#71-implementation)
   - [7.2 Example](#72-example)
   - [7.3 Benefits](#73-benefits)
+  - [7.4 Agentic AI Orchestration](#74-agentic-ai-orchestration)
+  - [7.5 MCP Server (Model Context Protocol)](#75-mcp-server-model-context-protocol)
 - [8. Backend API & Data Layer](#8-backend-api--data-layer)
   - [7.1 Express.js Routes & Controllers](#81-expressjs-routes--controllers)
   - [7.2 MongoDB Models & Conversations](#82-mongodb-models--conversations)
   - [7.3 Authentication & JWT Workflow](#83-authentication--jwt-workflow)
   - [7.4 OpenAPI / Swagger Integration](#84-openapi--swagger-integration)
+  - [8.5 tRPC API](#85-trpc-api)
+  - [8.6 gRPC Services](#86-grpc-services)
 - [9. Frontend Integration](#9-frontend-integration)
 - [10. Infrastructure & Deployment](#10-infrastructure--deployment)
   - [10.1 Docker Compose & Services](#101-docker-compose--services)
@@ -110,6 +132,7 @@ Below, we outline the architecture, key components, and challenges faced during 
   - [13.2 Configuring Secrets](#132-configuring-secrets)
   - [13.3 Monitoring & Troubleshooting](#133-monitoring-and-troubleshooting)
   - [13.4 Deployment Rollback](#134-deployment-rollback)
+  - [13.5 Other CI/CD Enhancements (Travis, GitLab CI, Jenkins)](#135-other-cicd-enhancements-travis-gitlab-ci-jenkins)
 - [14. Appendices](#14-appendices)
   - [A. Environment Variables Reference](#a-environment-variables-reference)
   - [B. AI/ML Flow Chart](#b-aiml-flow-chart)
@@ -356,6 +379,33 @@ This string is inserted into the LLM system prompt.
 - In‑memory LRU cache (`node-lru-cache`) for embeddings & responses
 - TTL of 30 minutes to balance freshness
 
+### 3.4 Hybrid RAG (Vector + Graph)
+
+**What it is:**  
+A retrieval pipeline that combines semantic vector search (Pinecone) with structural graph enrichment (Neo4j), then merges the results into a single context for the LLM.
+
+**Why we use it:**
+- Vector search captures semantic intent from free-form user prompts.
+- Graph traversal adds explainable relationships (same neighborhood, same ZIP, similar-to edges).
+- The merged context improves recall and makes recommendations easier to justify.
+
+**High-level flow:**
+1. Embed the user query and fetch Top-K candidates from Pinecone.
+2. Enrich top results with Neo4j neighbors and relationship reasons.
+3. Merge, dedupe, and cluster results before building the final prompt context.
+
+```mermaid
+flowchart LR
+  Q[User Query] --> E[Embed Query]
+  E --> V[Pinecone Vector Search]
+  V --> K[Top-K Results]
+  K --> G[Neo4j Graph Enrichment]
+  G --> M[Merge + Dedupe]
+  M --> C[Context for LLM]
+```
+
+For full diagrams, sample queries, and evaluation notes, see [RAG_SYSTEM.md](RAG_SYSTEM.md).
+
 ---
 
 ## 4. RAG‑Decision Orchestration Layer
@@ -548,6 +598,25 @@ Additionally, the AI Agent also receives a carefully-crafted system prompt to en
 **Takeaways**: All prompts, especially system prompts, are designed to be clear, concise, and focused on the specific task at hand. This ensures that the AI can generate the most relevant and accurate responses.
 They are ultra-specific and tailored to the task at hand, ensuring that the AI can generate the most relevant and accurate responses.
 
+### 6.6 Agentic AI Runtime
+
+EstateWise also includes a multi-agent runtime that extends the core MoE pipeline with tool-driven workflows (search, ranking, graph explainers, finance). It runs as a CLI and coordinates specialized agents with a shared blackboard for structured outputs.
+
+```mermaid
+flowchart LR
+  User[CLI User] --> Orchestrator[Agent Orchestrator]
+  Orchestrator --> Agents[Specialist Agents]
+  Agents --> MCP[MCP Tools]
+  MCP --> API[Backend APIs]
+  MCP --> Graph[Neo4j]
+  MCP --> Vector[Pinecone]
+```
+
+**Docs & entry points:**
+- CLI source lives in `agentic-ai/`
+- Full usage, runtimes, and examples: [agentic-ai/README.md](agentic-ai/README.md)
+- Tooling layer details: [mcp/README.md](mcp/README.md)
+
 ---
 
 ## 7. Chain-of-Thought Reasoning
@@ -589,6 +658,52 @@ const model = genAI.getGenerativeModel({
 - **User Engagement**: Users can follow the AI's thought process, making the interaction more transparent and engaging.
 - **Consistency**: All experts and the master model follow the same structured approach, ensuring coherent and comprehensive responses.
 - **Flexibility**: The chain-of-thought reasoning can be adapted to various tasks, making it a versatile tool in the AI's toolkit.
+
+### 7.4 Agentic AI Orchestration
+
+**What it is:**  
+A multi-agent CLI runtime that coordinates specialized agents through shared tools and a blackboard, enabling deeper research workflows beyond the standard chat pipeline.
+
+**Why we use it:**
+- Allows longer, tool-heavy workflows (search, ranking, graph explainers, finance).
+- Provides a deterministic orchestration layer with retries and structured outputs.
+- Supports multiple runtimes (orchestrator, LangGraph, CrewAI) for experimentation.
+
+```mermaid
+flowchart LR
+  Goal[User Goal] --> Planner[Planner]
+  Planner --> Coordinator[Coordinator]
+  Coordinator --> Tools[MCP Tools]
+  Tools --> Analyzer[Analyst Agents]
+  Analyzer --> Reporter[Report Synthesizer]
+```
+
+**Docs & entry points:**
+- CLI source lives in `agentic-ai/`
+- Full usage, runtimes, and examples: [agentic-ai/README.md](agentic-ai/README.md)
+
+### 7.5 MCP Server (Model Context Protocol)
+
+**What it is:**  
+A stdio-based MCP server that exposes tools (search, graph, analytics, monitoring) to agentic runtimes and other MCP-compatible clients.
+
+**Why we use it:**
+- Standardizes tool access for agents across runtimes.
+- Centralizes logging, caching, and observability for tool calls.
+- Enables a clean separation between tools and orchestration logic.
+
+```mermaid
+flowchart TB
+  Client[MCP Client] --> Server[MCP Server]
+  Server --> Tools[Tool Registry]
+  Tools --> API[Backend APIs]
+  Tools --> Graph[Neo4j Graph]
+  Tools --> Vector[Pinecone]
+```
+
+**Docs & entry points:**
+- MCP server lives in `mcp/`
+- Full tool catalog and setup: [mcp/README.md](mcp/README.md)
 
 ---
 
@@ -651,6 +766,97 @@ paths:
               },
           }
 ```
+
+### 8.5 tRPC API
+
+**What it is:**  
+A TypeScript-first RPC layer that shares types end-to-end between the backend and frontend without code generation.
+
+**Why we use it:**
+- Keeps API contracts and client calls fully type-safe.
+- Pairs well with React Query for caching and request batching.
+- Runs alongside REST at `/trpc/*`, so it can be adopted incrementally.
+
+**Implementation notes:**
+- Backend router lives in `backend/src/trpc/` with domain-specific routers.
+- Input validation uses Zod schemas.
+- Frontend clients consume typed procedures directly.
+
+```mermaid
+flowchart TB
+  UI[Next.js Client] --> TC[tRPC Client]
+  TC --> AR[App Router]
+  AR --> PR[Properties Router]
+  AR --> AN[Analytics Router]
+  PR --> DB[(MongoDB/Pinecone)]
+  AN --> AI[Gemini/Neo4j]
+```
+
+**Example tRPC calls:**
+```ts
+import { createTRPCProxyClient, httpBatchLink } from "@trpc/client";
+import type { AppRouter } from "../../backend/src/trpc/routers";
+
+// Adjust the AppRouter import to your frontend setup.
+const client = createTRPCProxyClient<AppRouter>({
+  links: [
+    httpBatchLink({ url: "http://localhost:5000/trpc" }),
+  ],
+});
+
+const listings = await client.properties.list.query({
+  limit: 5,
+  bedrooms: 3,
+});
+
+const trends = await client.analytics.marketTrends.query({
+  location: "Chapel Hill, NC",
+  period: "month",
+});
+```
+
+For detailed router layouts, middleware, and usage patterns, see [GRPC_TRPC.md](GRPC_TRPC.md).
+
+### 8.6 gRPC Services
+
+**What it is:**  
+A high-performance RPC layer using Protocol Buffers and HTTP/2 for cross-language and streaming workloads.
+
+**Why we use it:**
+- Efficient binary transport and streaming support.
+- Strongly-typed contracts for services outside the TypeScript stack.
+- Ideal for microservice and analytics pipelines.
+
+**Implementation notes:**
+- Service definitions live in `grpc/proto/` (for example, `MarketPulseService`).
+- Server implementation lives in `grpc/src/` and defaults to `0.0.0.0:50051`.
+- gRPC configuration is controlled via `GRPC_HOST` and `GRPC_PORT`.
+
+```mermaid
+sequenceDiagram
+  participant C as gRPC Client
+  participant S as gRPC Server
+  participant MP as MarketPulseService
+  participant DS as Data Sources
+  C->>S: GetSnapshot(query)
+  S->>MP: Handle request
+  MP->>DS: Load metrics + trends
+  DS-->>MP: Snapshot data
+  MP-->>C: MarketSnapshotResponse
+```
+
+**Example gRPC calls:**
+```bash
+# List available markets
+grpcurl -plaintext localhost:50051 \
+  estatewise.marketpulse.MarketPulseService.ListMarkets
+
+# Request a market snapshot
+grpcurl -plaintext -d '{"query":"Chapel Hill, NC"}' localhost:50051 \
+  estatewise.marketpulse.MarketPulseService.GetSnapshot
+```
+
+For service diagrams, protocols, and performance guidance, see [GRPC_TRPC.md](GRPC_TRPC.md).
 
 ---
 
@@ -755,6 +961,12 @@ kubernetes/chaos/
 ├── chaos-tests.yaml              # Automated resilience tests
 └── manual-chaos-tests.sh         # Manual test suite
 ```
+
+**Helm packaging** (for CI/CD and multi-cloud clusters):
+- Chart lives in `helm/estatewise/` and mirrors the base manifests with configurable values.
+- Includes templates for Deployments, Services, Ingress, HPA, PDB, NetworkPolicy, RBAC, and ServiceMonitor.
+- Cloud-specific annotations can be injected via `global.cloud.*` for EKS/AKS/GKE/OCI.
+- See `helm/estatewise/README.md` for install and override examples.
 
 ### 10.3 Multi-Cloud Deployment Options
 
@@ -1198,16 +1410,29 @@ Rolling back quickly ensures minimal disruption for users and reduces operationa
 
 **Checklist before rollback:**
 
-✅ Confirm the production issue is critical enough to warrant a rollback
-✅ Notify the team and stakeholders about the rollback
-✅ Review logs, alerts, and monitoring dashboards to confirm the nature of the failure
-✅ Validate that the prior deployment is healthy before promoting it
+* ✅ Confirm the production issue is critical enough to warrant a rollback
+* ✅ Notify the team and stakeholders about the rollback
+* ✅ Review logs, alerts, and monitoring dashboards to confirm the nature of the failure
+* ✅ Validate that the prior deployment is healthy before promoting it
 
 **Post-rollback:**
 
 * Perform a root cause analysis (RCA)
 * Document lessons learned in your incident reports
 * Create issues or tasks to prevent similar failures in future releases
+
+### 13.5 Other CI/CD Enhancements (Travis, GitLab CI, Jenkins)
+
+The EstateWise repo also includes alternative CI/CD configurations for Travis CI, GitLab CI, and Jenkins. These configurations provide similar functionality to the GitHub Actions pipeline, ensuring flexibility for different development teams and environments.
+
+These alternative configurations can be found in the following files:
+- `.travis.yml` – Travis CI configuration
+- `.gitlab-ci.yml` – GitLab CI configuration
+- `Jenkinsfile` – Jenkins pipeline configuration
+
+Feel free to adapt and extend these configurations based on your specific requirements and infrastructure.
+
+For more details, refer to the [DEVOPS.md](DEVOPS.md) and [DEPLOYMENTS.md](DEPLOYMENTS.md) documentation files.
 
 ---
 

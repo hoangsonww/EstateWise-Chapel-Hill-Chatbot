@@ -1,0 +1,23 @@
+{{- if and .Values.monitoring.enabled .Values.monitoring.serviceMonitor.enabled .Values.backend.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "estatewise.fullname" . }}-backend
+  namespace: {{ include "estatewise.namespace" . }}
+  labels:
+    {{- include "estatewise.labels" . | nindent 4 }}
+    {{- with .Values.monitoring.serviceMonitor.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  namespaceSelector:
+    matchNames:
+      - {{ include "estatewise.namespace" . }}
+  selector:
+    matchLabels:
+      {{- include "estatewise.componentLabels" (dict "root" . "component" "backend") | nindent 6 }}
+  endpoints:
+    - port: http
+      path: {{ .Values.monitoring.serviceMonitor.scrapePath }}
+      interval: {{ .Values.monitoring.serviceMonitor.interval }}
+{{- end }}

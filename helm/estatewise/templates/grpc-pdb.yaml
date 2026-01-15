@@ -1,0 +1,15 @@
+{{- if and .Values.grpc.enabled .Values.grpc.pdb.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "estatewise.componentName" (dict "root" . "component" "grpc") }}-pdb
+  namespace: {{ include "estatewise.namespace" . }}
+  labels:
+    {{- include "estatewise.componentLabels" (dict "root" . "component" "grpc") | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.grpc.pdb.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "estatewise.selectorLabels" (dict "root" . "component" "grpc") | nindent 6 }}
+  unhealthyPodEvictionPolicy: AlwaysAllow
+{{- end }}

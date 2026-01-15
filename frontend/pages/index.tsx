@@ -9,6 +9,7 @@ import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { DarkModeToggle } from "@/components/dark-mode-toggle";
 import {
   ChevronLeft,
   ChevronRight,
@@ -413,6 +414,19 @@ export default function Home() {
             animation: glowFloat 18s ease-in-out infinite;
           }
         `}</style>
+
+        <div className="fixed left-0 top-1/2 z-50 -translate-y-1/2">
+          <div className="flex flex-col items-center gap-2 rounded-r-full border border-slate-200/70 border-l-0 bg-white/80 px-3 py-3 shadow-lg backdrop-blur transition hover:bg-white/90 dark:border-white/10 dark:bg-slate-900/70 dark:hover:bg-slate-900/80">
+            <span className="text-[10px] font-semibold uppercase tracking-[0.35em] text-slate-600/90 dark:text-slate-200/80">
+              <span className="block dark:hidden">Light</span>
+              <span className="hidden dark:block">Dark</span>
+            </span>
+            <DarkModeToggle
+              className="h-10 w-10 rounded-full bg-slate-900/10 text-slate-900 shadow-sm hover:text-slate-900 dark:bg-white/10 dark:text-white"
+              title="Toggle theme"
+            />
+          </div>
+        </div>
 
         {/* Full Screen Hero Section */}
         <section className="relative min-h-screen w-full overflow-hidden bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-white">
