@@ -916,6 +916,12 @@ EstateWise features a modern, animated, and fully responsive user interface buil
   <img src="img/forum.png" alt="EstateWise UI" width="100%" />
 </p>
 
+### Profile Page
+
+<p align="center">
+  <img src="img/profile.png" alt="EstateWise UI" width="100%" />
+</p>
+
 ### Login Page
 
 <p align="center">

@@ -5,7 +5,11 @@ import {
   logout,
   verifyEmail,
   resetPasswordForEmail,
+  getProfile,
+  updateProfile,
+  updatePassword,
 } from "../controllers/auth.controller";
+import { authMiddleware } from "../middleware/auth.middleware";
 
 const router = Router();
 
@@ -206,5 +210,105 @@ router.post("/verify-email", verifyEmail);
  *         description: Server error - Failed to reset password
  */
 router.post("/reset-password", resetPasswordForEmail);
+
+/**
+ * @swagger
+ * /api/auth/me:
+ *   get:
+ *     summary: Get the authenticated user's profile
+ *     tags: [Auth]
+ *     responses:
+ *       200:
+ *         description: User profile fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 user:
+ *                   type: object
+ *                   properties:
+ *                     username:
+ *                       type: string
+ *                     email:
+ *                       type: string
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server error - Failed to fetch profile
+ */
+router.get("/me", authMiddleware, getProfile);
+
+/**
+ * @swagger
+ * /api/auth/me:
+ *   put:
+ *     summary: Update the authenticated user's profile
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       description: Profile fields to update
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               username:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *                 format: email
+ *     responses:
+ *       200:
+ *         description: Profile updated successfully
+ *       400:
+ *         description: Validation error
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server error - Failed to update profile
+ */
+router.put("/me", authMiddleware, updateProfile);
+
+/**
+ * @swagger
+ * /api/auth/password:
+ *   put:
+ *     summary: Update the authenticated user's password
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       description: Current and new password
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - currentPassword
+ *               - newPassword
+ *             properties:
+ *               currentPassword:
+ *                 type: string
+ *                 format: password
+ *               newPassword:
+ *                 type: string
+ *                 format: password
+ *     responses:
+ *       200:
+ *         description: Password updated successfully
+ *       400:
+ *         description: Validation error
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server error - Failed to update password
+ */
+router.put("/password", authMiddleware, updatePassword);
 
 export default router;

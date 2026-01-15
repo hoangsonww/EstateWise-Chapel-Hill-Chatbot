@@ -413,6 +413,1192 @@ export default function Home() {
             opacity: 0.7;
             animation: glowFloat 18s ease-in-out infinite;
           }
+
+          @keyframes gradientShiftX {
+            0% {
+              background-position: 0% 50%;
+            }
+            50% {
+              background-position: 100% 50%;
+            }
+            100% {
+              background-position: 0% 50%;
+            }
+          }
+
+          @keyframes gradientShiftY {
+            0% {
+              background-position: 50% 0%;
+            }
+            50% {
+              background-position: 50% 100%;
+            }
+            100% {
+              background-position: 50% 0%;
+            }
+          }
+
+          @keyframes gradientShiftDiag {
+            0% {
+              background-position: 0% 0%;
+            }
+            50% {
+              background-position: 100% 100%;
+            }
+            100% {
+              background-position: 0% 0%;
+            }
+          }
+
+          @keyframes gradientShiftWave {
+            0% {
+              background-position: 10% 60%;
+            }
+            50% {
+              background-position: 90% 40%;
+            }
+            100% {
+              background-position: 10% 60%;
+            }
+          }
+
+          @keyframes glowDriftX {
+            0% {
+              transform: translate3d(-8%, 0, 0) scale(1);
+            }
+            50% {
+              transform: translate3d(8%, 0, 0) scale(1.06);
+            }
+            100% {
+              transform: translate3d(-8%, 0, 0) scale(1);
+            }
+          }
+
+          @keyframes glowDriftY {
+            0% {
+              transform: translate3d(0, -8%, 0) scale(1);
+            }
+            50% {
+              transform: translate3d(0, 8%, 0) scale(1.06);
+            }
+            100% {
+              transform: translate3d(0, -8%, 0) scale(1);
+            }
+          }
+
+          @keyframes glowDriftDiag {
+            0% {
+              transform: translate3d(-6%, 6%, 0) scale(1.02);
+            }
+            50% {
+              transform: translate3d(6%, -6%, 0) scale(1.08);
+            }
+            100% {
+              transform: translate3d(-6%, 6%, 0) scale(1.02);
+            }
+          }
+
+          @keyframes glowPulse {
+            0% {
+              transform: scale(0.98);
+              opacity: 0.5;
+            }
+            50% {
+              transform: scale(1.08);
+              opacity: 0.85;
+            }
+            100% {
+              transform: scale(0.98);
+              opacity: 0.5;
+            }
+          }
+
+          .section-animated {
+            --section-gradient: linear-gradient(
+              120deg,
+              #ffffff 0%,
+              #f8fafc 100%
+            );
+            --section-glow: none;
+            --section-sheen: none;
+            --gradient-animation: gradientShiftX;
+            --gradient-duration: 14s;
+            --gradient-direction: alternate;
+            --gradient-ease: ease-in-out;
+            --glow-animation: glowDriftDiag;
+            --glow-duration: 18s;
+            --glow-direction: alternate;
+            --glow-animation-2: glowPulse;
+            --glow-duration-2: 26s;
+            --glow-direction-2: alternate;
+            position: relative;
+            overflow: hidden;
+            isolation: isolate;
+            background-image: var(--section-gradient);
+            background-size: 360% 360%;
+            background-position: 0% 50%;
+            animation-name: var(--gradient-animation);
+            animation-duration: var(--gradient-duration);
+            animation-timing-function: var(--gradient-ease);
+            animation-iteration-count: infinite;
+            animation-direction: var(--gradient-direction);
+            will-change: background-position;
+          }
+
+          .section-animated::before {
+            content: "";
+            position: absolute;
+            inset: -25%;
+            background-image: var(--section-glow);
+            opacity: 0.85;
+            filter: blur(14px);
+            animation-name: var(--glow-animation);
+            animation-duration: var(--glow-duration);
+            animation-timing-function: ease-in-out;
+            animation-iteration-count: infinite;
+            animation-direction: var(--glow-direction);
+            pointer-events: none;
+            z-index: 0;
+          }
+
+          .section-animated::after {
+            content: "";
+            position: absolute;
+            inset: -30%;
+            background-image: var(--section-glow);
+            opacity: 0.5;
+            filter: blur(26px);
+            animation-name: var(--glow-animation-2);
+            animation-duration: var(--glow-duration-2);
+            animation-timing-function: ease-in-out;
+            animation-iteration-count: infinite;
+            animation-direction: var(--glow-direction-2);
+            pointer-events: none;
+            z-index: 0;
+          }
+
+          .section-animated > * {
+            position: relative;
+            z-index: 1;
+          }
+
+          .section-features {
+            --section-gradient: linear-gradient(
+              125deg,
+              #fff7ed 0%,
+              #fde68a 35%,
+              #d1fae5 70%,
+              #f0f9ff 100%
+            );
+            --section-glow:
+              radial-gradient(
+                circle at 12% 20%,
+                rgba(251, 146, 60, 0.45),
+                transparent 55%
+              ),
+              radial-gradient(
+                circle at 85% 75%,
+                rgba(16, 185, 129, 0.35),
+                transparent 50%
+              );
+            --section-sheen: linear-gradient(
+              120deg,
+              rgba(251, 146, 60, 0.35) 0%,
+              rgba(14, 165, 233, 0.25) 45%,
+              rgba(16, 185, 129, 0.3) 75%,
+              transparent 100%
+            );
+            --gradient-animation: gradientShiftDiag;
+            --gradient-duration: 12s;
+            --gradient-direction: alternate;
+            --glow-animation: glowDriftX;
+            --glow-duration: 16s;
+            --glow-animation-2: glowPulse;
+            --glow-duration-2: 22s;
+          }
+
+          .dark .section-features {
+            --section-gradient: linear-gradient(
+              125deg,
+              #0b1220 0%,
+              #1f2937 40%,
+              #3b1d09 75%,
+              #064e3b 100%
+            );
+            --section-glow:
+              radial-gradient(
+                circle at 12% 20%,
+                rgba(251, 146, 60, 0.22),
+                transparent 55%
+              ),
+              radial-gradient(
+                circle at 85% 75%,
+                rgba(16, 185, 129, 0.22),
+                transparent 50%
+              );
+            --section-sheen: linear-gradient(
+              120deg,
+              rgba(251, 146, 60, 0.22) 0%,
+              rgba(14, 165, 233, 0.18) 45%,
+              rgba(16, 185, 129, 0.22) 75%,
+              transparent 100%
+            );
+          }
+
+          .section-how {
+            --section-gradient: linear-gradient(
+              120deg,
+              #ecfeff 0%,
+              #a7f3d0 40%,
+              #bae6fd 100%
+            );
+            --section-glow:
+              radial-gradient(
+                circle at 80% 15%,
+                rgba(56, 189, 248, 0.4),
+                transparent 48%
+              ),
+              radial-gradient(
+                circle at 15% 85%,
+                rgba(16, 185, 129, 0.35),
+                transparent 52%
+              );
+            --section-sheen: linear-gradient(
+              135deg,
+              rgba(56, 189, 248, 0.35) 0%,
+              rgba(16, 185, 129, 0.25) 50%,
+              rgba(14, 165, 233, 0.3) 85%,
+              transparent 100%
+            );
+            --gradient-animation: gradientShiftY;
+            --gradient-duration: 14s;
+            --gradient-direction: normal;
+            --glow-animation: glowDriftDiag;
+            --glow-duration: 20s;
+            --glow-animation-2: glowPulse;
+            --glow-duration-2: 28s;
+          }
+
+          .dark .section-how {
+            --section-gradient: linear-gradient(
+              120deg,
+              #0b1f2a 0%,
+              #064e3b 50%,
+              #0b2a4a 100%
+            );
+            --section-glow:
+              radial-gradient(
+                circle at 80% 15%,
+                rgba(56, 189, 248, 0.2),
+                transparent 48%
+              ),
+              radial-gradient(
+                circle at 15% 85%,
+                rgba(16, 185, 129, 0.2),
+                transparent 52%
+              );
+            --section-sheen: linear-gradient(
+              135deg,
+              rgba(56, 189, 248, 0.2) 0%,
+              rgba(16, 185, 129, 0.18) 50%,
+              rgba(14, 165, 233, 0.2) 85%,
+              transparent 100%
+            );
+          }
+
+          .section-chat {
+            --section-gradient: linear-gradient(
+              135deg,
+              #fff1f2 0%,
+              #fecdd3 35%,
+              #fed7aa 70%,
+              #fffbeb 100%
+            );
+            --section-glow:
+              radial-gradient(
+                circle at 20% 25%,
+                rgba(244, 63, 94, 0.45),
+                transparent 50%
+              ),
+              radial-gradient(
+                circle at 85% 70%,
+                rgba(251, 146, 60, 0.35),
+                transparent 50%
+              );
+            --section-sheen: linear-gradient(
+              115deg,
+              rgba(244, 63, 94, 0.35) 0%,
+              rgba(251, 146, 60, 0.28) 55%,
+              rgba(248, 250, 252, 0.2) 85%,
+              transparent 100%
+            );
+            --gradient-animation: gradientShiftWave;
+            --gradient-duration: 13s;
+            --gradient-direction: alternate-reverse;
+            --glow-animation: glowDriftY;
+            --glow-duration: 18s;
+            --glow-animation-2: glowDriftX;
+            --glow-duration-2: 26s;
+          }
+
+          .dark .section-chat {
+            --section-gradient: linear-gradient(
+              135deg,
+              #2a1020 0%,
+              #4c1d24 45%,
+              #7c2d12 100%
+            );
+            --section-glow:
+              radial-gradient(
+                circle at 20% 25%,
+                rgba(244, 63, 94, 0.22),
+                transparent 50%
+              ),
+              radial-gradient(
+                circle at 85% 70%,
+                rgba(251, 146, 60, 0.2),
+                transparent 50%
+              );
+            --section-sheen: linear-gradient(
+              115deg,
+              rgba(244, 63, 94, 0.22) 0%,
+              rgba(251, 146, 60, 0.2) 55%,
+              rgba(148, 163, 184, 0.16) 85%,
+              transparent 100%
+            );
+          }
+
+          .section-testimonials-muted {
+            --section-gradient: linear-gradient(
+              115deg,
+              #fafaf9 0%,
+              #e7e5e4 40%,
+              #ecfccb 100%
+            );
+            --section-glow:
+              radial-gradient(
+                circle at 15% 20%,
+                rgba(132, 204, 22, 0.3),
+                transparent 48%
+              ),
+              radial-gradient(
+                circle at 85% 80%,
+                rgba(120, 113, 108, 0.3),
+                transparent 50%
+              );
+            --section-sheen: linear-gradient(
+              130deg,
+              rgba(132, 204, 22, 0.3) 0%,
+              rgba(120, 113, 108, 0.25) 55%,
+              rgba(203, 213, 225, 0.25) 90%,
+              transparent 100%
+            );
+            --gradient-animation: gradientShiftX;
+            --gradient-duration: 16s;
+            --gradient-direction: normal;
+            --glow-animation: glowPulse;
+            --glow-duration: 20s;
+            --glow-animation-2: glowDriftDiag;
+            --glow-duration-2: 30s;
+          }
+
+          .dark .section-testimonials-muted {
+            --section-gradient: linear-gradient(
+              115deg,
+              #111827 0%,
+              #1c1917 45%,
+              #1a2e05 100%
+            );
+            --section-glow:
+              radial-gradient(
+                circle at 15% 20%,
+                rgba(132, 204, 22, 0.18),
+                transparent 48%
+              ),
+              radial-gradient(
+                circle at 85% 80%,
+                rgba(120, 113, 108, 0.18),
+                transparent 50%
+              );
+            --section-sheen: linear-gradient(
+              130deg,
+              rgba(132, 204, 22, 0.18) 0%,
+              rgba(120, 113, 108, 0.18) 55%,
+              rgba(148, 163, 184, 0.16) 90%,
+              transparent 100%
+            );
+          }
+
+          .section-capabilities-muted {
+            --section-gradient: linear-gradient(
+              140deg,
+              #ecfeff 0%,
+              #fef9c3 50%,
+              #fed7aa 100%
+            );
+            --section-glow:
+              radial-gradient(
+                circle at 80% 20%,
+                rgba(14, 116, 144, 0.35),
+                transparent 50%
+              ),
+              radial-gradient(
+                circle at 20% 80%,
+                rgba(245, 158, 11, 0.35),
+                transparent 48%
+              );
+            --section-sheen: linear-gradient(
+              120deg,
+              rgba(14, 116, 144, 0.3) 0%,
+              rgba(245, 158, 11, 0.35) 55%,
+              rgba(253, 186, 116, 0.3) 85%,
+              transparent 100%
+            );
+            --gradient-animation: gradientShiftWave;
+            --gradient-duration: 17s;
+            --gradient-direction: reverse;
+            --glow-animation: glowDriftX;
+            --glow-duration: 22s;
+            --glow-animation-2: glowPulse;
+            --glow-duration-2: 28s;
+          }
+
+          .dark .section-capabilities-muted {
+            --section-gradient: linear-gradient(
+              140deg,
+              #0f172a 0%,
+              #0f2b2c 45%,
+              #2c1c08 100%
+            );
+            --section-glow:
+              radial-gradient(
+                circle at 80% 20%,
+                rgba(14, 116, 144, 0.2),
+                transparent 50%
+              ),
+              radial-gradient(
+                circle at 20% 80%,
+                rgba(245, 158, 11, 0.2),
+                transparent 48%
+              );
+            --section-sheen: linear-gradient(
+              120deg,
+              rgba(14, 116, 144, 0.2) 0%,
+              rgba(245, 158, 11, 0.2) 55%,
+              rgba(253, 186, 116, 0.18) 85%,
+              transparent 100%
+            );
+          }
+
+          .section-usecases {
+            --section-gradient: linear-gradient(
+              135deg,
+              #fffbeb 0%,
+              #fde68a 45%,
+              #d1fae5 100%
+            );
+            --section-glow:
+              radial-gradient(
+                circle at 75% 20%,
+                rgba(245, 158, 11, 0.35),
+                transparent 50%
+              ),
+              radial-gradient(
+                circle at 20% 80%,
+                rgba(16, 185, 129, 0.3),
+                transparent 50%
+              );
+            --section-sheen: linear-gradient(
+              135deg,
+              rgba(245, 158, 11, 0.35) 0%,
+              rgba(16, 185, 129, 0.3) 60%,
+              rgba(59, 130, 246, 0.2) 100%
+            );
+            --gradient-animation: gradientShiftX;
+            --gradient-duration: 11s;
+            --gradient-direction: alternate;
+            --glow-animation: glowDriftDiag;
+            --glow-duration: 18s;
+            --glow-animation-2: glowDriftY;
+            --glow-duration-2: 24s;
+          }
+
+          .dark .section-usecases {
+            --section-gradient: linear-gradient(
+              135deg,
+              #1f1406 0%,
+              #1f2937 45%,
+              #0b2c24 100%
+            );
+            --section-glow:
+              radial-gradient(
+                circle at 75% 20%,
+                rgba(245, 158, 11, 0.2),
+                transparent 50%
+              ),
+              radial-gradient(
+                circle at 20% 80%,
+                rgba(16, 185, 129, 0.18),
+                transparent 50%
+              );
+            --section-sheen: linear-gradient(
+              135deg,
+              rgba(245, 158, 11, 0.2) 0%,
+              rgba(16, 185, 129, 0.18) 60%,
+              rgba(59, 130, 246, 0.16) 100%
+            );
+          }
+
+          .section-workflows {
+            --section-gradient: linear-gradient(
+              130deg,
+              #eff6ff 0%,
+              #bfdbfe 40%,
+              #e0f2fe 75%,
+              #f8fafc 100%
+            );
+            --section-glow:
+              radial-gradient(
+                circle at 15% 25%,
+                rgba(59, 130, 246, 0.35),
+                transparent 48%
+              ),
+              radial-gradient(
+                circle at 85% 75%,
+                rgba(14, 165, 233, 0.3),
+                transparent 48%
+              );
+            --section-sheen: linear-gradient(
+              120deg,
+              rgba(59, 130, 246, 0.35) 0%,
+              rgba(14, 165, 233, 0.3) 60%,
+              rgba(148, 163, 184, 0.25) 100%
+            );
+            --gradient-animation: gradientShiftDiag;
+            --gradient-duration: 19s;
+            --gradient-direction: alternate;
+            --glow-animation: glowDriftX;
+            --glow-duration: 20s;
+            --glow-animation-2: glowPulse;
+            --glow-duration-2: 30s;
+          }
+
+          .dark .section-workflows {
+            --section-gradient: linear-gradient(
+              130deg,
+              #0b1220 0%,
+              #0f172a 50%,
+              #0b1a2b 100%
+            );
+            --section-glow:
+              radial-gradient(
+                circle at 15% 25%,
+                rgba(59, 130, 246, 0.18),
+                transparent 48%
+              ),
+              radial-gradient(
+                circle at 85% 75%,
+                rgba(14, 165, 233, 0.16),
+                transparent 48%
+              );
+            --section-sheen: linear-gradient(
+              120deg,
+              rgba(59, 130, 246, 0.2) 0%,
+              rgba(14, 165, 233, 0.18) 60%,
+              rgba(148, 163, 184, 0.16) 100%
+            );
+          }
+
+          .section-trust {
+            --section-gradient: linear-gradient(
+              120deg,
+              #f8fafc 0%,
+              #e2e8f0 35%,
+              #ccfbf1 100%
+            );
+            --section-glow:
+              radial-gradient(
+                circle at 75% 25%,
+                rgba(20, 184, 166, 0.35),
+                transparent 52%
+              ),
+              radial-gradient(
+                circle at 15% 85%,
+                rgba(148, 163, 184, 0.3),
+                transparent 50%
+              );
+            --section-sheen: linear-gradient(
+              115deg,
+              rgba(20, 184, 166, 0.3) 0%,
+              rgba(148, 163, 184, 0.3) 55%,
+              rgba(56, 189, 248, 0.2) 100%
+            );
+            --gradient-animation: gradientShiftY;
+            --gradient-duration: 15s;
+            --gradient-direction: reverse;
+            --glow-animation: glowDriftY;
+            --glow-duration: 18s;
+            --glow-animation-2: glowDriftDiag;
+            --glow-duration-2: 26s;
+          }
+
+          .dark .section-trust {
+            --section-gradient: linear-gradient(
+              120deg,
+              #0b1220 0%,
+              #111827 45%,
+              #0b2a2a 100%
+            );
+            --section-glow:
+              radial-gradient(
+                circle at 75% 25%,
+                rgba(20, 184, 166, 0.18),
+                transparent 52%
+              ),
+              radial-gradient(
+                circle at 15% 85%,
+                rgba(148, 163, 184, 0.18),
+                transparent 50%
+              );
+            --section-sheen: linear-gradient(
+              115deg,
+              rgba(20, 184, 166, 0.18) 0%,
+              rgba(148, 163, 184, 0.18) 55%,
+              rgba(56, 189, 248, 0.16) 100%
+            );
+          }
+
+          .section-tech {
+            --section-gradient: linear-gradient(
+              125deg,
+              #ecfeff 0%,
+              #bae6fd 45%,
+              #e0f2fe 80%,
+              #eff6ff 100%
+            );
+            --section-glow:
+              radial-gradient(
+                circle at 20% 20%,
+                rgba(14, 165, 233, 0.35),
+                transparent 52%
+              ),
+              radial-gradient(
+                circle at 85% 70%,
+                rgba(59, 130, 246, 0.3),
+                transparent 48%
+              );
+            --section-sheen: linear-gradient(
+              130deg,
+              rgba(14, 165, 233, 0.35) 0%,
+              rgba(59, 130, 246, 0.25) 55%,
+              rgba(125, 211, 252, 0.3) 100%
+            );
+            --gradient-animation: gradientShiftWave;
+            --gradient-duration: 18s;
+            --gradient-direction: normal;
+            --glow-animation: glowDriftX;
+            --glow-duration: 24s;
+            --glow-animation-2: glowDriftY;
+            --glow-duration-2: 32s;
+          }
+
+          .dark .section-tech {
+            --section-gradient: linear-gradient(
+              125deg,
+              #0b1b2a 0%,
+              #0b1f33 45%,
+              #0b1230 100%
+            );
+            --section-glow:
+              radial-gradient(
+                circle at 20% 20%,
+                rgba(14, 165, 233, 0.18),
+                transparent 52%
+              ),
+              radial-gradient(
+                circle at 85% 70%,
+                rgba(59, 130, 246, 0.16),
+                transparent 48%
+              );
+            --section-sheen: linear-gradient(
+              130deg,
+              rgba(14, 165, 233, 0.18) 0%,
+              rgba(59, 130, 246, 0.16) 55%,
+              rgba(125, 211, 252, 0.18) 100%
+            );
+          }
+
+          .section-performance {
+            --section-gradient: linear-gradient(
+              140deg,
+              #e0f2fe 0%,
+              #fef9c3 45%,
+              #fecdd3 100%
+            );
+            --section-glow:
+              radial-gradient(
+                circle at 20% 80%,
+                rgba(56, 189, 248, 0.35),
+                transparent 50%
+              ),
+              radial-gradient(
+                circle at 80% 20%,
+                rgba(244, 63, 94, 0.3),
+                transparent 50%
+              );
+            --section-sheen: linear-gradient(
+              140deg,
+              rgba(56, 189, 248, 0.35) 0%,
+              rgba(250, 204, 21, 0.3) 55%,
+              rgba(244, 63, 94, 0.25) 100%
+            );
+            --gradient-animation: gradientShiftX;
+            --gradient-duration: 10s;
+            --gradient-direction: alternate-reverse;
+            --glow-animation: glowDriftDiag;
+            --glow-duration: 14s;
+            --glow-animation-2: glowPulse;
+            --glow-duration-2: 20s;
+          }
+
+          .dark .section-performance {
+            --section-gradient: linear-gradient(
+              140deg,
+              #0b1522 0%,
+              #1f1723 50%,
+              #2b1014 100%
+            );
+            --section-glow:
+              radial-gradient(
+                circle at 20% 80%,
+                rgba(56, 189, 248, 0.18),
+                transparent 50%
+              ),
+              radial-gradient(
+                circle at 80% 20%,
+                rgba(244, 63, 94, 0.2),
+                transparent 50%
+              );
+            --section-sheen: linear-gradient(
+              140deg,
+              rgba(56, 189, 248, 0.2) 0%,
+              rgba(250, 204, 21, 0.18) 55%,
+              rgba(244, 63, 94, 0.18) 100%
+            );
+          }
+
+          .section-accessibility {
+            --section-gradient: linear-gradient(
+              125deg,
+              #f8fafc 0%,
+              #cffafe 50%,
+              #e2e8f0 100%
+            );
+            --section-glow:
+              radial-gradient(
+                circle at 25% 25%,
+                rgba(6, 182, 212, 0.3),
+                transparent 50%
+              ),
+              radial-gradient(
+                circle at 75% 80%,
+                rgba(148, 163, 184, 0.3),
+                transparent 50%
+              );
+            --section-sheen: linear-gradient(
+              125deg,
+              rgba(6, 182, 212, 0.3) 0%,
+              rgba(148, 163, 184, 0.3) 60%,
+              rgba(59, 130, 246, 0.2) 100%
+            );
+            --gradient-animation: gradientShiftY;
+            --gradient-duration: 20s;
+            --gradient-direction: alternate;
+            --glow-animation: glowDriftX;
+            --glow-duration: 22s;
+            --glow-animation-2: glowDriftY;
+            --glow-duration-2: 28s;
+          }
+
+          .dark .section-accessibility {
+            --section-gradient: linear-gradient(
+              125deg,
+              #0b1220 0%,
+              #0b2730 50%,
+              #111827 100%
+            );
+            --section-glow:
+              radial-gradient(
+                circle at 25% 25%,
+                rgba(6, 182, 212, 0.18),
+                transparent 50%
+              ),
+              radial-gradient(
+                circle at 75% 80%,
+                rgba(148, 163, 184, 0.18),
+                transparent 50%
+              );
+            --section-sheen: linear-gradient(
+              125deg,
+              rgba(6, 182, 212, 0.18) 0%,
+              rgba(148, 163, 184, 0.18) 60%,
+              rgba(59, 130, 246, 0.16) 100%
+            );
+          }
+
+          .section-tools {
+            --section-gradient: linear-gradient(
+              135deg,
+              #fff7ed 0%,
+              #fde68a 45%,
+              #fecdd3 100%
+            );
+            --section-glow:
+              radial-gradient(
+                circle at 20% 20%,
+                rgba(245, 158, 11, 0.35),
+                transparent 50%
+              ),
+              radial-gradient(
+                circle at 85% 80%,
+                rgba(244, 63, 94, 0.3),
+                transparent 50%
+              );
+            --section-sheen: linear-gradient(
+              135deg,
+              rgba(245, 158, 11, 0.35) 0%,
+              rgba(244, 63, 94, 0.3) 60%,
+              rgba(251, 146, 60, 0.25) 100%
+            );
+            --gradient-animation: gradientShiftDiag;
+            --gradient-duration: 13s;
+            --gradient-direction: reverse;
+            --glow-animation: glowDriftY;
+            --glow-duration: 16s;
+            --glow-animation-2: glowDriftX;
+            --glow-duration-2: 24s;
+          }
+
+          .dark .section-tools {
+            --section-gradient: linear-gradient(
+              135deg,
+              #1f1406 0%,
+              #2a1a0a 45%,
+              #2b1014 100%
+            );
+            --section-glow:
+              radial-gradient(
+                circle at 20% 20%,
+                rgba(245, 158, 11, 0.2),
+                transparent 50%
+              ),
+              radial-gradient(
+                circle at 85% 80%,
+                rgba(244, 63, 94, 0.18),
+                transparent 50%
+              );
+            --section-sheen: linear-gradient(
+              135deg,
+              rgba(245, 158, 11, 0.2) 0%,
+              rgba(244, 63, 94, 0.18) 60%,
+              rgba(251, 146, 60, 0.18) 100%
+            );
+          }
+
+          .section-testimonials {
+            --section-gradient: linear-gradient(
+              120deg,
+              #ecfdf5 0%,
+              #a7f3d0 45%,
+              #f8fafc 100%
+            );
+            --section-glow:
+              radial-gradient(
+                circle at 80% 20%,
+                rgba(16, 185, 129, 0.35),
+                transparent 50%
+              ),
+              radial-gradient(
+                circle at 15% 80%,
+                rgba(100, 116, 139, 0.3),
+                transparent 50%
+              );
+            --section-sheen: linear-gradient(
+              130deg,
+              rgba(16, 185, 129, 0.35) 0%,
+              rgba(56, 189, 248, 0.2) 50%,
+              rgba(100, 116, 139, 0.25) 100%
+            );
+            --gradient-animation: gradientShiftWave;
+            --gradient-duration: 16s;
+            --gradient-direction: alternate;
+            --glow-animation: glowDriftDiag;
+            --glow-duration: 22s;
+            --glow-animation-2: glowPulse;
+            --glow-duration-2: 26s;
+          }
+
+          .dark .section-testimonials {
+            --section-gradient: linear-gradient(
+              120deg,
+              #0b2c24 0%,
+              #0f172a 50%,
+              #111827 100%
+            );
+            --section-glow:
+              radial-gradient(
+                circle at 80% 20%,
+                rgba(16, 185, 129, 0.18),
+                transparent 50%
+              ),
+              radial-gradient(
+                circle at 15% 80%,
+                rgba(100, 116, 139, 0.2),
+                transparent 50%
+              );
+            --section-sheen: linear-gradient(
+              130deg,
+              rgba(16, 185, 129, 0.18) 0%,
+              rgba(56, 189, 248, 0.16) 50%,
+              rgba(100, 116, 139, 0.18) 100%
+            );
+          }
+
+          .section-capabilities {
+            --section-gradient: linear-gradient(
+              140deg,
+              #f0f9ff 0%,
+              #bae6fd 40%,
+              #fff7ed 100%
+            );
+            --section-glow:
+              radial-gradient(
+                circle at 25% 75%,
+                rgba(56, 189, 248, 0.3),
+                transparent 50%
+              ),
+              radial-gradient(
+                circle at 80% 20%,
+                rgba(245, 158, 11, 0.3),
+                transparent 50%
+              );
+            --section-sheen: linear-gradient(
+              140deg,
+              rgba(56, 189, 248, 0.3) 0%,
+              rgba(245, 158, 11, 0.3) 60%,
+              rgba(125, 211, 252, 0.25) 100%
+            );
+            --gradient-animation: gradientShiftX;
+            --gradient-duration: 17s;
+            --gradient-direction: normal;
+            --glow-animation: glowDriftY;
+            --glow-duration: 20s;
+            --glow-animation-2: glowDriftDiag;
+            --glow-duration-2: 28s;
+          }
+
+          .dark .section-capabilities {
+            --section-gradient: linear-gradient(
+              140deg,
+              #0b1522 0%,
+              #0b1f2e 45%,
+              #2c1c08 100%
+            );
+            --section-glow:
+              radial-gradient(
+                circle at 25% 75%,
+                rgba(56, 189, 248, 0.18),
+                transparent 50%
+              ),
+              radial-gradient(
+                circle at 80% 20%,
+                rgba(245, 158, 11, 0.2),
+                transparent 50%
+              );
+            --section-sheen: linear-gradient(
+              140deg,
+              rgba(56, 189, 248, 0.18) 0%,
+              rgba(245, 158, 11, 0.2) 60%,
+              rgba(125, 211, 252, 0.18) 100%
+            );
+          }
+
+          .section-who {
+            --section-gradient: linear-gradient(
+              125deg,
+              #fff1f2 0%,
+              #fecdd3 45%,
+              #f8fafc 100%
+            );
+            --section-glow:
+              radial-gradient(
+                circle at 15% 20%,
+                rgba(244, 63, 94, 0.3),
+                transparent 50%
+              ),
+              radial-gradient(
+                circle at 85% 80%,
+                rgba(100, 116, 139, 0.3),
+                transparent 50%
+              );
+            --section-sheen: linear-gradient(
+              120deg,
+              rgba(244, 63, 94, 0.3) 0%,
+              rgba(148, 163, 184, 0.3) 55%,
+              rgba(56, 189, 248, 0.2) 100%
+            );
+            --gradient-animation: gradientShiftY;
+            --gradient-duration: 12s;
+            --gradient-direction: alternate-reverse;
+            --glow-animation: glowPulse;
+            --glow-duration: 18s;
+            --glow-animation-2: glowDriftX;
+            --glow-duration-2: 24s;
+          }
+
+          .dark .section-who {
+            --section-gradient: linear-gradient(
+              125deg,
+              #2a1014 0%,
+              #1f2937 50%,
+              #0b1220 100%
+            );
+            --section-glow:
+              radial-gradient(
+                circle at 15% 20%,
+                rgba(244, 63, 94, 0.18),
+                transparent 50%
+              ),
+              radial-gradient(
+                circle at 85% 80%,
+                rgba(100, 116, 139, 0.2),
+                transparent 50%
+              );
+            --section-sheen: linear-gradient(
+              120deg,
+              rgba(244, 63, 94, 0.18) 0%,
+              rgba(148, 163, 184, 0.18) 55%,
+              rgba(56, 189, 248, 0.16) 100%
+            );
+          }
+
+          .section-why {
+            --section-gradient: linear-gradient(
+              135deg,
+              #ecfccb 0%,
+              #d9f99d 45%,
+              #f8fafc 100%
+            );
+            --section-glow:
+              radial-gradient(
+                circle at 80% 20%,
+                rgba(132, 204, 22, 0.3),
+                transparent 50%
+              ),
+              radial-gradient(
+                circle at 20% 80%,
+                rgba(148, 163, 184, 0.3),
+                transparent 50%
+              );
+            --section-sheen: linear-gradient(
+              135deg,
+              rgba(132, 204, 22, 0.3) 0%,
+              rgba(148, 163, 184, 0.3) 60%,
+              rgba(34, 197, 94, 0.25) 100%
+            );
+            --gradient-animation: gradientShiftDiag;
+            --gradient-duration: 14s;
+            --gradient-direction: alternate;
+            --glow-animation: glowDriftY;
+            --glow-duration: 22s;
+            --glow-animation-2: glowPulse;
+            --glow-duration-2: 30s;
+          }
+
+          .dark .section-why {
+            --section-gradient: linear-gradient(
+              135deg,
+              #1a2e05 0%,
+              #111827 50%,
+              #0b1220 100%
+            );
+            --section-glow:
+              radial-gradient(
+                circle at 80% 20%,
+                rgba(132, 204, 22, 0.18),
+                transparent 50%
+              ),
+              radial-gradient(
+                circle at 20% 80%,
+                rgba(148, 163, 184, 0.2),
+                transparent 50%
+              );
+            --section-sheen: linear-gradient(
+              135deg,
+              rgba(132, 204, 22, 0.18) 0%,
+              rgba(148, 163, 184, 0.2) 60%,
+              rgba(34, 197, 94, 0.18) 100%
+            );
+          }
+
+          .section-faqs {
+            --section-gradient: linear-gradient(
+              140deg,
+              #ecfeff 0%,
+              #a7f3d0 45%,
+              #f8fafc 100%
+            );
+            --section-glow:
+              radial-gradient(
+                circle at 75% 25%,
+                rgba(6, 182, 212, 0.3),
+                transparent 50%
+              ),
+              radial-gradient(
+                circle at 20% 80%,
+                rgba(16, 185, 129, 0.3),
+                transparent 50%
+              );
+            --section-sheen: linear-gradient(
+              140deg,
+              rgba(6, 182, 212, 0.3) 0%,
+              rgba(16, 185, 129, 0.3) 60%,
+              rgba(59, 130, 246, 0.2) 100%
+            );
+            --gradient-animation: gradientShiftWave;
+            --gradient-duration: 15s;
+            --gradient-direction: alternate;
+            --glow-animation: glowDriftX;
+            --glow-duration: 18s;
+            --glow-animation-2: glowDriftDiag;
+            --glow-duration-2: 26s;
+          }
+
+          .dark .section-faqs {
+            --section-gradient: linear-gradient(
+              140deg,
+              #0b2730 0%,
+              #0b2c24 50%,
+              #0b1220 100%
+            );
+            --section-glow:
+              radial-gradient(
+                circle at 75% 25%,
+                rgba(6, 182, 212, 0.18),
+                transparent 50%
+              ),
+              radial-gradient(
+                circle at 20% 80%,
+                rgba(16, 185, 129, 0.18),
+                transparent 50%
+              );
+            --section-sheen: linear-gradient(
+              140deg,
+              rgba(6, 182, 212, 0.18) 0%,
+              rgba(16, 185, 129, 0.18) 60%,
+              rgba(59, 130, 246, 0.16) 100%
+            );
+          }
         `}</style>
 
         <div className="fixed left-0 top-1/2 z-50 -translate-y-1/2">
@@ -636,7 +1822,7 @@ export default function Home() {
         {/* Features Section */}
         <section
           id="features"
-          className="relative bg-background text-foreground py-20 px-4 overflow-hidden"
+          className="relative section-animated section-features text-foreground py-20 px-4 overflow-hidden"
         >
           <SectionBackdrop />
           <AnimatedInView delay={0}>
@@ -672,7 +1858,7 @@ export default function Home() {
         {/* How It Works Section */}
         <section
           id="how-it-works"
-          className="relative bg-background text-foreground py-20 px-4 overflow-hidden"
+          className="relative section-animated section-how text-foreground py-20 px-4 overflow-hidden"
         >
           <SectionBackdrop />
           <AnimatedInView delay={0}>
@@ -708,7 +1894,7 @@ export default function Home() {
         {/* Interactive Chat Advantage Section */}
         <section
           id="chat-advantage"
-          className="relative bg-background text-foreground py-20 px-4 overflow-hidden"
+          className="relative section-animated section-chat text-foreground py-20 px-4 overflow-hidden"
         >
           <SectionBackdrop />
           <AnimatedInView delay={0}>
@@ -744,7 +1930,10 @@ export default function Home() {
         </section>
 
         {/* Testimonials Section */}
-        <section id="testimonials" className="hidden">
+        <section
+          id="testimonials"
+          className="hidden section-animated section-testimonials-muted text-foreground py-20 px-4"
+        >
           <AnimatedInView delay={0}>
             <div className="max-w-6xl mx-auto text-center mb-12">
               <h2 className="text-4xl font-bold mb-4">Testimonials</h2>
@@ -772,7 +1961,10 @@ export default function Home() {
         </section>
 
         {/* Capabilities Section */}
-        <section id="capabilities" className="hidden">
+        <section
+          id="capabilities"
+          className="hidden section-animated section-capabilities-muted text-foreground py-20 px-4"
+        >
           <AnimatedInView delay={0}>
             <div className="max-w-6xl mx-auto text-center mb-12">
               <h2 className="text-4xl font-bold mb-4">What You Can Do</h2>
@@ -833,7 +2025,7 @@ export default function Home() {
         {/* Use Cases Section */}
         <section
           id="use-cases"
-          className="relative bg-background text-foreground py-20 px-4 overflow-hidden"
+          className="relative section-animated section-usecases text-foreground py-20 px-4 overflow-hidden"
         >
           <SectionBackdrop />
           <AnimatedInView delay={0}>
@@ -895,7 +2087,7 @@ export default function Home() {
         {/* Common Workflows Section */}
         <section
           id="workflows"
-          className="relative bg-background text-foreground py-20 px-4 overflow-hidden"
+          className="relative section-animated section-workflows text-foreground py-20 px-4 overflow-hidden"
         >
           <SectionBackdrop />
           <AnimatedInView delay={0}>
@@ -942,7 +2134,7 @@ export default function Home() {
         {/* Trust & Privacy Section */}
         <section
           id="trust"
-          className="relative bg-background text-foreground py-20 px-4 overflow-hidden"
+          className="relative section-animated section-trust text-foreground py-20 px-4 overflow-hidden"
         >
           <SectionBackdrop />
           <AnimatedInView delay={0}>
@@ -989,7 +2181,7 @@ export default function Home() {
         {/* Tech Highlights Section */}
         <section
           id="tech"
-          className="relative bg-background text-foreground py-20 px-4 overflow-hidden"
+          className="relative section-animated section-tech text-foreground py-20 px-4 overflow-hidden"
         >
           <SectionBackdrop />
           <AnimatedInView delay={0}>
@@ -1041,7 +2233,7 @@ export default function Home() {
         {/* Performance Section */}
         <section
           id="performance"
-          className="relative bg-background text-foreground py-20 px-4 overflow-hidden"
+          className="relative section-animated section-performance text-foreground py-20 px-4 overflow-hidden"
         >
           <SectionBackdrop />
           <AnimatedInView delay={0}>
@@ -1084,7 +2276,7 @@ export default function Home() {
         {/* Accessibility & Themes Section */}
         <section
           id="accessibility"
-          className="relative bg-background text-foreground py-20 px-4 overflow-hidden"
+          className="relative section-animated section-accessibility text-foreground py-20 px-4 overflow-hidden"
         >
           <SectionBackdrop />
           <AnimatedInView delay={0}>
@@ -1129,7 +2321,7 @@ export default function Home() {
         {/* Built‑In Tools Section */}
         <section
           id="tools"
-          className="relative bg-background text-foreground py-20 px-4 overflow-hidden"
+          className="relative section-animated section-tools text-foreground py-20 px-4 overflow-hidden"
         >
           <SectionBackdrop />
           <AnimatedInView delay={0}>
@@ -1192,7 +2384,7 @@ export default function Home() {
         {/* Testimonials Section */}
         <section
           id="testimonials"
-          className="relative bg-background text-foreground py-20 px-4 overflow-hidden"
+          className="relative section-animated section-testimonials text-foreground py-20 px-4 overflow-hidden"
         >
           <SectionBackdrop />
           <AnimatedInView delay={0}>
@@ -1224,7 +2416,7 @@ export default function Home() {
         {/* Capabilities Section */}
         <section
           id="capabilities"
-          className="bg-background text-foreground py-20 px-4"
+          className="section-animated section-capabilities text-foreground py-20 px-4"
         >
           <AnimatedInView delay={0}>
             <div className="max-w-6xl mx-auto text-center mb-12">
@@ -1286,7 +2478,7 @@ export default function Home() {
         {/* Who It's For Section */}
         <section
           id="who-for"
-          className="bg-background text-foreground py-20 px-4"
+          className="section-animated section-who text-foreground py-20 px-4"
         >
           <AnimatedInView delay={0}>
             <div className="max-w-6xl mx-auto text-center mb-12">
@@ -1355,7 +2547,10 @@ export default function Home() {
         </section>
 
         {/* Why EstateWise Section */}
-        <section id="why" className="bg-background text-foreground py-20 px-4">
+        <section
+          id="why"
+          className="section-animated section-why text-foreground py-20 px-4"
+        >
           <AnimatedInView delay={0}>
             <div className="max-w-6xl mx-auto text-center mb-12">
               <h2 className="text-4xl font-bold mb-4">Why EstateWise</h2>
@@ -1409,7 +2604,7 @@ export default function Home() {
         {/* FAQs Section */}
         <section
           id="faqs"
-          className="relative bg-background text-foreground py-20 px-4 overflow-hidden"
+          className="relative section-animated section-faqs text-foreground py-20 px-4 overflow-hidden"
         >
           <SectionBackdrop />
           <AnimatedInView delay={0}>
