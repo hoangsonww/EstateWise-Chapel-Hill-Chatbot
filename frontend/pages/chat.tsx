@@ -26,7 +26,6 @@ import {
   Home,
   Menu,
   ChevronLeft,
-  LogOut,
   BarChart3,
   Calculator,
   MapPin,
@@ -560,6 +559,13 @@ const deriveGuestTitle = (messages: ChatMessage[], fallback: string) => {
   return cleaned.length > 48 ? `${cleaned.slice(0, 48)}...` : cleaned;
 };
 
+const getGuestTitleSeed = (messages: ChatMessage[]) => {
+  const lastUser = [...messages]
+    .reverse()
+    .find((message) => message.role === "user" && message.text.trim());
+  return lastUser?.text?.trim() ?? "";
+};
+
 const buildGuestConversation = (messages: ChatMessage[]): GuestConversation => {
   const now = new Date().toISOString();
   return {
@@ -814,24 +820,49 @@ const TopBar: React.FC<TopBarProps> = ({
               </TooltipTrigger>
               <TooltipContent>New conversation</TooltipContent>
             </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  onClick={() => {
-                    document.cookie =
-                      "estatewise_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-                    toast.success("Logged out successfully");
-                    window.location.reload();
-                  }}
-                  className="inline-flex h-8 w-8 items-center justify-center hover:text-red-600 transition-colors cursor-pointer"
-                  title="Log Out"
-                  aria-label="Log Out"
-                >
-                  <LogOut className="w-5 h-5" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent>Sign out</TooltipContent>
-            </Tooltip>
+            <div className="relative">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={handleAuthIconClick}
+                    className="inline-flex h-8 w-8 items-center justify-center hover:text-primary transition-colors cursor-pointer"
+                    aria-label="User Menu"
+                    title="User Menu"
+                  >
+                    <UserIcon className="w-5 h-5" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>Account</TooltipContent>
+              </Tooltip>
+              {authMenuOpen && (
+                <div className="absolute right-0 mt-2 w-40 bg-card rounded shadow-lg py-2 z-50">
+                  <Link href="/profile">
+                    <div
+                      className="px-4 py-2 hover:bg-muted cursor-pointer select-none"
+                      onClick={() => setAuthMenuOpen(false)}
+                      title="Profile"
+                      aria-label="Profile"
+                    >
+                      Profile
+                    </div>
+                  </Link>
+                  <div
+                    className="px-4 py-2 hover:bg-muted cursor-pointer select-none text-red-600"
+                    onClick={() => {
+                      setAuthMenuOpen(false);
+                      document.cookie =
+                        "estatewise_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+                      toast.success("Logged out successfully");
+                      window.location.reload();
+                    }}
+                    title="Log Out"
+                    aria-label="Log Out"
+                  >
+                    Log Out
+                  </div>
+                </div>
+              )}
+            </div>
           </>
         ) : (
           <>
@@ -964,12 +995,10 @@ const Sidebar: React.FC<SidebarProps> = ({
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [renamingId, setRenamingId] = useState<string | null>(null);
-  const [newTitle, setNewTitle] = useState("");
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isMobile, setIsMobile] = useState(false);
-  const [generatingName, setGeneratingName] = useState(false);
 
   /* -----------------------------------------------------------------
    * Highlighting + auto-scroll logic
@@ -1048,6 +1077,12 @@ const Sidebar: React.FC<SidebarProps> = ({
     );
   }, [conversations, debouncedQuery]);
 
+  const activeRenameConvo = useMemo(
+    () => conversations.find((conv) => conv._id === renamingId) ?? null,
+    [conversations, renamingId],
+  );
+  const renameInitialTitle = activeRenameConvo?.title ?? "";
+
   const isFiltering = debouncedQuery.trim().length > 0;
   const searchActive = showSearchInput || isFiltering;
   const enableRowAnimations = isAuthed && !searchActive;
@@ -1057,20 +1092,21 @@ const Sidebar: React.FC<SidebarProps> = ({
     isFiltering &&
     filteredConversations.length === 0;
 
-  const handleRename = async (convId: string) => {
+  const handleRename = async (
+    convId: string,
+    nextTitle: string,
+  ): Promise<boolean> => {
     try {
       if (!isAuthed) {
-        if (!newTitle.trim()) return;
+        if (!nextTitle.trim()) return false;
         const local = loadGuestConvos();
         const next = local.map((conv) =>
-          conv._id === convId ? { ...conv, title: newTitle } : conv,
+          conv._id === convId ? { ...conv, title: nextTitle } : conv,
         );
         persistGuestConvos(next);
         toast.success("Conversation renamed");
-        setRenamingId(null);
-        setNewTitle("");
         refreshConvos();
-        return;
+        return true;
       }
       const token = Cookies.get("estatewise_token");
       const res = await fetch(`${API_BASE_URL}/api/conversations/${convId}`, {
@@ -1079,145 +1115,60 @@ const Sidebar: React.FC<SidebarProps> = ({
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ title: newTitle }),
+        body: JSON.stringify({ title: nextTitle }),
       });
       if (res.ok) {
         toast.success("Conversation renamed");
-        setRenamingId(null);
-        setNewTitle("");
         refreshConvos();
+        return true;
       } else {
         toast.error("Failed to rename conversation");
+        return false;
       }
     } catch (error) {
       console.error(error);
       toast.error("Error renaming conversation");
+      return false;
     }
+    return false;
   };
 
   const handleGenerateName = async (convId: string) => {
-    try {
-      if (!isAuthed) {
-        toast.error("Log in to generate AI titles");
-        return;
+    if (!isAuthed) {
+      const target = conversations.find((conv) => conv._id === convId);
+      const seed = getGuestTitleSeed(target?.messages ?? []);
+      if (!seed) {
+        throw new Error("Add a message first");
       }
-      setGeneratingName(true);
-      const token = Cookies.get("estatewise_token");
-      const res = await fetch(
-        `${API_BASE_URL}/api/conversations/${convId}/generate-name`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+      const res = await fetch(`${API_BASE_URL}/api/chat/generate-title`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
         },
-      );
-      if (res.ok) {
-        const data = await res.json();
-        setNewTitle(data.suggestedName);
-        toast.success("Name generated successfully!");
-      } else {
-        toast.error("Failed to generate name");
+        body: JSON.stringify({ message: seed }),
+      });
+      if (!res.ok) {
+        throw new Error("Failed to generate name");
       }
-    } catch (error) {
-      console.error(error);
-      toast.error("Error generating name");
-    } finally {
-      setGeneratingName(false);
+      const data = await res.json();
+      return data.suggestedName as string;
     }
+    const token = Cookies.get("estatewise_token");
+    const res = await fetch(
+      `${API_BASE_URL}/api/conversations/${convId}/generate-name`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      },
+    );
+    if (!res.ok) {
+      throw new Error("Failed to generate name");
+    }
+    const data = await res.json();
+    return data.suggestedName as string;
   };
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const renderRenameModal = (conv: any) => (
-    <Dialog
-      open={renamingId === conv._id}
-      onOpenChange={(open) => {
-        if (!open) {
-          setRenamingId(null);
-          setNewTitle("");
-        }
-      }}
-    >
-      <DialogContent className="[&>button]:hidden border bg-card text-card-foreground">
-        <DialogClose asChild>
-          <button
-            aria-label="Close"
-            title="Close"
-            className="absolute top-3 right-3 text-card-foreground hover:opacity-80"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </DialogClose>
-
-        <DialogHeader>
-          <DialogTitle className="text-card-foreground">
-            Rename Conversation
-          </DialogTitle>
-          <DialogDescription className="text-muted-foreground">
-            Enter a new name for your conversation or generate one with AI.
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="space-y-4">
-          <Input
-            value={newTitle}
-            onChange={(e) => setNewTitle(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                handleRename(conv._id);
-              }
-            }}
-            placeholder="Enter conversation name"
-            autoFocus
-            className="cursor-text bg-background text-foreground border-input"
-          />
-          <Button
-            variant="outline"
-            className="w-full cursor-pointer bg-background hover:bg-muted text-foreground border-input"
-            onClick={() => handleGenerateName(conv._id)}
-            disabled={generatingName || !isAuthed}
-          >
-            {generatingName ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Generating...
-              </>
-            ) : (
-              <>
-                <Zap className="w-4 h-4 mr-2" />
-                Generate Suggested Name
-              </>
-            )}
-          </Button>
-        </div>
-
-        <DialogFooter>
-          <Button
-            variant="outline"
-            className="cursor-pointer bg-background hover:bg-muted text-foreground border-input"
-            onClick={() => {
-              setRenamingId(null);
-              setNewTitle("");
-            }}
-            aria-label="Cancel Rename"
-            title="Cancel Rename"
-          >
-            Cancel
-          </Button>
-          <Button
-            className="cursor-pointer bg-primary hover:bg-primary/90 text-primary-foreground"
-            onClick={() => handleRename(conv._id)}
-            aria-label="Save Rename"
-            title="Save Rename"
-            disabled={!newTitle.trim()}
-          >
-            Save
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
 
   const handleDelete = async () => {
     if (!deleteId) return;
@@ -1328,7 +1279,6 @@ const Sidebar: React.FC<SidebarProps> = ({
               onClick={(e) => {
                 e.stopPropagation();
                 setRenamingId(conv._id);
-                setNewTitle(conv.title);
               }}
               title="Rename"
               className="cursor-pointer hover:text-blue-500"
@@ -1349,7 +1299,6 @@ const Sidebar: React.FC<SidebarProps> = ({
             </button>
           </div>
         </motion.div>
-        {renderRenameModal(conv)}
       </>
     );
   };
@@ -1462,6 +1411,19 @@ const Sidebar: React.FC<SidebarProps> = ({
             onCancel={() => setDeleteId(null)}
           />
         )}
+        <RenameConversationDialog
+          open={!!activeRenameConvo}
+          initialTitle={renameInitialTitle}
+          onClose={() => setRenamingId(null)}
+          onSave={async (title) => {
+            if (!activeRenameConvo?._id) return false;
+            return handleRename(activeRenameConvo._id, title);
+          }}
+          onGenerate={async () => {
+            if (!activeRenameConvo?._id) return renameInitialTitle;
+            return handleGenerateName(activeRenameConvo._id);
+          }}
+        />
       </>
     );
   }
@@ -1565,6 +1527,19 @@ const Sidebar: React.FC<SidebarProps> = ({
           />
         )}
       </motion.aside>
+      <RenameConversationDialog
+        open={!!activeRenameConvo}
+        initialTitle={renameInitialTitle}
+        onClose={() => setRenamingId(null)}
+        onSave={async (title) => {
+          if (!activeRenameConvo?._id) return false;
+          return handleRename(activeRenameConvo._id, title);
+        }}
+        onGenerate={async () => {
+          if (!activeRenameConvo?._id) return renameInitialTitle;
+          return handleGenerateName(activeRenameConvo._id);
+        }}
+      />
     </div>
   );
 };
@@ -1615,6 +1590,136 @@ const DeleteConfirmationDialog: React.FC<{
             title="Confirm Delete"
           >
             Delete
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+type RenameConversationDialogProps = {
+  open: boolean;
+  initialTitle: string;
+  onClose: () => void;
+  onSave: (title: string) => Promise<boolean>;
+  onGenerate: () => Promise<string>;
+};
+
+const RenameConversationDialog: React.FC<RenameConversationDialogProps> = ({
+  open,
+  initialTitle,
+  onClose,
+  onSave,
+  onGenerate,
+}) => {
+  const [draftTitle, setDraftTitle] = useState("");
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    setDraftTitle(initialTitle ?? "");
+  }, [open, initialTitle]);
+
+  const handleGenerate = async () => {
+    setIsGenerating(true);
+    try {
+      const suggested = await onGenerate();
+      setDraftTitle(suggested);
+      toast.success("Suggested name generated");
+    } catch (error) {
+      console.error(error);
+      toast.error("Error generating name");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleSave = async () => {
+    const trimmed = draftTitle.trim();
+    if (!trimmed) return;
+    const ok = await onSave(trimmed);
+    if (ok) onClose();
+  };
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        if (!next) onClose();
+      }}
+    >
+      <DialogContent className="[&>button]:hidden border bg-card text-card-foreground">
+        <DialogClose asChild>
+          <button
+            aria-label="Close"
+            title="Close"
+            className="absolute top-3 right-3 text-card-foreground hover:opacity-80"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </DialogClose>
+
+        <DialogHeader>
+          <DialogTitle className="text-card-foreground">
+            Rename Conversation
+          </DialogTitle>
+          <DialogDescription className="text-muted-foreground">
+            Enter a new name for your conversation or generate a suggestion.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          <Input
+            value={draftTitle}
+            onChange={(e) => setDraftTitle(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                handleSave();
+              }
+            }}
+            placeholder="Enter conversation name"
+            autoFocus
+            className="cursor-text bg-background text-foreground border-input"
+          />
+          <Button
+            variant="outline"
+            className="w-full cursor-pointer bg-background hover:bg-muted text-foreground border-input"
+            onClick={handleGenerate}
+            disabled={isGenerating}
+          >
+            {isGenerating ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Generating...
+              </>
+            ) : (
+              <>
+                <Zap className="w-4 h-4 mr-2" />
+                Generate Suggested Name
+              </>
+            )}
+          </Button>
+        </div>
+
+        <DialogFooter>
+          <Button
+            variant="outline"
+            className="cursor-pointer bg-background hover:bg-muted text-foreground border-input"
+            onClick={onClose}
+            aria-label="Cancel Rename"
+            title="Cancel Rename"
+          >
+            Cancel
+          </Button>
+          <Button
+            className="cursor-pointer bg-primary hover:bg-primary/90 text-primary-foreground"
+            onClick={handleSave}
+            aria-label="Save Rename"
+            title="Save Rename"
+            disabled={!draftTitle.trim()}
+          >
+            Save
           </Button>
         </DialogFooter>
       </DialogContent>

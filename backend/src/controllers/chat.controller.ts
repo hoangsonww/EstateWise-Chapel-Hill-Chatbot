@@ -189,6 +189,70 @@ export const chat = async (req: AuthRequest, res: Response) => {
   }
 };
 
+const extractHistoryText = (entry: any): string => {
+  if (typeof entry?.text === "string") return entry.text;
+  if (Array.isArray(entry?.parts)) {
+    const texts = entry.parts
+      .map((part: any) => (typeof part?.text === "string" ? part.text : ""))
+      .filter(Boolean);
+    return texts.join(" ").trim();
+  }
+  return "";
+};
+
+export const generateGuestTitle = async (req: Request, res: Response) => {
+  try {
+    const { message, history } = req.body as {
+      message?: string;
+      history?: any[];
+    };
+    let seed = typeof message === "string" ? message.trim() : "";
+    if (!seed && Array.isArray(history)) {
+      const lastUser = [...history]
+        .reverse()
+        .find((entry) => entry?.role === "user");
+      seed = extractHistoryText(lastUser).trim();
+    }
+
+    if (!seed) {
+      return res
+        .status(400)
+        .json({ error: "Message required to generate title" });
+    }
+
+    const { GoogleGenerativeAI } = await import("@google/generative-ai");
+    const apiKey = process.env.GOOGLE_AI_API_KEY;
+    if (!apiKey) {
+      return res
+        .status(500)
+        .json({ error: "AI service not configured properly" });
+    }
+
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const modelCandidates = await getGeminiModelCandidates(apiKey);
+
+    const suggestedName = (
+      await runWithGeminiModelFallback(modelCandidates, async (modelName) => {
+        const model = genAI.getGenerativeModel({
+          model: modelName,
+          systemInstruction:
+            "You are a helpful assistant that generates concise, descriptive conversation titles. Generate a short title (3-6 words max) that captures the main topic of the conversation. Return ONLY the title text, no quotes, no extra explanation.",
+        });
+        return model.generateContent(
+          `Based on this conversation, generate a short, descriptive title:\n\nuser: ${seed}`,
+        );
+      })
+    ).response
+      .text()
+      .trim();
+
+    return res.json({ suggestedName });
+  } catch (err) {
+    console.error("Error generating guest title:", err);
+    return res.status(500).json({ error: "Failed to generate name" });
+  }
+};
+
 /**
  * Thumb‑rating endpoint.
  * For authenticated users: Update the expertWeights in the DB for the given convoId.

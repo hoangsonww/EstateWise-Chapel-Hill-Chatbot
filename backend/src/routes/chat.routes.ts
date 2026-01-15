@@ -1,5 +1,9 @@
 import { Router } from "express";
-import { chat, rateConversation } from "../controllers/chat.controller";
+import {
+  chat,
+  rateConversation,
+  generateGuestTitle,
+} from "../controllers/chat.controller";
 import { authMiddleware } from "../middleware/auth.middleware";
 
 const router = Router();
@@ -56,6 +60,45 @@ const router = Router();
  *         description: Server error - Unable to process rating request.
  */
 router.post("/rate", rateConversation);
+
+/**
+ * @swagger
+ * /api/chat/generate-title:
+ *   post:
+ *     summary: Generate a conversation title (guest-friendly)
+ *     tags:
+ *       - Chat
+ *     requestBody:
+ *       required: true
+ *       description: Seed message or history to generate a short title.
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               message:
+ *                 type: string
+ *                 description: A user message to seed the title.
+ *                 example: "Looking for a 3-bedroom near UNC"
+ *               history:
+ *                 type: array
+ *                 description: Optional history entries (role + text/parts).
+ *     responses:
+ *       200:
+ *         description: Title generated successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 suggestedName:
+ *                   type: string
+ *       400:
+ *         description: Missing seed message.
+ *       500:
+ *         description: Server error - Unable to generate title.
+ */
+router.post("/generate-title", generateGuestTitle);
 
 /**
  * @swagger

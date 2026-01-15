@@ -23,7 +23,6 @@ import {
   MapPin,
   MessageCircle,
   MessageCircleMore,
-  LogOut,
   User as UserIcon,
   Loader2,
   Settings,
@@ -441,70 +440,80 @@ export default function PostDetailPage() {
                   </TooltipTrigger>
                   <TooltipContent>Toggle theme</TooltipContent>
                 </Tooltip>
-                {isAuthed ? (
+                <div className="relative">
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <button
-                        onClick={() => {
-                          Cookies.remove("estatewise_token");
-                          Cookies.remove("token");
-                          document.cookie =
-                            "estatewise_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-                          document.cookie =
-                            "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-                          toast.success("Logged out successfully");
-                          window.location.reload();
-                        }}
-                        className="inline-flex h-8 w-8 items-center justify-center hover:text-red-600 transition-colors cursor-pointer"
-                        title="Log Out"
-                        aria-label="Log Out"
+                        onClick={handleAuthIconClick}
+                        className="inline-flex h-8 w-8 items-center justify-center hover:text-primary transition-colors cursor-pointer"
+                        aria-label="User Menu"
+                        title="User Menu"
                       >
-                        <LogOut className="w-5 h-5" />
+                        <UserIcon className="w-5 h-5" />
                       </button>
                     </TooltipTrigger>
-                    <TooltipContent>Sign out</TooltipContent>
+                    <TooltipContent>Account</TooltipContent>
                   </Tooltip>
-                ) : (
-                  <div className="relative">
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <button
-                          onClick={handleAuthIconClick}
-                          className="inline-flex h-8 w-8 items-center justify-center hover:text-primary transition-colors cursor-pointer"
-                          aria-label="User Menu"
-                          title="User Menu"
-                        >
-                          <UserIcon className="w-5 h-5" />
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent>Account</TooltipContent>
-                    </Tooltip>
-                    {authMenuOpen && (
-                      <div className="absolute right-0 mt-2 w-40 bg-card rounded shadow-lg py-2 z-50">
-                        <Link href="/login">
+                  {authMenuOpen && (
+                    <div className="absolute right-0 mt-2 w-40 bg-card rounded shadow-lg py-2 z-50">
+                      {isAuthed ? (
+                        <>
+                          <Link href="/profile">
+                            <div
+                              className="px-4 py-2 hover:bg-muted cursor-pointer select-none"
+                              onClick={() => setAuthMenuOpen(false)}
+                              title="Profile"
+                              aria-label="Profile"
+                            >
+                              Profile
+                            </div>
+                          </Link>
                           <div
-                            className="px-4 py-2 hover:bg-muted cursor-pointer select-none"
-                            onClick={() => setAuthMenuOpen(false)}
-                            title="Log In"
-                            aria-label="Log In"
+                            className="px-4 py-2 hover:bg-muted cursor-pointer select-none text-red-600"
+                            onClick={() => {
+                              setAuthMenuOpen(false);
+                              Cookies.remove("estatewise_token");
+                              Cookies.remove("token");
+                              document.cookie =
+                                "estatewise_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+                              document.cookie =
+                                "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+                              toast.success("Logged out successfully");
+                              window.location.reload();
+                            }}
+                            title="Log Out"
+                            aria-label="Log Out"
                           >
-                            Log In
+                            Log Out
                           </div>
-                        </Link>
-                        <Link href="/signup">
-                          <div
-                            className="px-4 py-2 hover:bg-muted cursor-pointer select-none"
-                            onClick={() => setAuthMenuOpen(false)}
-                            title="Sign Up"
-                            aria-label="Sign Up"
-                          >
-                            Sign Up
-                          </div>
-                        </Link>
-                      </div>
-                    )}
-                  </div>
-                )}
+                        </>
+                      ) : (
+                        <>
+                          <Link href="/login">
+                            <div
+                              className="px-4 py-2 hover:bg-muted cursor-pointer select-none"
+                              onClick={() => setAuthMenuOpen(false)}
+                              title="Log In"
+                              aria-label="Log In"
+                            >
+                              Log In
+                            </div>
+                          </Link>
+                          <Link href="/signup">
+                            <div
+                              className="px-4 py-2 hover:bg-muted cursor-pointer select-none"
+                              onClick={() => setAuthMenuOpen(false)}
+                              title="Sign Up"
+                              aria-label="Sign Up"
+                            >
+                              Sign Up
+                            </div>
+                          </Link>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
