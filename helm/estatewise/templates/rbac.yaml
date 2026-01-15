@@ -1,0 +1,29 @@
+{{- if .Values.security.rbac.enabled }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "estatewise.fullname" . }}-reader
+  namespace: {{ include "estatewise.namespace" . }}
+  labels:
+    {{- include "estatewise.labels" . | nindent 4 }}
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps", "secrets", "pods"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "estatewise.fullname" . }}-reader
+  namespace: {{ include "estatewise.namespace" . }}
+  labels:
+    {{- include "estatewise.labels" . | nindent 4 }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "estatewise.serviceAccountName" . }}
+    namespace: {{ include "estatewise.namespace" . }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ include "estatewise.fullname" . }}-reader
+{{- end }}

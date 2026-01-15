@@ -1,0 +1,15 @@
+{{- if and .Values.monitoring.enabled .Values.monitoring.prometheusRules.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ include "estatewise.fullname" . }}-rules
+  namespace: {{ include "estatewise.namespace" . }}
+  labels:
+    {{- include "estatewise.labels" . | nindent 4 }}
+    {{- with .Values.monitoring.prometheusRules.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  groups:
+    {{- toYaml .Values.monitoring.prometheusRules.groups | nindent 4 }}
+{{- end }}

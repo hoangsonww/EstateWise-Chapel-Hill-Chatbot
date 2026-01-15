@@ -1,0 +1,29 @@
+{{- if and .Values.grpc.enabled .Values.grpc.autoscaling.enabled }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "estatewise.componentName" (dict "root" . "component" "grpc") }}-hpa
+  namespace: {{ include "estatewise.namespace" . }}
+  labels:
+    {{- include "estatewise.componentLabels" (dict "root" . "component" "grpc") | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "estatewise.componentName" (dict "root" . "component" "grpc") }}
+  minReplicas: {{ .Values.grpc.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.grpc.autoscaling.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.grpc.autoscaling.targetCPUUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.grpc.autoscaling.targetMemoryUtilizationPercentage }}
+{{- end }}

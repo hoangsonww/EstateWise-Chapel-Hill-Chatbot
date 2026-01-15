@@ -1,10 +1,51 @@
 # Default values for estatewise
 # This is a YAML-formatted file.
 
+nameOverride: ""
+fullnameOverride: ""
+
+namespace:
+  create: false
+  name: "estatewise"
+
 global:
-  namespace: estatewise
+  namespace: ""
   registry: ghcr.io/your-org
   imagePullPolicy: IfNotPresent
+  imagePullSecrets: []
+  labels: {}
+  annotations: {}
+  cloud:
+    provider: "" # aws | azure | gcp | oracle | onprem
+    ingress:
+      annotations: {}
+    service:
+      annotations: {}
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+configMap:
+  create: true
+  name: estatewise-shared-config
+  data:
+    NODE_ENV: production
+    PORT: "3001"
+    FRONTEND_PORT: "3000"
+    LOG_LEVEL: info
+    CORS_ORIGIN: "*"
+
+secrets:
+  create: false
+  name: estatewise-secrets
+  data:
+    mongoUri: ""
+    jwtSecret: ""
+    googleAiApiKey: ""
+    pineconeApiKey: ""
+    pineconeIndex: ""
 
 backend:
   enabled: true
@@ -12,9 +53,41 @@ backend:
   image:
     repository: estatewise-app-backend
     tag: latest
+  containerPort: 3001
   service:
     type: ClusterIP
-    port: 3001
+    port: 80
+    annotations: {}
+  env:
+    - name: MONGO_URI
+      valueFrom:
+        secretKeyRef:
+          name: estatewise-secrets
+          key: mongoUri
+    - name: GOOGLE_AI_API_KEY
+      valueFrom:
+        secretKeyRef:
+          name: estatewise-secrets
+          key: googleAiApiKey
+    - name: PINECONE_API_KEY
+      valueFrom:
+        secretKeyRef:
+          name: estatewise-secrets
+          key: pineconeApiKey
+    - name: JWT_SECRET
+      valueFrom:
+        secretKeyRef:
+          name: estatewise-secrets
+          key: jwtSecret
+    - name: PINECONE_INDEX
+      valueFrom:
+        secretKeyRef:
+          name: estatewise-secrets
+          key: pineconeIndex
+  extraEnv: []
+  envFrom:
+    - configMapRef:
+        name: estatewise-shared-config
   resources:
     requests:
       cpu: 250m
@@ -28,13 +101,55 @@ backend:
     maxReplicas: 10
     targetCPUUtilizationPercentage: 70
     targetMemoryUtilizationPercentage: 80
-  healthCheck:
+    behavior:
+      scaleDown:
+        stabilizationWindowSeconds: 300
+        policies:
+          - type: Percent
+            value: 50
+            periodSeconds: 60
+          - type: Pods
+            value: 2
+            periodSeconds: 60
+        selectPolicy: Min
+      scaleUp:
+        stabilizationWindowSeconds: 60
+        policies:
+          - type: Percent
+            value: 100
+            periodSeconds: 30
+          - type: Pods
+            value: 4
+            periodSeconds: 30
+        selectPolicy: Max
+  pdb:
+    enabled: true
+    minAvailable: 1
+  probes:
     readiness:
+      enabled: true
+      httpGet:
+        path: /health
+        port: http
       initialDelaySeconds: 10
-      periodSeconds: 5
+      periodSeconds: 15
     liveness:
+      enabled: true
+      httpGet:
+        path: /health
+        port: http
       initialDelaySeconds: 30
-      periodSeconds: 10
+      periodSeconds: 30
+  podAnnotations:
+    consul.hashicorp.com/connect-service: "estatewise-backend"
+    consul.hashicorp.com/connect-service-port: "http"
+  podLabels: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  topologySpreadConstraints: []
+  podSecurityContext: {}
+  securityContext: {}
 
 frontend:
   enabled: true
@@ -42,9 +157,15 @@ frontend:
   image:
     repository: estatewise-app-frontend
     tag: latest
+  containerPort: 3000
   service:
     type: ClusterIP
-    port: 3000
+    port: 80
+    annotations: {}
+  env:
+    - name: NEXT_PUBLIC_API_BASE_URL
+      value: "https://api.estatewise.local"
+  extraEnv: []
   resources:
     requests:
       cpu: 150m
@@ -58,6 +179,130 @@ frontend:
     maxReplicas: 8
     targetCPUUtilizationPercentage: 75
     targetMemoryUtilizationPercentage: 85
+    behavior:
+      scaleDown:
+        stabilizationWindowSeconds: 300
+        policies:
+          - type: Percent
+            value: 50
+            periodSeconds: 60
+      scaleUp:
+        stabilizationWindowSeconds: 30
+        policies:
+          - type: Percent
+            value: 100
+            periodSeconds: 30
+          - type: Pods
+            value: 3
+            periodSeconds: 30
+        selectPolicy: Max
+  pdb:
+    enabled: true
+    minAvailable: 1
+  probes:
+    readiness:
+      enabled: false
+    liveness:
+      enabled: false
+  podAnnotations:
+    consul.hashicorp.com/connect-service: "estatewise-frontend"
+    consul.hashicorp.com/connect-service-port: "http"
+  podLabels: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  topologySpreadConstraints: []
+  podSecurityContext: {}
+  securityContext: {}
+
+grpc:
+  enabled: false
+  replicaCount: 2
+  image:
+    repository: estatewise-app-grpc
+    tag: latest
+  containerPort: 50051
+  service:
+    type: ClusterIP
+    port: 50051
+    annotations: {}
+  env:
+    - name: GRPC_HOST
+      value: "0.0.0.0"
+    - name: GRPC_PORT
+      value: "50051"
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: 400m
+      memory: 512Mi
+  autoscaling:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  pdb:
+    enabled: true
+    minAvailable: 1
+  probes:
+    readiness:
+      enabled: true
+      tcpSocket:
+        port: grpc
+      initialDelaySeconds: 10
+      periodSeconds: 15
+    liveness:
+      enabled: true
+      tcpSocket:
+        port: grpc
+      initialDelaySeconds: 30
+      periodSeconds: 30
+  podAnnotations: {}
+  podLabels: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  topologySpreadConstraints: []
+  podSecurityContext: {}
+  securityContext: {}
+
+mcp:
+  enabled: false
+  replicaCount: 1
+  image:
+    repository: estatewise-app-mcp
+    tag: latest
+  containerPort: 8787
+  service:
+    type: ClusterIP
+    port: 8787
+    annotations: {}
+  env: []
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 250m
+      memory: 256Mi
+  pdb:
+    enabled: false
+  probes:
+    readiness:
+      enabled: false
+    liveness:
+      enabled: false
+  podAnnotations: {}
+  podLabels: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  topologySpreadConstraints: []
+  podSecurityContext: {}
+  securityContext: {}
 
 ingress:
   enabled: true
@@ -84,31 +329,27 @@ monitoring:
   serviceMonitor:
     enabled: true
     interval: 30s
+    scrapePath: /metrics
+    labels: {}
   prometheusRules:
-    enabled: true
+    enabled: false
+    labels: {}
+    groups: []
 
 security:
   networkPolicies:
     enabled: true
-  podSecurityPolicy:
-    enabled: false
+    allowIngressNamespaceSelector:
+      matchLabels:
+        name: ingress-nginx
+    allowMonitoringNamespaceSelector:
+      matchLabels:
+        name: monitoring
   rbac:
     enabled: true
 
-secrets:
-  mongoUri: ""
-  jwtSecret: ""
-  googleAiApiKey: ""
-  pineconeApiKey: ""
-  pineconeIndex: ""
-
-configMap:
-  nodeEnv: production
-  logLevel: info
-  corsOrigin: "*"
-
 persistence:
   backup:
-    enabled: true
+    enabled: false
     storageClass: standard
     size: 50Gi

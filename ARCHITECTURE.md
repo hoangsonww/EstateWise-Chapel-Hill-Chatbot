@@ -163,6 +163,8 @@ EstateWise implements three complementary API protocols to serve different use c
 
 ## Core Services Architecture
 
+EstateWise backend is composed of modular **microservices**, each responsible for a specific domain. Below are the key services and their internal architectures.
+
 ### Authentication Service
 
 ```mermaid
@@ -319,6 +321,9 @@ flowchart TD
   Search --> Pinecone[(Pinecone Index)]
   Pinecone --> TopK[Top-K Results]
   TopK --> Context[Build Context]
+  TopK --> Graph[Graph Enrichment]
+  Graph --> Neo4j[(Neo4j)]
+  Neo4j --> Context
   Context --> Prompt[Augmented Prompt]
   Prompt --> LLM[Gemini API]
   LLM --> Response[Generated Response]
@@ -327,6 +332,25 @@ flowchart TD
   Charts -->|No| Final[Final Output]
   Viz --> Final
 ```
+
+### Hybrid RAG (Vector + Graph)
+
+EstateWise runs a hybrid retrieval pipeline that blends semantic vector search with graph traversal so responses include both similar listings and explainable relationships.
+
+```mermaid
+flowchart LR
+  Q[User Query] --> V[Pinecone Vector Search]
+  V --> K[Top-K Results]
+  K --> G[Neo4j Graph Enrichment]
+  G --> M[Merge + Dedupe]
+  M --> LLM[Augmented Prompt]
+```
+
+- Vector search (Pinecone) captures semantic intent from free-form prompts.
+- Graph enrichment (Neo4j) adds structure like shared neighborhoods, ZIP codes, and similarity links.
+- The merged context improves recall and enables natural-language explanations for why a property is recommended.
+
+For detailed flows, query examples, and evaluation notes, see [RAG_SYSTEM.md](RAG_SYSTEM.md).
 
 ## AI/ML Architecture
 

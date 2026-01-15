@@ -3,7 +3,7 @@
 **EstateWise** is a **full‑stack, monorepo AI/ML** **chatbot & data analytics project** built for real estates in _Chapel Hill, NC_ and the surrounding areas,
 featuring a sleek, responsive UI with smart, agentic AI capabilities powered by comprehensive data analysis and advanced machine learning techniques to help you find your dream home! 🏠✨
 
-Under the hood, it leverages **agentic AI, Retrieval‑Augmented Generation (RAG) with Pinecone (kNN & cosine similarity), k‑Means clustering, Chain-of-Thought (CoT),
+Under the hood, it leverages **agentic AI, Hybrid RAG (Pinecone + Neo4j, kNN + graph enrichment), k‑Means clustering, Chain-of-Thought (CoT),
 Large Language Models (LLMs), a Mixture‑of‑Experts ensemble, blue/green & canary deployment, and so much more** to deliver _fast,_ _hyper‑personalized_ property recommendations based on your preferences! 📲🧠
 
 <p align="center">
@@ -128,8 +128,6 @@ _Feel free to use the app as a guest or sign up for an account to save your conv
 ![gRPC](https://img.shields.io/badge/gRPC-4285F4?style=for-the-badge&logo=grocy&logoColor=white)
 ![Protocol Buffers](https://img.shields.io/badge/Protocol%20Buffers-4285F4?style=for-the-badge&logo=proton&logoColor=white)
 
-For a more detailed technical overview, check out the [Technical Documentation](TECH_DOCS.md) file. It includes more information on how the app was built, how it works, how the data was processed, and more.
-
 > [!TIP]
 > Feel free to go to this [Colaboratory Notebook](https://colab.research.google.com/drive/1-Z3h0LUHl0v-e0RaZgwruL8q180Uk4Z-?usp=sharing) to directly view and run the code in this notebook & see the results in real time.
 
@@ -139,7 +137,7 @@ For a CLI version of the chatbot, as well as the initial EDA (Exploratory Data A
 
 **EstateWise** combines a modern API, real‑time chat, and a responsive UI with a powerful AI stack to deliver hyper‑personalized property recommendations:
 
-- **Retrieval‑Augmented Generation (RAG):** Uses Pinecone for kNN‑based vector retrieval, then fuses retrieved data into generated responses.
+- **Hybrid RAG (Vector + Graph):** Uses Pinecone for kNN‑based vector retrieval and Neo4j for graph enrichment before fusing results into generated responses.
 - **k‑Means Clustering:** Automatically groups similar listings and finds closest matches to refine recommendations.
   - All features are also normalized to a range of 0-1 for better clustering and kNN performance.
 - **Decision AI Agent:** Decides whether to fetch RAG data (via `queryProperties`); if yes, it pulls in the Pinecone results, otherwise it skips straight to the Mixture‑of‑Experts pipeline.
@@ -149,6 +147,20 @@ For a CLI version of the chatbot, as well as the initial EDA (Exploratory Data A
 - **Prompt Engineering:** Each expert has a unique prompt template, ensuring tailored responses based on user input.
   - All experts, agents, and merger have a detailed and ultra-specific prompt template to ensure the best possible responses.
 - **kNN & Cosine Similarity:** Uses Pinecone for fast, real‑time property retrieval based on user queries.
+
+For the full Hybrid RAG pipeline, including diagrams and evaluation notes, see [RAG_SYSTEM.md](RAG_SYSTEM.md).
+
+#### Hybrid RAG at a Glance
+
+```mermaid
+flowchart LR
+  Q[User Query] --> E[Embed Query]
+  E --> V[Pinecone Vector Search]
+  V --> K[Top-K Results]
+  K --> G[Neo4j Graph Enrichment]
+  G --> M[Merge + Dedupe]
+  M --> LLM[Augmented Prompt]
+```
 
 ## Features
 
@@ -199,6 +211,18 @@ EstateWise is packed with both UI and AI features to enhance your home-finding e
   - Neighborhood Stats: counts and averages for a named neighborhood.
   - Mortgage & Affordability tools: interactive breakdown + quick utilities.
 
+- **Deal Analyzer**  
+  Utilizes the AI to evaluate if a property is a good deal based on historical trends, neighborhood data, and market conditions (at `/analyzer`).
+  - The AI provides a detailed breakdown of factors influencing the deal quality.
+  - Users can input specific properties to analyze or let the AI suggest potential deals from the dataset.
+  - Visual indicators (e.g., color-coded scores) help users quickly assess deal quality.
+
+- **Forums & Community Discussions**  
+  A space for users to discuss properties, share experiences, and seek advice from fellow homebuyers (at `/forums`).
+  - Users can create new discussion threads or reply to existing ones.
+  - Upvote/downvote system to highlight valuable contributions.
+  - Moderation tools to ensure a respectful and informative community environment.
+
 - **Map Page**  
   A map view at `/map` that displays properties with markers:
   - Accepts `?zpids=123,456` to show specific homes only.
@@ -231,6 +255,7 @@ EstateWise is packed with both UI and AI features to enhance your home-finding e
 - **Production-Ready DevOps & Multi-Cloud Delivery**  
   - Turn-key deployments for **AWS (ECS Fargate)**, **Azure (Container Apps)**, **GCP (Cloud Run)**, and **HashiCorp Terraform + Kubernetes (Consul/Nomad mesh)**.  
   - Built-in support for **Vercel** (frontend + optional backend edge) and **kustomize/Helm** manifests for any Kubernetes cluster.  
+  - Helm charts and Kustomize manifests available in `helm/` and `kubernetes/` for easy customization and deployment to Kubernetes environments.
   - CI/CD ready with **Jenkins**, **GitHub Actions**, **Azure Pipelines**, and **Cloud Build**.  
   - See [DEPLOYMENTS.md](DEPLOYMENTS.md) for diagrams, step-by-step guides, and environment toggles.
   - After cleaning, approx. **30,772 properties** remain in the database, available for the chatbot to use.
@@ -443,7 +468,8 @@ Below is a high-level diagram that illustrates the flow of the application, incl
          │ - k-Means clustering for    │
          │   property recommendations  │
          │ - Agentic AI for            │
-         │   orchestration             │
+         │   orchestration &           │
+         |   response generation       │
          │ - Expert models (Data       │
          │   Analyst,                  │
          │   Lifestyle Concierge,      │
@@ -693,7 +719,8 @@ See [DEVOPS.md](DEVOPS.md) for detailed guides and [kubernetes/scripts/](kuberne
 - **Code Coverage** reporting
 - Docker image building & pushing
 - **Blue-Green & Canary** deployment automation
-- Multi-cloud deployment (AWS/Azure/GCP/Kubernetes)
+- Multi-cloud deployment (AWS/Azure/GCP/Kubernetes/OCI/Vercel)
+- Helm/Kustomize support for Kubernetes clusters
 
 **Production-Ready Infrastructure:**
 - **Horizontal Pod Autoscaling** (HPA) – Auto-scale from 2-10 replicas based on CPU/memory
@@ -831,28 +858,20 @@ EstateWise features a modern, animated, and fully responsive user interface buil
   <img src="img/landing.png" alt="EstateWise UI" width="100%" />
 </p>
 
-### Chat Interface - Guest
+### Chat Interface - Dark Mode
 
 <p align="center">
-  <img src="img/home-guest.png" alt="EstateWise UI" width="100%" />
+  <img src="img/home.png" alt="EstateWise UI" width="100%" />
 </p>
 
-### Chat Interface - Authenticated
+### Chat Interface - Light Mode
 
 <p align="center">
-  <img src="img/home-authed.png" alt="EstateWise UI" width="100%" />
+  <img src="img/home-light.png" alt="EstateWise UI" width="100%" />
 </p>
 
-### Dark Mode: Chat Interface - Guest
-
 <p align="center">
-  <img src="img/home-guest-dark.png" alt="EstateWise UI" width="100%" />
-</p>
-
-### Dark Mode: Chat Interface - Authenticated
-
-<p align="center">
-  <img src="img/home-authed-dark.png" alt="EstateWise UI" width="100%" />
+  <img src="img/home-chat.png" alt="EstateWise UI Animated" width="100%" />
 </p>
 
 ### Visualizations Page
@@ -879,10 +898,22 @@ EstateWise features a modern, animated, and fully responsive user interface buil
   <img src="img/market-insights.png" alt="EstateWise UI" width="100%" />
 </p>
 
+### Deal Analyzer Page
+
+<p align="center">
+  <img src="img/deal-analyzer.png" alt="EstateWise UI" width="100%" />
+</p>
+
 ### Map Page
 
 <p align="center">
   <img src="img/map.png" alt="EstateWise UI" width="100%" />
+</p>
+
+### Forum Page
+
+<p align="center">
+  <img src="img/forum.png" alt="EstateWise UI" width="100%" />
 </p>
 
 ### Login Page
@@ -957,7 +988,8 @@ Access detailed API docs at the `/api-docs` endpoint on your deployed backend.
   <img src="img/swagger.png" alt="Swagger API Documentation" width="100%" />
 </p>
 
-Live API documentation is available at: [https://estatewise-backend.vercel.app/api-docs](https://estatewise-backend.vercel.app/api-docs). You can visit it to explore and directly interact with the API endpoints, right in your web browser!
+> [!TIP]
+> Live API documentation is available at: **[https://estatewise-backend.vercel.app/api-docs](https://estatewise-backend.vercel.app/api-docs)**. You can visit it to explore and directly interact with the API endpoints, right in your web browser!
 
 ## Project Structure
 
@@ -966,6 +998,14 @@ EstateWise/
 ├── aws/                      # AWS deployment scripts
 │   ├── deploy.sh             # Script to deploy the backend to AWS
 │   └── ... (other AWS config files, Dockerfiles, etc.)
+├── agentic-ai/               # Agentic AI services and tools
+│   ├── src/
+│   │   ├── agents/           # Agent implementations
+│   │   ├── mcp/              # Model Context Protocol tools
+│   │   └── ... (other source files, tests, etc.)
+│   ├── package.json
+│   ├── tsconfig.json
+│   └── ... (other config files, etc.)
 ├── frontend/                 # Frontend Next.js application
 │   ├── public/               # Static assets (images, icons, etc.)
 │   ├── components/           # Reusable UI components
@@ -986,7 +1026,16 @@ EstateWise/
 │   └── ... (other config files, tests, etc.)
 ├── data/                     # Additional data analytics scripts (Python and JS)
 ├── shell/                    # Shell scripts for deployment and setup
+├── azure/                    # Azure deployment scripts
+├── deployment-control/       # Deployment control dashboard for multi-cloud deployments, blue-green, canary, etc.
+├── extension/                # VS Code extension for EstateWise
+├── kubernetes/               # Kubernetes deployment scripts and manifests
+├── oracle-cloud/             # Oracle Cloud Infrastructure deployment scripts
+├── helm/                     # Helm charts for Kubernetes deployments
+├── hashicorp/                # HashiCorp Consul + Nomad deployment scripts
+├── jenkins/                  # Jenkins CI/CD pipeline scripts
 ├── terraform/                # Terraform scripts for infrastructure as code
+├── gitlab/                   # GitLab CI/CD pipeline scripts
 ├── gcp/                      # GCP deployment scripts
 ├── mcp/                      # Model Context Protocol server (tools over stdio)
 ├── .env                      # Environment variables for development
@@ -1885,5 +1934,7 @@ Thank you for checking out **EstateWise**! We hope you find it useful in your re
 [📝 Go to Architecture Overview](ARCHITECTURE.md)
 
 [🗺️ RAG Architecture Documentation](RAG_SYSTEM.md)
+
+[⚖️ gRPC & tRPC Documentation](GRPC_TRPC.md)
 
 [⬆️ Back to Top](#table-of-contents)

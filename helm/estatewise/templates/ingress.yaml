@@ -1,0 +1,61 @@
+{{- if .Values.ingress.enabled }}
+{{- $annotations := dict -}}
+{{- range $k, $v := .Values.global.cloud.ingress.annotations }}
+{{- $_ := set $annotations $k $v -}}
+{{- end }}
+{{- range $k, $v := .Values.ingress.annotations }}
+{{- $_ := set $annotations $k $v -}}
+{{- end }}
+{{- if and .Values.ingress.className (not (hasKey $annotations "kubernetes.io/ingress.class")) }}
+{{- $_ := set $annotations "kubernetes.io/ingress.class" .Values.ingress.className -}}
+{{- end }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "estatewise.fullname" . }}-ingress
+  namespace: {{ include "estatewise.namespace" . }}
+  labels:
+    {{- include "estatewise.labels" . | nindent 4 }}
+  {{- if gt (len $annotations) 0 }}
+  annotations:
+    {{- toYaml $annotations | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if .Values.ingress.className }}
+  ingressClassName: {{ .Values.ingress.className }}
+  {{- end }}
+  rules:
+    {{- range .Values.ingress.hosts }}
+    - host: {{ .host }}
+      http:
+        paths:
+          {{- range .paths }}
+          {{- $svcName := .service -}}
+          {{- $svcPort := 80 -}}
+          {{- if eq .service "frontend" -}}
+          {{- $svcName = include "estatewise.componentName" (dict "root" $ "component" "frontend") -}}
+          {{- $svcPort = $.Values.frontend.service.port -}}
+          {{- else if eq .service "backend" -}}
+          {{- $svcName = include "estatewise.componentName" (dict "root" $ "component" "backend") -}}
+          {{- $svcPort = $.Values.backend.service.port -}}
+          {{- else if eq .service "grpc" -}}
+          {{- $svcName = include "estatewise.componentName" (dict "root" $ "component" "grpc") -}}
+          {{- $svcPort = $.Values.grpc.service.port -}}
+          {{- else if eq .service "mcp" -}}
+          {{- $svcName = include "estatewise.componentName" (dict "root" $ "component" "mcp") -}}
+          {{- $svcPort = $.Values.mcp.service.port -}}
+          {{- end }}
+          - path: {{ .path }}
+            pathType: {{ .pathType }}
+            backend:
+              service:
+                name: {{ $svcName }}
+                port:
+                  number: {{ $svcPort }}
+          {{- end }}
+    {{- end }}
+  {{- with .Values.ingress.tls }}
+  tls:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}

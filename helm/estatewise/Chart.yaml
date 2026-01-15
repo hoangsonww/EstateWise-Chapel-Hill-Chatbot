@@ -2,16 +2,16 @@ apiVersion: v2
 name: estatewise
 description: A Helm chart for EstateWise AI Chatbot application
 type: application
-version: 1.0.0
+version: 1.1.0
 appVersion: "1.0.0"
 keywords:
   - estatewise
   - real-estate
   - chatbot
   - ai
-home: https://github.com/your-org/estatewise
+home: https://github.com/hoangsonww/EstateWise-Chapel-Hill-Chatbot
 sources:
-  - https://github.com/your-org/estatewise
+  - https://github.com/hoangsonww/EstateWise-Chapel-Hill-Chatbot
 maintainers:
   - name: EstateWise Team
     email: devops@estatewise.com

@@ -1,0 +1,95 @@
+{{- if .Values.backend.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "estatewise.componentName" (dict "root" . "component" "backend") }}
+  namespace: {{ include "estatewise.namespace" . }}
+  labels:
+    {{- include "estatewise.componentLabels" (dict "root" . "component" "backend") | nindent 4 }}
+    {{- with .Values.global.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  replicas: {{ .Values.backend.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "estatewise.selectorLabels" (dict "root" . "component" "backend") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "estatewise.selectorLabels" (dict "root" . "component" "backend") | nindent 8 }}
+        {{- with .Values.backend.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- if or .Values.backend.podAnnotations .Values.global.annotations }}
+      annotations:
+        {{- if .Values.global.annotations }}
+        {{- toYaml .Values.global.annotations | nindent 8 }}
+        {{- end }}
+        {{- if .Values.backend.podAnnotations }}
+        {{- toYaml .Values.backend.podAnnotations | nindent 8 }}
+        {{- end }}
+      {{- end }}
+    spec:
+      serviceAccountName: {{ include "estatewise.serviceAccountName" . }}
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.backend.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: backend
+          image: {{ include "estatewise.image" (dict "Values" .Values "image" .Values.backend.image) }}
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.backend.containerPort }}
+          {{- with .Values.backend.envFrom }}
+          envFrom:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- if or .Values.backend.env .Values.backend.extraEnv }}
+          env:
+            {{- with .Values.backend.env }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+            {{- with .Values.backend.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- end }}
+          {{- if and .Values.backend.probes.readiness .Values.backend.probes.readiness.enabled }}
+          readinessProbe:
+            {{- omit .Values.backend.probes.readiness "enabled" | toYaml | nindent 12 }}
+          {{- end }}
+          {{- if and .Values.backend.probes.liveness .Values.backend.probes.liveness.enabled }}
+          livenessProbe:
+            {{- omit .Values.backend.probes.liveness "enabled" | toYaml | nindent 12 }}
+          {{- end }}
+          {{- with .Values.backend.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.backend.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      {{- with .Values.backend.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.backend.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.backend.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.backend.topologySpreadConstraints }}
+      topologySpreadConstraints:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

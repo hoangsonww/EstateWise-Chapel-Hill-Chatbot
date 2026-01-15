@@ -1,0 +1,28 @@
+{{- if .Values.grpc.enabled }}
+{{- $annotations := dict -}}
+{{- range $k, $v := .Values.global.cloud.service.annotations }}
+{{- $_ := set $annotations $k $v -}}
+{{- end }}
+{{- range $k, $v := .Values.grpc.service.annotations }}
+{{- $_ := set $annotations $k $v -}}
+{{- end }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "estatewise.componentName" (dict "root" . "component" "grpc") }}
+  namespace: {{ include "estatewise.namespace" . }}
+  labels:
+    {{- include "estatewise.componentLabels" (dict "root" . "component" "grpc") | nindent 4 }}
+  {{- if gt (len $annotations) 0 }}
+  annotations:
+    {{- toYaml $annotations | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.grpc.service.type }}
+  selector:
+    {{- include "estatewise.selectorLabels" (dict "root" . "component" "grpc") | nindent 4 }}
+  ports:
+    - name: grpc
+      port: {{ .Values.grpc.service.port }}
+      targetPort: grpc
+{{- end }}
