@@ -551,7 +551,7 @@ export default function ProfilePage() {
                             ) : (
                               <Save className="w-4 h-4" />
                             )}
-                            <span className="ml-2">
+                            <span>
                               {savingUsername ? "Saving..." : "Save username"}
                             </span>
                           </Button>
@@ -622,7 +622,7 @@ export default function ProfilePage() {
                             ) : (
                               <Save className="w-4 h-4" />
                             )}
-                            <span className="ml-2">
+                            <span>
                               {savingEmail ? "Saving..." : "Save email"}
                             </span>
                           </Button>
@@ -749,7 +749,7 @@ export default function ProfilePage() {
                         ) : (
                           <Save className="w-4 h-4" />
                         )}
-                        <span className="ml-2">
+                        <span>
                           {changingPassword ? "Updating..." : "Update password"}
                         </span>
                       </Button>

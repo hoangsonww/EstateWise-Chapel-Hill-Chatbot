@@ -1690,12 +1690,12 @@ const RenameConversationDialog: React.FC<RenameConversationDialogProps> = ({
           >
             {isGenerating ? (
               <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                <Loader2 className="w-4 h-4 animate-spin" />
                 Generating...
               </>
             ) : (
               <>
-                <Zap className="w-4 h-4 mr-2" />
+                <Zap className="w-4 h-4" />
                 Generate Suggested Name
               </>
             )}
