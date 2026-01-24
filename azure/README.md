@@ -2,61 +2,102 @@
 
 ![Azure](https://img.shields.io/badge/Microsoft_Azure-Cloud-blue?logo=microsoft-azure) ![Bicep](https://img.shields.io/badge/Bicep-Infrastructure-blue?logo=azure-bicep) ![Container_Apps](https://img.shields.io/badge/Azure_Container_Apps-Serverless-blue?logo=azure)
 
-The Azure stack has been reworked around Azure Container Apps, modular Bicep, and Key Vault-backed secrets. It provisions a fully managed runtime for the EstateWise backend with secure networking, observability, and streamlined CI/CD. For the multi-cloud comparison table see [DEPLOYMENTS.md](../DEPLOYMENTS.md).
+Azure deployment for EstateWise using Azure Container Apps, modular Bicep, and Key Vault-backed secrets. This stack provisions a managed runtime with secure networking and observability. For the multi-cloud comparison table see `DEPLOYMENTS.md`.
 
-## Architecture Overview
+## Architecture
 
-- **Networking**: `modules/network.bicep` creates a VNet with dedicated subnets for Container Apps infrastructure and workloads.
-- **Observability**: `modules/logAnalytics.bicep` provisions Log Analytics + Application Insights; container logs stream directly into the workspace.
-- **Data layer**: `modules/data.bicep` stands up ACR (System-assigned identity), Storage (for map assets), and Cosmos DB (Mongo API).
-- **Secrets**: `modules/security.bicep` stores generated connection strings in Key Vault and optionally persists application secrets (JWT, Pinecone, LLM keys).
-- **Runtime**: `modules/container-app.bicep` creates a Container Apps environment, assigns system identity, and injects secrets from Key Vault. Autoscaling is driven by HTTP concurrency (1 → 5 replicas by default).
+```mermaid
+flowchart TB
+  Users[Clients] --> Ingress[Container Apps Ingress]
+  Ingress --> App[Backend Container App]
+  App --> KV[(Key Vault)]
+  App --> AI[(Application Insights)]
+  App --> Log[(Log Analytics)]
+  App --> Mongo[(Cosmos DB Mongo API)]
+  App --> Pinecone[(Pinecone)]
+  App --> LLM[LLM Provider]
 
-All modules are orchestrated via `infra/main.bicep`.
+  subgraph Build[Build + Registry]
+    ACR[(Azure Container Registry)]
+  end
 
-```bash
-# Deploy from the repo root
-az group create -g estatewise-rg -l eastus
-./deploy.sh --resource-group estatewise-rg --location eastus --env estatewise --image-tag $(git rev-parse --short HEAD) \
-  --jwt-secret <jwt> --google-ai-api-key <gemini> --pinecone-api-key <pinecone>
+  ACR --> App
 ```
 
-The script will:
-1. Deploy the modular Bicep template (`infra/main.bicep`).
-2. Build and push the backend container to the newly created ACR.
-3. Update the Container App to the fresh image + set a `VERSION` environment variable.
+## Directory Layout
 
-Outputs include the Container App FQDN, Key Vault URI, and connection strings (also stored in Key Vault).
+```
+azure/
+  deploy.sh                 # Wrapper around az + bicep
+  azure-pipelines.yml       # Azure DevOps pipeline
+  infra/
+    main.bicep              # Orchestrates all modules
+    modules/
+      network.bicep
+      logAnalytics.bicep
+      data.bicep            # ACR + Storage + Cosmos
+      security.bicep        # Key Vault
+      container-app.bicep
+```
 
-## Parameter Reference
+## Deploy
+
+```bash
+# from repo root
+az group create -g estatewise-rg -l eastus
+./azure/deploy.sh \
+  --resource-group estatewise-rg \
+  --location eastus \
+  --env estatewise \
+  --image-tag $(git rev-parse --short HEAD) \
+  --jwt-secret <jwt> \
+  --google-ai-api-key <gemini> \
+  --pinecone-api-key <pinecone>
+```
+
+The script:
+1. Deploys `infra/main.bicep`.
+2. Builds/pushes the backend container to the newly created ACR.
+3. Updates the Container App revision with the latest image and environment variables.
+
+## Parameters
 
 | Parameter | Description |
 |-----------|-------------|
-| `environmentName` | Short name used to prefix resources (defaults to `estatewise`). |
-| `imageName` / `imageTag` | The container repo/tag to deploy (ACR login server is derived automatically). |
-| `jwtSecret`, `googleAiApiKey`, `pineconeApiKey`, `openAiApiKey` | Optional secrets; empty values are ignored. |
-| `pineconeIndex` | Injected into the container app for Pinecone lookups. |
+| `environmentName` | Resource name prefix (default: `estatewise`). |
+| `imageName` / `imageTag` | Container name + tag to deploy. |
+| `jwtSecret`, `googleAiApiKey`, `pineconeApiKey`, `openAiApiKey` | Optional secrets stored in Key Vault. |
+| `pineconeIndex` | Pinecone index name. |
+| `minReplicas` / `maxReplicas` | Autoscaling limits. |
 
-Additional secrets can be added by extending `main.bicep` with new entries inside `optionalSecrets` and `secretMappings`.
+## Identity and Secrets
 
-## Azure DevOps Pipeline
+- Container App uses system-assigned managed identity.
+- Identity gets `AcrPull` and `Key Vault Secrets User` roles.
+- Secrets are stored in Key Vault and mapped to env vars via `secretMappings`.
 
-`azure/azure-pipelines.yml` now performs two stages:
-1. **Build:** `az acr build` builds/pushes the backend container inside ACR and surfaces the image tag as a pipeline variable.
-2. **Deploy:** `az containerapp update` swaps the container image (and updates a `VERSION` env var) to trigger a new revision.
+## Observability
 
-Required pipeline variables:
-- `AZURE_SUBSCRIPTION`: Service connection name.
-- `RESOURCE_GROUP`, `ENVIRONMENT_NAME`, `ACR_NAME`.
+- Logs and traces flow into Log Analytics and Application Insights.
+- Query logs with KQL in the Log Analytics workspace.
+- App Insights connection string is injected into the container.
 
-## Observability + Access
+## CI/CD (Azure DevOps)
 
-- Container logs: query Log Analytics workspace `${environmentName}-law`.
-- Application Insights connection string is injected into the container via env var.
-- The Container App identity receives `AcrPull` and `Key Vault Secrets User` roles automatically.
+`azure/azure-pipelines.yml` runs two stages:
+1. `az acr build` to build and push.
+2. `az containerapp update` to roll out the new image.
 
-## Customisation Tips
+Required variables: `AZURE_SUBSCRIPTION`, `RESOURCE_GROUP`, `ENVIRONMENT_NAME`, `ACR_NAME`.
 
-- Swap `minReplicas` / `maxReplicas` parameters in `main.bicep` for different scaling behaviour.
-- Add additional Container Apps (e.g., orchestrator, workers) by reusing `modules/container-app.bicep` with new parameters.
-- Set custom domains via `az containerapp ingress custom-domain list/add` once DNS + certificates are ready.
+## Scaling and Rollback
+
+- Container Apps revisions are immutable; `az containerapp update` creates a new revision.
+- Rollback by switching traffic to a previous revision via `az containerapp revision set`.
+- Use `minReplicas` for steady-state warm capacity.
+
+## Troubleshooting
+
+- Container app not pulling: verify ACR permissions and identity role assignments.
+- Secrets missing: ensure `optionalSecrets` and `secretMappings` contain entries.
+- Cold starts: keep `minReplicas` >= 1 for production.

@@ -1,4 +1,4 @@
-# Use a Node base image with a full OS for development (bullseye is a good balance)
+# Use a Node base image with a full OS for development
 FROM node:18-bullseye
 
 # Set the working directory for the container

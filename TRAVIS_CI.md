@@ -1,87 +1,156 @@
 # Travis CI
 
-This project includes a Travis CI pipeline that keeps the backend and frontend healthy by installing dependencies, building the code, and running automated tests in separate stages. 
-The configuration lives in `.travis.yml` at the repository root.
-This CI setup complements other CI/CD solutions (e.g., GitHub Actions, Jenkins) by providing another layer of validation for pull requests and merges, as well as a straightforward way to get started with continuous integration.
+This repository includes a Travis CI pipeline that keeps the backend and frontend healthy by installing dependencies, building the code, and running automated tests in separate stages. The configuration lives in `.travis.yml` at the repository root.
 
 > [!NOTE]
-> **Note:** While Travis CI is still supported, EstateWise has evolved to use **Jenkins** as the primary CI/CD platform for production deployments with advanced features like Blue-Green and Canary deployments. See [jenkins/README.md](jenkins/README.md) and [DEVOPS.md](DEVOPS.md) for comprehensive CI/CD documentation.
+> Travis CI is supported for CI validation, but EstateWise uses **Jenkins** as the primary CI/CD platform for production deployments (blue/green + canary + multi‑cloud). See `jenkins/README.md` and `DEVOPS.md` for production CI/CD.
 
-## Pipeline Overview
+## Pipeline at a Glance
 
-- **Environment:** Ubuntu Focal images with Node.js 20.
-- **Caching:** npm cache is persisted between runs to speed up installs.
-- **Global variables:** `CI=true`, `NEXT_TELEMETRY_DISABLED=1`, and a quieter npm log level are exported for consistency with other CI providers.
-- **Stages:**
-  - **Backend build & tests:** Runs `npm --prefix backend ci`, `npm --prefix backend run build`, and `npm --prefix backend test`.
-  - **Frontend build & tests:** Runs `npm --prefix frontend ci`, `npm --prefix frontend run lint`, `npm --prefix frontend run build`, and `npm --prefix frontend test`.
+```mermaid
+flowchart LR
+  Commit[Push / PR] --> Travis[Travis CI]
+  Travis --> Backend[Backend Stage]
+  Travis --> Frontend[Frontend Stage]
+  Backend --> Result1[Build + Tests]
+  Frontend --> Result2[Lint + Build + Tests]
+```
 
-## Enabling Travis CI for the Repository
+### Current Travis Configuration
 
-1. Sign in to [Travis CI](https://app.travis-ci.com/) with your GitHub account and authorize access to the repository.
-2. From your Travis CI dashboard, enable the repository and trigger the first build (either from the Travis UI or by pushing a commit).
-3. In the Travis project settings, add encrypted environment variables for the secrets the build requires, such as:
+From `.travis.yml`:
+
+- **OS image**: Ubuntu Focal
+- **Node.js**: 20
+- **Caching**: npm cache
+- **Global env**:
+  - `CI=true`
+  - `NEXT_TELEMETRY_DISABLED=1`
+  - `npm_config_loglevel=warn`
+
+### Stages
+
+| Stage | Install | Script |
+|------|---------|--------|
+| Backend | `npm --prefix backend ci` | `npm --prefix backend run build` + `npm --prefix backend test` |
+| Frontend | `npm --prefix frontend ci` | `npm --prefix frontend run lint` + `npm --prefix frontend run build` + `npm --prefix frontend test` |
+
+## How It Runs
+
+```mermaid
+sequenceDiagram
+  participant Git as GitHub
+  participant Travis as Travis CI
+  participant BE as Backend Stage
+  participant FE as Frontend Stage
+
+  Git->>Travis: Push / PR
+  Travis->>BE: npm ci + build + test
+  Travis->>FE: npm ci + lint + build + test
+  BE-->>Travis: status
+  FE-->>Travis: status
+  Travis-->>Git: commit status
+```
+
+## Enabling Travis CI
+
+1. Sign in to Travis CI with GitHub.
+2. Enable the repository from the Travis dashboard.
+3. Configure environment variables in Travis settings if required by tests:
    - `MONGO_URI`
    - `NEO4J_URI`, `NEO4J_USERNAME`, `NEO4J_PASSWORD`
    - `GOOGLE_AI_API_KEY`
    - `PINECONE_API_KEY`
-   - Any additional keys used by optional integrations (e.g., analytics, mapping providers).
-4. If the build needs access to external services (databases, APIs), make sure the credentials are scoped to CI usage and read-only where possible.
+4. Ensure secrets are scoped to CI and do not grant production access.
 
-## Working Locally with Travis Commands
+## Local Reproduction
 
-- Run `npm --prefix backend run build` and `npm --prefix backend test` to reproduce backend stages locally.
-- Run `npm --prefix frontend run lint`, `npm --prefix frontend run build`, and `npm --prefix frontend test` to mirror the frontend stage.
-- Keep local Node.js versions aligned with the CI default (Node 20) to minimize discrepancies.
+Run the same commands as Travis:
+
+```bash
+# Backend
+npm --prefix backend ci
+npm --prefix backend run build
+npm --prefix backend test
+
+# Frontend
+npm --prefix frontend ci
+npm --prefix frontend run lint
+npm --prefix frontend run build
+npm --prefix frontend test
+```
+
+Keep Node.js aligned with the CI version (Node 20) to avoid subtle mismatches.
 
 ## Maintenance Tips
 
-- Update `.travis.yml` whenever backend/frontend build commands change so CI remains accurate.
-- Monitor Travis build history for flaky tests; stabilize or quarantine failing suites before merging.
-- Use Travis build badges or links in documentation so contributors can quickly verify build status.
-- Combine Travis with existing GitHub Actions workflows when you want redundant CI or different gating logic.
+- Update `.travis.yml` when scripts change in `backend/package.json` or `frontend/package.json`.
+- Keep tests deterministic and isolated; avoid external network dependencies where possible.
+- Add caching only for deterministic artifacts (npm is already cached).
+- If additional stages are needed (e.g., Cypress), keep them in separate jobs to isolate failures.
 
-## Comparison: Travis CI vs Jenkins Pipeline
+## Extending the Pipeline
 
-EstateWise has evolved to use a comprehensive Jenkins pipeline for production deployments. Here's how they compare:
+### Add a matrix for Node versions
+
+```yaml
+node_js:
+  - '18'
+  - '20'
+```
+
+### Add a new stage (example: unit-only)
+
+```yaml
+jobs:
+  include:
+    - stage: unit
+      name: 'Backend unit tests'
+      install:
+        - npm --prefix backend ci
+      script:
+        - npm --prefix backend test -- --runInBand
+```
+
+### Add environment variables
+
+```yaml
+env:
+  global:
+    - CI=true
+    - NEXT_TELEMETRY_DISABLED=1
+    - SOME_FLAG=1
+```
+
+## Troubleshooting
+
+- **`npm ci` fails**: ensure `package-lock.json` is committed and matches `package.json`.
+- **Frontend lint errors**: run `npm --prefix frontend run lint` locally.
+- **Backend tests failing in CI only**: verify env vars are present in Travis settings.
+- **Out-of-memory errors**: reduce parallelism or split tests into smaller suites.
+
+## Travis CI vs Jenkins (EstateWise)
 
 | Feature | Travis CI | Jenkins (EstateWise) |
-|---------|-----------|---------------------|
-| **Basic CI** | ✅ Build, test, lint | ✅ Build, test, lint |
-| **Security Scanning** | ❌ Not included | ✅ 5-layer scanning (npm audit, SAST, secrets, container scan, best practices) |
-| **Code Coverage** | ❌ Manual setup | ✅ Automated with reporting |
-| **Deployment Strategies** | ❌ Basic only | ✅ Blue-Green, Canary, Rolling |
-| **Multi-Cloud** | ❌ Manual scripting | ✅ AWS, Azure, GCP, Kubernetes parallel deployment |
-| **Monitoring Integration** | ❌ Limited | ✅ Prometheus, Grafana, AlertManager |
-| **Automated Rollback** | ❌ Not supported | ✅ Instant rollback (< 1 second) |
-| **Production-Ready** | ⚠️ Basic CI only | ✅ Enterprise-grade DevOps |
+|---------|-----------|----------------------|
+| Build/Test/Lint | ✅ | ✅ |
+| Security Scanning | ❌ (manual) | ✅ (multi-layer) |
+| Deployments | ❌ | ✅ Blue/Green + Canary |
+| Multi-cloud | ❌ | ✅ AWS/Azure/GCP/K8s |
+| Rollback | ❌ | ✅ Automated |
+| Production-ready | ⚠️ Basic CI | ✅ Enterprise-grade |
 
-### When to Use Travis CI
-
-Travis CI is suitable for:
-- ✅ Simple CI needs (build, test, lint)
-- ✅ Open-source projects (free tier)
-- ✅ GitHub-first workflows
-- ✅ Redundant CI alongside Jenkins
-
-### When to Use Jenkins
-
-Jenkins is recommended for:
-- ✅ Production deployments with advanced strategies
-- ✅ Multi-cloud deployments
-- ✅ Comprehensive security scanning
-- ✅ Zero-downtime requirements
-- ✅ Enterprise compliance needs
+```mermaid
+flowchart LR
+  Dev[PR Validation] --> Travis[Travis CI]
+  Release[Release Candidate] --> Jenkins[Jenkins Pipeline]
+  Jenkins --> Deploy[Prod Deploy + Monitoring]
+```
 
 ## Migration Path
 
-To migrate from Travis CI to Jenkins for production deployments:
+Recommended approach:
 
-1. **Keep Travis CI** for basic PR validation
-2. **Use Jenkins** for:
-   - Production deployments
-   - Security scanning
-   - Blue-Green/Canary rollouts
-   - Multi-cloud infrastructure
-
-See [jenkins/README.md](jenkins/README.md) for Jenkins setup and [DEVOPS.md](DEVOPS.md) for comprehensive deployment strategies.
+1. Keep Travis CI for PR validation.
+2. Use Jenkins for production deployments, security scanning, and blue/green/canary rollouts.
+3. Align test suites so Travis and Jenkins validate the same baseline.
