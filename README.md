@@ -1,6 +1,6 @@
 # EstateWise - Your Intelligent Estate Assistant 🏡
 
-**EstateWise** is a **full‑stack, monorepo AI/ML** **chatbot & data analytics project** built for real estates in _Chapel Hill, NC_ and the surrounding areas,
+**EstateWise** is a **full‑stack, monorepo AI/ML** **chatbot & data analytics project** built for real estates in _Chapel Hill, NC_ and the surrounding areas _(Durham, Raleigh, Cary, Apex, Morrisville, Hillsborough, etc.)_. It features an intelligent chatbot
 featuring a sleek, responsive UI with smart, agentic AI capabilities powered by comprehensive data analysis and advanced machine learning techniques to help you find your dream home! 🏠✨
 
 Under the hood, it leverages **agentic AI, Hybrid RAG (Pinecone + Neo4j, kNN + graph enrichment), k‑Means clustering, Chain-of-Thought (CoT),
