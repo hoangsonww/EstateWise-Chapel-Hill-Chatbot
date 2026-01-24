@@ -3,7 +3,7 @@
   <!-- Main pages -->
   <url>
     <loc>https://estatewise.com/</loc>
-    <lastmod>2025-09-30</lastmod>
+    <lastmod>2026-01-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
@@ -11,35 +11,35 @@
   <!-- Core Features -->
   <url>
     <loc>https://estatewise.com/chat</loc>
-    <lastmod>2025-09-30</lastmod>
+    <lastmod>2026-01-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
 
   <url>
     <loc>https://estatewise.com/insights</loc>
-    <lastmod>2025-09-30</lastmod>
+    <lastmod>2026-01-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
 
   <url>
     <loc>https://estatewise.com/market-pulse</loc>
-    <lastmod>2025-09-30</lastmod>
+    <lastmod>2026-01-29</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>
 
   <url>
     <loc>https://estatewise.com/map</loc>
-    <lastmod>2025-09-30</lastmod>
+    <lastmod>2026-01-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
 
   <url>
     <loc>https://estatewise.com/charts</loc>
-    <lastmod>2025-09-30</lastmod>
+    <lastmod>2026-01-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -47,21 +47,21 @@
   <!-- Authentication -->
   <url>
     <loc>https://estatewise.com/login</loc>
-    <lastmod>2025-09-30</lastmod>
+    <lastmod>2026-01-29</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
 
   <url>
     <loc>https://estatewise.com/signup</loc>
-    <lastmod>2025-09-30</lastmod>
+    <lastmod>2026-01-29</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
 
   <url>
     <loc>https://estatewise.com/reset-password</loc>
-    <lastmod>2025-09-30</lastmod>
+    <lastmod>2026-01-29</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>
@@ -69,14 +69,14 @@
   <!-- Legal -->
   <url>
     <loc>https://estatewise.com/terms</loc>
-    <lastmod>2025-09-30</lastmod>
+    <lastmod>2026-01-29</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.2</priority>
   </url>
 
   <url>
     <loc>https://estatewise.com/privacy</loc>
-    <lastmod>2025-09-30</lastmod>
+    <lastmod>2026-01-29</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.2</priority>
   </url>
