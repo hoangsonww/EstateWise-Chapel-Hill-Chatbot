@@ -1,6 +1,12 @@
 # Jenkins Pipeline Reference
 
-![Jenkins Badge](https://img.shields.io/badge/Jenkins-Blue?style=flat&logo=jenkins&logoColor=white)
+![Jenkins Badge](https://img.shields.io/badge/Jenkins-D24939?style=flat&logo=jenkins&logoColor=white)
+![Docker Badge](https://img.shields.io/badge/Docker-2496ED?style=flat&logo=docker&logoColor=white)
+![AWS Badge](https://img.shields.io/badge/AWS-FF9900?style=flat&logo=amazon-aws&logoColor=white)
+![Azure Badge](https://img.shields.io/badge/Azure-0078D4?style=flat&logo=microsoft-azure&logoColor=white)
+![GCP Badge](https://img.shields.io/badge/GCP-4285F4?style=flat&logo=google-cloud&logoColor=white)
+![Kubernetes Badge](https://img.shields.io/badge/Kubernetes-326CE5?style=flat&logo=kubernetes&logoColor=white)
+![Vercel Badge](https://img.shields.io/badge/Vercel-000000?style=flat&logo=vercel&logoColor=white)
 
 This directory contains reusable Jenkinsfiles that power EstateWise’s multi-cloud CI/CD pipeline. The entrypoint is [`workflow.Jenkinsfile`](workflow.Jenkinsfile), which orchestrates builds, tests, artifact publishing, and optional deployments to AWS, Azure, GCP, HashiCorp/Kubernetes, and Vercel.
 

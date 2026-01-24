@@ -1,6 +1,18 @@
 # EstateWise Helm Chart
 
-This chart mirrors the existing Kubernetes manifests under `kubernetes/` while offering Helm-driven configuration for multi-cloud CI/CD workflows.
+This Helm chart mirrors the Kubernetes manifests under `kubernetes/` while providing a configurable, CI-friendly installation path for multi-cloud clusters.
+
+## Architecture
+
+```mermaid
+flowchart LR
+  Ingress --> FE[Frontend Service]
+  Ingress --> BE[Backend Service]
+  BE --> Mongo[(MongoDB)]
+  BE --> Pinecone[(Pinecone)]
+  BE --> LLM[LLM Provider]
+  BE --> Metrics[Metrics]
+```
 
 ## Install
 
@@ -9,22 +21,47 @@ helm install estatewise ./helm/estatewise \
   --namespace estatewise --create-namespace
 ```
 
-## Common Overrides
+## Upgrade
 
 ```bash
 helm upgrade --install estatewise ./helm/estatewise \
   --namespace estatewise \
-  --set global.registry=ghcr.io/hoangsonww \
+  --set global.registry=ghcr.io/your-org \
   --set backend.image.tag=sha-<gitsha> \
   --set frontend.image.tag=sha-<gitsha>
 ```
 
+## Chart Structure
+
+```
+helm/estatewise/
+  Chart.yaml
+  values.yaml
+  templates/
+    backend-*.yaml
+    frontend-*.yaml
+    grpc-*.yaml
+    ingress.yaml
+    networkpolicy.yaml
+    servicemonitor.yaml
+    secret.yaml
+    serviceaccount.yaml
+```
+
+## Values Overview
+
+Key sections in `values.yaml`:
+
+- `global`: registry, namespaces, cloud annotations
+- `configMap`: shared non-secret env vars
+- `secrets`: secret creation or reference
+- `backend`: image, service, env, autoscaling, probes
+- `frontend`: image, service, autoscaling
+- `grpc`, `mcp`: optional services
+
 ## Secrets
 
-The chart expects `estatewise-secrets` by default. You can either:
-
-- Create it externally (recommended for CI/CD), or
-- Set `secrets.create=true` and fill `secrets.data` in values.
+By default the chart expects a pre-created secret named `estatewise-secrets`.
 
 ```bash
 kubectl create secret generic estatewise-secrets \
@@ -36,11 +73,55 @@ kubectl create secret generic estatewise-secrets \
   --from-literal=jwtSecret=...
 ```
 
+You can also let Helm create the secret:
+
+```yaml
+secrets:
+  create: true
+  data:
+    mongoUri: "mongodb+srv://..."
+    googleAiApiKey: "..."
+    pineconeApiKey: "..."
+    pineconeIndex: "estatewise-index"
+    jwtSecret: "super-secret"
+```
+
+## Configuration Examples
+
+### Override backend resources
+
+```yaml
+backend:
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 1
+      memory: 2Gi
+```
+
+### Enable gRPC service
+
+```yaml
+grpc:
+  enabled: true
+  service:
+    type: LoadBalancer
+```
+
+### Enable MCP server
+
+```yaml
+mcp:
+  enabled: true
+```
+
 ## Cloud-Specific Annotations
 
-Use `global.cloud.ingress.annotations` and `global.cloud.service.annotations` to align with AWS/Azure/GCP/Oracle load balancers.
+Use `global.cloud.ingress.annotations` and `global.cloud.service.annotations` to match your provider.
 
-Example (AWS ALB Ingress Controller):
+Example (AWS ALB):
 
 ```yaml
 global:
@@ -50,10 +131,9 @@ global:
       annotations:
         kubernetes.io/ingress.class: alb
         alb.ingress.kubernetes.io/scheme: internet-facing
-        alb.ingress.kubernetes.io/target-type: ip
 ```
 
-Example (GCP ingress):
+Example (GCP):
 
 ```yaml
 global:
@@ -64,7 +144,7 @@ global:
         kubernetes.io/ingress.class: gce
 ```
 
-Example (Azure load balancer):
+Example (Azure):
 
 ```yaml
 global:
@@ -75,7 +155,7 @@ global:
         service.beta.kubernetes.io/azure-load-balancer-internal: "true"
 ```
 
-Example (Oracle Cloud Load Balancer):
+Example (Oracle):
 
 ```yaml
 global:
@@ -86,25 +166,12 @@ global:
         service.beta.kubernetes.io/oci-load-balancer-internal: "true"
 ```
 
-## Optional Components
+## Observability
 
-- Enable gRPC service:
-
-```yaml
-grpc:
-  enabled: true
-  service:
-    type: LoadBalancer
-```
-
-- Enable MCP server:
-
-```yaml
-mcp:
-  enabled: true
-```
+- `servicemonitor.yaml` and `prometheusrules.yaml` integrate with Prometheus.
+- `backend` exposes `/metrics` for scraping.
 
 ## Notes
 
 - HPA, PDB, and NetworkPolicy templates align with `kubernetes/base` defaults.
-- Consul annotations are enabled by default for backend/frontend pods; disable via `backend.podAnnotations`/`frontend.podAnnotations`.
+- Consul annotations can be toggled via pod annotations in values.

@@ -1,28 +1,44 @@
 # HashiCorp Deployment Stack
 
-This stack lets you run EstateWise on any Kubernetes cluster while layering in HashiCorp Consul for service discovery/mesh and Nomad for scheduled workloads (e.g., nightly analytics, ingest jobs). For a cloud-by-cloud comparison see [DEPLOYMENTS.md](../DEPLOYMENTS.md).
+Deploy EstateWise on any Kubernetes cluster with HashiCorp Consul for service discovery/service mesh and Nomad for batch or scheduled workloads. This stack layers on top of a standard Kubernetes deployment and is ideal for teams already invested in HashiCorp tooling. For a cloud-by-cloud comparison see `DEPLOYMENTS.md`.
+
+## Architecture
+
+```mermaid
+flowchart TB
+  Users[Clients] --> Ingress[Ingress Controller]
+  Ingress --> FE[Frontend Pods]
+  Ingress --> BE[Backend Pods]
+
+  FE --> Consul[Consul Connect Sidecars]
+  BE --> Consul
+  Consul --> Mesh[Service Mesh]
+
+  Nomad[Nomad Cluster] --> Jobs[Batch / Scheduled Jobs]
+  Jobs --> BE
+```
 
 ## Layout
 
 ```
 hashicorp/
-├─ deploy.sh                # Wrapper that runs terraform init/plan/apply
+├─ deploy.sh                # Wrapper for terraform init/plan/apply
 └─ terraform/
    ├─ main.tf               # Installs Consul + Nomad via Helm
-   ├─ providers.tf          # Kubernetes, Helm, and optional Consul providers
+   ├─ providers.tf          # Kubernetes, Helm, optional Consul providers
    ├─ variables.tf          # kubeconfig / namespace settings
-   ├─ outputs.tf            # Connection info (Consul UI, Nomad UI, DNS endpoints)
+   ├─ outputs.tf            # Consul UI / Nomad UI / mesh endpoints
    └─ values/
-      ├─ consul-values.yaml # Mesh + Connect injection defaults
-      └─ nomad-values.yaml  # Nomad cluster tuned for scheduler workloads
+      ├─ consul-values.yaml # Connect + sidecar defaults
+      └─ nomad-values.yaml  # Nomad cluster tuning
 ```
 
 ## Prerequisites
 
 - Existing Kubernetes cluster (EKS, AKS, GKE, k3s, or on-prem).
-- `kubectl config current-context` points to the cluster (or pass `--kubeconfig` / `--context`).
-- Terraform >= 1.6 and Helm provider prerequisites.
-- `kubectl`, `helm`, `nomad`, and `consul` CLIs for day-to-day operations.
+- `kubectl` configured to target the cluster.
+- Terraform >= 1.6
+- `helm`, `consul`, and `nomad` CLIs (for day-to-day operations).
 
 ## Deploy
 
@@ -35,24 +51,37 @@ cd hashicorp
   --mesh-namespace estatewise-mesh \
   --do-apply
 
-# Deploy workloads after Consul sidecar injector is online
+# Deploy workloads once Consul injector is online
 kubectl apply -k ../kubernetes/base
 ```
 
-The script runs `terraform init`, `terraform plan`, and `terraform apply` (when `--do-apply` is present). State remains in `hashicorp/terraform/.terraform/terraform.tfstate` by default; configure a remote backend if desired.
+By default, Terraform state is stored locally under `hashicorp/terraform/.terraform/terraform.tfstate`. For production, configure a remote state backend.
+
+## Consul Connect Integration
+
+- Deployments in `kubernetes/base` include Consul Connect annotations.
+- To disable injection, remove pod annotations or set `consul.hashicorp.com/connect-inject: "false"` at the namespace level.
+- Mesh gateways are created for north-south traffic; integrate them with your ingress controller.
+
+## Nomad Integration
+
+Nomad is deployed for scheduled/batch jobs (e.g., data ingest, nightly analytics). It does not replace Kubernetes for the web stack, but can complement it for workflows that fit Nomad’s scheduler model.
 
 ## Outputs
 
 - Consul UI URL + bootstrap token
 - Nomad UI URL
-- Mesh gateway service address for north-south traffic
-- Suggested DNS entries for backend/frontend services registered via Consul Connect
+- Mesh gateway service address
+- Suggested DNS entries for services registered via Consul Connect
 
-## Operational Notes
+## Operations
 
-- Consul Connect injection is enabled by default in `kubernetes/base` (annotate other namespaces with `consul.hashicorp.com/connect-inject: "true"`).
-- Nomad server/client counts can be tuned through variables (`nomad_server_count`, `nomad_client_count`).
-- Mesh gateways are created to route external traffic; square them with your ingress controller (NGINX, AWS Load Balancer Controller, etc.).
-- Scale via `terraform apply -var='nomad_client_count=6'` or `kubectl scale deployment` for the app tiers.
+- Scale Consul/Nomad via Terraform or Helm values.
+- Rotate ACL tokens using Consul ACL policies.
+- Monitor service health in the Consul UI.
 
-Refer to [`kubernetes/README.md`](../kubernetes/README.md) for workload manifests and overlays.
+## Troubleshooting
+
+- Sidecars not injected: ensure injector is running and namespace has correct annotations.
+- Mesh traffic blocked: check NetworkPolicies and mesh gateway configuration.
+- Nomad jobs failing: inspect Nomad UI and verify ACL policies.

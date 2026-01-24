@@ -1,76 +1,86 @@
 # EstateWise gRPC Market Pulse Service
 
-This package exposes EstateWise market intelligence via a high-performance gRPC interface tailored for partner integrations, data science workloads, and forthcoming marketplace features. The service mirrors the Market Pulse scoring logic available in the web client while remaining fully standalone — no wiring into the existing backend or frontend is required.
+High-performance gRPC service exposing EstateWise market intelligence for partner integrations and data science workflows. It mirrors the Market Pulse logic from the web UI but runs independently.
 
-## Features
+## Architecture
 
-- **GetSnapshot**: Unary RPC returning curated demand, inventory, pricing, and risk metrics for the best matching metro.
-- **StreamHotZips**: Server-streaming RPC that emits ZIP code opportunities filtered by rent yield.
-- **ListMarkets**: Lightweight lookup across curated metros and their aliases.
-- **Fallback awareness**: Responses clearly indicate when a requested metro falls back to the nearest curated dataset.
-- **Deployment ready**: Dockerfile, docker-compose, CI pipeline, and cloud templates for AWS ECS, Azure Container Apps, and Google Cloud Run.
+```mermaid
+flowchart LR
+  Client[Partner / DS Client] --> GRPC[gRPC Server]
+  GRPC --> Data[Curated Market Datasets]
+  GRPC --> Rules[Scoring + Heuristics]
+  GRPC --> Logs[(Structured Logs)]
+```
 
-## Project structure
+## Core RPCs
+
+- **GetSnapshot** (unary): Returns market summary, metrics, and recommendations.
+- **StreamHotZips** (server streaming): Emits ZIP opportunities filtered by yield.
+- **ListMarkets** (unary): Lists available metros and known aliases.
+
+## Project Structure
 
 ```
 grpc/
-├── proto/market_pulse.proto      # gRPC contract used by server & clients
-├── src/                          # TypeScript source
-│   ├── config/                   # Environment loading
-│   ├── data/                     # Curated metro datasets
-│   ├── services/                 # Business logic & gRPC handlers
-│   └── utils/                    # Shared helpers
-├── Dockerfile                    # Multi-stage production image
-├── Jenkinsfile                   # CI pipeline blueprint
-├── aws | azure | gcp             # Deployment templates per cloud
-└── README.md                     # (this file)
+├── proto/market_pulse.proto      # gRPC contract
+├── src/
+│   ├── config/                   # Env loading + defaults
+│   ├── data/                     # Curated datasets
+│   ├── services/                 # Business logic + handlers
+│   └── utils/                    # Helpers
+├── aws | azure | gcp             # Cloud deployment templates
+├── Dockerfile
+├── docker-compose.yml
+└── README.md
 ```
 
-## Getting started
+## Quickstart
 
 ```bash
 cd grpc
 npm install
-npm run dev        # Starts the service with ts-node-dev on :50051
+npm run dev        # Starts the service on :50051
 
-# In another terminal, test the service using grpcurl
-grpcurl -plaintext -d '{"query":"Austin, TX"}' localhost:50051 estatewise.marketpulse.MarketPulseService/GetSnapshot
+# In another terminal
+grpcurl -plaintext -d '{"query":"Austin, TX"}' \
+  localhost:50051 estatewise.marketpulse.MarketPulseService/GetSnapshot
 ```
-
-## Scripts
-
-- `npm run lint` – ESLint with TypeScript rules.
-- `npm test` – Vitest unit tests covering dataset resolution and scoring heuristics.
-- `npm run build` – Compiles TypeScript into `dist/`.
-- `npm run proto:check` – Runs `buf lint` against the proto definition.
 
 ## Configuration
 
-Environment variables (optional, defaults shown):
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `GRPC_HOST` | `0.0.0.0` | Bind address. |
+| `GRPC_PORT` | `50051` | Listen port. |
+| `LOG_LEVEL` | `info` | Log level. |
 
-| Variable    | Default  | Description                          |
-|-------------|----------|--------------------------------------|
-| `GRPC_HOST` | 0.0.0.0  | Bind address for the gRPC server.    |
-| `GRPC_PORT` | 50051    | gRPC listen port.                    |
-| `LOG_LEVEL` | info     | Pino log level.                      |
-
-Add a `.env` file in the `grpc/` directory to override values locally.
+Create a `.env` file in `grpc/` to override defaults.
 
 ## Deployment
 
-- **Docker**: `docker build -t estatewise/market-pulse-grpc . && docker run -p 50051:50051 estatewise/market-pulse-grpc`
-- **AWS ECS**: see `aws/README.md` and `aws/ecs-task-definition.json`.
-- **Azure Container Apps**: see `azure/README.md` and `azure/container-app.bicep`.
-- **Google Cloud Run**: see `gcp/README.md` and `gcp/cloudrun.yaml`.
+- **Docker**:
+  ```bash
+  docker build -t estatewise/market-pulse-grpc .
+  docker run -p 50051:50051 estatewise/market-pulse-grpc
+  ```
+- **AWS ECS**: see `grpc/aws/README.md`.
+- **Azure Container Apps**: see `grpc/azure/README.md`.
+- **Google Cloud Run**: see `grpc/gcp/README.md`.
 
-## CI/CD
+## Contract Notes
 
-`grpc/Jenkinsfile` defines a pipeline with `npm ci`, lint/test, TypeScript compilation, and optional Docker image creation for the main branch. Wire this into an existing Jenkins multi-branch setup without altering the primary application pipeline.
+- The canonical contract is `proto/market_pulse.proto`.
+- Regenerate client stubs when the proto changes.
+- Keep backward compatibility for partner integrations (avoid breaking field changes).
 
-## Roadmap ideas
+## Testing and CI
 
-- Add client SDK generation (TypeScript, Go, Python) using `buf` plugins.
-- Publish histogram snapshots to BigQuery or S3 for offline analytics.
-- Integrate authentication once the downstream consumers are defined.
+- `npm test` runs unit tests (dataset resolution, scoring rules).
+- `npm run lint` runs ESLint.
+- `npm run proto:check` runs `buf lint` over the proto.
 
-For questions or integration requests, create an issue referencing the `grpc` package.
+## Roadmap Ideas
+
+- SDK generation via `buf` plugins (TypeScript, Go, Python).
+- Publish snapshots to analytics storage (S3 or BigQuery).
+- Add auth interceptors (mTLS / API keys) for partner traffic.

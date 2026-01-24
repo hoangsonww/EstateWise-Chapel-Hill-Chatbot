@@ -1,127 +1,157 @@
 # Deployment Control Dashboard
 
-Modern UI and API to run EstateWise blue/green, canary, rolling, and scaling operations without the CLI. Built with **Nuxt 3**, **Vue 3**, **TypeScript**, and **Tailwind CSS**.
+Modern UI and API to run EstateWise blue/green, canary, rolling, and scaling operations without the CLI. Built with Nuxt 3, Vue 3, TypeScript, and Tailwind CSS.
 
-<p align="center">
-  <img src="docs/ui.png" alt="Deployment Control Dashboard Screenshot" width="100%"/>
-</p>
+## What It Is
 
-## 🚀 Features
+- A lightweight API that shells out to `kubectl` and deployment scripts.
+- A Nuxt UI for triggering deploys, inspecting job logs, and scaling variants.
+- A job runner that captures output, exit codes, and status transitions.
 
-### UI Features
-- 🎨 Modern glassmorphism design with animations
-- 📱 Fully responsive (mobile, tablet, desktop)
-- ⚡ Real-time updates with auto-refresh
-- 🔔 Toast notifications for all actions
-- 📊 Dashboard stats and health metrics
-- 🎯 Component-based architecture with Pinia state management
-- 🔒 Full TypeScript type safety
-- ♿ Accessibility support (ARIA labels, semantic HTML)
+## Architecture
 
-### Deployment Features
-- Blue/green and canary launches with custom images, stages, and safety toggles
-- Rolling restarts and ad-hoc scaling for any deployment variant (stable, blue, green, canary)
-- Live job feed with logs and exit codes
-- Cluster snapshot (deployments + services) via `kubectl`
-- Express API server with JSON endpoints
+```mermaid
+flowchart LR
+  UI[Nuxt UI] --> API[Express API]
+  API --> Jobs[Job Runner]
+  Jobs --> Scripts[kubernetes/scripts/*.sh]
+  Jobs --> Kubectl[kubectl]
+  Scripts --> K8s[Kubernetes Cluster]
+  Kubectl --> K8s
+```
 
-## 📦 Quick Start
+### Job Lifecycle
 
-### Option 1: Quick Install (Recommended)
+```mermaid
+sequenceDiagram
+  participant UI
+  participant API
+  participant Job as Job Runner
+  participant K as kubectl/scripts
+
+  UI->>API: POST /api/deploy/canary
+  API->>Job: spawn command
+  Job->>K: run
+  K-->>Job: stdout/stderr
+  Job-->>API: status + job id
+  API-->>UI: 202 Accepted
+  UI->>API: GET /api/jobs/:id
+  API-->>UI: status + output
+```
+
+## Quick Start
 
 ```bash
 cd deployment-control
 npm run install:all
-```
 
-Then start both servers:
-
-```bash
-# Terminal 1: API Server
+# Terminal 1: API server
 npm run dev     # http://localhost:4100
 
 # Terminal 2: UI
 npm run dev:ui  # http://localhost:3000
 ```
 
-### Option 2: Manual Install
+## Prerequisites
+
+- Node.js 18+
+- `kubectl` installed and configured
+- `kubernetes/scripts/blue-green-deploy.sh` and `kubernetes/scripts/canary-deploy.sh` available
+- Access to the target Kubernetes cluster
+
+## Configuration
+
+UI connects to the API via `.env` in `deployment-control/ui`:
 
 ```bash
-cd deployment-control
-
-# Install API dependencies
-npm install
-
-# Install UI dependencies
-cd ui
-npm install
-cd ..
-```
-
-Then start both:
-
-```bash
-# Terminal 1: API
-npm run dev
-
-# Terminal 2: UI
-cd ui && npm run dev
-```
-
-Visit **http://localhost:3000** to access the deployment control dashboard.
-
-## 📁 Project Structure
-
-```
-deployment-control/
-├── src/              # API server (Express + TypeScript)
-│   ├── server.ts     # Main API server
-│   ├── kubectl.ts    # Kubernetes utilities
-│   └── jobRunner.ts  # Job execution
-│
-└── ui/               # Modern Nuxt/Vue UI
-    ├── components/   # Vue components
-    ├── pages/        # Pages/routes
-    ├── stores/       # Pinia state management
-    ├── types/        # TypeScript definitions
-    └── assets/       # Styles and assets
-```
-
-## 🔧 Configuration
-
-The UI connects to the API server via environment variable:
-
-```bash
-cd ui
+cd deployment-control/ui
 cp .env.example .env
 ```
 
-Edit `.env`:
+Example:
 ```
 API_BASE=http://localhost:4100
 ```
 
-## 📚 Documentation
+API server defaults:
+- Port: `4100` (override with `PORT`)
+- Namespace: `estatewise` (override per request)
+- kubectl binary: `kubectl` (override with `KUBECTL=/path/to/kubectl`)
 
-Full documentation available in `ui/`:
-- [README.md](./ui/README.md) - Main documentation
-- [START.md](./ui/START.md) - Quick start guide
+## API Endpoints
 
-The server uses your current `kubectl` context. Set `KUBECTL=/custom/bin/kubectl` if you need a different binary. Default namespace is `estatewise`; override from the top-right namespace field in the UI.
+- `GET /api/health` - health probe
+- `GET /api/jobs` - list recent jobs
+- `GET /api/jobs/:id` - job detail and output
+- `POST /api/deploy/blue-green` - blue/green deploy
+- `POST /api/deploy/canary` - canary deploy
+- `POST /api/deploy/rolling` - rollout restart
+- `POST /api/ops/scale` - scale deployment
+- `GET /api/cluster/summary?namespace=estatewise` - deployment/service snapshot
 
-## API
+### Example: Canary Deploy
 
-All endpoints are relative to the server root (default `http://localhost:4100`).
+```bash
+curl -X POST http://localhost:4100/api/deploy/canary \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "serviceName": "backend",
+    "image": "ghcr.io/you/estatewise-backend:sha-123",
+    "namespace": "estatewise",
+    "canaryStages": "10,25,50,100",
+    "stageDuration": 120,
+    "autoPromote": false
+  }'
+```
 
-- `POST /api/deploy/blue-green` – Body: `image` (required), `serviceName`, `namespace`, `autoSwitch`, `smokeTest`, `scaleDownOld`
-- `POST /api/deploy/canary` – Body: `image` (required), `serviceName`, `namespace`, `canaryStages`, `stageDuration`, `autoPromote`, `enableMetrics`, `canaryReplicasStart`, `stableReplicas`
-- `POST /api/deploy/rolling` – Body: `serviceName`, `namespace`, `kubectl` (optional override)
-- `POST /api/ops/scale` – Body: `serviceName`, `namespace`, `replicas` (number), `variant` (`blue`, `green`, `canary`, or empty for stable), `kubectl` (optional override)
-- `GET /api/jobs` and `GET /api/jobs/:id` – Job history and output
-- `GET /api/cluster/summary?namespace=estatewise` – Snapshot of deployments/services via `kubectl`
+### Example: Scale Variant
 
-## Notes
+```bash
+curl -X POST http://localhost:4100/api/ops/scale \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "serviceName": "backend",
+    "namespace": "estatewise",
+    "variant": "canary",
+    "replicas": 1
+  }'
+```
 
-- The dashboard keeps only the last 500 log lines per job in memory. Persist results elsewhere if you need long-term history.
-- Long-running deploys stream back to the job feed; refresh or use the **Refresh** button to update.
-- The server runs commands from the repo root so relative scripts and manifests resolve correctly.
+## How Deploys Work
+
+- **Blue/Green** calls `kubernetes/scripts/blue-green-deploy.sh` and passes env flags (`AUTO_SWITCH`, `SMOKE_TEST`, `SCALE_DOWN_OLD`).
+- **Canary** calls `kubernetes/scripts/canary-deploy.sh` and passes stage config via env (`CANARY_STAGES`, `STAGE_DURATION`, etc.).
+- **Rolling** uses `kubectl rollout restart` and waits for rollout status.
+- **Scale** uses `kubectl scale` for a deployment name derived from `serviceName` and `variant`.
+
+## Security Model
+
+The dashboard does not include authentication or RBAC. Run it only on trusted networks or behind an authenticated reverse proxy.
+
+## Project Structure
+
+```
+deployment-control/
+├── src/              # API server (Express + TypeScript)
+│   ├── server.ts     # API routes
+│   ├── kubectl.ts    # Kubernetes utilities
+│   └── jobRunner.ts  # Job execution
+└── ui/               # Nuxt UI
+    ├── components/
+    ├── pages/
+    ├── stores/
+    ├── types/
+    └── assets/
+```
+
+## Notes and Limits
+
+- Job output is capped to the last 500 lines.
+- Long-running jobs stream output into the job feed; refresh to update.
+- Commands execute from the repo root so relative paths resolve correctly.
+
+## Troubleshooting
+
+- `kubectl` not found: set `KUBECTL=/path/to/kubectl`.
+- `Job failed` with stderr: inspect `/api/jobs/:id` output.
+- `Cluster summary fails`: ensure the namespace exists and `kubectl` has access.

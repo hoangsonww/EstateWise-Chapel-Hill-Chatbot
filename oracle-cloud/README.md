@@ -1,25 +1,19 @@
 # Oracle Cloud (OCI) Deployment
 
-This directory contains a production-ready Oracle Cloud Infrastructure (OCI) deployment for EstateWise using Terraform, OCI Container Registry (OCIR), and a hardened compute instance running Docker Compose. The design mirrors the existing multi-cloud deployments (AWS/Azure/GCP) and is intended for production use.
+Production-ready Oracle Cloud Infrastructure (OCI) deployment for EstateWise using Terraform, OCI Container Registry (OCIR), and a hardened compute instance running Docker Compose. The layout mirrors the AWS/Azure/GCP options while staying OCI-native.
 
 ## Architecture
 
-- **OCI VCN** with public/private subnets, Internet Gateway, NAT Gateway, and route tables.
-- **OCI Load Balancer** (optional but recommended) terminating HTTP/HTTPS.
-- **Compute instance** (Oracle Linux/Ubuntu) running:
-  - `backend` API container
-  - `agentic-ai` HTTP server container (optional via Docker Compose profiles)
-- **Network Security Groups (NSGs)** for least-privilege access.
-- **OCI Container Registry (OCIR)** for production image hosting.
-
-```
-Internet
-  │
-  ├─ (Optional) OCI Load Balancer → Backend service (3001)
-  │
-  └─ OCI VCN
-       ├─ Public Subnet (LB)
-       └─ Private Subnet (Compute)
+```mermaid
+flowchart TB
+  Users[Clients] --> LB[OCI Load Balancer]
+  LB --> Compute[Compute Instance]
+  Compute --> Docker[Docker Compose]
+  Docker --> Backend[Backend Container]
+  Docker --> Agentic[Agentic AI Container]
+  Backend --> Mongo[(MongoDB)]
+  Backend --> Pinecone[(Pinecone)]
+  Backend --> LLM[LLM Provider]
 ```
 
 ## Prerequisites
@@ -30,15 +24,13 @@ Internet
 - Docker installed locally to build/push images
 - OCIR repository for your tenancy
 
-## Build & Push Images to OCIR
+## Build and Push Images to OCIR
 
 ```bash
-# Login to OCIR
 export OCI_TENANCY_NAMESPACE="<tenancy-namespace>"
 export OCI_REGION="<region>"
 export OCI_USER="<oracle-cloud-username>"
 
-# Example: iad.ocir.io/<namespace>/estatewise-backend:latest
 ./oracle-cloud/scripts/push-images.sh \
   --region "$OCI_REGION" \
   --namespace "$OCI_TENANCY_NAMESPACE" \
@@ -47,25 +39,15 @@ export OCI_USER="<oracle-cloud-username>"
   --tag latest
 ```
 
-## OCIR Pull Credentials on Compute
-
-The compute instance must authenticate to OCIR to pull images. Provide the following in `terraform.tfvars`:
-
-- `ocir_registry` (e.g., `iad.ocir.io`)
-- `ocir_username` (tenancy/username or tenancy/namespace/username)
-- `ocir_auth_token` (OCI auth token)
-
-Terraform injects these into cloud-init and runs a `docker login` before starting services.
-
 ## Terraform Deploy
 
-1. Copy the example variables file and fill in your values.
+1. Copy the example variables file and fill in values:
 
 ```bash
 cp oracle-cloud/terraform/terraform.tfvars.example oracle-cloud/terraform/terraform.tfvars
 ```
 
-2. Initialize and apply:
+2. Apply:
 
 ```bash
 cd oracle-cloud/terraform
@@ -73,40 +55,55 @@ terraform init
 terraform apply
 ```
 
-## Updating Runtime Configuration
+## Key Variables
 
-The compute instance provisions `/opt/estatewise/.env` and `/opt/estatewise/docker-compose.yml` from Terraform templates. After updating `terraform.tfvars`, run:
+- `enable_load_balancer` (default true)
+- `instance_in_private_subnet` (default true)
+- `backend_image`, `agentic_image`
+- `mongo_uri`, `jwt_secret`, `google_ai_api_key`, `pinecone_api_key`
+- `neo4j_*` values if graph is enabled
 
-```bash
-cd oracle-cloud/terraform
-terraform apply
-```
+See `oracle-cloud/terraform/variables.tf` for the full list.
 
-Terraform will re-run cloud-init on first boot only. For updates, SSH into the instance and run:
+## OCIR Pull Credentials
+
+Provide these in `terraform.tfvars`:
+
+- `ocir_registry` (e.g., `iad.ocir.io`)
+- `ocir_username` (tenancy/namespace/username)
+- `ocir_auth_token` (OCI auth token)
+
+Terraform injects credentials into cloud-init and performs `docker login` before starting services.
+
+## Runtime Configuration
+
+Terraform templates generate:
+
+- `/opt/estatewise/.env`
+- `/opt/estatewise/docker-compose.yml`
+
+To update config after first boot:
 
 ```bash
 sudo /opt/estatewise/scripts/update-env.sh
 sudo docker compose -f /opt/estatewise/docker-compose.yml up -d
 ```
 
+## Outputs
+
+Terraform outputs include:
+- Compute public IP
+- Load balancer IP (if enabled)
+- Instance ID and VCN IDs
+
 ## HTTPS / TLS
 
-To enable HTTPS on the OCI Load Balancer:
-
-1. Provide `tls_certificate_path`, `tls_private_key_path`, and optional `tls_ca_certificate_path` in `terraform.tfvars`.
-2. The Terraform stack will provision a TLS listener on port 443.
-
-## Production Notes
-
-- Use a flex shape sized for your workload (default: `VM.Standard.E4.Flex`, 2 OCPU / 16 GB RAM).
-- Keep the load balancer enabled for TLS termination and stable ingress.
-- Store secrets in OCI Vault and inject via environment at deploy time if your compliance posture requires it.
+To enable TLS on the load balancer, set `tls_certificate_path` and `tls_private_key_path` in `terraform.tfvars`. Optional CA bundles are supported for full chain configuration.
 
 ## File Layout
 
 ```
 oracle-cloud/
-├── README.md
 ├── docker/
 │   ├── agentic.Dockerfile
 │   └── backend.Dockerfile
@@ -126,3 +123,9 @@ oracle-cloud/
     ├── terraform.tfvars.example
     └── variables.tf
 ```
+
+## Notes
+
+- Default shape: `VM.Standard.E4.Flex` (2 OCPU / 16 GB RAM).
+- Keep the load balancer enabled for TLS termination and stable ingress.
+- Consider OCI Vault if you need managed secrets instead of `.env` files.
