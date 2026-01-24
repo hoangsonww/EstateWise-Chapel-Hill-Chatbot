@@ -1,4 +1,4 @@
-# Production Docker Stack
+# EstateWise Docker Stack
 
 This directory contains production-grade Docker assets for the EstateWise monorepo.
 
@@ -136,3 +136,12 @@ sequenceDiagram
 ```bash
 docker compose -f docker/compose.prod.yml down
 ```
+
+## Cleanup
+To remove all containers, networks, and volumes created by the compose file:
+```bash
+docker compose -f docker/compose.prod.yml down -v
+```
+
+For more advanced setups (e.g., Kubernetes, cloud deployments), refer to the respective
+documentation in the repository.
