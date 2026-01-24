@@ -67,7 +67,7 @@ spec:
           fixedDelay: 5s
       corsPolicy:
         allowOrigins:
-          - exact: https://estatewise.com
+          - exact: https://estatewise.vercel.app
         allowMethods:
           - GET
           - POST
@@ -121,8 +121,8 @@ spec:
     matchLabels:
       app: backend
   jwtRules:
-    - issuer: "https://estatewise.com"
-      jwksUri: "https://estatewise.com/.well-known/jwks.json"
+    - issuer: "https://estatewise.vercel.app"
+      jwksUri: "https://estatewise.vercel.app/.well-known/jwks.json"
       audiences:
         - "estatewise-api"
       forwardOriginalToken: true
