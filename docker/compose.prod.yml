@@ -70,6 +70,31 @@ services:
     networks:
       - estatewise
 
+  agentic-ai:
+    build:
+      context: ..
+      dockerfile: docker/agentic-ai.Dockerfile
+    profiles: ["agentic"]
+    env_file:
+      - ../.env
+    environment:
+      NODE_ENV: production
+      PORT: 4318
+      API_BASE_URL: ${API_BASE_URL:-http://backend:3001}
+      FRONTEND_BASE_URL: ${FRONTEND_BASE_URL:-http://frontend:3000}
+      MCP_CACHE_TTL_MS: ${MCP_CACHE_TTL_MS:-30000}
+      MCP_CACHE_MAX: ${MCP_CACHE_MAX:-200}
+      MCP_DEBUG: ${MCP_DEBUG:-false}
+      NEO4J_ENABLE: ${NEO4J_ENABLE:-false}
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "${AGENTIC_PORT:-4318}:4318"
+    restart: unless-stopped
+    networks:
+      - estatewise
+
   neo4j:
     image: neo4j:5.22
     profiles: ["graph"]

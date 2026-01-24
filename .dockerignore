@@ -4,6 +4,7 @@
 **/coverage
 **/.turbo
 **/.cache
+**/.venv
 **/*.log
 **/.DS_Store
 .git
