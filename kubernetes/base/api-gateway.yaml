@@ -481,7 +481,7 @@ metadata:
   namespace: estatewise
 config:
   origins:
-    - https://estatewise.com
+    - https://estatewise.vercel.app
     - https://www.estatewise.com
   methods:
     - GET

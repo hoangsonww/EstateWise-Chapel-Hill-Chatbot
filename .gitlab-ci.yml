@@ -349,7 +349,7 @@ deploy-blue-green:
       echo "Traffic switched to $NEW_COLOR"
   environment:
     name: production-blue-green
-    url: https://estatewise.com
+    url: https://estatewise.vercel.app
   when: manual
 
 deploy-canary:
@@ -411,7 +411,7 @@ deploy-canary:
       echo "Canary deployment successful"
   environment:
     name: production-canary
-    url: https://estatewise.com
+    url: https://estatewise.vercel.app
   when: manual
 
 deploy-rolling:
@@ -432,7 +432,7 @@ deploy-rolling:
     - kubectl rollout status deployment/frontend -n estatewise --timeout=10m
   environment:
     name: production
-    url: https://estatewise.com
+    url: https://estatewise.vercel.app
   when: manual
 
 stop-staging:
@@ -461,10 +461,10 @@ smoke-test-production:
       echo "Running smoke tests..."
 
       # Health check
-      curl -f https://estatewise.com/api/health || exit 1
+      curl -f https://estatewise.vercel.app/api/health || exit 1
 
       # API endpoint check
-      curl -f https://estatewise.com/api/properties?limit=1 || exit 1
+      curl -f https://estatewise.vercel.app/api/properties?limit=1 || exit 1
 
       echo "Smoke tests passed!"
   retry: 2

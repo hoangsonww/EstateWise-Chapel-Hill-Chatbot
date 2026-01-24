@@ -2,7 +2,7 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <!-- Main pages -->
   <url>
-    <loc>https://estatewise.com/</loc>
+    <loc>https://estatewise.vercel.app/</loc>
     <lastmod>2026-01-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
@@ -10,35 +10,35 @@
 
   <!-- Core Features -->
   <url>
-    <loc>https://estatewise.com/chat</loc>
+    <loc>https://estatewise.vercel.app/chat</loc>
     <lastmod>2026-01-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
 
   <url>
-    <loc>https://estatewise.com/insights</loc>
+    <loc>https://estatewise.vercel.app/insights</loc>
     <lastmod>2026-01-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
 
   <url>
-    <loc>https://estatewise.com/market-pulse</loc>
+    <loc>https://estatewise.vercel.app/market-pulse</loc>
     <lastmod>2026-01-29</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>
 
   <url>
-    <loc>https://estatewise.com/map</loc>
+    <loc>https://estatewise.vercel.app/map</loc>
     <lastmod>2026-01-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
 
   <url>
-    <loc>https://estatewise.com/charts</loc>
+    <loc>https://estatewise.vercel.app/charts</loc>
     <lastmod>2026-01-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
@@ -46,21 +46,21 @@
 
   <!-- Authentication -->
   <url>
-    <loc>https://estatewise.com/login</loc>
+    <loc>https://estatewise.vercel.app/login</loc>
     <lastmod>2026-01-29</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
 
   <url>
-    <loc>https://estatewise.com/signup</loc>
+    <loc>https://estatewise.vercel.app/signup</loc>
     <lastmod>2026-01-29</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
 
   <url>
-    <loc>https://estatewise.com/reset-password</loc>
+    <loc>https://estatewise.vercel.app/reset-password</loc>
     <lastmod>2026-01-29</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
@@ -68,14 +68,14 @@
 
   <!-- Legal -->
   <url>
-    <loc>https://estatewise.com/terms</loc>
+    <loc>https://estatewise.vercel.app/terms</loc>
     <lastmod>2026-01-29</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.2</priority>
   </url>
 
   <url>
-    <loc>https://estatewise.com/privacy</loc>
+    <loc>https://estatewise.vercel.app/privacy</loc>
     <lastmod>2026-01-29</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.2</priority>
