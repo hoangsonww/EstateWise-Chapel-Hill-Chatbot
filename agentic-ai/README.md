@@ -341,8 +341,6 @@ flowchart LR
 
 ### Pipeline Overview
 
-The EstateWise agentic AI system now includes a **world-class enterprise pipeline architecture** that adds ~15,000 lines of production-ready code with capabilities rivaling commercial orchestration platforms. This assembly line design pattern transforms complex workflows into composable, reusable stages with enterprise-grade features.
-
 **What Makes It Special:**
 - **Assembly Line Architecture** - Sequential stage processing with composable, reusable components
 - **8 Specialized Workflows** - Production-ready pipelines for common real estate tasks
