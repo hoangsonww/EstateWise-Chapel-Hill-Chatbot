@@ -23,7 +23,6 @@ In addition to being the CLI, this agentic pipeline is also being used in our ma
 ## Table of Contents
 
 - [Overview](#overview)
-- [What's New](#whats-new)
 - [Quick Start](#quick-start)
 - [Deployment](#deployment)
 - [Use With Your Own Clients](#use-with-your-own-clients)
@@ -84,38 +83,20 @@ flowchart LR
   MCP --> UI
 ```
 
-## What's New
+## Quick Start
+```bash
+# Build MCP tools once
+cd mcp && npm install && npm run build
 
-### 🎉 Major Enhancement: Enterprise-Grade Pipeline System
+# Run Agentic AI with your goal
+cd ../agentic-ai
+npm install
+npm run dev "Find 3-bed homes in Chapel Hill, NC; compare 123456 and 654321; estimate $600k at 6.25%."
 
-The agentic AI system has been significantly enhanced with a **world-class assembly line pipeline architecture** that transforms it into an enterprise orchestration platform. This adds **~11,300 lines of production-ready code** with capabilities that rival commercial solutions.
-
-**New Core Features:**
-- **Assembly Line Design Pattern** - Sequential stage processing with composable, reusable stages
-- **Enterprise Middleware** - 10+ built-in middleware (logging, metrics, caching, validation, circuit breakers, etc.)
-- **Advanced Orchestration** - Parallel execution, conditional branching, error recovery, pipeline composition
-- **Rich Observability** - Monitoring, metrics, dashboards, DAG visualization, execution tracing
-
-**9 Major Feature Sets Added:**
-1. **State Persistence & Checkpointing** - Save/restore pipeline state, resume interrupted pipelines
-2. **Distributed Execution** - Worker pools, load balancing, horizontal scaling
-3. **Advanced Scheduling** - Cron scheduling, dependencies, delayed/recurring execution
-4. **Testing Framework** - Mocks, spies, assertions, comprehensive test runner
-5. **Auto-Optimization** - Performance profiling, bottleneck detection, AI-powered recommendations
-6. **Plugin Architecture** - Extensible plugin system with lifecycle hooks
-7. **Visualization & DAG** - Export to Mermaid/Graphviz, dashboards, timelines
-8. **Multi-Level Caching** - L1/L2/L3 cache hierarchy with intelligent promotion
-9. **Human-in-the-Loop** - Approval workflows, user input, interactive pipelines
-
-**Previous Features:**
-- Expanded agent roles and clearer hand‑offs via a coordinator plan.
-- LangGraph runtime: ReAct agent, tool calling, in-memory checkpointer.
-- EstateWiseLangGraphRuntime class: contextual system prompts, thread-aware memory, and instrumented tool telemetry you can consume programmatically.
-- CrewAI runtime: Python crew with planner/analyst/reporter sequence.
-- CrewRuntime helper: structured timeline/sections JSON so Node/TS clients can reason about plan, analysis, graph, and finance outputs.
-- More MCP tools (lookup, analytics, finance, groupings, graph pairs, map).
-
-See [Enterprise Pipeline System](#enterprise-pipeline-system) section below for complete documentation.
+# Production run
+npm run build
+npm start "Lookup ZPID for 123 Main St, Chapel Hill, NC and show similar homes nearby."
+```
 
 ## Deployment
 
@@ -142,21 +123,6 @@ flowchart TD
   Graph --> Reporter
   Analytics --> Reporter
   Ranker --> Reporter
-```
-
-## Quick Start
-```bash
-# Build MCP tools once
-cd mcp && npm install && npm run build
-
-# Run Agentic AI with your goal
-cd ../agentic-ai
-npm install
-npm run dev "Find 3-bed homes in Chapel Hill, NC; compare 123456 and 654321; estimate $600k at 6.25%."
-
-# Production run
-npm run build
-npm start "Lookup ZPID for 123 Main St, Chapel Hill, NC and show similar homes nearby."
 ```
 
 ## Use With Your Own Clients
@@ -989,45 +955,6 @@ import type {
   PipelineMiddleware,
   PipelineOptions,
 } from './pipeline/types.js';
-```
-
-#### **Directory Structure**
-```
-agentic-ai/src/
-├── pipeline/                    # Core infrastructure (20 files)
-│   ├── Pipeline.ts             # Main pipeline executor
-│   ├── PipelineBuilder.ts      # Fluent builder API
-│   ├── Stage.ts                # Stage abstraction
-│   ├── middleware.ts           # 10+ middleware implementations
-│   ├── advanced.ts             # Parallel, conditional, error recovery
-│   ├── monitoring.ts           # Metrics, tracing, observability
-│   ├── optimization.ts         # Performance analysis, recommendations
-│   ├── distributed.ts          # Worker pools, load balancing
-│   ├── scheduler.ts            # Cron, delayed, dependency scheduling
-│   ├── persistence.ts          # Checkpointing, state management
-│   ├── testing.ts              # Mocks, spies, test runner
-│   ├── plugins.ts              # Plugin architecture
-│   ├── caching.ts              # Multi-level cache system
-│   ├── visualization.ts        # DAG, Mermaid, dashboards
-│   ├── workflows.ts            # Human-in-the-loop, approvals
-│   ├── templates.ts            # Common pipeline patterns
-│   ├── integration.ts          # AgentOrchestrator integration
-│   ├── examples.ts             # Pipeline usage examples
-│   ├── types.ts                # TypeScript interfaces
-│   ├── index.ts                # Central exports
-│   └── stages/
-│       └── AgentStages.ts      # Pre-built stages
-│
-└── pipelines/                   # Specialized workflows (8 files)
-    ├── propertySearch.ts       # 3 property search variants
-    ├── financialAnalysis.ts    # 4 financial analysis variants
-    ├── marketResearch.ts       # 3 market research variants (backward compatible)
-    ├── complianceCheck.ts      # 4 compliance check variants
-    ├── graphAnalysis.ts        # Graph-based property analysis
-    ├── compositeWorkflows.ts   # Multi-pipeline orchestration
-    ├── index.ts                # Central pipeline exports
-    ├── examples.ts             # 12 integration examples
-    └── README.md               # Complete pipeline documentation (500+ lines)
 ```
 
 ### Pipeline Documentation
