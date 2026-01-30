@@ -56,6 +56,8 @@ From `.travis.yml`:
 
 ## How It Runs
 
+The pipeline triggers on every push and pull request. Travis checks out the code, runs the backend stage first, followed by the frontend stage. Each stage reports its status back to GitHub.
+
 ```mermaid
 sequenceDiagram
   participant Git as GitHub

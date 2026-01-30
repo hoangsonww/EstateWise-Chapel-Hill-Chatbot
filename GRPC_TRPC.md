@@ -1,5 +1,56 @@
 # EstateWise RPC APIs Documentation
 
+## Table of Contents
+
+- [Overview](#overview)
+- [gRPC Implementation](#grpc-implementation)
+  - [Understanding gRPC in Depth](#understanding-grpc-in-depth)
+  - [Architecture & Components](#architecture--components)
+  - [Protocol Buffers Deep Dive](#protocol-buffers-deep-dive)
+  - [Streaming Patterns Explained](#streaming-patterns-explained)
+  - [Service Implementation Details](#service-implementation-details)
+  - [Performance Optimization Techniques](#performance-optimization-techniques)
+  - [Error Handling & Status Codes](#error-handling--status-codes)
+  - [Load Balancing Strategies](#load-balancing-strategies)
+- [tRPC Implementation](#trpc-implementation)
+  - [Understanding tRPC Philosophy](#understanding-trpc-philosophy)
+  - [Type Safety Architecture](#type-safety-architecture)
+  - [Router Organization & Structure](#router-organization--structure)
+  - [Context System Deep Dive](#context-system-deep-dive)
+  - [Middleware System](#middleware-system)
+  - [Procedure Types & Patterns](#procedure-types--patterns)
+  - [Frontend Integration Details](#frontend-integration-details)
+  - [Error Handling & Validation](#error-handling--validation)
+- [Protocol Comparison & Selection](#protocol-comparison--selection)
+  - [Comprehensive Feature Matrix](#comprehensive-feature-matrix)
+  - [Performance Benchmarks](#performance-benchmarks)
+  - [Decision Framework](#decision-framework)
+- [Integration Patterns](#integration-patterns)
+  - [Service Mesh Integration](#service-mesh-integration)
+  - [Cross-Protocol Communication](#cross-protocol-communication)
+- [Security Architecture](#security-architecture)
+  - [Authentication & Authorization](#authentication--authorization)
+  - [Threat Mitigation Strategies](#threat-mitigation-strategies)
+- [Deployment & Operations](#deployment--operations)
+  - [Container Architecture](#container-architecture)
+  - [Kubernetes Deployment](#kubernetes-deployment)
+  - [Scaling Strategies](#scaling-strategies)
+  - [Health Monitoring](#health-monitoring)
+- [Performance Optimization](#performance-optimization)
+  - [Caching Strategies](#caching-strategies)
+  - [Connection Optimization](#connection-optimization)
+  - [Batching & Aggregation](#batching--aggregation)
+- [Monitoring & Observability](#monitoring--observability)
+  - [Metrics Collection Architecture](#metrics-collection-architecture)
+  - [Key Performance Indicators](#key-performance-indicators)
+  - [Distributed Tracing](#distributed-tracing)
+- [Best Practices](#best-practices)
+  - [API Design Guidelines](#api-design-guidelines)
+  - [Testing Strategies](#testing-strategies)
+  - [Operational Excellence](#operational-excellence)
+  - [Migration Patterns](#migration-patterns)
+- [Other Documentation](#other-documentation)
+
 ## Overview
 
 EstateWise implements a sophisticated multi-protocol API architecture using REST, tRPC, and gRPC to serve diverse client requirements. This polyglot approach ensures optimal performance, developer experience, and compatibility across different use cases. Each protocol operates independently while sharing common backend services, data stores, and business logic.
@@ -1334,6 +1385,17 @@ flowchart LR
 - Monitor adoption metrics
 - Gather user feedback
 - Document migration guides
+
+## Other Documentation
+
+- [DevOps Guide](DEVOPS.md)
+- [Technical Documentation](TECH_DOCS.md)
+- [Deployment Guide](DEPLOYMENTS.md)
+- [Architecture Overview](ARCHITECTURE.md)
+- [Travis CI Guide](TRAVIS_CI.md)
+- [Incident Response Runbook](docs/runbooks/INCIDENT-RESPONSE.md)
+- [Production Operations Runbook](docs/runbooks/PRODUCTION-OPS.md)
+- [Security Best Practices](.github/SECURITY.md)
 
 ---
 
