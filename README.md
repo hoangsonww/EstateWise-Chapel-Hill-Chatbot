@@ -141,19 +141,26 @@ For a CLI version of the chatbot, as well as the initial EDA (Exploratory Data A
 **EstateWise** combines a modern API, real‑time chat, and a responsive UI with a powerful AI stack to deliver hyper‑personalized property recommendations:
 
 - **Hybrid RAG (Vector + Graph):** Uses Pinecone for kNN‑based vector retrieval and Neo4j for graph enrichment before fusing results into generated responses.
+- **Agentic AI Pipeline:** Orchestrates the entire AI workflow, managing data retrieval, expert routing, response generation, and feedback integration.
+- **MCP (Model Context Protocol):** Standardizes communication between models and the backend, ensuring consistent context handling and response formatting.
+- **Multi-LLM Approach:** Utilizes multiple LLMs for different tasks to optimize performance and cost.
 - **k‑Means Clustering:** Automatically groups similar listings and finds closest matches to refine recommendations.
   - All features are also normalized to a range of 0-1 for better clustering and kNN performance.
-- **Decision AI Agent:** Decides whether to fetch RAG data (via `queryProperties`); if yes, it pulls in the Pinecone results, otherwise it skips straight to the Mixture‑of‑Experts pipeline.
+- **Decision AI Agent:** Decides whether to fetch RAG data; if yes, it pulls in the Pinecone results, otherwise it skips straight to the Mixture‑of‑Experts pipeline, saving time and cost on simpler queries.
 - **Mixture of Experts (MoE):** Dynamically routes each query through a master model to select specialized sub‑models (Data Analyst, Lifestyle Concierge, Financial Advisor, Neighborhood Expert, Cluster Analyst) for maximal relevance.
 - **Chain-of-Thought (CoT):** Each expert uses a CoT approach to break down complex queries into manageable steps, ensuring accurate and relevant responses.
 - **Feedback Loop & Reinforcement Learning:** Users rate responses; thumbs‑up/down adjust expert weights per conversation, and the system continuously learns to improve accuracy.
 - **Prompt Engineering:** Each expert has a unique prompt template, ensuring tailored responses based on user input.
   - All experts, agents, and merger have a detailed and ultra-specific prompt template to ensure the best possible responses.
 - **kNN & Cosine Similarity:** Uses Pinecone for fast, real‑time property retrieval based on user queries.
+- **Graph Traversal & Enrichment:** Neo4j adds explainable relationships like same neighborhood/zip and vector‑similar links, enabling statements like “Recommended because it’s in the same neighborhood and similar in price/size to a liked home.”
+- **AI-Generated Visualizations:** The AI generates live Chart.js graphs from Pinecone data to visualize trends and distributions instantly, directly within the chat messages.
 
-For the full Hybrid RAG pipeline, including diagrams and evaluation notes, see [RAG_SYSTEM.md](RAG_SYSTEM.md).
+For the full Hybrid RAG pipeline, including diagrams and evaluation notes, see **[RAG_SYSTEM.md](RAG_SYSTEM.md).**
 
 #### Hybrid RAG at a Glance
+
+Hybrid Retrieval-Augmented Generation (RAG) in EstateWise combines vector search with graph database enrichment to provide comprehensive and contextually relevant property recommendations. Here's a high-level overview of the process:
 
 ```mermaid
 flowchart LR
@@ -165,97 +172,90 @@ flowchart LR
   M --> LLM[Augmented Prompt]
 ```
 
+The user query is first embedded into a vector representation, which is then used to perform a k-nearest neighbors search in Pinecone. The top-k results are enriched with additional context from the Neo4j graph database, merging and deduplicating the information before constructing an augmented prompt for the LLM to generate a final response.
+
 ## Features
 
 EstateWise is packed with both UI and AI features to enhance your home-finding experience:
 
-- **Intelligent Property Recommendations**  
-  Get tailored property suggestions powered by AI and Retrieval‑Augmented Generation (RAG).
+- **Intelligent Property Recommendations:** Get tailored property suggestions powered by AI and Retrieval‑Augmented Generation (RAG).
 
-- **Secure User Authentication**  
-  Sign up, log in, and log out with JWT‑based security.
+- **Secure User Authentication:** Sign up, log in, and log out with JWT‑based security.
 
-- **Conversation History**
-
+- **Conversation History:**
   - **Authenticated users** can view, rename, and delete past chats.
   - **Auto-Generated Conversation Titles**: New conversations automatically receive AI-generated titles (3-6 words) based on the first message, replacing the default "New Conversation" title within seconds.
   - **Guest users** still have their conversation history saved locally in the browser.
 
-- **Full‑Text Search**  
-  Quickly search your conversation history for keywords, topics, or specific properties.
+- **Full‑Text Search:** Quickly search your conversation history for keywords, topics, or specific properties.
 
-- **Rating System & Feedback Loop**  
-  Rate each AI response (thumbs up/down) to adjust expert weights and continuously improve recommendations.
+- **Rating System & Feedback Loop:** Rate each AI response (thumbs up/down) to adjust expert weights and continuously improve recommendations.
 
-- **Mixture‑of‑Experts (MoE) & Manual Expert View**
-
+- **Mixture‑of‑Experts (MoE) & Manual Expert View:**
   - The AI dynamically routes queries through specialized experts (Data Analyst, Lifestyle Concierge, Financial Advisor, Neighborhood Expert, Cluster Analyst).
   - There is a master merger model that synthesizes the responses from all experts.
   - Optionally switch to any single expert’s view to see their raw recommendation.
 
-- **Chain-of-Thought (CoT)**  
-  Each expert uses a CoT approach to break down complex queries into manageable steps, ensuring accurate and relevant responses.
+- **Chain-of-Thought (CoT):** Each expert uses a CoT approach to break down complex queries into manageable steps, ensuring accurate and relevant responses.
 
-- **Interactive Visualizations**
-
+- **Interactive Visualizations:**
   - In‑chat, the AI generates live Chart.js graphs from Pinecone data so you can instantly see trends and distributions.
   - A dedicated Visualizations page offers aggregate charts and insights for all Chapel Hill properties.
 
-- **Clustering & Similarity Search**
-
+- **Clustering & Similarity Search:**
   - k‑Means clustering groups similar properties for more focused suggestions.
   - kNN & Cosine Similarity (via Pinecone) finds the closest matches to your query in real time.
   - Graph traversal (via Neo4j) adds explainable relationships like same neighborhood/zip and vector‑similar links, enabling statements like “Recommended because it’s in the same neighborhood and similar in price/size to a liked home.”
 
-- **Insights & Tools Page**  
-  A dedicated page at `/insights` with:
+- **Insights & Tools Page:** A dedicated page at `/insights` with:
   - Explain Relationship: shortest graph path between two homes (ZIP/Neighborhood/Similarity edges) with a mini node‑edge diagram.
   - Graph Similar Properties: reasoned similarities (same neighborhood/zip/similar‑to) with a radial node graph.
   - Neighborhood Stats: counts and averages for a named neighborhood.
   - Mortgage & Affordability tools: interactive breakdown + quick utilities.
 
-- **Deal Analyzer**  
-  Utilizes the AI to evaluate if a property is a good deal based on historical trends, neighborhood data, and market conditions (at `/analyzer`).
+- **Deal Analyzer:** Utilizes AI/ML to evaluate if a property is a good deal based on historical trends, neighborhood data, and market conditions (at `/analyzer`).
   - The AI provides a detailed breakdown of factors influencing the deal quality.
   - Users can input specific properties to analyze or let the AI suggest potential deals from the dataset.
+  - Scorecard system rates properties on various criteria (e.g., price, location, amenities).
+  - Comprehensive **factors considered** include:
+    - Property and financing details
+    - Income assumptions
+    - Operating expenses
+    - Growth and targets
+    - and more...
+  - **Outputs**: Overall deal score, detailed factor breakdowns, monthly breakdown, sensitivity, projection, risk & action plans, and more.
   - Visual indicators (e.g., color-coded scores) help users quickly assess deal quality.
 
-- **Forums & Community Discussions**  
-  A space for users to discuss properties, share experiences, and seek advice from fellow homebuyers (at `/forums`).
+- **Forums & Community Discussions:** A space for users to discuss properties, share experiences, and seek advice from fellow homebuyers (at `/forums`).
   - Users can create new discussion threads or reply to existing ones.
   - Upvote/downvote system to highlight valuable contributions.
   - Moderation tools to ensure a respectful and informative community environment.
 
-- **Map Page**  
-  A map view at `/map` that displays properties with markers:
+- **Map Page:** A map view at `/map` that displays properties with markers:
   - Accepts `?zpids=123,456` to show specific homes only.
   - If no `zpids`, accepts `?q=` to search and caps to a safe max (200) for performance.
   - Chat replies auto‑include a “View on Map” link when Zillow property links are present.
 
-- **Smooth Animations**  
-  Engaging transitions and micro‑interactions powered by Framer Motion.
+- **Smooth Animations:** Engaging transitions and micro‑interactions powered by Framer Motion.
 
-- **Interactive Chat Interface**  
-  Enjoy a fully animated chat experience with Markdown‑formatted responses, collapsible expert views, inline charts, and **real-time streaming responses** powered by Server-Sent Events (SSE).
+- **Interactive Chat Interface:** Enjoy a fully animated chat experience with Markdown‑formatted responses, collapsible expert views, inline charts, and **real-time streaming responses** powered by Server-Sent Events (SSE).
   - **Streaming AI Responses:** Words appear in real-time as the AI generates them, providing an engaging and responsive user experience.
   - **Automatic Retries:** Built-in retry logic with exponential backoff ensures reliable message delivery even with unstable connections.
   - **Visual Feedback:** Loading indicators, animated cursors, and connection status updates keep users informed throughout the conversation.
 
-- **Responsive, Themeable UI**
-
+- **Responsive, Themeable UI:**
   - Optimized for desktop, tablet, and mobile.
   - Dark and light modes with your preference saved locally.
 
-- **Guest Mode**  
-  Use the app without creating an account—history is stored only in your browser.
+- **Guest Mode**: Use the app without creating an account—history is stored only in your browser.
 
-- **Comprehensive Property Data**
+- **Comprehensive Property Data:**
   - **Over 50,000** Chapel Hill area listings, complete with prices, beds, baths, living area, year built, and more.
   - For security, this data isn’t included in the repo—please plug in your own.
   - Peek at our sample dataset here:  
     [Google Drive CSV (50k+ records)](https://drive.google.com/file/d/1vJCSlQgnQyVxoINosfWJWl6Jg1f0ltyo/view?usp=sharing)
 
-- **Production-Ready DevOps & Multi-Cloud Delivery**  
+- **Production-Ready DevOps & Multi-Cloud Delivery:**  
   - Turn-key deployments for **AWS (ECS Fargate)**, **Azure (Container Apps)**, **GCP (Cloud Run)**, and **HashiCorp Terraform + Kubernetes (Consul/Nomad mesh)**.  
   - Built-in support for **Vercel** (frontend + optional backend edge) and **kustomize/Helm** manifests for any Kubernetes cluster.  
   - Helm charts and Kustomize manifests available in `helm/` and `kubernetes/` for easy customization and deployment to Kubernetes environments.
@@ -264,6 +264,8 @@ EstateWise is packed with both UI and AI features to enhance your home-finding e
   - After cleaning, approx. **30,772 properties** remain in the database, available for the chatbot to use.
   - Explore `Initial-Data-Analysis.ipynb` in the repo root for an initial, quick Jupyter‑powered dive into the data.
   - Explore `EDA-CLI-Chatbot.ipynb` in the repo root for a more detailed and comprehensive analysis of the data, as well as a CLI version of our chatbot.
+
+- _and so many more features in the app..._
 
 > [!IMPORTANT]
 > Please note that the deployed version of the app is subject to our infrastructure limitations, which may affect the performance and availability of the app. You are encouraged to run the app locally for the best experience.
