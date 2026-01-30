@@ -432,15 +432,18 @@ function HelpDialog({ title, content }: { title: string; content: string }) {
   const [open, setOpen] = useState(false);
 
   const renderInline = (text: string, keyPrefix: string) =>
-    text
-      .split("**")
-      .map((part, index) =>
-        index % 2 === 0 ? (
-          part
-        ) : (
-          <strong key={`${keyPrefix}-strong-${index}`}>{part}</strong>
-        ),
-      );
+    text.split("**").map((part, index) =>
+      index % 2 === 0 ? (
+        part
+      ) : (
+        <strong
+          key={`${keyPrefix}-strong-${index}`}
+          className="font-semibold text-foreground"
+        >
+          {part}
+        </strong>
+      ),
+    );
 
   return (
     <>
@@ -453,11 +456,13 @@ function HelpDialog({ title, content }: { title: string; content: string }) {
         <HelpCircle className="h-4 w-4 text-muted-foreground" />
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-auto">
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-auto bg-background text-foreground">
           <DialogHeader>
-            <DialogTitle>{title}</DialogTitle>
+            <DialogTitle className="text-base text-foreground">
+              {title}
+            </DialogTitle>
           </DialogHeader>
-          <div className="prose prose-sm dark:prose-invert max-w-none">
+          <div className="max-w-none">
             {content.split(/\n{2,}/).map((block, blockIndex) => {
               const lines = block
                 .split("\n")
@@ -472,7 +477,7 @@ function HelpDialog({ title, content }: { title: string; content: string }) {
                 blockParts.push(
                   <h4
                     key={`heading-${blockIndex}`}
-                    className="font-semibold mt-4 mb-2"
+                    className="mt-4 mb-2 text-sm font-semibold text-foreground"
                   >
                     {headingMatch[1]}
                   </h4>,
@@ -490,7 +495,7 @@ function HelpDialog({ title, content }: { title: string; content: string }) {
                 blockParts.push(
                   <p
                     key={`text-${blockIndex}-${lineIndex}`}
-                    className="text-sm text-muted-foreground mb-3"
+                    className="mb-3 text-sm text-muted-foreground"
                   >
                     {renderInline(line, `${blockIndex}-text-${lineIndex}`)}
                   </p>,
@@ -501,12 +506,15 @@ function HelpDialog({ title, content }: { title: string; content: string }) {
                 blockParts.push(
                   <ul
                     key={`list-${blockIndex}`}
-                    className="list-disc pl-5 space-y-1"
+                    className="list-disc pl-5 space-y-1 text-sm text-muted-foreground"
                   >
                     {bulletLines.map((item, itemIndex) => {
                       const itemText = item.replace(/^[-•]\s*/, "").trim();
                       return (
-                        <li key={`item-${blockIndex}-${itemIndex}`}>
+                        <li
+                          key={`item-${blockIndex}-${itemIndex}`}
+                          className="text-sm text-muted-foreground"
+                        >
                           {renderInline(
                             itemText,
                             `${blockIndex}-item-${itemIndex}`,
@@ -1318,13 +1326,13 @@ The tool searches for connections through:
 • HOA: Monthly HOA fees if applicable
 
 **Visualizations:**
-• **Monthly Breakdown**: Pie chart showing payment components
-• **Rate Sensitivity**: How payment changes with interest rates
-• **Down Payment Impact**: Effect of down payment on monthly costs
+• Monthly Breakdown: Pie chart showing payment components
+• Rate Sensitivity: How payment changes with interest rates
+• Down Payment Impact: Effect of down payment on monthly costs
 
 **Additional tools:**
-• **Affordability Estimator**: Calculate max home price based on income
-• **Quick calculators**: Price per square foot and down payment amounts
+• Affordability Estimator: Calculate max home price based on income
+• Quick calculators: Price per square foot and down payment amounts
 
 **Tips:**
 • Use sliders for quick adjustments
