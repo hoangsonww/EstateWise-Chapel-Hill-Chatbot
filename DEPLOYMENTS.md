@@ -22,12 +22,14 @@ EstateWise ships with five production-grade deployment tracks so you can choose 
 In addition, the monorepo already supports **Vercel** deployments for the frontend (and optional backend edge functions) for teams that prefer Vercel’s serverless workflow.
 
 > [!TIP]
-> ℹ️  Mixed deployments are fully supported: for example run the backend on AWS while exposing the frontend on Vercel, or use the HashiCorp stack for internal tooling while shipping the public experience via Cloud Run.
+> Mixed deployments are fully supported: for example run the backend on AWS while exposing the frontend on Vercel, or use the HashiCorp stack for internal tooling while shipping the public experience via Cloud Run.
 
 It also supports advanced deployment strategies like **Blue-Green** and **Canary** deployments for zero-downtime releases and safe progressive delivery.
 
-> [!NEW]
-> GitLab CI/CD is now supported out of the box via `.gitlab-ci.yml`, mirroring the Jenkins flow and wiring directly into the Kubernetes blue/green and canary scripts through `gitlab/deploy.sh`.
+> [!IMPORTANT]
+> **NEW**: GitLab CI/CD is now also supported out of the box via `.gitlab-ci.yml`, mirroring the Jenkins flow and wiring directly into the Kubernetes blue/green and canary scripts through `gitlab/deploy.sh`.
+
+For more information on EstateWise DevOps, CI/CD pipelines, monitoring, and troubleshooting, see 📘 [DEVOPS.md](DEVOPS.md).
 
 ---
 
@@ -468,11 +470,34 @@ pipeline {
 
 Secrets / parameters are passed as Base64 payloads (`*_B64`) to avoid accidental logging. Example configuration is documented in `jenkins/README.md` and comprehensive deployment guides in `DEVOPS.md`.
 
-### Other CI
+### GitHub Actions
 
-- **GitHub Actions** – reuse `aws/codepipeline.yaml`, `azure/azure-pipelines.yml`, or `gcp/cloudbuild.yaml` directly.
-- **Azure DevOps** – use the included pipeline for Container Apps.
-- **GitLab CI** – call the same scripts (`aws/deploy.sh`, `hashicorp/deploy.sh`) in custom jobs.
+GitHub Actions workflows live in `.github/workflows/` and provide CI/CD automation for this repo (tests, builds, scans, artifacts, image publishing, and deployment). Use it for GitHub-native automation or to trigger cloud-native pipelines:
+
+- **Primary workflow**: `workflow.yml` (full CI/CD pipeline)
+- **Legacy**: `ci.yml` (deprecated)
+- **Cloud-native handoff**: reuse `aws/codepipeline.yaml`, `azure/azure-pipelines.yml`, or `gcp/cloudbuild.yaml`
+
+See 📘 [DEVOPS.md](DEVOPS.md) for the full workflow breakdown and deployment stages.
+
+### GitLab CI
+
+GitLab CI is supported out of the box via `.gitlab-ci.yml` with helper scripts under `gitlab/`, mirroring Jenkins stages and wiring directly into the Kubernetes blue/green and canary scripts through `gitlab/deploy.sh`.
+
+- **Stages**: lint → test → build → security (npm audit) → deploy (manual by default)
+- **Key vars**: `DEPLOY_STRATEGY`, `IMAGE_TAG`, `SERVICE_NAME`, `NAMESPACE`
+- **Kube auth**: Prefer GitLab’s Kubernetes agent or protected CI variables for `KUBECONFIG`
+
+See 📘 [DEVOPS.md](DEVOPS.md) for recommended defaults and variable details.
+
+### Azure DevOps (Optional)
+
+If you standardize on Azure DevOps, use the included pipeline for Container Apps and Key Vault integration:
+
+- **Pipeline**: `azure/azure-pipelines.yml`
+- **Deploy**: `azure/deploy.sh`
+
+See 📘 [DEVOPS.md](DEVOPS.md) for multi-cloud CI/CD guidance and deployment strategies.
 
 ---
 
@@ -522,5 +547,6 @@ For deeper dives, follow the platform-specific READMEs inside each directory.
 - [Google Cloud Deployment](gcp/README.md)
 - [HashiCorp + Kubernetes Stack](hashicorp/README.md) and [Kubernetes Manifests](kubernetes/README.md)
 - [Agentic AI Orchestrator](agentic-ai/README.md)
+- [DEVOPS Guide](DEVOPS.md)
 - [MCP Server](mcp/README.md)
 - [Jenkins CI/CD](jenkins/README.md)

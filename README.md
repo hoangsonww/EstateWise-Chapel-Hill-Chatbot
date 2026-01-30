@@ -41,7 +41,10 @@ Large Language Models (LLMs), a Mixture‑of‑Experts ensemble, blue/green & ca
 - [Project Structure](#project-structure)
 - [Dockerization](#dockerization)
 - [Prometheus Monitoring & Visualizations](#prometheus-monitoring--visualizations)
-- [GitHub Actions CI/CD](#github-actions)
+- [CI/CD Pipelines](#cicd-pipelines)
+  - [GitHub Actions](#github-actions)
+  - [Jenkins (Primary CI/CD)](#jenkins-primary-cicd)
+  - [GitLab CI](#gitlab-ci)
 - [MCP Server](#mcp-server)
 - [Agentic AI Pipeline](#agentic-ai-pipeline)
 - [tRPC API](#trpc-api)
@@ -1094,7 +1097,11 @@ To view our live server data, go to [this URL](https://estatewise-backend.vercel
   <img src="img/prometheus.png" alt="Prometheus Monitoring" width="100%" style="border-radius: 8px" />
 </p>
 
-## GitHub Actions
+## CI/CD Pipelines
+
+EstateWise supports multiple CI/CD options depending on hosting and operational needs. GitHub Actions is the default for GitHub-hosted automation, Jenkins is the primary production CI/CD engine, and GitLab CI is supported for GitLab-hosted repos.
+
+### GitHub Actions
 
 GitHub Actions is used for continuous integration and deployment (CI/CD) of the application. It automatically runs tests, builds the Docker images, and deploys the application to Vercel or AWS whenever changes are pushed to the main branch or when pull requests are created.
 
@@ -1121,6 +1128,36 @@ Our pipeline is set up to run the following steps:
 </p>
 
 This ensures that the application is always in a deployable state and that any issues are caught early in the development process.
+
+### Jenkins (Primary CI/CD)
+
+Jenkins orchestrates production deployments and multi-cloud rollouts. The primary pipeline is defined in `Jenkinsfile`, with supporting scripts and documentation in `jenkins/`.
+
+- **Scope**: Full pipeline (lint/format → tests → build → security scan → perf checks → deploy).
+- **Deploy strategies**: Blue-Green, Canary, Rolling (implemented by `kubernetes/scripts/blue-green-deploy.sh` and `kubernetes/scripts/canary-deploy.sh`).
+- **Targets**: Kubernetes plus optional AWS/Azure/GCP/OCI deploys (multi-cloud toggles).
+- **Key env toggles**:
+  - Strategy: `DEPLOY_BLUE_GREEN`, `DEPLOY_CANARY`, `BLUE_GREEN_SERVICE`, `CANARY_SERVICE`
+  - Canary flow: `CANARY_STAGES`, `CANARY_STAGE_DURATION`, `AUTO_PROMOTE_CANARY`
+  - Blue/Green flow: `AUTO_SWITCH_BLUE_GREEN`, `SCALE_DOWN_OLD_DEPLOYMENT`
+  - Cloud targets: `DEPLOY_AWS`, `DEPLOY_AZURE`, `DEPLOY_GCP`, `DEPLOY_OCI`, `DEPLOY_K8S_MANIFESTS`
+- **Recommended use**: Production releases, staged rollouts, and multi-cloud promotion.
+- **Docs**: See `DEVOPS.md` and `jenkins/README.md` for variable details and examples.
+
+### GitLab CI
+
+GitLab CI is supported via `.gitlab-ci.yml` and helper scripts under `gitlab/`. It mirrors the Jenkins stages and can reuse the Kubernetes deployment scripts for blue/green, canary, or rolling releases.
+
+- **Pipeline file**: `.gitlab-ci.yml`
+- **Helper scripts**: `gitlab/` (wraps existing Kubernetes deploy scripts)
+- **Stages**: lint → test → build → security (npm audit) → deploy (manual by default)
+- **Defaults**: Node 20 runner image, project-local `.npm` cache, `NEXT_TELEMETRY_DISABLED=1`
+- **Key variables**:
+  - `DEPLOY_STRATEGY`: `blue-green`, `canary`, or `rolling`
+  - `IMAGE_TAG`, `SERVICE_NAME` (default `backend`), `NAMESPACE` (default `estatewise`)
+  - Optional toggles: `AUTO_SWITCH`, `SMOKE_TEST`, `SCALE_DOWN_OLD`, `CANARY_STAGES`, `STAGE_DURATION`, `AUTO_PROMOTE`, `ENABLE_METRICS`
+- **Kube auth**: Prefer GitLab’s Kubernetes agent or protected CI variables for `KUBECONFIG`.
+- **Recommended use**: GitLab-hosted repos or teams standardizing on GitLab CI.
 
 ## MCP Server
 

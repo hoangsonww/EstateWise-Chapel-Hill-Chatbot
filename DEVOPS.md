@@ -30,6 +30,9 @@ This guide provides comprehensive documentation for EstateWise's DevOps practice
 
 - [Overview](#overview)
 - [CI/CD Architecture](#cicd-architecture)
+- [Jenkins (Primary CI/CD)](#jenkins-primary-cicd)
+- [GitHub Actions (Workflows)](#github-actions-workflows)
+- [GitLab CI/CD (self-managed or SaaS)](#gitlab-cicd-self-managed-or-saas)
 - [Deployment Strategies](#deployment-strategies)
   - [Blue-Green Deployments](#blue-green-deployments)
   - [Canary Deployments](#canary-deployments)
@@ -41,6 +44,8 @@ This guide provides comprehensive documentation for EstateWise's DevOps practice
 - [Disaster Recovery](#disaster-recovery)
 - [Security Best Practices](#security-best-practices)
 - [Troubleshooting](#troubleshooting)
+- [Additional Resources](#additional-resources)
+- [Support and Contribution](#support-and-contribution)
 
 ---
 
@@ -56,6 +61,8 @@ EstateWise employs enterprise-grade DevOps practices with multiple deployment st
 - **Multi-Cloud Support**: AWS, Azure, GCP, OCI, and Kubernetes deployments
 - **Container-First**: Docker-based builds with vulnerability scanning
 - **Infrastructure as Code**: Terraform, CloudFormation, Bicep support
+
+It also supports Jenkins, GitHub Actions, and GitLab CI/CD for flexible pipeline management, with Jenkins being the primary orchestrator for production deployments. For monitoring, Prometheus and Grafana provide observability into application health and performance.
 
 ---
 
@@ -114,6 +121,8 @@ flowchart TB
 
 ### Pipeline Stages
 
+The Jenkins pipeline consists of the following stages:
+
 | Stage | Purpose | Duration | Failure Action |
 |-------|---------|----------|----------------|
 | **Checkout** | Clone repository and setup environment | 10-30s | Abort pipeline |
@@ -124,6 +133,44 @@ flowchart TB
 | **Performance Test** | Artillery benchmark tests | 1-2min | Warning only |
 | **Deployment** | Progressive deployment with selected strategy | 5-15min | Automatic rollback |
 
+The pipeline is fully configurable via environment variables to enable/disable deployment strategies and target clouds.
+
+---
+
+## Jenkins (Primary CI/CD)
+
+Jenkins is the primary CI/CD engine for production deployments and multi-cloud rollouts. It orchestrates the full pipeline and deployment strategies described in this guide.
+
+- **Pipeline definition**: `Jenkinsfile`
+- **Docs**: `jenkins/README.md`
+- **Stages**: checkout → lint/format → tests → image builds → security scan → perf checks → deploy
+- **Deploy strategies**: Blue-Green, Canary, Rolling (via `kubernetes/scripts/blue-green-deploy.sh` and `kubernetes/scripts/canary-deploy.sh`)
+- **Targets**: Kubernetes plus optional AWS/Azure/GCP/OCI rollouts
+- **Key toggles**:
+  - Strategy: `DEPLOY_BLUE_GREEN`, `DEPLOY_CANARY`, `BLUE_GREEN_SERVICE`, `CANARY_SERVICE`
+  - Canary flow: `CANARY_STAGES`, `CANARY_STAGE_DURATION`, `AUTO_PROMOTE_CANARY`
+  - Blue/Green flow: `AUTO_SWITCH_BLUE_GREEN`, `SCALE_DOWN_OLD_DEPLOYMENT`
+  - Cloud targets: `DEPLOY_AWS`, `DEPLOY_AZURE`, `DEPLOY_GCP`, `DEPLOY_OCI`, `DEPLOY_K8S_MANIFESTS`
+- **Recommended use**: production releases, staged rollouts, and multi-cloud promotion
+- **Deep config**: See [Jenkins Pipeline Configuration](#jenkins-pipeline-configuration)
+
+---
+
+## GitHub Actions (Workflows)
+
+GitHub Actions provides CI/CD automation alongside Jenkins and GitLab. The active workflows live in `.github/workflows/` and should be the source of truth for GitHub-native automation.
+
+- **Primary pipeline**: `workflow.yml` (full CI/CD pipeline covering linting, tests, builds, scans, artifacts, container publishing, and deploy steps).
+- **Legacy pipeline**: `ci.yml` (deprecated; kept for backward compatibility — prefer `workflow.yml`).
+- **Repo analytics**: `analyze-repo.yml` (scheduled lines-of-code reporting for this repository).
+- **Multi-repo analytics**: `analyze-code.yml` (scheduled LOC across owned repos; requires `GH_PAT` secret).
+
+If you wish to update CI behavior, edit the relevant workflow in `.github/workflows/` and keep it aligned with Jenkins/GitLab stages.
+
+<p align="center">
+  <img src="img/github-actions.png" alt="GitHub Actions CI/CD" width="100%" style="border-radius: 8px" />
+</p>
+
 ---
 
 ## GitLab CI/CD (self-managed or SaaS)
@@ -132,8 +179,9 @@ GitLab pipelines mirror the Jenkins flow with first-class support for blue/green
 
 - **Pipeline file**: `.gitlab-ci.yml`
 - **Deploy helper**: `gitlab/deploy.sh` (wraps the existing Kubernetes scripts)
-- **Stages**: lint → test → build → security (npm audit) → deploy (manual)
+- **Stages**: lint → test → build → security (npm audit) → deploy (manual by default)
 - **Defaults**: Node 20 runner image, project-local `.npm` cache, `NEXT_TELEMETRY_DISABLED=1`
+- **Artifacts**: build outputs and test results can be exported for downstream deploy jobs
 - **Key variables**:
   - `DEPLOY_STRATEGY`: `blue-green`, `canary`, or `rolling`
   - `IMAGE_TAG`: container image to deploy
@@ -141,6 +189,7 @@ GitLab pipelines mirror the Jenkins flow with first-class support for blue/green
   - `NAMESPACE`: Kubernetes namespace (default `estatewise`)
   - Optional toggles: `AUTO_SWITCH`, `SMOKE_TEST`, `SCALE_DOWN_OLD`, `CANARY_STAGES`, `STAGE_DURATION`, `AUTO_PROMOTE`, `ENABLE_METRICS`, `CANARY_REPLICAS_START`, `STABLE_REPLICAS`
 - **Kube auth**: Prefer GitLab’s Kubernetes agent or protected CI variables for `KUBECONFIG`. No Dockerfile changes are required.
+- **Recommended use**: GitLab-hosted repos or teams standardizing on GitLab CI/CD with the same deployment scripts.
 
 > Tip: Protect deploy jobs to `main` and require approvals; pair with the `deployment-control/` dashboard for visibility.
 
