@@ -3071,7 +3071,7 @@ function TermsNotice({
       className={`inline-flex flex-wrap items-center justify-center rounded-full border border-border/60 bg-background/70 px-3 py-1 text-[11px] text-muted-foreground shadow-sm backdrop-blur ${className}`.trim()}
     >
       <span>
-        By using EstateWise, you agree to{" "}
+        By using EstateWise, you agree to our{" "}
         <Link
           href="/terms"
           className="underline underline-offset-4 decoration-muted-foreground/60 transition-colors hover:text-primary hover:decoration-primary/60"
