@@ -782,14 +782,14 @@ export default function MarketPulsePage() {
             By using EstateWise, you agree to our{" "}
             <Link
               href="/terms"
-              className="font-medium text-foreground/80 hover:text-primary transition-colors"
+              className="font-semibold text-foreground/90 underline underline-offset-4 decoration-foreground/30 transition-colors hover:text-primary hover:decoration-primary"
             >
               Terms of Service
             </Link>{" "}
             and{" "}
             <Link
               href="/privacy"
-              className="font-medium text-foreground/80 hover:text-primary transition-colors"
+              className="font-semibold text-foreground/90 underline underline-offset-4 decoration-foreground/30 transition-colors hover:text-primary hover:decoration-primary"
             >
               Privacy Policy
             </Link>

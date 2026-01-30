@@ -9,6 +9,9 @@
 - [Memory Leaks](#memory-leaks)
 - [Deployment Failures](#deployment-failures)
 - [Security Incidents](#security-incidents)
+- [General Tips](#general-tips)
+  - [Quick Commands](#quick-commands)
+  - [Useful Aliases](#useful-aliases)
 
 ---
 

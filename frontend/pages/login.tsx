@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
@@ -29,6 +29,27 @@ export default function LoginPage() {
   const [errorMsg, setErrorMsg] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const applyPreference = (value: string | null) => {
+      if (value === null) return;
+      const enabled = value === "true";
+      const root = document.documentElement;
+      root.classList.toggle("dark", enabled);
+      document
+        .querySelector("meta[name='theme-color']")
+        ?.setAttribute("content", enabled ? "#262626" : "#faf9f2");
+    };
+
+    applyPreference(localStorage.getItem("dark-mode"));
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key !== "dark-mode") return;
+      applyPreference(event.newValue);
+    };
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -223,26 +244,28 @@ export default function LoginPage() {
                 )}
               </Button>
             </form>
-            <p className="text-sm text-center mt-0 text-card-foreground">
-              Don&apos;t have an account?{" "}
-              <Link
-                href="/signup"
-                className="text-primary underline"
-                title="Sign Up"
-              >
-                Sign Up
-              </Link>
-            </p>
-            <p className="text-sm text-center mt-0 text-card-foreground">
-              Forgot your password?{" "}
-              <Link
-                href="/reset-password"
-                className="text-primary underline"
-                title="Reset Password"
-              >
-                Reset Password
-              </Link>
-            </p>
+            <div className="space-y-3">
+              <p className="text-sm text-center text-card-foreground">
+                Don&apos;t have an account?{" "}
+                <Link
+                  href="/signup"
+                  className="text-primary underline"
+                  title="Sign Up"
+                >
+                  Sign Up
+                </Link>
+              </p>
+              <p className="text-sm text-center text-card-foreground">
+                Forgot your password?{" "}
+                <Link
+                  href="/reset-password"
+                  className="text-primary underline"
+                  title="Reset Password"
+                >
+                  Reset Password
+                </Link>
+              </p>
+            </div>
             <Button
               variant="secondary"
               className="w-full mt-0 cursor-pointer"
@@ -253,6 +276,23 @@ export default function LoginPage() {
               <MessageCircle />
               Back to Chat
             </Button>
+            <p className="text-xs text-center mt-0.5 leading-relaxed text-muted-foreground">
+              By continuing, you agree to our{" "}
+              <Link
+                href="/terms"
+                className="font-semibold text-foreground/90 underline underline-offset-4 decoration-foreground/30 transition-colors hover:text-primary hover:decoration-primary"
+              >
+                Terms of Service
+              </Link>{" "}
+              and{" "}
+              <Link
+                href="/privacy"
+                className="font-semibold text-foreground/90 underline underline-offset-4 decoration-foreground/30 transition-colors hover:text-primary hover:decoration-primary"
+              >
+                Privacy Policy
+              </Link>
+              .
+            </p>
           </Card>
         </motion.div>
       </div>

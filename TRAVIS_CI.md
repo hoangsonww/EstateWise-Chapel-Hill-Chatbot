@@ -5,6 +5,23 @@ This repository includes a Travis CI pipeline that keeps the backend and fronten
 > [!NOTE]
 > Travis CI is supported for CI validation, but EstateWise uses **Jenkins** as the primary CI/CD platform for production deployments (blue/green + canary + multi‑cloud). See `jenkins/README.md` and `DEVOPS.md` for production CI/CD.
 
+## Table of Contents
+
+- [Pipeline at a Glance](#pipeline-at-a-glance)
+  - [Current Travis Configuration](#current-travis-configuration)
+  - [Stages](#stages)
+- [How It Runs](#how-it-runs)
+- [Enabling Travis CI](#enabling-travis-ci)
+- [Local Reproduction](#local-reproduction)
+- [Maintenance Tips](#maintenance-tips)
+- [Extending the Pipeline](#extending-the-pipeline)
+  - [Add a matrix for Node versions](#add-a-matrix-for-node-versions)
+  - [Add a new stage (example: unit-only)](#add-a-new-stage-example-unit-only)
+  - [Add environment variables](#add-environment-variables)
+- [Troubleshooting](#troubleshooting)
+- [Travis CI vs Jenkins (EstateWise)](#travis-ci-vs-jenkins-estatewise)
+- [Migration Path](#migration-path)
+
 ## Pipeline at a Glance
 
 ```mermaid

@@ -1,5 +1,40 @@
 # Production Operations Runbook
 
+## Table of Contents
+
+- [Daily Operations](#daily-operations)
+  - [Morning Checks](#morning-checks)
+  - [Weekly Tasks](#weekly-tasks)
+- [Deployment Procedures](#deployment-procedures)
+  - [Standard Deployment](#standard-deployment)
+  - [Blue-Green Deployment](#blue-green-deployment)
+  - [Canary Deployment](#canary-deployment)
+- [Scaling Operations](#scaling-operations)
+  - [Manual Scaling](#manual-scaling)
+  - [Adjust HPA](#adjust-hpa)
+- [Database Operations](#database-operations)
+  - [Manual Backup](#manual-backup)
+  - [Restore from Backup](#restore-from-backup)
+  - [Run Database Migration](#run-database-migration)
+- [Security Operations](#security-operations)
+  - [Rotate Secrets](#rotate-secrets)
+  - [Update TLS Certificates](#update-tls-certificates)
+- [Monitoring and Alerting](#monitoring-and-alerting)
+  - [Check Alert Status](#check-alert-status)
+  - [Custom Metrics Query](#custom-metrics-query)
+- [Troubleshooting Quick Reference](#troubleshooting-quick-reference)
+  - [Pod Stuck in Pending](#pod-stuck-in-pending)
+  - [Pod CrashLoopBackOff](#pod-crashloopbackoff)
+  - [High Memory Usage](#high-memory-usage)
+  - [Network Issues](#network-issues)
+- [Maintenance Windows](#maintenance-windows)
+  - [Scheduled Maintenance Procedure](#scheduled-maintenance-procedure)
+- [Emergency Procedures](#emergency-procedures)
+  - [Emergency Rollback](#emergency-rollback)
+  - [Emergency Scale Down](#emergency-scale-down)
+  - [Circuit Breaker](#circuit-breaker)
+- [On-Call Cheat Sheet](#on-call-cheat-sheet)
+
 ## Daily Operations
 
 ### Morning Checks
