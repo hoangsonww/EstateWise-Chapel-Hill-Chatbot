@@ -24,6 +24,8 @@ This repository includes a Travis CI pipeline that keeps the backend and fronten
 
 ## Pipeline at a Glance
 
+The Travis CI pipeline consists of two main stages: backend and frontend. Each stage installs dependencies, builds the code, and runs tests.
+
 ```mermaid
 flowchart LR
   Commit[Push / PR] --> Travis[Travis CI]
