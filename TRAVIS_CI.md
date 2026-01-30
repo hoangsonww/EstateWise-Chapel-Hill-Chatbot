@@ -24,6 +24,8 @@ This repository includes a Travis CI pipeline that keeps the backend and fronten
 
 ## Pipeline at a Glance
 
+The Travis CI pipeline consists of two main stages: backend and frontend. Each stage installs dependencies, builds the code, and runs tests.
+
 ```mermaid
 flowchart LR
   Commit[Push / PR] --> Travis[Travis CI]
@@ -53,6 +55,8 @@ From `.travis.yml`:
 | Frontend | `npm --prefix frontend ci` | `npm --prefix frontend run lint` + `npm --prefix frontend run build` + `npm --prefix frontend test` |
 
 ## How It Runs
+
+The pipeline triggers on every push and pull request. Travis checks out the code, runs the backend stage first, followed by the frontend stage. Each stage reports its status back to GitHub.
 
 ```mermaid
 sequenceDiagram
