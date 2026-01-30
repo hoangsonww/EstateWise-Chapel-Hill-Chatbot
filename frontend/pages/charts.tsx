@@ -472,6 +472,23 @@ export default function ChartsPage() {
             </Button>
           </motion.div>
         </motion.main>
+        <div className="mt-10 pt-6 pb-6 border-t border-border/60 text-xs text-muted-foreground text-center">
+          By using EstateWise, you agree to our{" "}
+          <Link
+            href="/terms"
+            className="font-semibold text-foreground/90 underline underline-offset-4 decoration-foreground/30 transition-colors hover:text-primary hover:decoration-primary"
+          >
+            Terms of Service
+          </Link>{" "}
+          and{" "}
+          <Link
+            href="/privacy"
+            className="font-semibold text-foreground/90 underline underline-offset-4 decoration-foreground/30 transition-colors hover:text-primary hover:decoration-primary"
+          >
+            Privacy Policy
+          </Link>
+          .
+        </div>
         <style jsx>{`
           .chart-reveal {
             opacity: 0;

@@ -2975,6 +2975,8 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
                   </div>
                 </div>
               </div>
+
+              <TermsNotice className="mx-auto mt-4" showIcon={false} />
             </div>
           </div>
         ) : (
@@ -3034,18 +3036,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
               <Send className="h-4 w-4" /> Send
             </Button>
           </div>
-          <p className="text-center text-xs mt-1">
-            By using EstateWise, you agree to our{" "}
-            <Link href="/terms" className="underline hover:text-primary">
-              Terms of Service
-            </Link>{" "}
-            and{" "}
-            <Link href="/privacy" className="underline hover:text-primary">
-              Privacy Policy
-            </Link>
-            .
-            <BotMessageSquare className="inline-block w-4 h-4 ml-0.5 hover:text-primary" />
-          </p>
+          <TermsNotice className="mx-auto mt-2" showIcon={false} />
         </div>
       )}
     </div>
@@ -3067,6 +3058,44 @@ const AnimatedDots: React.FC<{ resetKey: number }> = ({ resetKey }) => {
   }, [resetKey]);
   return <span>{dots}</span>;
 };
+
+function TermsNotice({
+  className = "",
+  showIcon = true,
+}: {
+  className?: string;
+  showIcon?: boolean;
+}) {
+  return (
+    <p
+      className={`inline-flex flex-wrap items-center justify-center rounded-full border border-border/60 bg-background/70 px-3 py-1 text-[11px] text-muted-foreground shadow-sm backdrop-blur ${className}`.trim()}
+    >
+      <span>
+        By using EstateWise, you agree to{" "}
+        <Link
+          href="/terms"
+          className="underline underline-offset-4 decoration-muted-foreground/60 transition-colors hover:text-primary hover:decoration-primary/60"
+        >
+          Terms of Service
+        </Link>{" "}
+        and{" "}
+        <Link
+          href="/privacy"
+          className="underline underline-offset-4 decoration-muted-foreground/60 transition-colors hover:text-primary hover:decoration-primary/60"
+        >
+          Privacy Policy
+        </Link>
+        .
+      </span>
+      {showIcon && (
+        <BotMessageSquare
+          className="inline-block w-4 h-4 ml-1 text-muted-foreground/80 hover:text-primary"
+          aria-hidden="true"
+        />
+      )}
+    </p>
+  );
+}
 
 // ----------------------------------------------------------
 //  Main ChatPage Layout: Sidebar + Top Bar + ChatWindow
