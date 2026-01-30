@@ -899,6 +899,20 @@ export default function AnalyzerPage() {
     };
   }, [inputs]);
 
+  const cashFlowValueClass =
+    metrics.cashFlowMonthly >= 0
+      ? "text-emerald-600 dark:text-emerald-300"
+      : "text-rose-600 dark:text-rose-300";
+
+  const capRateValueClass =
+    metrics.capRate >= 0.06
+      ? "text-emerald-600 dark:text-emerald-300"
+      : metrics.capRate > 0 && metrics.capRate < 0.05
+        ? "text-rose-600 dark:text-rose-300"
+        : "text-amber-600 dark:text-amber-300";
+
+  const cashNeededValueClass = "text-sky-700 dark:text-sky-300";
+
   const outflowTotal = metrics.breakdownItems.reduce(
     (sum, item) => sum + item.value,
     0,
@@ -1018,32 +1032,48 @@ export default function AnalyzerPage() {
                 professional underwriting model. Adjust assumptions and see the
                 impact on returns, risk, and equity growth.
               </p>
-              <div className="grid gap-3 sm:grid-cols-3">
-                <div className="rounded-xl border border-border/60 bg-background/80 p-4 shadow-sm">
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                    Cash flow / mo
-                  </p>
-                  <p className="text-xl font-semibold">
-                    {formatMoney(metrics.cashFlowMonthly, true)}
-                  </p>
-                </div>
-                <div className="rounded-xl border border-border/60 bg-background/80 p-4 shadow-sm">
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                    Cap rate
-                  </p>
-                  <p className="text-xl font-semibold">
-                    {formatPercent(metrics.capRate * 100, 2)}
-                  </p>
-                </div>
-                <div className="rounded-xl border border-border/60 bg-background/80 p-4 shadow-sm">
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                    Cash needed
-                  </p>
-                  <p className="text-xl font-semibold">
-                    {formatMoney(metrics.cashNeeded)}
-                  </p>
-                </div>
-              </div>
+              <Card className="border-border/60 bg-background/80 shadow-sm">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">Deal Snapshot</CardTitle>
+                  <CardDescription>
+                    Core outcomes based on your current assumptions.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    <div className="rounded-xl border border-border/60 bg-background p-4">
+                      <p className="text-xs uppercase tracking-wide text-foreground/80">
+                        CASH FLOW / MO
+                      </p>
+                      <p
+                        className={`text-xl font-semibold ${cashFlowValueClass}`}
+                      >
+                        {formatMoney(metrics.cashFlowMonthly, true)}
+                      </p>
+                    </div>
+                    <div className="rounded-xl border border-border/60 bg-background p-4">
+                      <p className="text-xs uppercase tracking-wide text-foreground/80">
+                        CAP RATE
+                      </p>
+                      <p
+                        className={`text-xl font-semibold ${capRateValueClass}`}
+                      >
+                        {formatPercent(metrics.capRate * 100, 2)}
+                      </p>
+                    </div>
+                    <div className="rounded-xl border border-border/60 bg-background p-4">
+                      <p className="text-xs uppercase tracking-wide text-foreground/80">
+                        CASH NEEDED
+                      </p>
+                      <p
+                        className={`text-xl font-semibold ${cashNeededValueClass}`}
+                      >
+                        {formatMoney(metrics.cashNeeded)}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </motion.div>
 
             <motion.div variants={fadeUpItem}>
