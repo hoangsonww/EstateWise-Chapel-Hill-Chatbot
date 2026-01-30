@@ -130,6 +130,8 @@ type Scenario = {
   values: Partial<Inputs>;
 };
 
+const SCENARIO_PAGE_SIZE = 3;
+
 const DEFAULT_INPUTS: Inputs = {
   purchasePrice: 485000,
   downPaymentPct: 20,
@@ -209,6 +211,289 @@ const SCENARIOS: Scenario[] = [
       capexPct: 4,
     },
   },
+  {
+    name: "House Hack Triplex",
+    tagline: "Live in one unit, let the rest pay the note.",
+    values: {
+      purchasePrice: 650000,
+      downPaymentPct: 5,
+      interestRate: 6.1,
+      rentMonthly: 5200,
+      otherIncomeMonthly: 0,
+      vacancyPct: 5,
+      propertyTaxRate: 1.1,
+      insuranceMonthly: 180,
+      hoaMonthly: 0,
+      rehabBudget: 20000,
+      maintenancePct: 6,
+      managementPct: 0,
+      mortgageInsuranceMonthly: 220,
+      dscrTarget: 1.1,
+    },
+  },
+  {
+    name: "Midwest Cash Flow",
+    tagline: "Lower price, higher yield focus.",
+    values: {
+      purchasePrice: 210000,
+      downPaymentPct: 25,
+      interestRate: 6.4,
+      rentMonthly: 1850,
+      otherIncomeMonthly: 50,
+      vacancyPct: 8,
+      propertyTaxRate: 1.6,
+      insuranceMonthly: 95,
+      hoaMonthly: 0,
+      maintenancePct: 7,
+      managementPct: 9,
+      capexPct: 7,
+      appreciationRate: 2.2,
+      rentGrowthRate: 2,
+    },
+  },
+  {
+    name: "Coastal Single-Family",
+    tagline: "Premium rents with stronger appreciation.",
+    values: {
+      purchasePrice: 890000,
+      downPaymentPct: 25,
+      interestRate: 6.5,
+      rentMonthly: 5200,
+      otherIncomeMonthly: 0,
+      vacancyPct: 4,
+      propertyTaxRate: 0.7,
+      insuranceMonthly: 280,
+      hoaMonthly: 0,
+      maintenancePct: 5,
+      managementPct: 7,
+      appreciationRate: 4,
+      rentGrowthRate: 3,
+    },
+  },
+  {
+    name: "Build-to-Rent New",
+    tagline: "New build with lighter capex.",
+    values: {
+      purchasePrice: 540000,
+      downPaymentPct: 20,
+      interestRate: 6.2,
+      rentMonthly: 3450,
+      vacancyPct: 4,
+      propertyTaxRate: 0.9,
+      insuranceMonthly: 130,
+      hoaMonthly: 60,
+      maintenancePct: 3,
+      managementPct: 8,
+      capexPct: 3,
+      rehabBudget: 0,
+      appreciationRate: 3.2,
+    },
+  },
+  {
+    name: "Short-Term Cabin",
+    tagline: "Higher revenue with seasonality risk.",
+    values: {
+      purchasePrice: 475000,
+      downPaymentPct: 20,
+      interestRate: 6.8,
+      rentMonthly: 4800,
+      otherIncomeMonthly: 0,
+      vacancyPct: 20,
+      propertyTaxRate: 1.1,
+      insuranceMonthly: 240,
+      utilitiesMonthly: 200,
+      maintenancePct: 8,
+      managementPct: 18,
+      capexPct: 7,
+      otherExpenseMonthly: 150,
+    },
+  },
+  {
+    name: "Student Housing 4BR",
+    tagline: "Multiple leases, higher turnover.",
+    values: {
+      purchasePrice: 610000,
+      downPaymentPct: 25,
+      interestRate: 6.6,
+      rentMonthly: 5200,
+      otherIncomeMonthly: 0,
+      vacancyPct: 7,
+      propertyTaxRate: 1.2,
+      insuranceMonthly: 160,
+      utilitiesMonthly: 150,
+      maintenancePct: 7,
+      managementPct: 10,
+      capexPct: 6,
+      otherExpenseMonthly: 80,
+    },
+  },
+  {
+    name: "ADU Income Boost",
+    tagline: "Accessory unit adds stable cash flow.",
+    values: {
+      purchasePrice: 680000,
+      downPaymentPct: 20,
+      interestRate: 6.3,
+      rentMonthly: 4200,
+      otherIncomeMonthly: 900,
+      vacancyPct: 5,
+      propertyTaxRate: 1,
+      insuranceMonthly: 160,
+      rehabBudget: 85000,
+      financeRehab: true,
+      maintenancePct: 6,
+      managementPct: 6,
+      capexPct: 5,
+    },
+  },
+  {
+    name: "BRRRR Light Rehab",
+    tagline: "Forced appreciation with higher points.",
+    values: {
+      purchasePrice: 260000,
+      downPaymentPct: 15,
+      interestRate: 7.1,
+      closingCostPct: 3.5,
+      loanPointsPct: 1.5,
+      rentMonthly: 2300,
+      otherIncomeMonthly: 0,
+      vacancyPct: 6,
+      propertyTaxRate: 1.3,
+      insuranceMonthly: 110,
+      rehabBudget: 60000,
+      financeRehab: true,
+      maintenancePct: 6,
+      managementPct: 8,
+      capexPct: 6,
+    },
+  },
+  {
+    name: "Small Multifamily 8-Unit",
+    tagline: "Scale with diversified unit mix.",
+    values: {
+      purchasePrice: 1250000,
+      downPaymentPct: 30,
+      interestRate: 6.7,
+      termYears: 25,
+      rentMonthly: 12000,
+      otherIncomeMonthly: 500,
+      vacancyPct: 8,
+      propertyTaxRate: 1.1,
+      insuranceMonthly: 500,
+      utilitiesMonthly: 450,
+      maintenancePct: 6,
+      managementPct: 6,
+      capexPct: 6,
+    },
+  },
+  {
+    name: "Suburban Townhome",
+    tagline: "HOA costs with strong tenant demand.",
+    values: {
+      purchasePrice: 410000,
+      downPaymentPct: 20,
+      interestRate: 6.2,
+      rentMonthly: 2600,
+      otherIncomeMonthly: 0,
+      vacancyPct: 5,
+      propertyTaxRate: 0.95,
+      insuranceMonthly: 110,
+      hoaMonthly: 220,
+      maintenancePct: 4,
+      managementPct: 8,
+      capexPct: 4,
+    },
+  },
+  {
+    name: "Luxury Rental",
+    tagline: "Higher rent with larger equity check.",
+    values: {
+      purchasePrice: 1250000,
+      downPaymentPct: 30,
+      interestRate: 6.4,
+      rentMonthly: 7200,
+      vacancyPct: 4,
+      propertyTaxRate: 0.85,
+      insuranceMonthly: 380,
+      hoaMonthly: 0,
+      maintenancePct: 4,
+      managementPct: 7,
+      capexPct: 5,
+      appreciationRate: 3.5,
+      rentGrowthRate: 3,
+    },
+  },
+  {
+    name: "Senior-Friendly Condo",
+    tagline: "Stable tenant base with higher HOA.",
+    values: {
+      purchasePrice: 385000,
+      downPaymentPct: 25,
+      interestRate: 6.1,
+      rentMonthly: 2300,
+      vacancyPct: 4,
+      propertyTaxRate: 0.9,
+      insuranceMonthly: 120,
+      hoaMonthly: 320,
+      maintenancePct: 3,
+      managementPct: 7,
+      capexPct: 4,
+    },
+  },
+  {
+    name: "Small Mixed-Use",
+    tagline: "Residential plus retail income.",
+    values: {
+      purchasePrice: 980000,
+      downPaymentPct: 30,
+      interestRate: 6.9,
+      termYears: 25,
+      rentMonthly: 8200,
+      otherIncomeMonthly: 400,
+      vacancyPct: 6,
+      propertyTaxRate: 1.1,
+      insuranceMonthly: 420,
+      utilitiesMonthly: 200,
+      maintenancePct: 6,
+      managementPct: 6,
+      capexPct: 6,
+      otherExpenseMonthly: 150,
+    },
+  },
+  {
+    name: "Rural Acreage Rental",
+    tagline: "Lower taxes, higher maintenance needs.",
+    values: {
+      purchasePrice: 290000,
+      downPaymentPct: 20,
+      interestRate: 6.5,
+      rentMonthly: 1950,
+      vacancyPct: 7,
+      propertyTaxRate: 0.6,
+      insuranceMonthly: 100,
+      maintenancePct: 7,
+      managementPct: 8,
+      capexPct: 7,
+      appreciationRate: 2.5,
+    },
+  },
+  {
+    name: "Section 8 Stable",
+    tagline: "Consistent rent payments, slower growth.",
+    values: {
+      purchasePrice: 240000,
+      downPaymentPct: 25,
+      interestRate: 6.3,
+      rentMonthly: 2100,
+      vacancyPct: 3,
+      propertyTaxRate: 1.4,
+      insuranceMonthly: 115,
+      maintenancePct: 6,
+      managementPct: 9,
+      capexPct: 6,
+      otherExpenseMonthly: 50,
+    },
+  },
 ];
 
 const fadeUpContainer = {
@@ -283,6 +568,8 @@ function Metric({
 export default function AnalyzerPage() {
   const [inputs, setInputs] = useState<Inputs>(DEFAULT_INPUTS);
   const [activeScenario, setActiveScenario] = useState<string>("Base Case");
+  const [visibleScenarioCount, setVisibleScenarioCount] =
+    useState<number>(SCENARIO_PAGE_SIZE);
 
   const updateInput = <K extends keyof Inputs>(key: K, value: Inputs[K]) => {
     setInputs((prev) => ({ ...prev, [key]: value }));
@@ -307,6 +594,9 @@ export default function AnalyzerPage() {
     setInputs(DEFAULT_INPUTS);
     setActiveScenario("Base Case");
   };
+
+  const visibleScenarios = SCENARIOS.slice(0, visibleScenarioCount);
+  const hasMoreScenarios = visibleScenarioCount < SCENARIOS.length;
 
   const metrics = useMemo(() => {
     const price = Math.max(inputs.purchasePrice, 0);
@@ -764,12 +1054,14 @@ export default function AnalyzerPage() {
                     presets
                   </CardTitle>
                   <CardDescription>
-                    Apply a preset to move fast, then fine tune inputs below.
+                    Pick a preset to prefill the numbers, then fine tune the
+                    numbers below. Remember to provide the best inputs you can
+                    find for more accurate results.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="grid gap-3">
-                    {SCENARIOS.map((scenario) => (
+                    {visibleScenarios.map((scenario) => (
                       <button
                         key={scenario.name}
                         onClick={() => applyScenario(scenario)}
@@ -786,6 +1078,21 @@ export default function AnalyzerPage() {
                       </button>
                     ))}
                   </div>
+                  {hasMoreScenarios ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                      onClick={() =>
+                        setVisibleScenarioCount((prev) =>
+                          Math.min(prev + SCENARIO_PAGE_SIZE, SCENARIOS.length),
+                        )
+                      }
+                    >
+                      Load more presets ({visibleScenarioCount}/
+                      {SCENARIOS.length})
+                    </Button>
+                  ) : null}
                   <div className="flex items-center justify-between rounded-lg border border-border/60 bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
                     <span>Active preset: {activeScenario}</span>
                     <Button variant="ghost" size="sm" onClick={resetDefaults}>
