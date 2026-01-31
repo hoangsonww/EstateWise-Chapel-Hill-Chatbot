@@ -16,6 +16,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
@@ -27,6 +33,7 @@ import {
   BarChart3,
   Calculator,
   GitBranch,
+  HelpCircle,
   LineChart,
   MapPin,
   MessageCircleMore,
@@ -565,6 +572,116 @@ function Metric({
   );
 }
 
+function HelpDialog({ title, content }: { title: string; content: string }) {
+  const [open, setOpen] = useState(false);
+
+  const renderInline = (text: string, keyPrefix: string) =>
+    text.split("**").map((part, index) =>
+      index % 2 === 0 ? (
+        part
+      ) : (
+        <strong
+          key={`${keyPrefix}-strong-${index}`}
+          className="font-semibold text-foreground"
+        >
+          {part}
+        </strong>
+      ),
+    );
+
+  return (
+    <>
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-6 w-6 rounded-full hover:bg-muted"
+        onClick={() => setOpen(true)}
+      >
+        <HelpCircle className="h-4 w-4 text-muted-foreground" />
+      </Button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-auto bg-background text-foreground">
+          <DialogHeader>
+            <DialogTitle className="text-base text-foreground">
+              {title}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="max-w-none">
+            {content.split(/\n{2,}/).map((block, blockIndex) => {
+              const lines = block
+                .split("\n")
+                .map((line) => line.trim())
+                .filter(Boolean);
+              if (lines.length === 0) return null;
+
+              const blockParts: React.ReactNode[] = [];
+              const headingMatch = lines[0].match(/^\*\*(.+)\*\*$/);
+              let startIndex = 0;
+              if (headingMatch) {
+                blockParts.push(
+                  <h4
+                    key={`heading-${blockIndex}`}
+                    className="mt-4 mb-2 text-sm font-semibold text-foreground"
+                  >
+                    {headingMatch[1]}
+                  </h4>,
+                );
+                startIndex = 1;
+              }
+
+              const restLines = lines.slice(startIndex);
+              const bulletLines = restLines.filter((line) =>
+                /^[-•]/.test(line),
+              );
+              const textLines = restLines.filter((line) => !/^[-•]/.test(line));
+
+              textLines.forEach((line, lineIndex) => {
+                blockParts.push(
+                  <p
+                    key={`text-${blockIndex}-${lineIndex}`}
+                    className="mb-3 text-sm text-muted-foreground"
+                  >
+                    {renderInline(line, `${blockIndex}-text-${lineIndex}`)}
+                  </p>,
+                );
+              });
+
+              if (bulletLines.length > 0) {
+                blockParts.push(
+                  <ul
+                    key={`list-${blockIndex}`}
+                    className="list-disc pl-5 space-y-1 text-sm text-muted-foreground"
+                  >
+                    {bulletLines.map((item, itemIndex) => {
+                      const itemText = item.replace(/^[-•]\s*/, "").trim();
+                      return (
+                        <li
+                          key={`item-${blockIndex}-${itemIndex}`}
+                          className="text-sm text-muted-foreground"
+                        >
+                          {renderInline(
+                            itemText,
+                            `${blockIndex}-item-${itemIndex}`,
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>,
+                );
+              }
+
+              if (blockParts.length === 0) return null;
+              return (
+                <React.Fragment key={blockIndex}>{blockParts}</React.Fragment>
+              );
+            })}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
 export default function AnalyzerPage() {
   const [inputs, setInputs] = useState<Inputs>(DEFAULT_INPUTS);
   const [activeScenario, setActiveScenario] = useState<string>("Base Case");
@@ -1079,14 +1196,36 @@ export default function AnalyzerPage() {
             <motion.div variants={fadeUpItem}>
               <Card className="overflow-hidden border-primary/20 shadow-sm">
                 <CardHeader className="space-y-2">
-                  <CardTitle className="flex items-center gap-2 text-xl">
-                    <LineChart className="h-5 w-5 text-primary" /> Scenario
-                    presets
+                  <CardTitle className="flex items-center justify-between text-xl">
+                    <span className="inline-flex items-center gap-2">
+                      <LineChart className="h-5 w-5 text-primary" /> Scenario
+                      presets
+                    </span>
+                    <HelpDialog
+                      title="How to use presets"
+                      content={`Presets are quick starting points. They fill in common assumptions so you can move fast, then tailor the deal to the actual property.
+
+**How to use them**
+- Pick a preset that matches the deal type.
+- Review the key inputs (price, rent, expenses, financing).
+- Adjust anything that differs from your property.
+
+**What to do next**
+- Verify the assumptions with real numbers.
+- Fine tune expenses, vacancy, and loan terms.
+- Use the results as a directional check, not a guarantee.
+
+**Why results can differ**
+- Presets only fill **some** fields. Anything not included stays as-is from your last selection.
+- That means the same preset can show different results depending on what you clicked before.
+- This usually comes from fields like HOA, utilities, insurance, or mortgage insurance.
+
+**Tip**
+- Click **Reset** first if you want a clean baseline, then apply a preset.`}
+                    />
                   </CardTitle>
                   <CardDescription>
-                    Pick a preset to prefill the numbers, then fine tune the
-                    numbers below. Remember to provide the best inputs you can
-                    find for more accurate results.
+                    Pick a preset to prefill the numbers, then fine tune below.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3">
