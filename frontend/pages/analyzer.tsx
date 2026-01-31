@@ -1234,7 +1234,7 @@ export default function AnalyzerPage() {
                       <button
                         key={scenario.name}
                         onClick={() => applyScenario(scenario)}
-                        className={`rounded-xl border px-4 py-3 text-left transition-all ${
+                        className={`rounded-xl border px-4 py-3 text-left transition-all cursor-pointer ${
                           activeScenario === scenario.name
                             ? "border-primary/60 bg-primary/10 shadow-sm"
                             : "border-border/60 bg-background/80 hover:border-primary/40 hover:bg-primary/5"
