@@ -1724,7 +1724,7 @@ export default function Home() {
                   aria-label="Learn More"
                   title="Learn More"
                 >
-                  Learn More <ArrowDown className="w-5 h-5 inline-block ml-2" />
+                  Learn More <ArrowDown className="w-5 h-5 inline-block" />
                 </Button>
               </Link>
             </AnimatedInView>
