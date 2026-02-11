@@ -5,6 +5,8 @@ description: "How EstateWise combines decisioning, retrieval, expert orchestrati
 
 EstateWise uses a layered AI system rather than a single model call.
 
+## End-to-end AI lifecycle
+
 ```mermaid
 flowchart TD
   U[User Prompt] --> D[Decision Step\nUse property data?]
@@ -17,21 +19,63 @@ flowchart TD
   F --> W[Weight Adjustments]
 ```
 
-## Core design principles
+## Runtime interaction sequence
 
-- Retrieval is conditional to reduce latency and cost on simple prompts.
-- Expert analysis is parallelized to keep response quality high.
-- The final response is synthesized by a merger model for coherence.
-- Feedback influences future expert weighting per conversation.
+```mermaid
+sequenceDiagram
+  participant FE as Frontend
+  participant BE as Backend Chat
+  participant Pine as Pinecone
+  participant Neo as Neo4j
+  participant X as Experts
+  participant MM as Merger
+
+  FE->>BE: message + history
+  BE->>BE: decision gate
+  alt usePropertyData=true
+    BE->>Pine: vector retrieval
+    alt neo4j enabled
+      BE->>Neo: graph enrichment
+      Neo-->>BE: relationship context
+    end
+    Pine-->>BE: top results
+  end
+  BE->>X: parallel expert prompts
+  X-->>BE: expert views
+  BE->>MM: synthesize
+  MM-->>BE: final response
+  BE-->>FE: response + views
+```
+
+## Control points
+
+- Decision gate controls cost and latency profile.
+- Retrieval context window controls token and quality tradeoff.
+- Expert parallelism controls depth without linear latency growth.
+- Feedback loop controls per-conversation personalization.
 
 ## AI model responsibilities
 
-| Layer | Main responsibility |
-| --- | --- |
-| Decision layer | Decide whether RAG context is needed |
+| Layer           | Main responsibility                              |
+| --------------- | ------------------------------------------------ |
+| Decision layer  | Decide whether RAG context is needed             |
 | Retrieval layer | Fetch relevant property context (vector + graph) |
-| Expert layer | Generate specialized analyses in parallel |
-| Merger layer | Produce one actionable user-facing response |
+| Expert layer    | Generate specialized analyses in parallel        |
+| Merger layer    | Produce one actionable user-facing response      |
+
+## Failure and fallback behavior
+
+```mermaid
+flowchart LR
+  Start[AI request] --> Check{Decision parse valid?}
+  Check -->|No| FastPath[Skip retrieval]
+  Check -->|Yes| Decide{Use property data?}
+  Decide -->|No| Experts[Expert-only path]
+  Decide -->|Yes| Retrieval[Vector/graph retrieval]
+  Retrieval --> Merge[Merge context]
+  Experts --> Merge
+  Merge --> Output[Return response]
+```
 
 ## Where this runs
 
@@ -40,5 +84,6 @@ flowchart TD
 - Supporting systems: Pinecone, optional Neo4j, MongoDB
 
 <Tip>
-For implementation details of Hybrid RAG and MoE behavior, continue to `/ai/rag` and `/ai/moe`.
+  For implementation details of Hybrid RAG and MoE behavior, continue to
+  `/ai/rag` and `/ai/moe`.
 </Tip>

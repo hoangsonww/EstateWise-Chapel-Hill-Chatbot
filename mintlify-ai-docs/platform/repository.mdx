@@ -3,6 +3,20 @@ title: "Repository Map"
 description: "A practical map of the EstateWise monorepo and ownership boundaries."
 ---
 
+## Workspace topology
+
+```mermaid
+flowchart TB
+  Root[EstateWise monorepo]
+  Root --> BE[backend]
+  Root --> FE[frontend]
+  Root --> MCP[mcp]
+  Root --> AA[agentic-ai]
+  Root --> GRPC[grpc]
+  Root --> DC[deployment-control]
+  Root --> Infra[infrastructure folders]
+```
+
 ## Core workspaces
 
 <CardGroup cols={2}>
@@ -26,6 +40,17 @@ description: "A practical map of the EstateWise monorepo and ownership boundarie
   </Card>
 </CardGroup>
 
+## Ownership interaction model
+
+```mermaid
+flowchart LR
+  FE[frontend] --> BE[backend contracts]
+  MCP[mcp tools] --> BE
+  AA[agentic runtime] --> MCP
+  GRPC[grpc contract] --> FE
+  Ops[deployment-control + infra] --> BE
+```
+
 ## Important entry points
 
 - Backend: `backend/src/server.ts`
@@ -41,6 +66,4 @@ description: "A practical map of the EstateWise monorepo and ownership boundarie
 - `aws/`, `azure/`, `gcp/`, `oracle-cloud/`, `hashicorp/`
 - `jenkins/`, `.github/workflows/`, `gitlab/`
 
-<Tip>
-For command-level workflows by workspace, see `/reference/commands`.
-</Tip>
+<Tip>For command-level workflows by workspace, see `/reference/commands`.</Tip>

@@ -5,16 +5,37 @@ description: "Mapping from the existing markdown docs set to this AI-native Mint
 
 This page maps legacy source files to their new documentation homes.
 
+## Migration graph
+
+```mermaid
+flowchart LR
+  README[README.md] --> Start[/start + /reference]
+  ARCH[ARCHITECTURE.md] --> Platform[/platform]
+  RAG[RAG_SYSTEM.md] --> AI[/ai]
+  TECH[TECH_DOCS.md] --> Cross[/ai + /platform + /ops + /reference]
+  DEVOPS[DEVOPS.md] --> Ops[/ops]
+  DEPLOY[DEPLOYMENTS.md] --> Deploy[/ops/deployments]
+```
+
 ## Source-to-site mapping
 
-| Legacy source | Primary new pages |
-| --- | --- |
-| `README.md` | `/index`, `/start/*`, `/reference/commands`, `/reference/endpoints` |
+| Legacy source     | Primary new pages                                                                           |
+| ----------------- | ------------------------------------------------------------------------------------------- |
+| `README.md`       | `/index`, `/start/*`, `/reference/commands`, `/reference/endpoints`                         |
 | `ARCHITECTURE.md` | `/platform/architecture`, `/platform/apis`, `/platform/data-models`, `/platform/repository` |
-| `RAG_SYSTEM.md` | `/ai/rag`, `/ai/system`, `/ai/moe` |
-| `TECH_DOCS.md` | `/ai/*`, `/platform/*`, `/ops/*`, `/reference/*` |
-| `DEVOPS.md` | `/ops/devops`, `/ops/runbooks`, `/ops/slo-dr` |
-| `DEPLOYMENTS.md` | `/ops/deployments` |
+| `RAG_SYSTEM.md`   | `/ai/rag`, `/ai/system`, `/ai/moe`                                                          |
+| `TECH_DOCS.md`    | `/ai/*`, `/platform/*`, `/ops/*`, `/reference/*`                                            |
+| `DEVOPS.md`       | `/ops/devops`, `/ops/runbooks`, `/ops/slo-dr`                                               |
+| `DEPLOYMENTS.md`  | `/ops/deployments`                                                                          |
+
+## Migration phases
+
+```mermaid
+flowchart TD
+  Phase1[Phase 1: inventory legacy docs] --> Phase2[Phase 2: map by intent]
+  Phase2 --> Phase3[Phase 3: rewrite into Mintlify pages]
+  Phase3 --> Phase4[Phase 4: keep references synced with code]
+```
 
 ## What this migration improves
 
@@ -29,5 +50,6 @@ This page maps legacy source files to their new documentation homes.
 - This Mintlify site is additive and isolated in `mintlify-ai-docs/`.
 
 <Tip>
-If needed, this site can be maintained as a long-term canonical docs layer while legacy markdown remains as archival source material.
+  If needed, this site can be maintained as a long-term canonical docs layer
+  while legacy markdown remains as archival source material.
 </Tip>

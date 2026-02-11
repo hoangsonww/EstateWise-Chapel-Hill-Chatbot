@@ -6,6 +6,7 @@ description: "A production-focused documentation site for EstateWise architectur
 This site is a modern, action-oriented documentation layer for EstateWise.
 
 It consolidates and improves the content currently spread across:
+
 - `README.md`
 - `ARCHITECTURE.md`
 - `DEVOPS.md`
@@ -28,15 +29,65 @@ It consolidates and improves the content currently spread across:
   </Card>
 </CardGroup>
 
-## What Makes This Version Better
+## Documentation Topology
+
+```mermaid
+flowchart TB
+  Root[EstateWise AI Docs]
+
+  Root --> Start[Start]
+  Root --> AI[AI Platform]
+  Root --> Arch[Architecture]
+  Root --> Ops[Operations]
+  Root --> Ref[Reference]
+
+  Start --> S1[Quickstart]
+  Start --> S2[Local Stack]
+  Start --> S3[Configuration]
+
+  AI --> A1[AI System]
+  AI --> A2[Hybrid RAG]
+  AI --> A3[Decision + MoE]
+  AI --> A4[Agentic + MCP]
+
+  Arch --> P1[System Architecture]
+  Arch --> P2[API Protocols]
+  Arch --> P3[Data Models]
+  Arch --> P4[Repository Map]
+
+  Ops --> O1[DevOps Playbook]
+  Ops --> O2[Deployment Targets]
+  Ops --> O3[Runbooks]
+  Ops --> O4[SLOs + DR]
+
+  Ref --> R1[Commands]
+  Ref --> R2[Endpoints]
+  Ref --> R3[Environment Variables]
+  Ref --> R4[Legacy Source Map]
+```
+
+## Why This Version Is Better
 
 - Source-of-truth commands are pulled from actual `package.json` scripts.
 - API references reflect real route registration from backend code.
 - AI docs explain not just what exists, but when to use each pathway.
 - Operations docs prioritize incident response and delivery safety.
 
+## Docs Lifecycle
+
+```mermaid
+flowchart LR
+  Code[Code Changes] --> Contracts[Contract Review]
+  Contracts --> DocsUpdate[Mintlify Page Updates]
+  DocsUpdate --> Verify[Local Preview + Link Check]
+  Verify --> Merge[Merge + Deploy Docs]
+  Merge --> Observe[User Feedback]
+  Observe --> Code
+```
+
 <Tip>
-The original documentation files remain unchanged. This site is an additive, Mintlify-native layer.
+  The original documentation files remain unchanged. This site is an additive,
+  Mintlify-native layer.
 </Tip>
 
 ## Read by Intent
@@ -47,6 +98,9 @@ The original documentation files remain unchanged. This site is an additive, Min
     - `/start/quickstart`
     - `/platform/repository`
     - `/reference/commands`
+
+    Then verify your environment at `/start/configuration`.
+
   </Tab>
   <Tab title="I am building AI features">
     Start with:
@@ -54,6 +108,9 @@ The original documentation files remain unchanged. This site is an additive, Min
     - `/ai/rag`
     - `/ai/moe`
     - `/ai/agentic-mcp`
+
+    Then validate protocol boundaries at `/platform/apis`.
+
   </Tab>
   <Tab title="I run production">
     Start with:
@@ -61,5 +118,8 @@ The original documentation files remain unchanged. This site is an additive, Min
     - `/ops/deployments`
     - `/ops/runbooks`
     - `/ops/slo-dr`
+
+    Keep `/reference/endpoints` and `/reference/env-vars` open during incidents.
+
   </Tab>
 </Tabs>

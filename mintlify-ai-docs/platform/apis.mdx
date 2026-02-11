@@ -5,15 +5,29 @@ description: "REST, tRPC, and gRPC contracts and when to use each one."
 
 ## Protocol selection
 
-| Protocol | Best for | Current implementation |
-| --- | --- | --- |
-| REST | Public API, broad client compatibility | Express routes under `/api/*` |
-| tRPC | Type-safe TS clients | App router mounted at `/trpc` |
-| gRPC | Service-to-service binary contracts and streaming | `MarketPulseService` on port `50051` |
+| Protocol | Best for                                          | Current implementation               |
+| -------- | ------------------------------------------------- | ------------------------------------ |
+| REST     | Public API, broad client compatibility            | Express routes under `/api/*`        |
+| tRPC     | Type-safe TS clients                              | App router mounted at `/trpc`        |
+| gRPC     | Service-to-service binary contracts and streaming | `MarketPulseService` on port `50051` |
+
+## Protocol decision guide
+
+```mermaid
+flowchart TD
+  Need[Need API path] --> External{External or public client?}
+  External -->|Yes| REST[Use REST]
+  External -->|No| TSOnly{TypeScript-only internal client?}
+  TSOnly -->|Yes| TRPC[Use tRPC]
+  TSOnly -->|No| Perf{Need streaming or strict binary contract?}
+  Perf -->|Yes| GRPC[Use gRPC]
+  Perf -->|No| REST
+```
 
 ## REST highlights
 
 Mounted from `backend/src/server.ts`:
+
 - `/api/auth`
 - `/api/chat`
 - `/api/conversations`
@@ -26,6 +40,7 @@ Mounted from `backend/src/server.ts`:
 ## tRPC highlights
 
 `backend/src/trpc/routers/index.ts` currently composes:
+
 - `properties`
 - `analytics`
 
@@ -38,6 +53,7 @@ Endpoint:
 ## gRPC highlights
 
 `grpc/proto/market_pulse.proto` defines:
+
 - `GetSnapshot`
 - `StreamHotZips`
 - `ListMarkets`
@@ -46,6 +62,16 @@ Service package:
 
 ```txt
 estatewise.marketpulse.MarketPulseService
+```
+
+## Contract lifecycle
+
+```mermaid
+flowchart LR
+  Define[Define route/proto/router] --> Implement[Implement server handlers]
+  Implement --> Consume[Update frontend/MCP/clients]
+  Consume --> Validate[Run focused tests]
+  Validate --> Publish[Deploy]
 ```
 
 ## Quick protocol guidance

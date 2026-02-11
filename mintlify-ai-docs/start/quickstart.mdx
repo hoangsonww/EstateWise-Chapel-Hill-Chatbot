@@ -3,6 +3,17 @@ title: "Quickstart"
 description: "Deploy the docs locally and run the full EstateWise stack in development."
 ---
 
+## End-to-end bootstrap flow
+
+```mermaid
+flowchart LR
+  A[Install Node 20.17+] --> B[Install Mint CLI]
+  B --> C[Run docs preview]
+  C --> D[Install monorepo deps]
+  D --> E[Start frontend + backend]
+  E --> F[Validate backend/frontend/MCP/gRPC]
+```
+
 ## 1) Run this Mintlify docs site
 
 Mintlify requires Node.js 20.17.0+.
@@ -20,17 +31,19 @@ Mintlify requires Node.js 20.17.0+.
     ```
 
     </CodeGroup>
+
   </Step>
 
   <Step title="Preview docs locally">
 
-  ```bash
-  cd mintlify-ai-docs
-  mint dev
-  ```
+```bash
+cd mintlify-ai-docs
+mint dev
+```
 
-  Open `http://localhost:3000`.
-  If your frontend is already running on port 3000, stop it before previewing docs.
+Open `http://localhost:3000`.
+If your frontend is already running on port `3000`, stop it before previewing docs.
+
   </Step>
 </Steps>
 
@@ -39,27 +52,36 @@ Mintlify requires Node.js 20.17.0+.
 <Steps>
   <Step title="Install monorepo dependencies">
 
-  ```bash
-  npm install
-  cd backend && npm install
-  cd ../frontend && npm install
-  cd ../mcp && npm install
-  cd ../agentic-ai && npm install
-  cd ../grpc && npm install
-  cd ../deployment-control && npm run install:all
-  ```
+```bash
+npm install
+cd backend && npm install
+cd ../frontend && npm install
+cd ../mcp && npm install
+cd ../agentic-ai && npm install
+cd ../grpc && npm install
+cd ../deployment-control && npm run install:all
+```
+
   </Step>
 
   <Step title="Start frontend and backend together">
 
-  ```bash
-  cd /Users/davidnguyen/WebstormProjects/EstateWise-Chatbot
-  npm run dev
-  ```
+```bash
+cd /Users/davidnguyen/WebstormProjects/EstateWise-Chatbot
+npm run dev
+```
 
-  This runs:
-  - frontend on `http://localhost:3000`
-  - backend on `http://localhost:3001`
+This runs:
+
+<ul>
+  <li>
+    frontend on <code>http://localhost:3000</code>
+  </li>
+  <li>
+    backend on <code>http://localhost:3001</code>
+  </li>
+</ul>
+
   </Step>
 </Steps>
 
@@ -79,6 +101,20 @@ cd ../mcp && npm run build && npm run client:dev
 cd ../grpc && npm run build && npm run test
 ```
 
+## Runtime dependencies
+
+```mermaid
+flowchart TB
+  FE[frontend] --> BE[backend]
+  BE --> Mongo[(MongoDB)]
+  BE --> Pine[(Pinecone)]
+  BE --> Neo[(Neo4j optional)]
+  MCP[mcp] --> BE
+  AA[agentic-ai] --> MCP
+  Consumers[gRPC clients] --> GRPC[grpc service]
+```
+
 <Warning>
-`cd mcp && npm run dev` appears idle until a client connects. That is expected behavior.
+  `cd mcp && npm run dev` appears idle until a client connects. That is expected
+  behavior.
 </Warning>

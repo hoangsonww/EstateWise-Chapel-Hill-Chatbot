@@ -8,7 +8,7 @@ description: "Vector retrieval plus graph enrichment for explainable real-estate
 Vector-only retrieval is fast but weak on structural explanations.
 Hybrid RAG adds graph relationships so recommendations are both relevant and explainable.
 
-## Pipeline
+## Retrieval architecture
 
 ```mermaid
 flowchart LR
@@ -20,11 +20,43 @@ flowchart LR
   X --> C[LLM Context]
 ```
 
+## Data ingestion path
+
+```mermaid
+flowchart TB
+  Raw[Property Data] --> Clean[Cleaning + validation]
+  Clean --> Embed[Generate embeddings]
+  Embed --> Pine[Pinecone upsert]
+  Clean --> GraphIngest[Graph ingest]
+  GraphIngest --> Neo[Neo4j nodes + edges]
+```
+
+## Query-time fallback logic
+
+```mermaid
+flowchart LR
+  Req[Query request] --> NeoFlag{Neo4j enabled and healthy?}
+  NeoFlag -->|Yes| Full[Vector + graph enrichment]
+  NeoFlag -->|No| VectorOnly[Vector-only retrieval]
+  Full --> Build[Build final context]
+  VectorOnly --> Build
+```
+
 ## What the system gains
 
 - Better locality/coherence (same neighborhood/zip patterns).
 - Relationship explanations for recommendations.
 - Context rich enough for finance/lifestyle/market expert reasoning.
+
+## Hybrid scoring concept
+
+```mermaid
+flowchart TB
+  Candidate[Candidate property] --> Vec[Vector similarity score]
+  Candidate --> Struct[Structural relationship score]
+  Vec --> Final[Weighted final ranking]
+  Struct --> Final
+```
 
 ## Graph-driven reasoning examples
 
@@ -34,19 +66,18 @@ flowchart LR
 ## Graceful degradation
 
 If Neo4j is disabled or unavailable:
+
 - graph routes return `503`
 - chat flow still works with vector-only retrieval
 
 <AccordionGroup>
   <Accordion title="When to favor vector-only mode">
-    - Very latency-sensitive interactions
-    - No graph infrastructure available
-    - Early prototyping where explainability is not yet required
+    - Very latency-sensitive interactions - No graph infrastructure available -
+    Early prototyping where explainability is not yet required
   </Accordion>
   <Accordion title="When to require Hybrid RAG">
-    - Production recommendation quality work
-    - Explainability requirements for users or stakeholders
-    - Neighborhood and structural context are core to UX
+    - Production recommendation quality work - Explainability requirements for
+    users or stakeholders - Neighborhood and structural context are core to UX
   </Accordion>
 </AccordionGroup>
 

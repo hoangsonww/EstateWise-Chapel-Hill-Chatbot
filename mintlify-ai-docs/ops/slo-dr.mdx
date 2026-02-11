@@ -5,14 +5,26 @@ description: "Operational objectives, reliability thresholds, backup strategy, a
 
 ## Suggested reliability objectives
 
-| Metric | Target |
-| --- | --- |
-| API latency (P50) | < 200ms |
-| API latency (P95) | < 800ms |
-| API latency (P99) | < 1500ms |
-| Availability | 99.9%+ |
-| Error rate | < 0.1% |
+| Metric             | Target       |
+| ------------------ | ------------ |
+| API latency (P50)  | < 200ms      |
+| API latency (P95)  | < 800ms      |
+| API latency (P99)  | < 1500ms     |
+| Availability       | 99.9%+       |
+| Error rate         | < 0.1%       |
 | Chat response time | < 3s typical |
+
+## SLO monitoring loop
+
+```mermaid
+flowchart LR
+  Traffic[Production traffic] --> Metrics[Collect metrics]
+  Metrics --> Compare[Compare to SLOs]
+  Compare -->|within budget| Continue[Continue operations]
+  Compare -->|violating budget| Action[Mitigate + rollback]
+  Action --> Review[Post-incident review]
+  Review --> Metrics
+```
 
 ## Recovery goals
 
@@ -40,6 +52,18 @@ kubectl get pods -n estatewise
 kubectl get deployments -n estatewise
 ```
 
+## Disaster recovery sequence
+
+```mermaid
+flowchart TB
+  Detect[Detect major outage] --> Infra[Re-provision infrastructure]
+  Infra --> Secrets[Restore secrets/config]
+  Secrets --> Deploy[Re-deploy workloads]
+  Deploy --> Data[Restore databases]
+  Data --> Validate[Run smoke checks]
+  Validate --> Resume[Resume full traffic]
+```
+
 ## Full-cluster recovery sequence
 
 1. Re-provision infra (Terraform/cloud templates).
@@ -49,5 +73,6 @@ kubectl get deployments -n estatewise
 5. Run smoke checks and traffic validation.
 
 <Warning>
-Disaster recovery is only reliable when regularly tested. Schedule rehearsal windows and record outcomes.
+  Disaster recovery is only reliable when regularly tested. Schedule rehearsal
+  windows and record outcomes.
 </Warning>

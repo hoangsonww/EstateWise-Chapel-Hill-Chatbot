@@ -3,6 +3,18 @@ title: "Commands Reference"
 description: "Workspace-level commands for development, build, tests, and operations."
 ---
 
+## Command selection flow
+
+```mermaid
+flowchart TD
+  Need[Need to run something] --> Scope{Which scope?}
+  Scope --> Root[Root commands]
+  Scope --> Service[Specific workspace]
+  Service --> Validate{Need validation?}
+  Validate -->|Yes| BuildTest[build + test commands]
+  Validate -->|No| DevOnly[dev/start command]
+```
+
 ## Monorepo root
 
 ```bash
@@ -78,6 +90,18 @@ npm run build:api
 npm run build:ui
 ```
 
+## Validation cadence
+
+```mermaid
+flowchart LR
+  Edit[Make change] --> Small[Run smallest relevant checks]
+  Small --> Pass{Pass?}
+  Pass -->|No| Fix[Fix and rerun]
+  Pass -->|Yes| Broader[Optional broader checks]
+  Broader --> Ready[Ready to merge]
+```
+
 <Tip>
-Use the smallest possible validation set for your change scope before expanding test coverage.
+  Use the smallest possible validation set for your change scope before
+  expanding test coverage.
 </Tip>

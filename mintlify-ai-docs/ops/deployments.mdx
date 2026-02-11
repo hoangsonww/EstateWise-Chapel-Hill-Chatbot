@@ -5,16 +5,42 @@ description: "Cloud deployment tracks and selection guidance across AWS, Azure, 
 
 EstateWise supports multiple deployment tracks with a shared application core.
 
+## Multi-cloud deployment map
+
+```mermaid
+flowchart TB
+  CI[CI/CD orchestration] --> AWS[AWS ECS Fargate]
+  CI --> AZ[Azure Container Apps]
+  CI --> GCP[GCP Cloud Run]
+  CI --> OCI[Oracle Cloud]
+  CI --> K8S[Kubernetes + HashiCorp]
+  CI --> Vercel[Vercel frontend]
+```
+
 ## Target options
 
-| Target | Primary stack |
-| --- | --- |
-| AWS | ECS Fargate + ALB + CodePipeline/CodeBuild |
-| Azure | Container Apps + Key Vault + Bicep |
-| GCP | Cloud Run + Cloud Build + Artifact Registry |
-| OCI | Terraform VCN + Compute + optional LB + OCIR |
+| Target        | Primary stack                                     |
+| ------------- | ------------------------------------------------- |
+| AWS           | ECS Fargate + ALB + CodePipeline/CodeBuild        |
+| Azure         | Container Apps + Key Vault + Bicep                |
+| GCP           | Cloud Run + Cloud Build + Artifact Registry       |
+| OCI           | Terraform VCN + Compute + optional LB + OCIR      |
 | HashiCorp/K8s | Terraform + Consul + Nomad + Kubernetes manifests |
-| Vercel | Frontend and optional edge/backend workflows |
+| Vercel        | Frontend and optional edge/backend workflows      |
+
+## Deployment target decision flow
+
+```mermaid
+flowchart TD
+  Need[Pick deployment target] --> Ops{Need low ops?}
+  Ops -->|Yes| Managed[Cloud Run or Container Apps]
+  Ops -->|No| Control{Need k8s/service mesh control?}
+  Control -->|Yes| K8S[HashiCorp + Kubernetes]
+  Control -->|No| AWS[AWS ECS Fargate]
+  Managed --> VercelQ{Frontend-first team?}
+  VercelQ -->|Yes| V[Vercel + backend target]
+  VercelQ -->|No| Managed
+```
 
 ## How to choose
 
@@ -32,6 +58,7 @@ EstateWise supports multiple deployment tracks with a shared application core.
 ## CI/CD controls
 
 Jenkins strategy toggles include:
+
 - `DEPLOY_BLUE_GREEN`
 - `DEPLOY_CANARY`
 - `AUTO_SWITCH_BLUE_GREEN`
@@ -39,5 +66,6 @@ Jenkins strategy toggles include:
 - cloud toggles like `DEPLOY_AWS`, `DEPLOY_AZURE`, `DEPLOY_GCP`, `DEPLOY_OCI`, `DEPLOY_K8S_MANIFESTS`
 
 <Tip>
-For strategy details and rollback procedures, use `/ops/devops` and `/ops/runbooks`.
+  For strategy details and rollback procedures, use `/ops/devops` and
+  `/ops/runbooks`.
 </Tip>
