@@ -1,0 +1,97 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "name": "EstateWise AI-Native Docs",
+  "description": "AI-native product, architecture, and operations documentation for EstateWise.",
+  "theme": "mint",
+  "colors": {
+    "primary": "#0F766E",
+    "light": "#14B8A6",
+    "dark": "#0D9488"
+  },
+  "topbar": {
+    "links": [
+      {
+        "label": "Live App",
+        "href": "https://estatewise.vercel.app"
+      },
+      {
+        "label": "API Docs",
+        "href": "https://estatewise-backend.vercel.app/api-docs"
+      }
+    ]
+  },
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Start",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "pages": [
+              "index",
+              "start/quickstart",
+              "start/local-stack",
+              "start/configuration"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "AI Platform",
+        "groups": [
+          {
+            "group": "Core AI",
+            "pages": ["ai/system", "ai/rag", "ai/moe", "ai/agentic-mcp"]
+          }
+        ]
+      },
+      {
+        "tab": "Architecture",
+        "groups": [
+          {
+            "group": "System Design",
+            "pages": [
+              "platform/architecture",
+              "platform/apis",
+              "platform/data-models",
+              "platform/repository"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Operations",
+        "groups": [
+          {
+            "group": "Delivery and Reliability",
+            "pages": [
+              "ops/devops",
+              "ops/deployments",
+              "ops/runbooks",
+              "ops/slo-dr"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Reference",
+        "groups": [
+          {
+            "group": "Engineering Reference",
+            "pages": [
+              "reference/commands",
+              "reference/endpoints",
+              "reference/env-vars",
+              "migration/source-map"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "footer": {
+    "socials": {
+      "github": "https://github.com/hoangsonww/EstateWise-Chapel-Hill-Chatbot"
+    }
+  }
+}

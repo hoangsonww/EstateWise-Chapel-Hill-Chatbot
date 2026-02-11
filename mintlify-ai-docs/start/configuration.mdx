@@ -1,0 +1,57 @@
+---
+title: "Configuration"
+description: "Environment variables and setup guidance for secure local and production usage."
+---
+
+## Core environment variables
+
+Start from root `.env.example` and configure at minimum:
+
+```env
+MONGO_URI=<your_mongo_uri>
+JWT_SECRET=<your_jwt_secret>
+GOOGLE_AI_API_KEY=<your_google_ai_api_key>
+PINECONE_API_KEY=<your_pinecone_api_key>
+PINECONE_INDEX=estatewise-index
+```
+
+## Graph and ingestion configuration
+
+```env
+NEO4J_ENABLE=true
+NEO4J_URI=neo4j+s://<your-instance-id>.databases.neo4j.io
+NEO4J_USERNAME=neo4j
+NEO4J_PASSWORD=<admin-password>
+NEO4J_DATABASE=neo4j
+
+INGEST_LIMIT=30772
+PINECONE_PAGE_SIZE=1000
+INGEST_RESUME=true
+INGEST_CHECKPOINT_FILE=
+NEO4J_RESET=true
+NEO4J_WRITE_RETRIES=7
+```
+
+## MCP-specific configuration
+
+Set in `mcp/.env`:
+
+```env
+API_BASE_URL=https://estatewise-backend.vercel.app
+FRONTEND_BASE_URL=https://estatewise.vercel.app
+MCP_CACHE_TTL_MS=30000
+MCP_CACHE_MAX=200
+MCP_DEBUG=false
+MCP_TOKEN_SECRET=<strong-random-secret>
+```
+
+<Warning>
+Never commit `.env` files or secrets. Use secret managers in production.
+</Warning>
+
+## Common misconfiguration checks
+
+- Backend fails at startup: check `MONGO_URI`, `JWT_SECRET`, `GOOGLE_AI_API_KEY`.
+- Property search empty: verify Pinecone index exists and data is upserted.
+- Graph endpoints return `503`: verify Neo4j credentials and `NEO4J_ENABLE=true`.
+- MCP auth flows fail: verify `MCP_TOKEN_SECRET` and token TTL settings.
