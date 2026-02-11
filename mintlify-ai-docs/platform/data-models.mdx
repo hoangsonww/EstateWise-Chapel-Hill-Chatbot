@@ -3,9 +3,21 @@ title: "Data Models"
 description: "How MongoDB, Pinecone, and Neo4j represent EstateWise data."
 ---
 
+## Data plane overview
+
+```mermaid
+flowchart LR
+  Chat[Chat/API workflows] --> Mongo[(MongoDB)]
+  Search[Semantic retrieval] --> Pine[(Pinecone)]
+  Explain[Relationship reasoning] --> Neo[(Neo4j)]
+  Pine --> Explain
+  Mongo --> Search
+```
+
 ## MongoDB (operational records)
 
 Primary concerns:
+
 - Users and authentication state
 - Conversations and messages
 - Feedback and expert-weight context
@@ -14,11 +26,13 @@ Primary concerns:
 ## Pinecone (semantic retrieval)
 
 Primary concerns:
+
 - Embedded listing vectors
 - Metadata used for retrieval and charting
 - Similarity ranking for RAG context
 
 Typical metadata fields:
+
 - `zpid`
 - `price`, `bedrooms`, `bathrooms`, `livingArea`, `yearBuilt`
 - `address` object/string data
@@ -29,14 +43,25 @@ Typical metadata fields:
 Used when graph mode is enabled.
 
 Node types:
+
 - `Property`
 - `Zip`
 - `Neighborhood`
 
 Relationships:
+
 - `(:Property)-[:IN_ZIP]->(:Zip)`
 - `(:Property)-[:IN_NEIGHBORHOOD]->(:Neighborhood)`
 - optional similarity edges (`SIMILAR_TO`) depending on ingest and modeling strategy
+
+## Graph schema visualization
+
+```mermaid
+graph LR
+  P1[Property] -->|IN_ZIP| Z[Zip]
+  P1 -->|IN_NEIGHBORHOOD| N[Neighborhood]
+  P1 -->|SIMILAR_TO| P2[Property]
+```
 
 ## Why this split is effective
 

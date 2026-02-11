@@ -8,6 +8,17 @@ EstateWise includes two key extension layers:
 - `agentic-ai/`: orchestration runtime for multi-step goals
 - `mcp/`: 60+ tools exposed over MCP stdio
 
+## Runtime architecture
+
+```mermaid
+flowchart LR
+  Goal[User goal] --> Runtime[Agentic runtime]
+  Runtime --> MCP[MCP server]
+  MCP --> BE[Backend APIs]
+  MCP --> Map[Map deep-link tools]
+  BE --> Data[(MongoDB + Pinecone + Neo4j)]
+```
+
 ## Agentic runtimes
 
 <Tabs>
@@ -18,6 +29,7 @@ EstateWise includes two key extension layers:
     cd agentic-ai
     npm run dev "find 3-bed homes in chapel hill under 600k"
     ```
+
   </Tab>
   <Tab title="LangGraph runtime">
     ReAct-style tool-calling workflow.
@@ -26,6 +38,7 @@ EstateWise includes two key extension layers:
     cd agentic-ai
     npm run dev:langgraph -- "compare two zpids and explain graph paths"
     ```
+
   </Tab>
   <Tab title="CrewAI runtime">
     Crew-based orchestration option.
@@ -34,27 +47,39 @@ EstateWise includes two key extension layers:
     cd agentic-ai
     npm run dev:crewai -- "rank properties by affordability and commute"
     ```
+
   </Tab>
 </Tabs>
 
-## MCP tool surface (selected categories)
-
-- Properties: search, lookup, byIds
-- Graph: similar, explain, neighborhood, path matrix
-- Analytics/Market: trends, distributions, affordability
-- Batch: compare/export/enrich
-- Finance: mortgage, cap rate, rent-vs-buy
-- Monitoring/System: health, usage, cache control
-- Token management: issue, validate, refresh, revoke
-
-## End-to-end interaction
+## Tool categories map
 
 ```mermaid
-flowchart LR
-  UserGoal[User Goal] --> AR[Agentic Runtime]
-  AR --> MCP[MCP Server]
-  MCP --> API[EstateWise Backend APIs]
-  MCP --> UI[Map Deep Links]
+flowchart TB
+  MCP[MCP Tool Registry]
+  MCP --> P[Properties]
+  MCP --> G[Graph]
+  MCP --> A[Analytics + Market]
+  MCP --> B[Batch]
+  MCP --> F[Finance]
+  MCP --> S[System + Monitoring]
+  MCP --> T[Token workflows]
+```
+
+## End-to-end interaction sequence
+
+```mermaid
+sequenceDiagram
+  participant U as User
+  participant AR as Agentic runtime
+  participant MCP as MCP server
+  participant API as Backend
+
+  U->>AR: goal
+  AR->>MCP: tool call
+  MCP->>API: REST request
+  API-->>MCP: result payload
+  MCP-->>AR: tool response
+  AR-->>U: synthesized output
 ```
 
 ## Important operational notes

@@ -20,6 +20,19 @@ or
 
 This avoids expensive retrieval for prompts that do not benefit from RAG.
 
+## Execution flow
+
+```mermaid
+flowchart LR
+  Prompt[Prompt] --> Decide[Decision gate]
+  Decide -->|true| Retrieve[Fetch retrieval context]
+  Decide -->|false| Skip[Skip retrieval]
+  Retrieve --> Experts[Parallel experts]
+  Skip --> Experts
+  Experts --> Merge[Master merger]
+  Merge --> Output[Response + expert views]
+```
+
 ## Expert ensemble
 
 EstateWise runs specialized expert views in parallel:
@@ -44,10 +57,27 @@ flowchart TB
   E5 --> Merge
 ```
 
-## Feedback loop
+## Weight adjustment loop
 
-Users rate responses via `POST /api/chat/rate`.
-That signal can adjust expert weight distribution for future responses.
+```mermaid
+flowchart LR
+  Resp[Model response] --> Rate[User rating]
+  Rate -->|thumbs up| Keep[Keep weights]
+  Rate -->|thumbs down| Adjust[Adjust selected expert weights]
+  Keep --> Next[Next turn]
+  Adjust --> Normalize[Normalize weight vector]
+  Normalize --> Next
+```
+
+## Latency profile
+
+```mermaid
+flowchart TB
+  Start[Start turn] --> P[Parallel expert calls]
+  P --> Join[Join expert outputs]
+  Join --> M[Single merger call]
+  M --> Done[Send response]
+```
 
 ## Why this architecture works
 
@@ -56,5 +86,6 @@ That signal can adjust expert weight distribution for future responses.
 - Balances speed, explainability, and personalization.
 
 <Warning>
-Expert pipelines are powerful but can increase latency if context grows too large. Keep retrieval context bounded.
+  Expert pipelines are powerful but can increase latency if context grows too
+  large. Keep retrieval context bounded.
 </Warning>

@@ -34,6 +34,35 @@ flowchart TB
   REST --> Neo
 ```
 
+## Request flow across protocols
+
+```mermaid
+sequenceDiagram
+  participant UI as Frontend UI
+  participant REST as REST API
+  participant TRPC as tRPC Router
+  participant GRPC as gRPC Service
+
+  UI->>REST: public REST call
+  UI->>TRPC: typed query/mutation
+  REST-->>UI: JSON response
+  TRPC-->>UI: typed payload
+  Note over GRPC: used by service clients
+```
+
+## Middleware and route ordering model
+
+```mermaid
+flowchart LR
+  Req[Incoming request] --> Cookie[cookieParser]
+  Cookie --> Status[status monitor + request metrics]
+  Status --> CORS[CORS + json parsing]
+  CORS --> Routes[REST routes]
+  Routes --> TRPC[tRPC middleware]
+  TRPC --> Docs[swagger endpoints]
+  Docs --> Error[error handler]
+```
+
 ## Architectural intent
 
 - REST remains the broadest integration surface.
@@ -45,11 +74,13 @@ flowchart TB
 
 Backend route registration and middleware ordering are operationally important.
 At runtime, key surfaces include:
+
 - `/api/*` REST routes
 - `/trpc` router
 - `/swagger.json` and `/api-docs`
 - `/metrics` and `/status`
 
 <Tip>
-The root route redirects to `/api-docs` in the current backend server implementation.
+  The root route redirects to `/api-docs` in the current backend server
+  implementation.
 </Tip>

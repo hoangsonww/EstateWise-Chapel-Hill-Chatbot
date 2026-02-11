@@ -3,6 +3,16 @@ title: "Configuration"
 description: "Environment variables and setup guidance for secure local and production usage."
 ---
 
+## Configuration layering
+
+```mermaid
+flowchart TB
+  Repo[.env.example baseline] --> Local[Local .env files]
+  Local --> Service[Service-level env usage]
+  Service --> Runtime[Runtime behavior]
+  Runtime --> Observability[Logs + metrics]
+```
+
 ## Core environment variables
 
 Start from root `.env.example` and configure at minimum:
@@ -45,9 +55,15 @@ MCP_DEBUG=false
 MCP_TOKEN_SECRET=<strong-random-secret>
 ```
 
-<Warning>
-Never commit `.env` files or secrets. Use secret managers in production.
-</Warning>
+## Secret handling path
+
+```mermaid
+flowchart LR
+  Dev[Developer machine] --> Env[Local env files]
+  Env --> App[Services]
+  App --> Vault[Secret manager in production]
+  Vault --> Runtime[Runtime injection]
+```
 
 ## Common misconfiguration checks
 
@@ -55,3 +71,7 @@ Never commit `.env` files or secrets. Use secret managers in production.
 - Property search empty: verify Pinecone index exists and data is upserted.
 - Graph endpoints return `503`: verify Neo4j credentials and `NEO4J_ENABLE=true`.
 - MCP auth flows fail: verify `MCP_TOKEN_SECRET` and token TTL settings.
+
+<Warning>
+  Never commit `.env` files or secrets. Use secret managers in production.
+</Warning>

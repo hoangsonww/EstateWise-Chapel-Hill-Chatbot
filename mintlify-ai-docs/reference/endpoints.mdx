@@ -3,6 +3,16 @@ title: "API Endpoints"
 description: "Current endpoint inventory based on registered backend routes and services."
 ---
 
+## Endpoint landscape
+
+```mermaid
+flowchart TB
+  Client[Clients] --> REST[/api routes]
+  Client --> TRPC[/trpc]
+  Client --> GRPC[gRPC :50051]
+  REST --> Ops[/metrics /status /api-docs]
+```
+
 ## Backend operational endpoints
 
 - `GET /metrics`
@@ -79,6 +89,17 @@ description: "Current endpoint inventory based on registered backend routes and 
 - `POST /:id/upvote`
 - `POST /:id/downvote`
 
+## Request routing sketch
+
+```mermaid
+flowchart LR
+  FE[frontend/lib/api.ts] --> BE[backend routes]
+  MCP[mcp tools] --> BE
+  BE --> Mongo[(MongoDB)]
+  BE --> Pine[(Pinecone)]
+  BE --> Neo[(Neo4j)]
+```
+
 ## tRPC endpoint
 
 - `/trpc` (app router includes `properties` and `analytics` routers)
@@ -86,10 +107,11 @@ description: "Current endpoint inventory based on registered backend routes and 
 ## gRPC service
 
 Service: `estatewise.marketpulse.MarketPulseService`
+
 - `GetSnapshot`
 - `StreamHotZips`
 - `ListMarkets`
 
 <Warning>
-If Neo4j is disabled, graph endpoints can return `503` by design.
+  If Neo4j is disabled, graph endpoints can return `503` by design.
 </Warning>

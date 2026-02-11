@@ -6,17 +6,45 @@ description: "CI/CD flow, deployment strategies, Kubernetes operations, and obse
 ## CI/CD model
 
 EstateWise supports multiple CI/CD entry points:
+
 - Jenkins (primary production orchestrator)
 - GitHub Actions workflows
 - GitLab CI pipelines
 
+## Pipeline structure
+
+```mermaid
+flowchart LR
+  Commit[Commit/PR] --> Lint[Lint + format]
+  Lint --> Test[Tests]
+  Test --> Build[Build images]
+  Build --> Scan[Security scan]
+  Scan --> Strategy[Deployment strategy]
+  Strategy --> Observe[Monitoring + alerts]
+```
+
 ## Strategy matrix
 
-| Strategy | Rollback speed | Resource overhead | Best use |
-| --- | --- | --- | --- |
-| Blue-Green | Instant | High during switch | Major releases |
-| Canary | Progressive | Moderate | New features and risk-managed rollout |
-| Rolling | Standard | Low | Routine updates |
+| Strategy   | Rollback speed | Resource overhead  | Best use                              |
+| ---------- | -------------- | ------------------ | ------------------------------------- |
+| Blue-Green | Instant        | High during switch | Major releases                        |
+| Canary     | Progressive    | Moderate           | New features and risk-managed rollout |
+| Rolling    | Standard       | Low                | Routine updates                       |
+
+## Strategy transition model
+
+```mermaid
+stateDiagram-v2
+  [*] --> Stable
+  Stable --> BlueGreen: major release
+  Stable --> Canary: risky feature
+  Stable --> Rolling: routine patch
+  BlueGreen --> Stable: switch success
+  BlueGreen --> Stable: instant rollback
+  Canary --> Stable: full promote
+  Canary --> Stable: abort + rollback
+  Rolling --> Stable: rollout complete
+```
 
 ## Blue-Green operational pattern
 
@@ -48,16 +76,28 @@ kubectl logs -f deployment/estatewise-backend -n estatewise
 
 ## Monitoring and observability
 
+```mermaid
+flowchart LR
+  App[backend services] --> Metrics[/metrics]
+  App --> Status[/status]
+  Metrics --> Prom[Prometheus]
+  Prom --> Graf[Grafana]
+  Prom --> Alerts[Alerting]
+```
+
 Key backend observability endpoints:
+
 - `/metrics` (Prometheus)
 - `/status` (status monitor UI)
 
 Primary operational signals:
+
 - request latency and error rates
 - memory and CPU pressure
 - rollout health
 - canary and blue/green slot health
 
 <Warning>
-Keep deployment checks and rollback commands scripted and rehearsed. Manual, undocumented rollback steps increase MTTR.
+  Keep deployment checks and rollback commands scripted and rehearsed. Manual,
+  undocumented rollback steps increase MTTR.
 </Warning>

@@ -3,7 +3,7 @@ title: "Local Stack"
 description: "Understand and run the full EstateWise local development topology."
 ---
 
-## Local Topology
+## Local topology
 
 ```mermaid
 flowchart LR
@@ -23,6 +23,28 @@ flowchart LR
   MCP --> BE
   AA --> MCP
   FE --> GRPC
+```
+
+## Request lifecycle in local mode
+
+```mermaid
+sequenceDiagram
+  participant U as User
+  participant FE as Frontend
+  participant BE as Backend
+  participant Pine as Pinecone
+  participant Neo as Neo4j
+
+  U->>FE: Ask property question
+  FE->>BE: POST /api/chat
+  BE->>Pine: vector query
+  alt Neo4j enabled
+    BE->>Neo: graph enrichment
+    Neo-->>BE: graph context
+  end
+  Pine-->>BE: candidates
+  BE-->>FE: response + views
+  FE-->>U: render answer
 ```
 
 ## Service-by-service start commands
@@ -58,8 +80,21 @@ cd deployment-control && npm run dev:ui
 1. Database and vector/graph dependencies (MongoDB, Pinecone, optional Neo4j)
 2. Backend API
 3. Frontend
-4. Optional: MCP, Agentic AI, gRPC, deployment-control
+4. Optional services (MCP, Agentic AI, gRPC, deployment-control)
+
+## Dependency check order
+
+```mermaid
+flowchart TD
+  A[Check env vars] --> B[Check MongoDB]
+  B --> C[Check Pinecone index]
+  C --> D[Optional Neo4j]
+  D --> E[Start backend]
+  E --> F[Start frontend]
+  F --> G[Start optional services]
+```
 
 <Tip>
-For graph routes (`/api/graph/*`) to return meaningful data, Neo4j must be enabled and ingested.
+  For graph routes (`/api/graph/*`) to return meaningful data, Neo4j must be
+  enabled and ingested.
 </Tip>
