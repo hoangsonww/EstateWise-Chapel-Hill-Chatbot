@@ -2,7 +2,29 @@
 
 This directory contains a standalone, AI-native Mintlify documentation site for the EstateWise monorepo.
 
-It is intentionally additive and does not modify any existing documentation sources at repository root.
+It is designed to be a production-focused, easy-to-navigate resource for developers, AI engineers, and operations personnel working with EstateWise.
+
+<p align="center">
+  <img src="../img/mintlify.png" alt="EstateWise Logo" width="100%"/>
+</p>
+
+## Table of Contents
+
+- [Purpose](#purpose)
+- [What This Site Covers](#what-this-site-covers)
+- [Design Principles](#design-principles)
+- [Information Architecture](#information-architecture)
+- [Migration Model](#migration-model)
+- [Directory Layout](#directory-layout)
+- [Local Development](#local-development)
+  - [Prerequisites](#prerequisites)
+  - [Run locally](#run-locally)
+- [Editing Workflow](#editing-workflow)
+- [Content Standards](#content-standards)
+- [Recommended Update Triggers](#recommended-update-triggers)
+- [Quality Checklist](#quality-checklist)
+- [Relationship to Existing Docs](#relationship-to-existing-docs)
+- [Ownership](#ownership)
 
 ## Purpose
 
@@ -12,6 +34,8 @@ This site provides a production-focused documentation experience that is:
 - Structured by user intent (onboarding, AI, architecture, operations, reference)
 - Grounded in actual code and commands from this repository
 - Safe to evolve independently from legacy markdown docs
+- Designed for maintainability and clarity
+- Complementary to existing root-level docs (`.md` files)
 
 ## What This Site Covers
 
@@ -24,7 +48,11 @@ The site consolidates and modernizes key content previously spread across:
 - `RAG_SYSTEM.md`
 - `TECH_DOCS.md`
 
+And more, into a coherent, well-structured format.
+
 ## Design Principles
+
+Each page and section is crafted with these principles in mind:
 
 - **AI-native**: explain decision gates, retrieval behavior, expert orchestration, and runtime/tool boundaries.
 - **Operationally useful**: prioritize deploy/runbook/SLO/rollback clarity.
@@ -182,12 +210,7 @@ This site does not replace existing root-level docs immediately.
 
 It acts as a maintained, structured docs layer while legacy markdown remains available as source material and historical context.
 
-## Future Enhancements
-
-- Add OpenAPI-driven endpoint pages per route group
-- Add architecture decision records (ADRs)
-- Add incident timeline templates and postmortem schema
-- Add release note pages tied to CI/CD deployments
+It complements rather than contradicts or replaces the existing docs, by making documentations more AI-native and operationally focused.
 
 ## Ownership
 

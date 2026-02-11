@@ -61,6 +61,7 @@ Large Language Models (LLMs), a Mixture‑of‑Experts ensemble, blue/green & ca
 - [JSDoc & TypeDoc](#jsdoc--typedoc)
 - [Containerization](#containerization)
 - [VS Code Extension](#vs-code-extension)
+- [Mintlify Documentation](#mintlify-documentation)
 - [Contributing](#contributing)
 - [License](#license)
 - [Contact](#contact)
@@ -1930,6 +1931,18 @@ We have developed a VSCode extension to enhance the development experience with 
 
 > [!TIP]
 > VS Code Marketplace: [Estatewise Chat Extension](https://marketplace.visualstudio.com/items?itemName=hoangsonw.estatewise-chat).
+
+## Mintlify Documentation
+
+This project is also documented using Mintlify, which provides an easy way to create and maintain documentation.
+
+The Mintlify documentation complements, rather than replaces, the existing README and technical docs. It offers a more AI-native, user-friendly interface for exploring the project's features, setup instructions, architecture, and usage examples.
+
+You can access the Mintlify documentation for this project at the [Mintlify docs directory](mintlify-ai-docs/README.md).
+
+<p align="center">
+  <img src="img/mintlify.png" alt="EstateWise Logo" width="100%"/>
+</p>
 
 ## Contributing
 
