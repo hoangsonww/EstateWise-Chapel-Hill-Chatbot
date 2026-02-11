@@ -1,0 +1,65 @@
+---
+title: "Local Stack"
+description: "Understand and run the full EstateWise local development topology."
+---
+
+## Local Topology
+
+```mermaid
+flowchart LR
+  FE[Frontend Next.js]
+  BE[Backend Express]
+  DB[(MongoDB)]
+  VC[(Pinecone)]
+  KG[(Neo4j optional)]
+  MCP[MCP Server]
+  AA[Agentic AI]
+  GRPC[gRPC Market Pulse]
+
+  FE --> BE
+  BE --> DB
+  BE --> VC
+  BE --> KG
+  MCP --> BE
+  AA --> MCP
+  FE --> GRPC
+```
+
+## Service-by-service start commands
+
+```bash
+# root convenience
+npm run dev
+
+# backend only
+npm run backend
+
+# frontend only
+npm run frontend
+```
+
+```bash
+# MCP
+cd mcp && npm run dev
+
+# Agentic AI
+cd agentic-ai && npm run dev "find 3-bed homes under 600k"
+
+# gRPC
+cd grpc && npm run dev
+
+# Deployment control API and UI
+cd deployment-control && npm run dev
+cd deployment-control && npm run dev:ui
+```
+
+## Practical startup order
+
+1. Database and vector/graph dependencies (MongoDB, Pinecone, optional Neo4j)
+2. Backend API
+3. Frontend
+4. Optional: MCP, Agentic AI, gRPC, deployment-control
+
+<Tip>
+For graph routes (`/api/graph/*`) to return meaningful data, Neo4j must be enabled and ingested.
+</Tip>

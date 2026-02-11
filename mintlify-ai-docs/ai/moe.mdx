@@ -1,0 +1,60 @@
+---
+title: "Decision + MoE"
+description: "The decision gate, parallel experts, and weighted synthesis loop."
+---
+
+## Decision gate
+
+The first AI step determines whether property retrieval is needed.
+It emits a strict JSON response:
+
+```json
+{ "usePropertyData": true }
+```
+
+or
+
+```json
+{ "usePropertyData": false }
+```
+
+This avoids expensive retrieval for prompts that do not benefit from RAG.
+
+## Expert ensemble
+
+EstateWise runs specialized expert views in parallel:
+
+- Data Analyst
+- Lifestyle Concierge
+- Financial Advisor
+- Neighborhood Expert
+- Cluster Analyst
+
+```mermaid
+flowchart TB
+  Ctx[Combined Context] --> E1[Data Analyst]
+  Ctx --> E2[Lifestyle Concierge]
+  Ctx --> E3[Financial Advisor]
+  Ctx --> E4[Neighborhood Expert]
+  Ctx --> E5[Cluster Analyst]
+  E1 --> Merge[Master Merger]
+  E2 --> Merge
+  E3 --> Merge
+  E4 --> Merge
+  E5 --> Merge
+```
+
+## Feedback loop
+
+Users rate responses via `POST /api/chat/rate`.
+That signal can adjust expert weight distribution for future responses.
+
+## Why this architecture works
+
+- Improves answer quality through specialization.
+- Preserves coherence with a single merger output.
+- Balances speed, explainability, and personalization.
+
+<Warning>
+Expert pipelines are powerful but can increase latency if context grows too large. Keep retrieval context bounded.
+</Warning>

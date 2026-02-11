@@ -1,0 +1,55 @@
+---
+title: "System Architecture"
+description: "Service boundaries, flow design, and protocol layering for EstateWise."
+---
+
+## High-level layout
+
+```mermaid
+flowchart TB
+  subgraph Clients
+    Web[Next.js Frontend]
+    MCPClients[MCP Clients]
+    SvcClients[Service Clients]
+  end
+
+  subgraph APIs
+    REST[REST API - Express]
+    TRPC[tRPC - /trpc]
+    GRPC[gRPC - :50051]
+  end
+
+  subgraph Data
+    Mongo[(MongoDB)]
+    Pine[(Pinecone)]
+    Neo[(Neo4j optional)]
+  end
+
+  Web --> REST
+  Web --> TRPC
+  MCPClients --> REST
+  SvcClients --> GRPC
+  REST --> Mongo
+  REST --> Pine
+  REST --> Neo
+```
+
+## Architectural intent
+
+- REST remains the broadest integration surface.
+- tRPC provides type-safe internal integration for TypeScript clients.
+- gRPC provides efficient contract-based service communication.
+- AI and retrieval remain in backend service boundaries.
+
+## Route and middleware realities
+
+Backend route registration and middleware ordering are operationally important.
+At runtime, key surfaces include:
+- `/api/*` REST routes
+- `/trpc` router
+- `/swagger.json` and `/api-docs`
+- `/metrics` and `/status`
+
+<Tip>
+The root route redirects to `/api-docs` in the current backend server implementation.
+</Tip>

@@ -1,0 +1,61 @@
+---
+title: "Runbooks"
+description: "Operational runbook actions for incidents, deployments, scaling, and troubleshooting."
+---
+
+This page summarizes actions from:
+- `docs/runbooks/INCIDENT-RESPONSE.md`
+- `docs/runbooks/PRODUCTION-OPS.md`
+
+## First-response incident checklist
+
+1. Confirm impact and blast radius.
+2. Check pod/deployment state.
+3. Inspect recent events and rollout history.
+4. Inspect logs and core metrics.
+5. Execute rollback/scale actions if thresholds are breached.
+
+## Critical commands
+
+```bash
+# Health snapshot
+kubectl get pods -n estatewise
+kubectl get events -n estatewise --sort-by='.lastTimestamp'
+kubectl top pods -n estatewise
+
+# Rollout and rollback
+kubectl rollout history deployment/estatewise-backend -n estatewise
+kubectl rollout undo deployment/estatewise-backend -n estatewise
+
+# Logs
+kubectl logs -f deployment/estatewise-backend -n estatewise
+kubectl logs -l app=estatewise-backend -n estatewise --since=1h | grep -i error
+```
+
+## Common incident scenarios
+
+<AccordionGroup>
+  <Accordion title="Service down">
+    Check pod states, events, and image pull errors first. Validate resource availability and probe behavior.
+  </Accordion>
+  <Accordion title="High error rate">
+    Check rollout history, recent changes, database connectivity, and upstream API failures. Roll back quickly when thresholds are exceeded.
+  </Accordion>
+  <Accordion title="Performance degradation">
+    Check HPA, CPU/memory pressure, and query bottlenecks. Scale first, then optimize.
+  </Accordion>
+  <Accordion title="Canary failure">
+    Verify canary pod health and metrics, then scale canary down and restore stable replicas.
+  </Accordion>
+</AccordionGroup>
+
+## Daily and weekly operations
+
+- Daily: pod/HPA status, recent deployment events, error count, resource usage.
+- Weekly: backup verification, security scans, capacity trend review, alert review.
+
+## Emergency procedures
+
+- Emergency rollback: `kubectl rollout undo ...`
+- Emergency scale-down/up: adjust replicas directly
+- Blue-green slot switch for instant rollback where configured
