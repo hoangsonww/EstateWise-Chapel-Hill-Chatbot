@@ -16,19 +16,12 @@ import { ComplianceAgent } from "../agents/ComplianceAgent.js";
 import { AgentOrchestrator } from "../orchestrator/AgentOrchestrator.js";
 import { runEstateWiseAgent } from "../lang/graph.js";
 import { runCrewAIGoal } from "../crewai/CrewRunner.js";
+import { A2AProtocol } from "../a2a/protocol.js";
+import type { AgentRuntime } from "../a2a/types.js";
 import type { CostReport } from "../costs/tracker.js";
 
-/** JSON-like payload type for responses. */
-type Json =
-  | Record<string, unknown>
-  | Array<unknown>
-  | string
-  | number
-  | boolean
-  | null;
-
 /** Send a JSON response with CORS headers. */
-function sendJson(res: http.ServerResponse, status: number, body: Json) {
+function sendJson(res: http.ServerResponse, status: number, body: unknown) {
   const data = typeof body === "string" ? body : JSON.stringify(body);
   res.writeHead(status, {
     "Content-Type": "application/json; charset=utf-8",
@@ -44,6 +37,7 @@ const dashboardPath = path.resolve(
   "../../public/costs-dashboard.html",
 );
 let lastCostReport: CostReport | null = null;
+const supportedRuntimes: AgentRuntime[] = ["default", "langgraph", "crewai"];
 
 /** Parse a small JSON body into an object. */
 function parseBody(req: http.IncomingMessage): Promise<any> {
@@ -63,60 +57,147 @@ function parseBody(req: http.IncomingMessage): Promise<any> {
   });
 }
 
+interface RunRequest {
+  goal: string;
+  runtime: AgentRuntime;
+  rounds: number;
+  threadId?: string;
+}
+
+function parseRuntime(runtime: unknown): AgentRuntime {
+  if (runtime == null || runtime === "") return "default";
+  if (
+    runtime === "default" ||
+    runtime === "langgraph" ||
+    runtime === "crewai"
+  ) {
+    return runtime;
+  }
+  throw new Error("runtime must be one of default|langgraph|crewai");
+}
+
+function parseRounds(rounds: unknown, fallback = 5): number {
+  const n = Number(rounds ?? fallback);
+  if (!Number.isFinite(n)) return fallback;
+  const rounded = Math.floor(n);
+  if (rounded < 1) return fallback;
+  return Math.min(rounded, 20);
+}
+
+function parseRunRequest(body: any): RunRequest {
+  const goal = typeof body?.goal === "string" ? body.goal.trim() : "";
+  if (!goal) throw new Error("Missing goal");
+  const runtime = parseRuntime(body?.runtime);
+  const rounds = parseRounds(body?.rounds, 5);
+  const threadId =
+    typeof body?.threadId === "string" && body.threadId.length > 0
+      ? body.threadId
+      : process.env.THREAD_ID;
+  return { goal, runtime, rounds, threadId };
+}
+
+function createDefaultOrchestrator() {
+  return new AgentOrchestrator().register(
+    new PlannerAgent(),
+    new CoordinatorAgent(),
+    new ZpidFinderAgent(),
+    new PropertyAnalystAgent(),
+    new AnalyticsAnalystAgent(),
+    new GraphAnalystAgent(),
+    new DedupeRankingAgent(),
+    new MapAnalystAgent(),
+    new FinanceAnalystAgent(),
+    new ComplianceAgent(),
+    new ReporterAgent(),
+  );
+}
+
+async function executeRun(req: RunRequest) {
+  const startedAt = Date.now();
+  if (req.runtime === "langgraph") {
+    const result = await runEstateWiseAgent({
+      input: req.goal,
+      threadId: req.threadId,
+    });
+    lastCostReport = result.costs ?? null;
+    return {
+      runtime: req.runtime,
+      goal: req.goal,
+      result,
+      durationMs: Date.now() - startedAt,
+    };
+  }
+  if (req.runtime === "crewai") {
+    const result = await runCrewAIGoal(req.goal);
+    lastCostReport = result.costs ?? null;
+    return {
+      runtime: req.runtime,
+      goal: req.goal,
+      result,
+      durationMs: Date.now() - startedAt,
+    };
+  }
+
+  lastCostReport = null;
+  const orchestrator = createDefaultOrchestrator();
+  const messages = await orchestrator.run(req.goal, req.rounds);
+  return {
+    runtime: "default" as const,
+    goal: req.goal,
+    messages,
+    durationMs: Date.now() - startedAt,
+  };
+}
+
+function toEnvInt(name: string, fallback: number): number {
+  const n = Number(process.env[name]);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.floor(n);
+}
+
+const a2a = new A2AProtocol(
+  async (input) =>
+    await executeRun({
+      goal: input.goal,
+      runtime: input.runtime,
+      rounds: input.rounds,
+      threadId: input.threadId,
+    }),
+  {
+    defaultRounds: 5,
+    maxTasks: toEnvInt("A2A_MAX_TASKS", 500),
+    retentionMs: toEnvInt("A2A_TASK_RETENTION_MS", 24 * 60 * 60_000),
+    defaultWaitTimeoutMs: toEnvInt("A2A_WAIT_TIMEOUT_MS", 120_000),
+  },
+);
+
 /** Execute a run in batch mode and return a JSON payload. */
 async function handleRun(body: any) {
-  const goal = (body?.goal as string) || "";
-  const runtime = (body?.runtime as string) || "default";
-  const rounds = Number(body?.rounds ?? 5);
-  const threadId = (body?.threadId as string) || process.env.THREAD_ID;
-  const startedAt = Date.now();
-
-  if (!goal || typeof goal !== "string") {
-    return { status: 400, json: { error: "Missing goal" } };
-  }
-
   try {
-    if (runtime === "langgraph") {
-      const result = await runEstateWiseAgent({ input: goal, threadId });
-      lastCostReport = result.costs ?? null;
-      const durationMs = Date.now() - startedAt;
-      return { status: 200, json: { runtime, goal, result, durationMs } };
-    }
-    if (runtime === "crewai") {
-      const result = await runCrewAIGoal(goal);
-      lastCostReport = result.costs ?? null;
-      const durationMs = Date.now() - startedAt;
-      return { status: 200, json: { runtime, goal, result, durationMs } };
-    }
-
-    // default orchestrator
-    lastCostReport = null;
-    const orchestrator = new AgentOrchestrator().register(
-      new PlannerAgent(),
-      new CoordinatorAgent(),
-      new ZpidFinderAgent(),
-      new PropertyAnalystAgent(),
-      new AnalyticsAnalystAgent(),
-      new GraphAnalystAgent(),
-      new DedupeRankingAgent(),
-      new MapAnalystAgent(),
-      new FinanceAnalystAgent(),
-      new ComplianceAgent(),
-      new ReporterAgent(),
-    );
-    const messages = await orchestrator.run(goal, rounds);
-    const durationMs = Date.now() - startedAt;
-    return {
-      status: 200,
-      json: { runtime: "default", goal, messages, durationMs },
-    };
+    const req = parseRunRequest(body);
+    const result = await executeRun(req);
+    return { status: 200, json: result };
   } catch (e: any) {
-    const durationMs = Date.now() - startedAt;
-    return {
-      status: 500,
-      json: { error: e?.message || String(e), durationMs },
-    };
+    const message = e?.message || String(e);
+    const status = /missing goal|runtime must/.test(message.toLowerCase())
+      ? 400
+      : 500;
+    return { status, json: { error: message } };
   }
+}
+
+function resolveBaseUrl(req: http.IncomingMessage, fallbackUrl: URL): string {
+  const protoHeader = req.headers["x-forwarded-proto"];
+  const hostHeader = req.headers["x-forwarded-host"] ?? req.headers.host;
+  const proto =
+    typeof protoHeader === "string" && protoHeader.length > 0
+      ? protoHeader.split(",")[0].trim()
+      : fallbackUrl.protocol.replace(":", "");
+  const host =
+    typeof hostHeader === "string" && hostHeader.length > 0
+      ? hostHeader.split(",")[0].trim()
+      : fallbackUrl.host;
+  return `${proto}://${host}`;
 }
 
 /**
@@ -124,6 +205,10 @@ async function handleRun(body: any) {
  * Endpoints:
  * - GET /health
  * - GET /config
+ * - GET /.well-known/agent-card.json
+ * - GET /a2a/agent-card
+ * - POST /a2a (JSON-RPC)
+ * - GET /a2a/tasks/:taskId/events (SSE)
  * - POST /run { goal, runtime?, rounds?, threadId? }
  * - GET /run/stream?goal=...&runtime=default|langgraph|crewai&rounds=5&threadId=...
  */
@@ -140,6 +225,63 @@ const server = http.createServer(async (req, res) => {
   }
 
   const url = new URL(req.url || "/", "http://localhost");
+  const baseUrl = resolveBaseUrl(req, url);
+  if (
+    req.method === "GET" &&
+    (url.pathname === "/.well-known/agent-card.json" ||
+      url.pathname === "/a2a/agent-card")
+  ) {
+    return sendJson(res, 200, a2a.getAgentCard(baseUrl));
+  }
+  if (req.method === "POST" && url.pathname === "/a2a") {
+    let body: any = {};
+    try {
+      body = await parseBody(req);
+    } catch {
+      return sendJson(res, 400, {
+        jsonrpc: "2.0",
+        id: null,
+        error: { code: -32700, message: "Parse error" },
+      });
+    }
+
+    try {
+      const rpcResponse = await a2a.handleRpc(body, baseUrl);
+      if (!rpcResponse) {
+        res.writeHead(204, {
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Headers": "content-type",
+          "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+        });
+        res.end();
+        return;
+      }
+      return sendJson(res, 200, rpcResponse as any);
+    } catch (err: any) {
+      return sendJson(res, 500, {
+        jsonrpc: "2.0",
+        id: null,
+        error: { code: -32000, message: err?.message || "A2A request failed" },
+      });
+    }
+  }
+  if (
+    req.method === "GET" &&
+    url.pathname.startsWith("/a2a/tasks/") &&
+    url.pathname.endsWith("/events")
+  ) {
+    const prefix = "/a2a/tasks/";
+    const suffix = "/events";
+    const encodedTaskId = url.pathname.slice(
+      prefix.length,
+      url.pathname.length - suffix.length,
+    );
+    const taskId = decodeURIComponent(encodedTaskId);
+    if (!taskId) return sendJson(res, 400, { error: "Missing taskId" });
+    const ok = a2a.streamTaskEvents(taskId, res);
+    if (!ok) return sendJson(res, 404, { error: "Task not found" });
+    return;
+  }
   if (req.method === "GET" && url.pathname === "/health") {
     return sendJson(res, 200, { ok: true });
   }
@@ -163,15 +305,31 @@ const server = http.createServer(async (req, res) => {
   }
   if (req.method === "GET" && url.pathname === "/config") {
     return sendJson(res, 200, {
-      runtimes: ["default", "langgraph", "crewai"],
+      runtimes: supportedRuntimes,
+      protocols: ["http", "a2a", "mcp"],
       defaultRounds: 5,
+      a2a: {
+        card: `${baseUrl}/.well-known/agent-card.json`,
+        rpc: `${baseUrl}/a2a`,
+        taskEvents: `${baseUrl}/a2a/tasks/{taskId}/events`,
+      },
     });
   }
   if (req.method === "GET" && url.pathname === "/run/stream") {
     // SSE streaming of progress
     const goal = String(url.searchParams.get("goal") || "");
-    const runtime = String(url.searchParams.get("runtime") || "default");
-    const rounds = Number(url.searchParams.get("rounds") || 5);
+    let runtime: AgentRuntime;
+    try {
+      runtime = parseRuntime(url.searchParams.get("runtime") || "default");
+    } catch (err: any) {
+      res.writeHead(400, {
+        "Content-Type": "application/json; charset=utf-8",
+        "Access-Control-Allow-Origin": "*",
+      });
+      res.end(JSON.stringify({ error: err?.message || "Invalid runtime" }));
+      return;
+    }
+    const rounds = parseRounds(url.searchParams.get("rounds") || 5, 5);
     const threadId = url.searchParams.get("threadId") || process.env.THREAD_ID;
     if (!goal) {
       res.writeHead(400, {
@@ -272,19 +430,7 @@ const server = http.createServer(async (req, res) => {
       }
 
       // default orchestrator
-      const orchestrator = new AgentOrchestrator().register(
-        new PlannerAgent(),
-        new CoordinatorAgent(),
-        new ZpidFinderAgent(),
-        new PropertyAnalystAgent(),
-        new AnalyticsAnalystAgent(),
-        new GraphAnalystAgent(),
-        new DedupeRankingAgent(),
-        new MapAnalystAgent(),
-        new FinanceAnalystAgent(),
-        new ComplianceAgent(),
-        new ReporterAgent(),
-      );
+      const orchestrator = createDefaultOrchestrator();
       await orchestrator.runStream(goal, rounds, (e) => send(e));
       clearInterval(heartbeat);
       res.end();

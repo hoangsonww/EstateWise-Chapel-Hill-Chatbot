@@ -17,6 +17,10 @@ export const config = {
     process.env.API_BASE_URL || "https://estatewise-backend.vercel.app",
   frontendBaseUrl:
     process.env.FRONTEND_BASE_URL || "https://estatewise.vercel.app",
+  a2aBaseUrl: process.env.A2A_BASE_URL || "http://localhost:4318",
+  a2aTimeoutMs: toInt(process.env.A2A_TIMEOUT_MS, 15_000),
+  a2aPollMs: toInt(process.env.A2A_POLL_MS, 1_000),
+  a2aWaitTimeoutMs: toInt(process.env.A2A_WAIT_TIMEOUT_MS, 120_000),
   cacheTtlMs: toInt(process.env.MCP_CACHE_TTL_MS, 30_000),
   cacheMax: toInt(process.env.MCP_CACHE_MAX, 200),
   debug: toBool(process.env.MCP_DEBUG, false),
