@@ -26,6 +26,7 @@ This document describes the comprehensive end-to-end architecture for EstateWise
 - [Agentic AI Architecture](#agentic-ai-architecture)
   - [Multi-Runtime Support](#multi-runtime-support)
   - [Orchestrator Agent Pipeline](#orchestrator-agent-pipeline)
+  - [A2A Communication](#a2a-communication)
 - [Frontend Architecture](#frontend-architecture)
   - [Component Hierarchy](#component-hierarchy)
   - [State Management](#state-management)
@@ -163,46 +164,46 @@ flowchart TB
 
 ```
 EstateWise-Chapel-Hill-Chatbot/
-├── backend/                    # Express + TypeScript API server
+├── backend/                   # Express + TypeScript API server
 │   ├── src/
 │   │   ├── controllers/       # Request handlers
-│   │   ├── models/           # MongoDB schemas
-│   │   ├── routes/           # API routes
-│   │   ├── services/         # Business logic
-│   │   ├── middleware/       # Auth, logging, errors
-│   │   ├── trpc/            # tRPC implementation
-│   │   │   ├── routers/     # tRPC routers
-│   │   │   └── trpc.ts      # Context & procedures
-│   │   └── server.ts         # Main entry point
+│   │   ├── models/            # MongoDB schemas
+│   │   ├── routes/            # API routes
+│   │   ├── services/          # Business logic
+│   │   ├── middleware/        # Auth, logging, errors
+│   │   ├── trpc/              # tRPC implementation
+│   │   │   ├── routers/       # tRPC routers
+│   │   │   └── trpc.ts        # Context & procedures
+│   │   └── server.ts          # Main entry point
 ├── frontend/                  # Next.js + React application
-│   ├── app/                  # Next.js 13+ app directory
-│   ├── components/           # React components
-│   ├── lib/                  # Utilities & API clients
-│   └── public/               # Static assets
+│   ├── app/                   # Next.js 13+ app directory
+│   ├── components/            # React components
+│   ├── lib/                   # Utilities & API clients
+│   └── public/                # Static assets
 ├── grpc/                      # gRPC service implementation
-│   ├── proto/                # Protocol buffer definitions
+│   ├── proto/                 # Protocol buffer definitions
 │   │   └── market_pulse.proto
 │   ├── src/
-│   │   ├── server.ts         # gRPC server
-│   │   └── services/         # Service implementations
+│   │   ├── server.ts          # gRPC server
+│   │   └── services/          # Service implementations
 ├── mcp/                       # Model Context Protocol server
 │   ├── src/
-│   │   ├── server.ts         # MCP stdio server
-│   │   └── tools/            # Tool implementations
+│   │   ├── server.ts          # MCP stdio server
+│   │   └── tools/             # Tool implementations
 ├── agentic-ai/                # Multi-agent orchestration
 │   ├── src/
-│   │   ├── agents/           # Agent implementations
-│   │   ├── orchestrator/     # Default runtime
-│   │   ├── lang/             # LangGraph runtime
-│   │   └── index.ts          # CLI entry
-│   └── crewai/               # Python CrewAI runtime
+│   │   ├── agents/            # Agent implementations
+│   │   ├── orchestrator/      # Default runtime
+│   │   ├── lang/              # LangGraph runtime
+│   │   └── index.ts           # CLI entry
+│   └── crewai/                # Python CrewAI runtime
 ├── extension/                 # VS Code extension
 ├── terraform/                 # Infrastructure as Code
-├── aws/                      # AWS deployment configs
-├── azure/                    # Azure deployment configs
-├── gcp/                      # GCP deployment configs
-├── kubernetes/               # K8s manifests
-└── hashicorp/                # Consul/Nomad configs
+├── aws/                       # AWS deployment configs
+├── azure/                     # Azure deployment configs
+├── gcp/                       # GCP deployment configs
+├── kubernetes/                # K8s manifests
+└── hashicorp/                 # Consul/Nomad configs
 ```
 
 ## API Protocols
@@ -555,6 +556,18 @@ stateDiagram-v2
   Compliance --> Reporter: Generate Report
   Reporter --> [*]: Final Output
 ```
+
+### A2A Communication
+
+```mermaid
+flowchart LR
+  Orchestrator[Orchestrator Runtime] -->|HTTP/gRPC| LangGraph[LangGraph Runtime]
+  Orchestrator -->|HTTP/gRPC| CrewAI[CrewAI Runtime]
+  LangGraph -->|HTTP/gRPC| Orchestrator
+  CrewAI -->|HTTP/gRPC| Orchestrator
+```
+
+A2A communication enables runtime interoperability, allowing agents in one runtime to delegate tasks to another runtime’s agents when their specialized capabilities are needed. For example, the Orchestrator may call a ReAct agent in the LangGraph runtime for complex reasoning, or delegate a multi-step execution plan to the CrewAI runtime’s agent crew.
 
 ## Frontend Architecture
 
@@ -1389,6 +1402,7 @@ gitGraph
 - **MoE**: Mixture of Experts
 - **CoT**: Chain-of-Thought
 - **MCP**: Model Context Protocol
+- **A2A**: Agent-to-Agent Communication Protocol
 - **ZPID**: Zillow Property ID
 - **kNN**: k-Nearest Neighbors
 - **TTL**: Time To Live

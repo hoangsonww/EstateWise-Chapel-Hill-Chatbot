@@ -1165,7 +1165,7 @@ GitLab CI is supported via `.gitlab-ci.yml` and helper scripts under `gitlab/`. 
 
 ## MCP Server
 
-Bring EstateWise data, graphs, analytics, and utilities to MCP‑compatible clients (IDEs/assistants) via the `mcp/` package.
+Bring EstateWise data, graphs, analytics, and utilities to MCP‑compatible clients (IDEs/assistants) via the `mcp/` package, with Agent-to-Agent (A2A) bridge tools for cross-agent collaboration.
 
 ![MCP](https://img.shields.io/badge/Model_Context_Protocol-Server-6E56CF?style=for-the-badge&logo=modelcontextprotocol) ![A2A](https://img.shields.io/badge/A2A-Bridge-0EA5E9?style=for-the-badge) ![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white) ![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white) ![Zod](https://img.shields.io/badge/Zod-3068B7?style=for-the-badge&logo=zod&logoColor=white)
 
