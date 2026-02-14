@@ -26,7 +26,7 @@ This document describes the comprehensive end-to-end architecture for EstateWise
 - [Agentic AI Architecture](#agentic-ai-architecture)
   - [Multi-Runtime Support](#multi-runtime-support)
   - [Orchestrator Agent Pipeline](#orchestrator-agent-pipeline)
-  - [A2A Communication](#a2a-communication)
+  - [Agent-to-Agent (A2A) Communication](#a2a-communication)
 - [Frontend Architecture](#frontend-architecture)
   - [Component Hierarchy](#component-hierarchy)
   - [State Management](#state-management)
