@@ -1,6 +1,6 @@
 # EstateWise RAG System Architecture
 
-EstateWise's RAG system is designed to provide users with highly relevant and explainable property recommendations by combining the strengths of vector databases and knowledge graphs. This document outlines the architecture, data flow, and key components of the system.
+EstateWise's **Hybrid RAG** system is designed to provide users with highly relevant and explainable property recommendations by combining the strengths of vector databases and knowledge graphs. This document outlines the architecture, data flow, and key components of the system.
 
 ## Table of Contents
 - [Overview](#overview)
