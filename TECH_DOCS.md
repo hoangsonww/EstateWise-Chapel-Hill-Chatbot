@@ -41,6 +41,7 @@ Below, we outline the architecture, key components, and challenges faced during 
 ![Leaflet](https://img.shields.io/badge/Leaflet-199900?style=for-the-badge&logo=leaflet&logoColor=white)
 ![MCP](https://img.shields.io/badge/MCP-Model%20Context%20Protocol-6E56CF?style=for-the-badge&logo=modelcontextprotocol&logoColor=white)
 ![Zod](https://img.shields.io/badge/Zod-3068B7?style=for-the-badge&logo=zod&logoColor=white)
+![A2A](https://img.shields.io/badge/A2A-Agent--to--Agent_Protocol-0EA5E9?style=for-the-badge)
 ![D3.js](https://img.shields.io/badge/D3.js-F9A03C?style=for-the-badge&logo=d3&logoColor=white)
 ![OpenAPI](https://img.shields.io/badge/OpenAPI-6E6E6E?style=for-the-badge&logo=openapiinitiative&logoColor=white)
 ![GitHub Actions](https://img.shields.io/badge/GitHub%20Actions-2088FF?style=for-the-badge&logo=github-actions&logoColor=white)
@@ -103,6 +104,7 @@ Below, we outline the architecture, key components, and challenges faced during 
   - [7.3 Benefits](#73-benefits)
   - [7.4 Agentic AI Orchestration](#74-agentic-ai-orchestration)
   - [7.5 MCP Server (Model Context Protocol)](#75-mcp-server-model-context-protocol)
+  - [7.6 A2A Protocol (Agent‑to‑Agent Protocol)](#76-agent-to-agent-communication)
 - [8. Backend API & Data Layer](#8-backend-api--data-layer)
   - [7.1 Express.js Routes & Controllers](#81-expressjs-routes--controllers)
   - [7.2 MongoDB Models & Conversations](#82-mongodb-models--conversations)
@@ -704,6 +706,31 @@ flowchart TB
 **Docs & entry points:**
 - MCP server lives in `mcp/`
 - Full tool catalog and setup: [mcp/README.md](mcp/README.md)
+
+### 7.6 Agent-to-Agent Communication
+
+**What it is:**
+A structured protocol for agents to communicate, share intermediate results, and coordinate actions during complex workflows.
+
+**Why we use it:**
+- Enables collaboration between specialized agents (e.g., Data Analyst shares insights with Financial Advisor).
+- Facilitates more complex reasoning and richer final outputs.
+- Supports dynamic workflows where agents can call on each other as needed.
+
+```mermaid
+sequenceDiagram
+  participant A as Data Analyst
+  participant B as Financial Advisor
+  participant C as Master Merger
+  A->>B: Share price trend analysis
+  B->>A: Request additional data on financing options
+  A->>C: Send analyzed data and insights
+  B->>C: Send financial analysis
+  C->>A: Request clarification on data points
+  C->>B: Request clarification on financial assumptions
+```
+
+*Note: The chain-of-thought reasoning and agentic AI orchestration are designed to work together seamlessly, allowing for complex workflows that can adapt to a wide range of user queries and scenarios.*
 
 ---
 

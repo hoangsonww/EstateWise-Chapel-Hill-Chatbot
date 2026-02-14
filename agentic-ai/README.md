@@ -10,6 +10,7 @@ In addition to being the CLI, this agentic pipeline is also being used in our ma
   <img alt="LangChain" src="https://img.shields.io/badge/LangChain-6B46C1?style=for-the-badge&logo=langchain&logoColor=white" />
   <img alt="LangGraph" src="https://img.shields.io/badge/LangGraph-1E90FF?style=for-the-badge&logo=langgraph&logoColor=white" />
   <img alt="MCP" src="https://img.shields.io/badge/MCP-Model%20Context%20Protocol-6A5ACD?style=for-the-badge&logoColor=white&logo=modelcontextprotocol" />
+  <img alt="A2A" src="https://img.shields.io/badge/A2A-Agent--to--Agent-0EA5E9?style=for-the-badge" />
   <img alt="OpenAI" src="https://img.shields.io/badge/OpenAI-412991?style=for-the-badge&logo=openai&logoColor=white" />
   <img alt="Google Gemini" src="https://img.shields.io/badge/Google%20AI-Gemini-4285F4?style=for-the-badge&logo=google&logoColor=white" />
   <img alt="Pinecone" src="https://img.shields.io/badge/Pinecone-FF6F61?style=for-the-badge&logo=googledataflow" />
@@ -28,6 +29,7 @@ In addition to being the CLI, this agentic pipeline is also being used in our ma
 - [Use With Your Own Clients](#use-with-your-own-clients)
   - [LangChain + LangGraph Runtime](#langchain--langgraph-runtime)
   - [CrewAI Runtime](#crewai-runtime)
+  - [A2A Protocol (Agent-to-Agent)](#a2a-protocol-agent-to-agent)
 - [Enterprise Pipeline System](#enterprise-pipeline-system)
   - [Overview](#pipeline-overview)
   - [Quick Start](#pipeline-quick-start)
@@ -53,6 +55,7 @@ Agentic AI is a standalone, multi‑agent CLI that orchestrates real‑estate re
 
 - Standalone multi‑agent orchestration CLI purpose‑built for EstateWise research.
 - Orchestrator coordinates clear, deterministic step execution over MCP tools.
+- Built-in A2A protocol endpoints for agent-to-agent task orchestration and streaming.
 - Optional LangGraph runtime (ReAct agent with tool calling and memory).
 - Optional CrewAI runtime (Python crew of planner/researcher/analyst/reporter).
 - Output is a clean terminal transcript with a final summary and links.
@@ -194,6 +197,52 @@ const messages = await orchestrator.run('Find 3 beds near Chapel Hill', 5);
 4) **LangGraph or CrewAI directly**
 - **LangGraph:** set `runtime: 'langgraph'` in `/run` (HTTP), or run `npm run dev -- --langgraph`.
 - **CrewAI:** set `runtime: 'crewai'` in `/run`, or run `npm run dev -- --crewai`.
+
+### A2A Protocol (Agent-to-Agent)
+
+Agentic AI exposes an A2A interface in addition to existing `/run` and `/run/stream` endpoints.
+
+- Agent card discovery:
+  - `GET /.well-known/agent-card.json`
+  - `GET /a2a/agent-card`
+- JSON-RPC endpoint:
+  - `POST /a2a` with methods:
+    - `agent.getCard`
+    - `tasks.create`
+    - `tasks.get`
+    - `tasks.list`
+    - `tasks.wait`
+    - `tasks.cancel`
+- Task event stream:
+  - `GET /a2a/tasks/{taskId}/events` (SSE)
+
+Example: create an async task via JSON-RPC
+```bash
+curl -s http://localhost:4318/a2a \
+  -H 'content-type: application/json' \
+  -d '{
+    "jsonrpc":"2.0",
+    "id":"demo-1",
+    "method":"tasks.create",
+    "params":{
+      "goal":"Find 3-bed homes in Chapel Hill with strong schools",
+      "runtime":"langgraph",
+      "rounds":5
+    }
+  }'
+```
+
+Example: wait for completion
+```bash
+curl -s http://localhost:4318/a2a \
+  -H 'content-type: application/json' \
+  -d '{
+    "jsonrpc":"2.0",
+    "id":"demo-2",
+    "method":"tasks.wait",
+    "params":{"taskId":"<task-id>","timeoutMs":120000}
+  }'
+```
 
 Tips
 - Choose `default` runtime for deterministic, stepwise orchestration, `langgraph` for autonomous tool-calling, or `crewai` for CrewAI-style flows.
@@ -1128,6 +1177,9 @@ Set the following environment variables as needed:
   - `AGENT_RUNTIME=langgraph` to enable the LangGraph runtime by default.
   - Optional `THREAD_ID` for conversation continuity when using the LangGraph checkpointer.
   - `AGENT_RUNTIME=crewai` or `--crewai` to enable the CrewAI runtime; requires Python + crewai deps and `OPENAI_API_KEY`.
+  - `A2A_MAX_TASKS` (default `500`) limits in-memory task records retained by the A2A server.
+  - `A2A_TASK_RETENTION_MS` (default `86400000`) controls retention of completed A2A tasks.
+  - `A2A_WAIT_TIMEOUT_MS` (default `120000`) sets default max wait time for `tasks.wait`.
 
 Please make sure to have upserted properties to Pinecone and ingested the graph to Neo4j if you plan to use those tools - they will return empty results otherwise!
 

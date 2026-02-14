@@ -14,6 +14,8 @@ export const systemTools: ToolDef[] = [
       const safe = {
         apiBaseUrl: config.apiBaseUrl,
         frontendBaseUrl: config.frontendBaseUrl,
+        a2aBaseUrl: config.a2aBaseUrl,
+        a2aTimeoutMs: config.a2aTimeoutMs,
       };
       return { content: [{ type: "text", text: JSON.stringify(safe) }] };
     },

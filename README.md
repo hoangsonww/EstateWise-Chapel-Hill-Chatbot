@@ -112,6 +112,7 @@ _Feel free to use the app as a guest or sign up for an account to save your conv
 ![Neo4j](https://img.shields.io/badge/Neo4j-008CC1?style=for-the-badge&logo=neo4j&logoColor=white)
 ![Leaflet](https://img.shields.io/badge/Leaflet-199900?style=for-the-badge&logo=leaflet&logoColor=white)
 ![MCP](https://img.shields.io/badge/MCP-Model%20Context%20Protocol-6E56CF?style=for-the-badge&logo=modelcontextprotocol&logoColor=white)
+![A2A](https://img.shields.io/badge/A2A-Agent--to--Agent_Protocol-0EA5E9?style=for-the-badge)
 ![Zod](https://img.shields.io/badge/Zod-3068B7?style=for-the-badge&logo=zod&logoColor=white)
 ![D3.js](https://img.shields.io/badge/D3.js-F9A03C?style=for-the-badge&logo=d3&logoColor=white)
 ![OpenAPI](https://img.shields.io/badge/OpenAPI-6E6E6E?style=for-the-badge&logo=openapiinitiative&logoColor=white)
@@ -144,6 +145,7 @@ For a CLI version of the chatbot, as well as the initial EDA (Exploratory Data A
 - **Hybrid RAG (Vector + Graph):** Uses Pinecone for kNN‑based vector retrieval and Neo4j for graph enrichment before fusing results into generated responses.
 - **Agentic AI Pipeline:** Orchestrates the entire AI workflow, managing data retrieval, expert routing, response generation, and feedback integration.
 - **MCP (Model Context Protocol):** Standardizes communication between models and the backend, ensuring consistent context handling and response formatting.
+- **A2A (Agent-to-Agent Protocol):** Enables agent-native task orchestration between EstateWise Agentic AI and external agent systems.
 - **Multi-LLM Approach:** Utilizes multiple LLMs for different tasks to optimize performance and cost.
 - **k‑Means Clustering:** Automatically groups similar listings and finds closest matches to refine recommendations.
   - All features are also normalized to a range of 0-1 for better clustering and kNN performance.
@@ -1164,9 +1166,9 @@ GitLab CI is supported via `.gitlab-ci.yml` and helper scripts under `gitlab/`. 
 
 ## MCP Server
 
-Bring EstateWise data, graphs, analytics, and utilities to MCP‑compatible clients (IDEs/assistants) via the `mcp/` package.
+Bring EstateWise data, graphs, analytics, and utilities to MCP‑compatible clients (IDEs/assistants) via the `mcp/` package, with Agent-to-Agent (A2A) bridge tools for cross-agent collaboration.
 
-![MCP](https://img.shields.io/badge/Model_Context_Protocol-Server-6E56CF?style=for-the-badge&logo=modelcontextprotocol) ![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white) ![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white) ![Zod](https://img.shields.io/badge/Zod-3068B7?style=for-the-badge&logo=zod&logoColor=white)
+![MCP](https://img.shields.io/badge/Model_Context_Protocol-Server-6E56CF?style=for-the-badge&logo=modelcontextprotocol) ![A2A](https://img.shields.io/badge/A2A-Bridge-0EA5E9?style=for-the-badge) ![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white) ![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white) ![Zod](https://img.shields.io/badge/Zod-3068B7?style=for-the-badge&logo=zod&logoColor=white)
 
 - Location: `mcp/`
 - Transport: stdio (works with typical MCP launchers)
@@ -1186,6 +1188,7 @@ Bring EstateWise data, graphs, analytics, and utilities to MCP‑compatible clie
 - **Auth**: `auth.login`, `auth.signup`, `auth.verifyEmail`, `auth.resetPassword`
 - **Commute**: `commute.create`, `commute.list`, `commute.get`, `commute.update`, `commute.delete`
 - **System**: `system.config`, `system.time`, `system.health`, `system.tools`, `system.cache.clear`
+- **A2A Bridge**: `a2a.agentCard`, `a2a.task.create`, `a2a.task.get`, `a2a.task.wait`, `a2a.task.cancel`, `a2a.task.list`
 
 ### Key Features
 
@@ -1211,6 +1214,7 @@ flowchart LR
 Configure in `mcp/.env` (copy from `.env.example`):
 - `API_BASE_URL` (default: `https://estatewise-backend.vercel.app`)
 - `FRONTEND_BASE_URL` (default: `https://estatewise.vercel.app`)
+- `A2A_BASE_URL` (default: `http://localhost:4318`) – Target Agentic AI A2A endpoint for `a2a.*` bridge tools
 - `MCP_CACHE_TTL_MS` (default: `30000`) – Cache TTL in milliseconds
 - `MCP_CACHE_MAX` (default: `200`) – Maximum cached GET responses
 - `MCP_DEBUG` (default: `false`) – Enable verbose debug logs

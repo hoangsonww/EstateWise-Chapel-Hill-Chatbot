@@ -1,8 +1,8 @@
 # EstateWise MCP Server
 
-![MCP](https://img.shields.io/badge/MCP-Server-6E56CF?style=for-the-badge&logo=modelcontextprotocol) ![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white) ![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white) ![Zod](https://img.shields.io/badge/Zod-3068B7?style=for-the-badge&logo=zod&logoColor=white) ![LRU Cache](https://img.shields.io/badge/LRU%20Cache-FF6F61?style=for-the-badge&logo=redis&logoColor=white) ![MIT License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
+![MCP](https://img.shields.io/badge/MCP-Server-6E56CF?style=for-the-badge&logo=modelcontextprotocol) ![A2A](https://img.shields.io/badge/A2A-Bridge-0EA5E9?style=for-the-badge) ![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white) ![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white) ![Zod](https://img.shields.io/badge/Zod-3068B7?style=for-the-badge&logo=zod&logoColor=white) ![LRU Cache](https://img.shields.io/badge/LRU%20Cache-FF6F61?style=for-the-badge&logo=redis&logoColor=white) ![MIT License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
 
-This package exposes EstateWise property, graph, analytics, finance, map, commute, auth, system, batch operations, market analysis, monitoring, and token management tools over the Model Context Protocol (MCP). It lets MCP‑compatible clients (IDEs, assistants, agents) call tools like property search, graph similarity, market analysis, batch operations, token authentication, monitoring, and more via stdio.
+This package exposes EstateWise property, graph, analytics, finance, map, commute, auth, system, batch operations, market analysis, monitoring, token management, and A2A bridge tools over the Model Context Protocol (MCP). It lets MCP‑compatible clients (IDEs, assistants, agents) call tools like property search, graph similarity, market analysis, batch operations, token authentication, and remote agent-to-agent tasks via stdio.
 
 - Location: `mcp/`
 - Transport: `stdio`
@@ -21,6 +21,7 @@ Key capabilities:
 - **Graph Analysis**: Find similar properties and explain relationships using Neo4j
 - **Market Intelligence**: Price trends, inventory analysis, competitive positioning, affordability metrics
 - **Batch Operations**: Compare, enrich, and export multiple properties efficiently
+- **A2A Interop**: Create, wait, list, and cancel remote Agentic AI tasks via A2A JSON-RPC
 - **Token Management**: Secure access/refresh tokens with HMAC signatures
 - **Monitoring**: Built-in usage tracking, health checks, and performance metrics
 - **Finance Tools**: Mortgage calculators, affordability analysis, ROI projections
@@ -28,6 +29,29 @@ Key capabilities:
 The server can be launched from any MCP‑compatible client, such as IDE plugins (e.g., Claude Desktop) or agent frameworks (e.g., Agentic AI).
 
 You can feel free to use this server with your own MCP client or the provided example client (`src/client.ts`). However, you will need to deploy your own MCP server instance if you no longer want to use everything locally.
+
+## A2A Interoperability
+
+The MCP server now includes `a2a.*` bridge tools so MCP clients can orchestrate remote Agentic AI runtimes over A2A without leaving MCP.
+
+- Discovery: `a2a.agentCard`
+- Task lifecycle: `a2a.task.create`, `a2a.task.get`, `a2a.task.wait`, `a2a.task.cancel`, `a2a.task.list`
+- Default target: `A2A_BASE_URL` (override per call using `agentUrl`)
+
+Example flow:
+
+```typescript
+// 1) Fetch remote agent card
+await mcp.callTool("a2a.agentCard", {});
+
+// 2) Create a task and wait for completion
+await mcp.callTool("a2a.task.create", {
+  goal: "Find 3-bed homes in Chapel Hill and summarize risks",
+  runtime: "langgraph",
+  rounds: 5,
+  waitForCompletion: true
+});
+```
 
 ## Token Management
 
@@ -157,13 +181,17 @@ npm start
 - Variables:
   - `API_BASE_URL` (default: `https://estatewise-backend.vercel.app`)
   - `FRONTEND_BASE_URL` (default: `https://estatewise.vercel.app`)
+  - `A2A_BASE_URL` (default: `http://localhost:4318`) – Agentic AI A2A endpoint base for `a2a.*` tools
+  - `A2A_TIMEOUT_MS` (default: `15000`) – request timeout for A2A HTTP/RPC calls
+  - `A2A_POLL_MS` (default: `1000`) – polling interval fallback when waiting for remote task completion
+  - `A2A_WAIT_TIMEOUT_MS` (default: `120000`) – default wait cap for `a2a.task.wait`
   - `MCP_CACHE_TTL_MS` (default: `30000`) – cache TTL for GET responses
   - `MCP_CACHE_MAX` (default: `200`) – max cached GET responses
   - `MCP_DEBUG` (default: `false`) – verbose debug logs
 
 ## Included Tools
 
-**Total: 60+ tools** spanning properties, graph analysis, analytics, market intelligence, batch operations, monitoring, token management, finance, utilities, authentication, and system management.
+**Total: 60+ tools** spanning properties, graph analysis, analytics, market intelligence, batch operations, monitoring, token management, finance, utilities, authentication, A2A orchestration, and system management.
 
 All tools validate inputs with Zod and return content blocks per MCP. For maximum compatibility, JSON payloads are returned as stringified text.
 
@@ -223,6 +251,14 @@ All tools validate inputs with Zod and return content blocks per MCP. For maximu
   - `mcp.token.cleanup()` – Clean up expired tokens
   - `mcp.token.stats()` – Get token system statistics
   - `mcp.token.validateRequest({ authorizationHeader })` – Validate Bearer token from header
+
+- A2A (Agent-to-Agent)
+  - `a2a.agentCard({ agentUrl? })` – Fetch remote A2A agent metadata
+  - `a2a.task.create({ goal, runtime?, rounds?, threadId?, metadata?, waitForCompletion?, timeoutMs?, pollMs?, agentUrl? })`
+  - `a2a.task.get({ taskId, agentUrl?, timeoutMs? })`
+  - `a2a.task.wait({ taskId, timeoutMs?, pollMs?, agentUrl? })`
+  - `a2a.task.cancel({ taskId, agentUrl?, timeoutMs? })`
+  - `a2a.task.list({ limit?, agentUrl?, timeoutMs? })`
 
 - Map
   - `map.linkForZpids(ids: Array<string | number>)` – Deep link to `/map` with zpids

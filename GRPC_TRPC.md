@@ -1,5 +1,7 @@
 # EstateWise RPC APIs Documentation
 
+EstateWise implements a sophisticated multi-protocol API architecture using REST, tRPC, and gRPC to serve diverse client requirements. This documentation provides an in-depth technical overview of the gRPC and tRPC implementations, including architectural design, protocol features, performance optimizations, security considerations, and best practices for development and deployment.
+
 ## Table of Contents
 
 - [Overview](#overview)

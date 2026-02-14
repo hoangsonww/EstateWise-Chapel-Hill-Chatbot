@@ -3049,7 +3049,6 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
 const AnimatedDots: React.FC<{ resetKey: number }> = ({ resetKey }) => {
   const [dots, setDots] = useState("");
   useEffect(() => {
-    // restart dots when resetKey changes
     setDots("");
     const interval = setInterval(() => {
       setDots((prev) => (prev.length < 3 ? prev + "." : ""));
