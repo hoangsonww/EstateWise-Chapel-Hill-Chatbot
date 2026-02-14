@@ -1,4 +1,4 @@
-# Travis CI
+# Travis CI for EstateWise
 
 This repository includes a Travis CI pipeline that keeps the backend and frontend healthy by installing dependencies, building the code, and running automated tests in separate stages. The configuration lives in `.travis.yml` at the repository root.
 
