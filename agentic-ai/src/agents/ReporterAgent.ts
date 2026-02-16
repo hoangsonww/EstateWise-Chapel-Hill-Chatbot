@@ -36,6 +36,14 @@ export class ReporterAgent implements Agent {
       lines.push(
         `ZPIDs: ${bb.zpids.slice(0, 10).join(", ")}${bb.zpids.length > 10 ? "…" : ""}`,
       );
+    const webResults = ((bb.web?.search as any)?.results || []) as any[];
+    if (webResults.length) {
+      const refs = webResults
+        .slice(0, 3)
+        .map((r) => `${r.title || "source"} (${r.url || "no-url"})`)
+        .join("; ");
+      lines.push(`Web sources: ${refs}`);
+    }
     if (bb.mapLink) lines.push(`Map: ${bb.mapLink}`);
     if (bb.mortgage) {
       const m = bb.mortgage as any;

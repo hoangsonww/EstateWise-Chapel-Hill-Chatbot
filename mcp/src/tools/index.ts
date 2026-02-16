@@ -15,6 +15,7 @@ import { batchTools } from "./batch.js";
 import { marketTools } from "./market.js";
 import { mcpTokenTools } from "./mcpToken.js";
 import { a2aTools } from "./a2a.js";
+import { webTools } from "./web.js";
 
 /** Register all domain tool modules with the MCP server. */
 export function registerAllTools(server: McpServer) {
@@ -34,5 +35,6 @@ export function registerAllTools(server: McpServer) {
     ...marketTools,
     ...mcpTokenTools,
     ...a2aTools,
+    ...webTools,
   ]);
 }

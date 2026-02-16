@@ -2,7 +2,7 @@
 
 ![MCP](https://img.shields.io/badge/MCP-Server-6E56CF?style=for-the-badge&logo=modelcontextprotocol) ![A2A](https://img.shields.io/badge/A2A-Bridge-0EA5E9?style=for-the-badge) ![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white) ![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white) ![Zod](https://img.shields.io/badge/Zod-3068B7?style=for-the-badge&logo=zod&logoColor=white) ![LRU Cache](https://img.shields.io/badge/LRU%20Cache-FF6F61?style=for-the-badge&logo=redis&logoColor=white) ![MIT License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
 
-This package exposes EstateWise property, graph, analytics, finance, map, commute, auth, system, batch operations, market analysis, monitoring, token management, and A2A bridge tools over the Model Context Protocol (MCP). It lets MCP‑compatible clients (IDEs, assistants, agents) call tools like property search, graph similarity, market analysis, batch operations, token authentication, and remote agent-to-agent tasks via stdio.
+This package exposes EstateWise property, graph, analytics, finance, map, commute, auth, system, batch operations, market analysis, web research, monitoring, token management, and A2A bridge tools over the Model Context Protocol (MCP). It lets MCP‑compatible clients (IDEs, assistants, agents) call tools like property search, graph similarity, market analysis, web search/page retrieval, batch operations, token authentication, and remote agent-to-agent tasks via stdio.
 
 - Location: `mcp/`
 - Transport: `stdio`
@@ -20,6 +20,7 @@ Key capabilities:
 - **Property Discovery**: Search, lookup, and analyze properties with advanced filters
 - **Graph Analysis**: Find similar properties and explain relationships using Neo4j
 - **Market Intelligence**: Price trends, inventory analysis, competitive positioning, affordability metrics
+- **Web Research**: Public internet search and page fetch for current external context
 - **Batch Operations**: Compare, enrich, and export multiple properties efficiently
 - **A2A Interop**: Create, wait, list, and cancel remote Agentic AI tasks via A2A JSON-RPC
 - **Token Management**: Secure access/refresh tokens with HMAC signatures
@@ -185,13 +186,14 @@ npm start
   - `A2A_TIMEOUT_MS` (default: `15000`) – request timeout for A2A HTTP/RPC calls
   - `A2A_POLL_MS` (default: `1000`) – polling interval fallback when waiting for remote task completion
   - `A2A_WAIT_TIMEOUT_MS` (default: `120000`) – default wait cap for `a2a.task.wait`
+  - `WEB_TIMEOUT_MS` (default: `12000`) – timeout for `web.search` and `web.fetch` outbound requests
   - `MCP_CACHE_TTL_MS` (default: `30000`) – cache TTL for GET responses
   - `MCP_CACHE_MAX` (default: `200`) – max cached GET responses
   - `MCP_DEBUG` (default: `false`) – verbose debug logs
 
 ## Included Tools
 
-**Total: 60+ tools** spanning properties, graph analysis, analytics, market intelligence, batch operations, monitoring, token management, finance, utilities, authentication, A2A orchestration, and system management.
+**Total: 60+ tools** spanning properties, graph analysis, analytics, market intelligence, web research, batch operations, monitoring, token management, finance, utilities, authentication, A2A orchestration, and system management.
 
 All tools validate inputs with Zod and return content blocks per MCP. For maximum compatibility, JSON payloads are returned as stringified text.
 
@@ -259,6 +261,10 @@ All tools validate inputs with Zod and return content blocks per MCP. For maximu
   - `a2a.task.wait({ taskId, timeoutMs?, pollMs?, agentUrl? })`
   - `a2a.task.cancel({ taskId, agentUrl?, timeoutMs? })`
   - `a2a.task.list({ limit?, agentUrl?, timeoutMs? })`
+
+- Web
+  - `web.search({ q, limit? })` – Search public web results with titles, URLs, and snippets
+  - `web.fetch({ url, maxChars? })` – Fetch and extract readable text from a public page
 
 - Map
   - `map.linkForZpids(ids: Array<string | number>)` – Deep link to `/map` with zpids

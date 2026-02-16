@@ -71,7 +71,7 @@ This document describes the comprehensive end-to-end architecture for EstateWise
 
 ## System Overview
 
-EstateWise is a full-stack, monorepo AI/ML chatbot and data analytics platform built for real estate in Chapel Hill, NC and surrounding areas. The architecture employs a microservices-oriented design with multiple API protocols, distributed data stores, and sophisticated AI orchestration.
+EstateWise is a full-stack, monorepo AI/ML chatbot and data analytics platform built for real estate in Chapel Hill, NC and surrounding areas. The architecture employs a microservices-oriented design with multiple API protocols, distributed data stores, sophisticated AI orchestration, and a web-grounding layer for freshness-sensitive AI responses.
 
 ```mermaid
 flowchart TB
@@ -472,6 +472,7 @@ flowchart TB
     Props[Properties Tools<br/>search, lookup, byIds]
     Graph[Graph Tools<br/>similar, explain, neighborhood]
     Analytics[Analytics Tools<br/>histogram, summarize, distributions]
+    Web[Web Tools<br/>web.search, web.fetch]
     Finance[Finance Tools<br/>mortgage, affordability, schedule]
     Utils[Utility Tools<br/>extractZpids, parseGoal, summarize]
     Map[Map Tools<br/>linkForZpids, buildLinkByQuery]
@@ -481,6 +482,7 @@ flowchart TB
   Server --> Props
   Server --> Graph
   Server --> Analytics
+  Server --> Web
   Server --> Finance
   Server --> Utils
   Server --> Map
@@ -488,7 +490,10 @@ flowchart TB
   Props --> API[Backend API]
   Graph --> API
   Analytics --> API
+  Web --> API
 ```
+
+The MCP layer now includes internet research tools (`web.search`, `web.fetch`) so agentic runtimes can gather up-to-date external context when required.
 
 ## Agentic AI Architecture
 
@@ -510,7 +515,7 @@ flowchart TB
 
   subgraph "LangGraph Runtime"
     L_React[ReAct Agent]
-    L_Tools[MCP + Direct Tools]
+    L_Tools[MCP + Direct + Web Tools]
     L_Memory[Conversation Memory]
   end
 
@@ -545,7 +550,8 @@ stateDiagram-v2
   [*] --> Planner: User Goal
   Planner --> Coordinator: Execution Plan
   Coordinator --> ParseGoal: Extract Filters
-  ParseGoal --> PropertyLookup: Find Properties
+  ParseGoal --> WebResearch: Optional Fresh Context
+  WebResearch --> PropertyLookup: Find Properties
   PropertyLookup --> PropertySearch: Expand Search
   PropertySearch --> Analytics: Analyze Results
   Analytics --> GraphAnalysis: Graph Relations

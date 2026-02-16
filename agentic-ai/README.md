@@ -263,7 +263,7 @@ AGENT_RUNTIME=langgraph npm run dev -- "Compare 123456 vs 654321 and compute mor
 
 What it adds:
 - Tool-calling agent built with `@langchain/langgraph` prebuilt ReAct agent.
-- Tools include MCP tools (search/lookup/analytics/graph/map/finance), Pinecone vector retrieval, and Neo4j Cypher QA.
+- Tools include MCP tools (search/lookup/analytics/web/graph/map/finance), Pinecone vector retrieval, and Neo4j Cypher QA.
 - Lightweight in-memory checkpointer; easy to swap for Redis/Postgres in production.
 - Structured telemetry via `toolExecutions` (duration, status, JSON/text output) so you can surface traces in your UI.
 - Programmatic `EstateWiseLangGraphRuntime` class to inject custom context, instructions, or additional tools per thread.
@@ -1039,15 +1039,16 @@ npm run build
 
 The pipeline is driven by the CoordinatorAgent over a shared blackboard. The high-level plan is:
 1. Parse the user goal to extract addresses, cities, states, ZIPs, beds, baths, price, and ZPIDs.
-2. Lookup ZPIDs for any addresses found.
-3. Search for properties matching the parsed filters.
-4. Analyze search results for market medians and groupings.
-5. Dedupe and rank ZPIDs to a manageable list.
-6. If ZPIDs are present, run graph analyses (explanations, similar homes).
-7. Build map links for the ZPIDs or search query.
-8. Compute mortgage and affordability if price and interest rate are given.
-9. Run compliance checks on medians, APR, payments, and ZPID counts.
-10. Compile a final report citing all tool outputs.
+2. Optionally run web research when the goal requests latest/current/news-style context.
+3. Lookup ZPIDs for any addresses found.
+4. Search for properties matching the parsed filters.
+5. Analyze search results for market medians and groupings.
+6. Dedupe and rank ZPIDs to a manageable list.
+7. If ZPIDs are present, run graph analyses (explanations, similar homes).
+8. Build map links for the ZPIDs or search query.
+9. Compute mortgage and affordability if price and interest rate are given.
+10. Run compliance checks on medians, APR, payments, and ZPID counts.
+11. Compile a final report citing all tool outputs.
 
 Below is a flowchart of the agents and their interactions, followed by the coordinator state diagram:
 
@@ -1058,6 +1059,7 @@ flowchart LR
   U[User Goal] --> P[Planner]
   P --> C[Coordinator]
   C -->|parseGoal| Parse(util.parseGoal)
+  C -->|webResearch| Web(web.search)
   C -->|lookup| Lookup(properties.lookup)
   C -->|search| Search{properties.search / searchAdvanced}
   C -->|summarize| Summ(analytics.summarizeSearch)
@@ -1082,7 +1084,8 @@ Coordinator state:
 stateDiagram-v2
   [*] --> Plan
   Plan --> Parse
-  Parse --> Lookup
+  Parse --> WebResearch
+  WebResearch --> Lookup
   Lookup --> Search
   Search --> Analyze
   Analyze --> Rank
@@ -1099,7 +1102,7 @@ stateDiagram-v2
 There are several specialized agents:
 
 - PlannerAgent – drafts a high‑level plan from the goal.
-- CoordinatorAgent – drives step execution using a shared blackboard plan (parse → lookup → search → analytics → graph → map → finance), marks steps running/done, and triggers the right tools at the right time.
+- CoordinatorAgent – drives step execution using a shared blackboard plan (parse → webResearch → lookup → search → analytics → graph → map → finance), marks steps running/done, and triggers the right tools at the right time.
 - ZpidFinderAgent – extracts address/city/state/ZIP/beds/baths and calls `properties.lookup`.
 - PropertyAnalystAgent – refines queries and calls `properties.search`/`properties.searchAdvanced`.
 - AnalyticsAnalystAgent – runs `analytics.summarizeSearch` (and `analytics.groupByZip`) for market medians and groupings.
@@ -1121,7 +1124,7 @@ Example Goal & Output
 The agents coordinate via the CoordinatorAgent over a shared blackboard:
 
 - PlannerAgent writes the initial plan and parsed goal.
-- Shared blackboard memory aggregates: ZPIDs, parsed filters, analytics, map links, finance results, and the step plan.
+- Shared blackboard memory aggregates: ZPIDs, parsed filters, web research context, analytics, map links, finance results, and the step plan.
 - CoordinatorAgent advances steps, sets in‑flight tool calls, and marks them done once results arrive.
 - The orchestrator retries failed tool calls once and normalizes JSON text where possible.
 
@@ -1131,6 +1134,7 @@ The CLI integrates with the local MCP server to access EstateWise backend tools:
 
 - Spawns `../mcp/dist/server.js` over stdio and uses `@modelcontextprotocol/sdk` to list/call tools.
 - Tool outputs are text blocks; the orchestrator stores both the raw result and an extracted text for the Reporter.
+- Includes `web.search` and `web.fetch` for internet context when goals require fresh external facts.
 
 ```mermaid
 flowchart LR

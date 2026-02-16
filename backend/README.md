@@ -5,6 +5,7 @@ Backend API for the EstateWise real-estate assistant. This service exposes REST 
 ## What This Service Does
 
 - Chat: MoE-style responses with optional streaming and expert views
+- Gemini web grounding (service-only): Google Search-grounded generation with source links/citations (not wired to routes yet)
 - Auth: JWT-based signup/login/me/password flows
 - Properties: vector search + chart spec generation for visualizations
 - Graph: Neo4j-powered “why/related” property insights
@@ -66,6 +67,8 @@ Required for core features:
 
 Optional features:
 - `OPENAI_API_KEY`, `OPENAI_MODEL` (optional LLM fallback)
+- `GEMINI_WEB_SEARCH_TIMEOUT_MS` (timeout for Gemini web-grounded requests; default 15000)
+- `GEMINI_WEB_SEARCH_DYNAMIC_THRESHOLD` (0..1 threshold for legacy dynamic retrieval mode; default 0.7)
 - `PINECONE_NAMESPACE`
 - `NEO4J_ENABLE`, `NEO4J_URI`, `NEO4J_USERNAME`, `NEO4J_PASSWORD`, `NEO4J_DATABASE`
 - Ingest tuning: `INGEST_LIMIT`, `PINECONE_PAGE_SIZE`, `INGEST_RESUME`, `INGEST_CHECKPOINT_FILE`, `PINECONE_START_TOKEN`, `NEO4J_RESET`, `NEO4J_WRITE_RETRIES`
@@ -233,6 +236,9 @@ backend/
     server.ts          # App bootstrap
   tests/               # Jest tests
 ```
+
+Gemini web-search capability lives in `backend/src/services/geminiWebSearch.service.ts`.
+It supports modern `google_search` plus legacy `google_search_retrieval` fallback for older models, and returns grounded web sources.
 
 ## Scripts
 

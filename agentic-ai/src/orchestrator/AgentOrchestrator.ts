@@ -247,6 +247,18 @@ export class AgentOrchestrator {
         this.blackboard.affordability = data ?? { raw: text };
         break;
       }
+      case "web.search": {
+        const web = (this.blackboard.web ??= {});
+        web.search = data ?? { raw: text };
+        break;
+      }
+      case "web.fetch": {
+        const web = (this.blackboard.web ??= {});
+        const pages = Array.isArray(web.pages) ? web.pages : [];
+        pages.push(data ?? { raw: text });
+        web.pages = pages.slice(-5);
+        break;
+      }
       default:
         break;
     }

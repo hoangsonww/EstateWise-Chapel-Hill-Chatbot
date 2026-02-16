@@ -16,6 +16,7 @@ export const systemTools: ToolDef[] = [
         frontendBaseUrl: config.frontendBaseUrl,
         a2aBaseUrl: config.a2aBaseUrl,
         a2aTimeoutMs: config.a2aTimeoutMs,
+        webTimeoutMs: config.webTimeoutMs,
       };
       return { content: [{ type: "text", text: JSON.stringify(safe) }] };
     },
