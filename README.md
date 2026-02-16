@@ -146,6 +146,7 @@ For a CLI version of the chatbot, as well as the initial EDA (Exploratory Data A
 - **Agentic AI Pipeline:** Orchestrates the entire AI workflow, managing data retrieval, expert routing, response generation, and feedback integration.
 - **MCP (Model Context Protocol):** Standardizes communication between models and the backend, ensuring consistent context handling and response formatting.
 - **A2A (Agent-to-Agent Protocol):** Enables agent-native task orchestration between EstateWise Agentic AI and external agent systems.
+- **Web-Grounded AI (Internet Research):** Supports web search and page retrieval for freshness-sensitive queries (latest market/rate/news context) through MCP web tools and Gemini web grounding service support.
 - **Multi-LLM Approach:** Utilizes multiple LLMs for different tasks to optimize performance and cost.
 - **k‑Means Clustering:** Automatically groups similar listings and finds closest matches to refine recommendations.
   - All features are also normalized to a range of 0-1 for better clustering and kNN performance.
@@ -1172,7 +1173,7 @@ Bring EstateWise data, graphs, analytics, and utilities to MCP‑compatible clie
 
 - Location: `mcp/`
 - Transport: stdio (works with typical MCP launchers)
-- **Total Tools: 50+** spanning properties, graphs, analytics, market analysis, batch operations, monitoring, finance, and utilities
+- **Total Tools: 60+** spanning properties, graphs, analytics, web research, market analysis, batch operations, monitoring, finance, and utilities
 
 ### Tool Categories
 
@@ -1180,6 +1181,7 @@ Bring EstateWise data, graphs, analytics, and utilities to MCP‑compatible clie
 - **Graph**: `graph.similar`, `graph.explain`, `graph.neighborhood`, `graph.similarityBatch`, `graph.comparePairs`, `graph.pathMatrix`
 - **Charts & Analytics**: `charts.priceHistogram`, `analytics.summarizeSearch`, `analytics.groupByZip`, `analytics.distributions`, `analytics.pricePerSqft`
 - **Market Analysis**: `market.pricetrends`, `market.inventory`, `market.competitiveAnalysis`, `market.affordabilityIndex`
+- **Web Research**: `web.search`, `web.fetch`
 - **Batch Operations**: `batch.compareProperties`, `batch.bulkSearch`, `batch.enrichProperties`, `batch.exportProperties`
 - **Monitoring**: `monitoring.stats`, `monitoring.toolUsage`, `monitoring.health`, `monitoring.reset`
 - **MCP Token Management**: `mcp.token.generate`, `mcp.token.validate`, `mcp.token.revoke`, `mcp.token.refresh`, and more
@@ -1194,6 +1196,7 @@ Bring EstateWise data, graphs, analytics, and utilities to MCP‑compatible clie
 
 ✨ **Comprehensive Coverage**: 50+ tools covering every aspect of real estate research  
 📊 **Market Intelligence**: Advanced market analysis, competitive analysis, and affordability metrics  
+🌐 **Web Freshness Layer**: Internet search/fetch tools for current events, rates, and news context  
 ⚡ **Batch Processing**: Compare, enrich, and export multiple properties efficiently  
 📈 **Monitoring**: Built-in usage tracking, health checks, and performance metrics  
 🔒 **Type-Safe**: Full Zod validation on all tool inputs  
@@ -1204,7 +1207,7 @@ and more!
 ```mermaid
 flowchart LR
   Client[IDE or Assistant MCP Client] -- stdio --> Server[MCP Server]
-  Server -->|properties, graph, analytics, market, batch, monitoring| API[Backend API]
+  Server -->|properties, graph, analytics, market, web, batch, monitoring| API[Backend API]
   Server -->|deep links| Frontend[Frontend map]
   Server -->|metrics| Cache[(LRU Cache)]
 ```
@@ -1215,6 +1218,7 @@ Configure in `mcp/.env` (copy from `.env.example`):
 - `API_BASE_URL` (default: `https://estatewise-backend.vercel.app`)
 - `FRONTEND_BASE_URL` (default: `https://estatewise.vercel.app`)
 - `A2A_BASE_URL` (default: `http://localhost:4318`) – Target Agentic AI A2A endpoint for `a2a.*` bridge tools
+- `WEB_TIMEOUT_MS` (default: `12000`) – Timeout for `web.search`/`web.fetch` outbound requests
 - `MCP_CACHE_TTL_MS` (default: `30000`) – Cache TTL in milliseconds
 - `MCP_CACHE_MAX` (default: `200`) – Maximum cached GET responses
 - `MCP_DEBUG` (default: `false`) – Enable verbose debug logs
@@ -1258,31 +1262,31 @@ npm run client:call -- monitoring.stats '{"detailed":true}'
 
 A production-ready, multi‑agent CLI with three runtimes to drive research and analysis with tools:
 
-- Orchestrator (default): Round‑based, MCP‑first agents using a shared blackboard.
-- LangChain + LangGraph: Tool‑calling ReAct agent with MCP, Pinecone, and Neo4j tools.
-- CrewAI (Python): Sequential crew for planning, analysis, graph insights, finance, and reporting.
+- **Orchestrator (default):** Round‑based, MCP‑first agents using a shared blackboard.
+- **LangChain + LangGraph:** Tool‑calling ReAct agent with MCP, Pinecone, and Neo4j tools.
+- **CrewAI (Python):** Sequential crew for planning, analysis, graph insights, finance, and reporting.
 
-Location
+**Location**
 - `agentic-ai/`
 
-Agents (orchestrator runtime)
+**Agents (orchestrator runtime)**
 - Planner, Coordinator, ZpidFinder, PropertyAnalyst, AnalyticsAnalyst, GraphAnalyst, DedupeRanking, MapAnalyst, FinanceAnalyst, Compliance, Reporter
-- Coordination: Shared blackboard (ZPIDs, parsed filters, analytics, links, finance) with retries and JSON normalization.
+- Coordination: Shared blackboard (ZPIDs, parsed filters, web context, analytics, links, finance) with retries and JSON normalization.
 
-Quick start (Orchestrator)
+**Quick start (Orchestrator)**
 ```
 cd mcp && npm run build
 cd ../agentic-ai && npm run dev "Find 3-bed homes in Chapel Hill, NC; explain 123456 vs 654321; estimate $600k at 6.25%."
 ```
 
-LangGraph runtime
+**LangGraph runtime**
 ```
 cd agentic-ai
 npm run dev -- --langgraph "Compare 123456 vs 654321 and show a map"
 # or AGENT_RUNTIME=langgraph npm run dev -- "..."
 ```
 
-CrewAI runtime
+**CrewAI runtime**
 ```
 cd agentic-ai/crewai
 python3 -m venv .venv && source .venv/bin/activate
@@ -1292,7 +1296,7 @@ cd ..
 npm run dev -- --crewai "Find 3-bed homes in Chapel Hill; explain two ZPIDs and estimate mortgage"
 ```
 
-Notes
+**Notes:**
 - Orchestrator spawns `mcp/dist/server.js` over stdio; extend by adding MCP tools in `mcp/` and agents in `agentic-ai/src/agents/`.
 - LangGraph adds Pinecone vector retrieval and Neo4j Cypher QA; see `agentic-ai/src/lang/`.
 - CrewAI is optional and requires Python with the deps in `agentic-ai/crewai/requirements.txt`.
@@ -1302,6 +1306,7 @@ flowchart LR
     subgraph Orchestrator
     Goal --> Planner --> Coordinator
     Coordinator -->|parseGoal| UPG["util.parseGoal"]
+    Coordinator -->|webResearch| WS["web.search"]
     Coordinator -->|lookup| PL["properties.lookup"]
     Coordinator -->|search| PS["properties.search"]
     Coordinator -->|analytics| AS["analytics.summarizeSearch"]

@@ -312,6 +312,20 @@ export function mcpToolset(): LangTool[] {
       "analytics.groupByZip",
       z.object({ q: z.string(), topK: z.number().optional() }),
     ),
+    mcpTool(
+      "web.search",
+      z.object({
+        q: z.string(),
+        limit: z.number().int().min(1).max(10).optional(),
+      }),
+    ),
+    mcpTool(
+      "web.fetch",
+      z.object({
+        url: z.string().url(),
+        maxChars: z.number().int().min(500).max(20000).optional(),
+      }),
+    ),
     mcpTool("graph.explain", z.object({ from: z.number(), to: z.number() })),
     mcpTool(
       "graph.similarityBatch",

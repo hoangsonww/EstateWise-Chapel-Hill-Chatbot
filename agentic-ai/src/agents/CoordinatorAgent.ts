@@ -3,6 +3,7 @@ import { Agent, AgentContext, AgentMessage, PlanStep } from "../core/types.js";
 /** Canonical keys for coordinator-managed steps. */
 type StepKey =
   | "parseGoal"
+  | "webResearch"
   | "lookup"
   | "search"
   | "summarize"
@@ -15,20 +16,27 @@ type StepKey =
   | "affordability"
   | "compliance";
 
+const WEB_RESEARCH_HINT_RE =
+  /\b(latest|current|today|recent|news|update|updated|trend|trends|mortgage rate|interest rate|fed|inflation|inventory|source|citation|web|internet|browse)\b/i;
+
 /** Drives plan execution and marks steps running/done as results arrive. */
 export class CoordinatorAgent implements Agent {
   role: "coordinator" = "coordinator";
 
-  /** Return true if a result from one of the provided tool names exists in history. */
-  private findToolResult(ctx: AgentContext, toolNames: string[]): boolean {
+  /** Return tool completion status from history for one of the provided tool names. */
+  private findToolOutcome(
+    ctx: AgentContext,
+    toolNames: string[],
+  ): "result" | "error" | null {
     for (let i = ctx.history.length - 1; i >= 0; i--) {
       const m = ctx.history[i];
       if (typeof m.content !== "string") continue;
       for (const t of toolNames) {
-        if (m.content.startsWith(`Tool ${t} result`)) return true;
+        if (m.content.startsWith(`Tool ${t} result`)) return "result";
+        if (m.content.startsWith(`Tool ${t} error`)) return "error";
       }
     }
-    return false;
+    return null;
   }
 
   /** Initialize a default plan if the blackboard lacks one. */
@@ -38,6 +46,11 @@ export class CoordinatorAgent implements Agent {
       {
         key: "parseGoal",
         description: "Parse goal for filters",
+        status: "pending",
+      },
+      {
+        key: "webResearch",
+        description: "Search web for current context when needed",
         status: "pending",
       },
       {
@@ -107,11 +120,23 @@ export class CoordinatorAgent implements Agent {
     if (ctx.blackboard.plan) ctx.blackboard.plan.inFlightStepKey = undefined;
   }
 
+  /** Mark a step failed and clear in-flight state so the plan can continue. */
+  private markError(ctx: AgentContext, key: StepKey) {
+    const st = ctx.blackboard.plan?.steps.find((s) => s.key === key);
+    if (st) st.status = "error";
+    if (ctx.blackboard.plan) ctx.blackboard.plan.inFlightStepKey = undefined;
+  }
+
   /** Mark a step as running and set in-flight key. */
   private markRunning(ctx: AgentContext, key: StepKey) {
     const st = ctx.blackboard.plan?.steps.find((s) => s.key === key);
     if (st) st.status = "running";
     if (ctx.blackboard.plan) ctx.blackboard.plan.inFlightStepKey = key;
+  }
+
+  /** Heuristic for deciding whether external web context is likely needed. */
+  private shouldRunWebResearch(goal: string): boolean {
+    return WEB_RESEARCH_HINT_RE.test(goal);
   }
 
   /**
@@ -124,13 +149,20 @@ export class CoordinatorAgent implements Agent {
 
     // If something is in-flight and we have its result, mark it done.
     if (plan.inFlightStepKey) {
-      if (
-        this.findToolResult(ctx, expectedTools(plan.inFlightStepKey as StepKey))
-      ) {
+      const inFlightKey = plan.inFlightStepKey as StepKey;
+      const outcome = this.findToolOutcome(ctx, expectedTools(inFlightKey));
+      if (outcome === "result") {
         this.markDone(ctx, plan.inFlightStepKey as StepKey);
         return {
           from: this.role,
           content: `Step ${plan.inFlightStepKey} completed.`,
+        };
+      }
+      if (outcome === "error") {
+        this.markError(ctx, inFlightKey);
+        return {
+          from: this.role,
+          content: `Step ${inFlightKey} failed; continuing with remaining plan.`,
         };
       }
       // Still waiting for result
@@ -219,6 +251,23 @@ export class CoordinatorAgent implements Agent {
           from: this.role,
           content: "Parsing goal",
           data: { tool: { name: "util.parseGoal", args: { text: ctx.goal } } },
+        };
+      }
+      case "webResearch": {
+        if (!this.shouldRunWebResearch(ctx.goal)) {
+          this.markDone(ctx, key);
+          return {
+            from: this.role,
+            content: "Web research skipped (no explicit fresh-data signal).",
+          };
+        }
+        this.markRunning(ctx, key);
+        return {
+          from: this.role,
+          content: "Searching web for current context",
+          data: {
+            tool: { name: "web.search", args: { q: ctx.goal, limit: 5 } },
+          },
         };
       }
       case "lookup": {
@@ -408,6 +457,8 @@ function expectedTools(key: StepKey): string[] {
   switch (key) {
     case "parseGoal":
       return ["util.parseGoal"];
+    case "webResearch":
+      return ["web.search"];
     case "lookup":
       return ["properties.lookup"];
     case "search":

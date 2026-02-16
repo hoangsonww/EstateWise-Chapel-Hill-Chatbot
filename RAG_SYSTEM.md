@@ -29,6 +29,7 @@ EstateWise uses a **Hybrid RAG (Retrieval-Augmented Generation)** architecture t
 🕸️ **Knowledge Graph (Neo4j Aura)** - Relationship-based reasoning and explainability  
 🤖 **Multi-Expert AI System** - Specialized agents for different analysis domains  
 📊 **K-Means Clustering** - Property grouping for pattern recognition  
+🌐 **Web-Grounded AI Layer (Optional)** - Internet search/fetch augmentation for freshness-sensitive queries  
 
 ### Why Hybrid RAG?
 
@@ -38,6 +39,7 @@ Traditional RAG systems rely solely on vector similarity, which can miss importa
 - ✅ **Structural Context** (Knowledge Graph - Graph RAG): "These homes are in the same neighborhood"
 - ✅ **Explainability**: "Recommended because: same zip code, similar price, nearby schools"
 - ✅ **Richer Context**: Combines text similarity with geographic/demographic relationships
+- ✅ **Temporal Freshness**: Optional web grounding for current rates/news context when local vector+graph data is not enough
 
 ---
 
@@ -96,8 +98,11 @@ graph TB
 | **Knowledge Graph** | Neo4j | Store property relationships (neighborhoods, zips) |
 | **Embedding Model** | Google text-embedding-004 | Convert text queries to 768-dim vectors |
 | **LLM** | Google Gemini 2.0 Flash | Multi-expert reasoning and synthesis |
+| **Web Grounding (Optional)** | Gemini web grounding + MCP web tools | Add current external context with source links for time-sensitive prompts |
 | **Clustering** | K-Means (k=4) | Group properties by features for pattern analysis |
 | **Frontend** | Next.js + Chart.js | Render responses with interactive visualizations |
+
+The core retrieval path remains vector + graph. Web grounding is an augmentation path used selectively for freshness-sensitive prompts (for example, latest mortgage rates, policy updates, or market news).
 
 ---
 

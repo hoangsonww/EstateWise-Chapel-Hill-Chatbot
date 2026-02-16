@@ -75,6 +75,10 @@ export interface Blackboard {
   mapLink?: string | null;
   mortgage?: Record<string, unknown> | null;
   affordability?: Record<string, unknown> | null;
+  web?: {
+    search?: Record<string, unknown> | null;
+    pages?: Array<Record<string, unknown>> | null;
+  };
   pairs?: Array<Record<string, unknown>> | null;
   compliance?: { ok: boolean; issues: string[] } | null;
 }
