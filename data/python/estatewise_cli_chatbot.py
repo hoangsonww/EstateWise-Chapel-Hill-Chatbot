@@ -12,19 +12,19 @@ Welcome to the EstateWise Colab notebook, where we combine advanced data science
 
 ## This notebook covers
 
-1. **Install dependencies**  
+1. **Install dependencies**
 2. **Mount Google Drive**
 3. **Load Properties Data**
-4. **Clean & wrangle data**  
-5. **Exploratory Data Analysis (EDA)**  
-6. **PCA / t-SNE + k-Means clustering**  
-7. **Cluster summaries**  
-8. **Interactive geospatial visualizations**  
-   - **Price heatmap** (density weighted by listing price)  
-   - **Living-area heatmap** (density weighted by square footage)  
-   - **Price-per-square-foot heatmap** (gradient showing per-unit value)  
-9. **Interactive Google Gemini CLI**  
-   - Agentic AI decides when to fetch property data  
+4. **Clean & wrangle data**
+5. **Exploratory Data Analysis (EDA)**
+6. **PCA / t-SNE + k-Means clustering**
+7. **Cluster summaries**
+8. **Interactive geospatial visualizations**
+   - **Price heatmap** (density weighted by listing price)
+   - **Living-area heatmap** (density weighted by square footage)
+   - **Price-per-square-foot heatmap** (gradient showing per-unit value)
+9. **Interactive Google Gemini CLI**
+   - Agentic AI decides when to fetch property data
    - Five-expert ensemble with master-agent merge (MoE - Mixture of Experts Pipeline)
    - Type your questions & get tailored Chapel Hill home recommendations in real time!
 
@@ -76,7 +76,7 @@ drive.mount('/content/drive', force_remount=True)
 
 """### 2.1 Configure Paths & API Key
 
-- Point `path488` to your Zillow JSON folder in Drive  
+- Point `path488` to your Zillow JSON folder in Drive
 - Set `GOOGLE_API_KEY` in Colab’s environment (Settings → Secrets)
 - Set `PINECONE_API_KEY` in Colab’s environment (Settings → Secrets)
 - Set `PINECONE_ENVIRONMENT` in Colab’s environment (Settings → Secrets)
@@ -102,8 +102,8 @@ print(f"Raw 2025 records: {len(df_raw):,}")
 
 """## 4. Data Cleaning & Wrangling
 
-- Keep only relevant fields  
-- Apply safe parsing and drop invalid entries  
+- Keep only relevant fields
+- Apply safe parsing and drop invalid entries
 """
 
 # 4.1 Helpers & field list
@@ -454,22 +454,22 @@ cluster_summary
 
 In this section we’ll build three different interactive maps in Colab to explore our cleaned and clustered real estate listings:
 
-1. **Clustered Circle Markers with Layers**  
-   - Centered on Chapel Hill, NC  
-   - Fullscreen, measurement tool, and minimap controls  
-   - One FeatureGroup per cluster (Cluster 0…Cluster 3), toggleable via the layer control  
-   - Circle markers colored by cluster, with popups showing address, price, beds/baths, living area, year built  
+1. **Clustered Circle Markers with Layers**
+   - Centered on Chapel Hill, NC
+   - Fullscreen, measurement tool, and minimap controls
+   - One FeatureGroup per cluster (Cluster 0…Cluster 3), toggleable via the layer control
+   - Circle markers colored by cluster, with popups showing address, price, beds/baths, living area, year built
 
-2. **Home-Type Map with Search Bar**  
-   - One FeatureGroup per `homeType` (e.g. Single Family, Condo)  
-   - Search plugin to lookup any property by its full address  
-   - Toggle layers for each home type via the layer control  
-   - Popups and tooltips include type, price, and basic specs  
+2. **Home-Type Map with Search Bar**
+   - One FeatureGroup per `homeType` (e.g. Single Family, Condo)
+   - Search plugin to lookup any property by its full address
+   - Toggle layers for each home type via the layer control
+   - Popups and tooltips include type, price, and basic specs
 
-3. **Count-based MarkerCluster**  
-   - MarkerCluster with custom div icons that display the number of listings in each cluster  
-   - No heatmap—clusters simply show counts, and clicking expands individual markers with popups  
-   - Layer control to toggle the count-cluster overlay  
+3. **Count-based MarkerCluster**
+   - MarkerCluster with custom div icons that display the number of listings in each cluster
+   - No heatmap—clusters simply show counts, and clicking expands individual markers with popups
+   - Layer control to toggle the count-cluster overlay
 
 Each map leverages **Folium** and supports intuitive pan/zoom, layer toggling, and rich popups/tooltips to help you visually explore spatial patterns in Chapel Hill real estate data. Simply run the corresponding code cells below to render each interactive map in your notebook.
 
@@ -579,20 +579,20 @@ m
 
 The heatmap layer overlays a semi‐transparent “intensity” map on top of the base map. It encodes **both spatial density** and **price weight** of the listings:
 
-- **Color gradient**  
-  - **Cool colors (blue)** represent areas with relatively **few** or **lower‐priced** listings.  
-  - **Warm colors (yellow → red)** indicate areas with **many** and/or **higher‐priced** listings.  
+- **Color gradient**
+  - **Cool colors (blue)** represent areas with relatively **few** or **lower‐priced** listings.
+  - **Warm colors (yellow → red)** indicate areas with **many** and/or **higher‐priced** listings.
 
-- **Intensity / Opacity**  
-  - Brighter, more opaque spots show where high‐price listings cluster closely together.  
+- **Intensity / Opacity**
+  - Brighter, more opaque spots show where high‐price listings cluster closely together.
   - Fainter, more transparent spots show sparser or lower‐price concentrations.
 
-- **Radius & Blur settings**  
-  - Each listing contributes to a circular “footprint” (radius = 8 px) that is blurred (blur = 5 px) to create a smooth gradient.  
+- **Radius & Blur settings**
+  - Each listing contributes to a circular “footprint” (radius = 8 px) that is blurred (blur = 5 px) to create a smooth gradient.
   - A larger radius or blur makes hot spots spread out, while smaller values concentrate them tightly around each point.
 
-- **Weighting by Price**  
-  - Because we passed `[lat, lon, price]` as each data point, pricier listings contribute more to the heatmap intensity than cheaper ones.  
+- **Weighting by Price**
+  - Because we passed `[lat, lon, price]` as each data point, pricier listings contribute more to the heatmap intensity than cheaper ones.
   - Areas with both high listing counts *and* high prices will therefore appear hottest (deep red).
 
 Use this layer to quickly identify neighborhoods where expensive homes are concentrated versus those dominated by lower‐priced or fewer listings. You can also toggle the clusters on/off in the layer control at the top right.
@@ -601,16 +601,16 @@ Use this layer to quickly identify neighborhoods where expensive homes are conce
 
 This layer shows relative listing‐price density across Chapel Hill, using a blue→green→red gradient (blue = low, green = mid, red = high).
 
-- **Greenish areas near UNC (e.g. E Franklin St.)**  
+- **Greenish areas near UNC (e.g. E Franklin St.)**
   These are mid-to-high price pockets—reflecting student rentals, townhomes and smaller single-family homes that command steady demand but aren’t the priciest in town.
 
-- **Localized red hotspots within those green zones**  
+- **Localized red hotspots within those green zones**
   Indicate clusters of premium listings (large homes or newly built properties) fetching the highest prices per square foot, even among an already expensive corridor.
 
-- **Wider green bands in central Chapel Hill**  
+- **Wider green bands in central Chapel Hill**
   Show established residential neighborhoods with moderate price levels—balanced value between proximity to amenities and home size.
 
-- **Blue-ish outskirts**  
+- **Blue-ish outskirts**
   Reveal more affordable sectors—older subdivisions or edge-of-town areas where average listing prices drop off, offering entry-level options further from the center.
 """
 
@@ -660,33 +660,33 @@ living_area_map
 
 The living‐area heatmap overlays a semi-transparent “intensity” layer on the base map, encoding both **spatial density** and **square-footage weight** of each listing:
 
-- **Color gradient**  
-  - **Cool colors (blue)** represent areas with relatively **few** or **smaller-sized** listings.  
+- **Color gradient**
+  - **Cool colors (blue)** represent areas with relatively **few** or **smaller-sized** listings.
   - **Warm colors (yellow → red)** indicate areas with **many** and/or **larger** homes.
 
-- **Intensity / Opacity**  
-  - Brighter, more opaque spots show where large-square-foot listings cluster tightly.  
+- **Intensity / Opacity**
+  - Brighter, more opaque spots show where large-square-foot listings cluster tightly.
   - Fainter, more transparent areas indicate sparser or smaller-sized concentrations.
 
-- **Radius & Blur settings**  
-  - Each listing contributes a circular footprint (radius = 8 px) that’s blurred (blur = 5 px) for smooth transitions.  
+- **Radius & Blur settings**
+  - Each listing contributes a circular footprint (radius = 8 px) that’s blurred (blur = 5 px) for smooth transitions.
   - Smaller radii concentrate heat around individual points; larger radii spread it out.
 
-- **Weighting by Living Area**  
-  - Because we passed `[lat, lon, livingArea]` into the heatmap, listings with more square footage contribute more to the intensity than compact ones.  
+- **Weighting by Living Area**
+  - Because we passed `[lat, lon, livingArea]` into the heatmap, listings with more square footage contribute more to the intensity than compact ones.
   - Neighborhoods featuring both high listing counts **and** large homes will therefore appear hottest (deep red).
 
 Use this layer to spot where the biggest homes are clustered versus areas dominated by smaller dwellings. You can toggle other layers (cluster markers, price heatmap, etc.) on and off via the layer control.
 
 #### 8.15.2 Interpretation
 
-- **Widespread green around UNC and central Chapel Hill**  
+- **Widespread green around UNC and central Chapel Hill**
   Indicates a high density of mid-sized homes—common student rentals, townhouses, and modest single-family houses close to campus.
 
-- **Red-tinged “dots” within those green zones**  
+- **Red-tinged “dots” within those green zones**
   Mark pockets of very large homes or new luxury developments that exceed the surrounding average square footage.
 
-- **Shrinking green clusters with distance**  
+- **Shrinking green clusters with distance**
   Shows that as you move farther from the center, fewer large-footprint homes are listed, and overall home sizes trend smaller.
 
 By comparing this living‐area layer with the price or price-per-sqft maps, you can decide whether larger homes command proportional prices or represent undervalued opportunities in certain neighborhoods.
@@ -748,11 +748,11 @@ price_psf_map
 
 This heatmap highlights the spatial variation in value — how much each square foot of living space costs across Chapel Hill.
 
-- **Red “hot spots”** show neighborhoods where you pay a premium per square foot, often corresponding to historically desirable areas close to downtown or the UNC campus.  
-- **Blue “cooler zones”** indicate more affordable pockets where larger homes may be available at lower per-square-foot rates, such as newer subdivisions on the outskirts.  
-- **Transitional corridors** (green-to-yellow bands) along major roads suggest mixed price points—areas where mid-range properties and townhomes create a broader spread of values.  
-- **Comparison with raw price map**: A neighborhood might have high overall prices but only moderate price-per-sqft (large lot sizes), or vice versa (smaller homes driving up per-sqft cost), helping you discern true value versus absolute price.  
-- **Investment insight**: Cooler areas with rising price-per-sqft trends may signal emerging markets, while established hotspots warrant premium budgets.  
+- **Red “hot spots”** show neighborhoods where you pay a premium per square foot, often corresponding to historically desirable areas close to downtown or the UNC campus.
+- **Blue “cooler zones”** indicate more affordable pockets where larger homes may be available at lower per-square-foot rates, such as newer subdivisions on the outskirts.
+- **Transitional corridors** (green-to-yellow bands) along major roads suggest mixed price points—areas where mid-range properties and townhomes create a broader spread of values.
+- **Comparison with raw price map**: A neighborhood might have high overall prices but only moderate price-per-sqft (large lot sizes), or vice versa (smaller homes driving up per-sqft cost), helping you discern true value versus absolute price.
+- **Investment insight**: Cooler areas with rising price-per-sqft trends may signal emerging markets, while established hotspots warrant premium budgets.
 
 """
 
@@ -869,13 +869,13 @@ grid_score_map
 
 This grid-based map uses percentile ranking to show how each ~500 m cell stacks up relative to all others on a combined index of average price / sq ft, living area, and bedroom count. Scores run from 0 (lowest overall) to 100 (highest overall).
 
-- **Red cells (scores ≥ 75)**  
+- **Red cells (scores ≥ 75)**
   These are the top-quartile areas in Chapel Hill, where homes tend to command the highest per-square-foot rates, offer larger living spaces, and include more bedrooms compared to most other cells. They typically correspond to established, high-demand neighborhoods close to UNC and downtown.
 
-- **Orange-to-yellow cells (scores 25 – 74)**  
+- **Orange-to-yellow cells (scores 25 – 74)**
   Occupying the middle two quartiles, these zones feature moderate combinations of value, size, and bedroom count. You’ll find mixed-price developments, suburban corridors, and transitional neighborhoods here—areas with solid amenities but fewer premium attributes.
 
-- **Green cells (scores < 25)**  
+- **Green cells (scores < 25)**
   Represent the bottom-quartile cells, where either smaller homes, lower price / sq ft, or fewer bedrooms dominate. These are often more affordable pockets, older subdivisions, or outlying sectors of Chapel Hill.
 
 - **Percentile-based scaling** allows you to see not just absolute metrics but relative performance—ideal for quickly spotting outlier grids (both premium enclaves and value opportunities) without being skewed by extreme outliers in price or size.
@@ -884,27 +884,27 @@ This grid-based map uses percentile ranking to show how each ~500 m cell stacks 
 
 The composite score for each ~500 m grid cell is built from three equally‐weighted property metrics:
 
-1. **Average Price per Square Foot (`avg_psf`)**  
+1. **Average Price per Square Foot (`avg_psf`)**
    - Captures how much you pay for living space in that cell.
-2. **Average Living Area (`avg_area`)**  
+2. **Average Living Area (`avg_area`)**
    - Reflects the typical home size (in square feet) within the cell.
-3. **Average Bedroom Count (`avg_beds`)**  
+3. **Average Bedroom Count (`avg_beds`)**
    - Measures how many bedrooms the average listing offers.
 
-**Calculation steps**  
-1. **Compute cell averages**  
-   - For each occupied grid cell, take the mean of `price / livingArea`, `livingArea`, and `bedrooms`.  
-2. **Convert to percentiles**  
-   - Rank each cell’s value for a metric against all cells (percentile from 0 to 1).  
-   - This ensures that, for example, a cell in the 90th percentile on `avg_psf` is more expensive than 90% of all cells.  
-3. **Average percentiles**  
-   - Take the mean of the three percentile values:  
+**Calculation steps**
+1. **Compute cell averages**
+   - For each occupied grid cell, take the mean of `price / livingArea`, `livingArea`, and `bedrooms`.
+2. **Convert to percentiles**
+   - Rank each cell’s value for a metric against all cells (percentile from 0 to 1).
+   - This ensures that, for example, a cell in the 90th percentile on `avg_psf` is more expensive than 90% of all cells.
+3. **Average percentiles**
+   - Take the mean of the three percentile values:
      \[
        \text{mean\_pct} = \frac{\text{psf\_pct} + \text{area\_pct} + \text{beds\_pct}}{3}
-     \]  
-4. **Scale to 0–100**  
-   - Multiply the mean percentile by 100 to produce a human-readable score.  
-   - A cell with a score of 80 means it ranks in the top 20% overall across the three factors; a score of 20 means it’s in the bottom 20%.  
+     \]
+4. **Scale to 0–100**
+   - Multiply the mean percentile by 100 to produce a human-readable score.
+   - A cell with a score of 80 means it ranks in the top 20% overall across the three factors; a score of 20 means it’s in the bottom 20%.
 
 By using percentile ranks rather than raw values, the composite score balances differences in scale (e.g., dollars vs. square feet) and prevents any single metric with extreme outliers from dominating the index.
 
@@ -914,9 +914,9 @@ This notebook cell lets you chat **directly** with Google Gemini from Colab—no
 
 **Before you run this cell:**
 - Go to **Colab → Secrets & variables → Notebook secrets** and add:
-  - `GOOGLE_API_KEY` = your Google AI API key  
-  - `PINECONE_API_KEY` = your Pinecone API key  
-  - `PINECONE_ENVIRONMENT` = your Pinecone environment (e.g. `us-west1-gcp`)  
+  - `GOOGLE_API_KEY` = your Google AI API key
+  - `PINECONE_API_KEY` = your Pinecone API key
+  - `PINECONE_ENVIRONMENT` = your Pinecone environment (e.g. `us-west1-gcp`)
   - `PINECONE_INDEX` = the name of your Pinecone index (e.g. `estatewise-index`)
 - Make sure you click **Save** so that `userdata.get()` can retrieve them at runtime.
 
@@ -928,7 +928,7 @@ This notebook cell lets you chat **directly** with Google Gemini from Colab—no
 5. A **Master Agent** synthesizes all expert opinions into one cohesive, concise recommendation—always providing at least one property suggestion.
 6. **CLI loop**: type your queries at the prompt, get back rich property recommendations, and type `exit` or `quit` to end the session.
 
-_For a full web-app experience with polished UI and persistence, check out our deployed version at_  
+_For a full web-app experience with polished UI and persistence, check out our deployed version at_
 https://estatewise.vercel.app/
 """
 
@@ -975,7 +975,7 @@ def sanitize_metadata(md: dict) -> dict:
     return out
 
 def query_properties(query: str, top_k: int = 30):
-    emb = client.embeddings.create(model="models/text-embedding-004", content=query)
+    emb = client.embeddings.create(model="models/gemini-embedding-001", content=query)
     vec = emb.data[0].embedding
     resp = index.query(vector=vec, top_k=top_k, include_metadata=True)
     matches = getattr(resp, "matches", resp.get("matches", []))

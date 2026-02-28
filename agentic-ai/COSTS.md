@@ -161,7 +161,7 @@ Example (truncated):
     },
     "unpriced": [
       {
-        "model": "text-embedding-004",
+        "model": "gemini-embedding-001",
         "operation": "embedding",
         "reason": "Model not in pricing table"
       }

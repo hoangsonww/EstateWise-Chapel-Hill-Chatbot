@@ -1172,7 +1172,7 @@ Set the following environment variables as needed:
   - `GOOGLE_AI_API_KEY` (preferred) and optional `GOOGLE_AI_MODEL` (default `gemini-2.5-flash`).
   - Or `OPENAI_API_KEY` and optional `OPENAI_MODEL` (default `gpt-4o-mini`).
 - Embeddings
-  - `GOOGLE_EMBED_MODEL` (default `text-embedding-004`) or `OPENAI_EMBED_MODEL` (default `text-embedding-3-large`).
+  - `GOOGLE_EMBED_MODEL` (default `gemini-embedding-001`, requested at fixed `768` dimensions to match backend property vectors) or `OPENAI_EMBED_MODEL` (default `text-embedding-3-large`).
 - Pinecone (optional)
   - `PINECONE_API_KEY`, `PINECONE_INDEX` (and optionally `PINECONE_ENV` if needed by your account).
 - Neo4j (optional)
