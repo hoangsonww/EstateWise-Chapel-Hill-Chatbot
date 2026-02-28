@@ -27,7 +27,7 @@ def generate_embedding(text):
     Generate an embedding using Google’s Generative AI model.
     """
     response = palm.Embedding.create(
-        model="models/text-embedding-004",
+        model="models/gemini-embedding-001",
         content=text
     )
     # Expecting the response to contain an 'embedding' field.

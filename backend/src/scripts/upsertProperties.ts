@@ -16,9 +16,34 @@ if (!process.env.GOOGLE_AI_API_KEY) {
 }
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY);
-const model = genAI.getGenerativeModel({ model: "models/text-embedding-004" });
+const model = genAI.getGenerativeModel({
+  model: "models/gemini-embedding-001",
+});
+const EMBEDDING_DIMENSIONS = 768;
 
 const BATCH_SIZE = 50;
+
+function buildEmbeddingRequest(
+  text: string,
+  taskType: "RETRIEVAL_DOCUMENT" | "RETRIEVAL_QUERY",
+) {
+  return {
+    content: {
+      role: "user",
+      parts: [{ text }],
+    },
+    taskType,
+    outputDimensionality: EMBEDDING_DIMENSIONS,
+  } as any;
+}
+
+function assertEmbeddingDimensions(embedding: number[]) {
+  if (embedding.length !== EMBEDDING_DIMENSIONS) {
+    throw new Error(
+      `Expected ${EMBEDDING_DIMENSIONS}-dimensional embedding, received ${embedding.length}.`,
+    );
+  }
+}
 
 /**
  * This is the cleaned property interface.
@@ -191,7 +216,9 @@ async function processFileStreaming(
         );
         let embedding: number[] = [];
         try {
-          const embedResp = await model.embedContent(text);
+          const embedResp = await model.embedContent(
+            buildEmbeddingRequest(text, "RETRIEVAL_DOCUMENT"),
+          );
           if (
             !embedResp ||
             !embedResp.embedding ||
@@ -200,6 +227,7 @@ async function processFileStreaming(
             throw new Error("Invalid embedding response format.");
           }
           embedding = embedResp.embedding.values;
+          assertEmbeddingDimensions(embedding);
         } catch (embedError) {
           console.error(
             `Error generating embedding for zpid=${cleanDoc.zpid}:`,

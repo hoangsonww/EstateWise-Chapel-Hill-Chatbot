@@ -96,7 +96,7 @@ graph TB
 |-----------|-----------|---------|
 | **Vector Store** | Pinecone | Fast semantic similarity search via embeddings |
 | **Knowledge Graph** | Neo4j | Store property relationships (neighborhoods, zips) |
-| **Embedding Model** | Google text-embedding-004 | Convert text queries to 768-dim vectors |
+| **Embedding Model** | Google gemini-embedding-001 | Convert text queries to 768-dim vectors |
 | **LLM** | Google Gemini 2.0 Flash | Multi-expert reasoning and synthesis |
 | **Web Grounding (Optional)** | Gemini web grounding + MCP web tools | Add current external context with source links for time-sensitive prompts |
 | **Clustering** | K-Means (k=4) | Group properties by features for pattern analysis |
@@ -113,7 +113,7 @@ The core retrieval path remains vector + graph. Web grounding is an augmentation
 ```mermaid
 flowchart LR
     A[MongoDB<br/>Property Records] -->|Fetch All| B[Embedding Service]
-    B -->|text-embedding-004| C[768-dim Vectors]
+    B -->|gemini-embedding-001| C[768-dim Vectors]
     C -->|Upsert with Metadata| D[Pinecone Index]
     
     style D fill:#e1f5ff,color:#000
@@ -262,7 +262,7 @@ flowchart LR
 ```
 
 **Query Process:**
-1. User text → Google text-embedding-004 → 768-dimensional vector
+1. User text → Google gemini-embedding-001 → 768-dimensional vector
 2. Pinecone searches 10K+ property vectors via cosine similarity
 3. Returns top 50 most semantically similar properties
 4. Each result includes: similarity score (0-1) + full metadata

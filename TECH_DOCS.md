@@ -292,7 +292,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY);
 const embedModel = genAI.getGenerativeModel({
-  model: "models/text-embedding-004",
+  model: "models/gemini-embedding-001",
 });
 
 async function generateEmbedding(text: string): Promise<number[]> {
@@ -1184,7 +1184,7 @@ Throughout the development of **EstateWise**, we encountered several technical a
 
 ### 11.2 Embedding Generation & Rate Limits
 
-- **API Throughput:** Generating 30,000+ embeddings against Google’s `text-embedding-004` model risked hitting per‑minute or per‑day quotas. We implemented exponential backoff, jittered retries, and an in‑flight counter to throttle concurrent requests.
+- **API Throughput:** Generating 30,000+ embeddings against Google’s `gemini-embedding-001` model risked hitting per‑minute or per‑day quotas. We implemented exponential backoff, jittered retries, and an in‑flight counter to throttle concurrent requests.
 - **Latency Variability:** Embedding calls occasionally spiked to hundreds of milliseconds each; batching and parallelizing up to a safe concurrency limit (5–10 simultaneous requests) was critical.
 
 ### 11.3 Vector Store Scaling

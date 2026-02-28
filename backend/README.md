@@ -41,6 +41,8 @@ flowchart LR
 - Google AI API key (for embeddings + chat)
 - Optional: Neo4j for graph enrichment
 
+Property embeddings for Pinecone are generated with Gemini at a fixed `768` dimensions.
+
 ### Setup
 
 1. Copy the root `.env.example` to `backend/.env` (or repo root) and fill in values.
