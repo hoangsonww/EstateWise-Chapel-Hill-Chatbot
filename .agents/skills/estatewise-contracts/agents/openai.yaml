@@ -1,0 +1,7 @@
+interface:
+  display_name: "EstateWise Contracts"
+  short_description: "Audit producer-consumer alignment across REST, tRPC, MCP, gRPC, and A2A."
+  default_prompt: "Use this skill to trace a contract change across EstateWise producers and consumers."
+
+policy:
+  allow_implicit_invocation: true

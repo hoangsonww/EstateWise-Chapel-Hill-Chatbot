@@ -1,0 +1,7 @@
+interface:
+  display_name: "EstateWise Ops"
+  short_description: "Playbook for deployment-control, Docker, Kubernetes, Helm, Terraform, and CI/CD assets."
+  default_prompt: "Use this skill to change EstateWise deployment or infrastructure workflows safely."
+
+policy:
+  allow_implicit_invocation: false

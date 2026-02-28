@@ -1,0 +1,7 @@
+interface:
+  display_name: "EstateWise Review"
+  short_description: "Findings-first review workflow for regressions, bugs, security, and missing tests."
+  default_prompt: "Review this EstateWise change and report concrete findings ordered by severity."
+
+policy:
+  allow_implicit_invocation: true

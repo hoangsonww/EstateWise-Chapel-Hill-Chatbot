@@ -1,0 +1,35 @@
+[features]
+multi_agent = true
+
+[agents]
+max_threads = 6
+max_depth = 1
+
+[agents.explorer]
+description = "Read-only codebase explorer for locating EstateWise ownership boundaries, entry points, and execution paths."
+config_file = "agents/explorer.toml"
+
+[agents.reviewer]
+description = "Read-only reviewer focused on correctness, security, regressions, and missing tests in EstateWise changes."
+config_file = "agents/reviewer.toml"
+
+[agents.docs_researcher]
+description = "Documentation specialist that verifies Codex, OpenAI API, and framework behavior through OpenAI Developers MCP."
+config_file = "agents/docs-researcher.toml"
+
+[agents.browser_debugger]
+description = "Browser-focused debugger for reproducing EstateWise UI issues and gathering console, network, and screenshot evidence."
+config_file = "agents/browser-debugger.toml"
+
+[agents.worker]
+description = "Implementation-focused agent for small, targeted fixes once the affected code path is understood."
+config_file = "agents/worker.toml"
+
+[agents.monitor]
+description = "Long-running task monitor for builds, tests, deploy polls, and wait-heavy workflows."
+config_file = "agents/monitor.toml"
+
+[mcp_servers.openaiDeveloperDocs]
+url = "https://developers.openai.com/mcp"
+
+project_doc_max_bytes = 65536

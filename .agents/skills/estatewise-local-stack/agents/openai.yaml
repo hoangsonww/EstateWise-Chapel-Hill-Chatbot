@@ -1,0 +1,7 @@
+interface:
+  display_name: "EstateWise Local Stack"
+  short_description: "Runbook for local setup, service combinations, and environment debugging."
+  default_prompt: "Use this skill to choose and debug the smallest useful local EstateWise stack."
+
+policy:
+  allow_implicit_invocation: false

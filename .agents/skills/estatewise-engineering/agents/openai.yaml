@@ -1,0 +1,7 @@
+interface:
+  display_name: "EstateWise Engineering"
+  short_description: "Default implementation workflow for the EstateWise monorepo."
+  default_prompt: "Use this skill to implement a small, production-safe change in the EstateWise monorepo."
+
+policy:
+  allow_implicit_invocation: true

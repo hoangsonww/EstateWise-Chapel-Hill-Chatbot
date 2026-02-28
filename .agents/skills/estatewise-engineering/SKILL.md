@@ -1,172 +1,156 @@
 ---
 name: estatewise-engineering
-description: Execute production-safe code changes in the EstateWise monorepo (backend, frontend, mcp, agentic-ai, grpc, deployment-control) with accurate package commands, cross-service contract checks, targeted validation, and docs updates. Use when implementing or fixing code in this repository. Do not use for skill-installation tasks, pure brainstorming, or work outside this repo.
+description: Execute production-safe code changes in the EstateWise monorepo. Use when implementing or fixing behavior in backend, frontend, MCP, agentic-ai, gRPC, deployment-control, tests, or repo docs. Do not use for pure brainstorming, skill installation, or work outside this repository.
 ---
 
-# EstateWise Engineering Skill
+# EstateWise Engineering
 
-Follow this workflow whenever this skill is activated.
+Use this skill as the default playbook for coding work in this repository.
 
 ## Objective
 
-Deliver minimal, correct changes in the right subsystem, validate only impacted areas, and keep cross-service contracts consistent.
+Implement the smallest defensible change in the correct subsystem, preserve contracts, and validate only the touched surface.
 
 ## Operating Rules
 
 1. Keep patches surgical.
 2. Do not refactor unrelated files.
-3. Preserve backward compatibility unless the user asks for a breaking change.
+3. Preserve backward compatibility unless the task explicitly requests a breaking change.
 4. Avoid changing environment defaults unless explicitly requested.
 5. Never commit secrets or `.env` values.
 
-## Step 1: Classify Scope
+## Classify Scope First
 
-Classify the request before editing files.
+Identify the owning subsystem before editing:
 
-- `backend/`: Express API, auth, chat, properties, graph, forums, commute.
-- `frontend/`: Next.js pages/UI, API calls, charts, map.
-- `mcp/`: MCP stdio server and tool surface.
-- `agentic-ai/`: orchestrator/runtimes/HTTP runner.
-- `grpc/`: Market Pulse gRPC service and proto contract.
-- `deployment-control/`: deployment operations API + Nuxt UI.
-- Infra/docs: Kubernetes, Terraform, cloud folders, and root docs.
+- `backend/`: Express API, auth, chat, properties, graph, forums, commute, Swagger, Prometheus, tRPC bridge.
+- `frontend/`: Next.js Pages Router UI, REST calls, local tRPC API, charts, map, auth, forums.
+- `mcp/`: stdio MCP server, tool registry, token flows, monitoring, web research, A2A bridge.
+- `agentic-ai/`: default orchestrator, LangGraph, CrewAI, HTTP server, A2A endpoints.
+- `grpc/`: `market_pulse.proto`, service logic, server bootstrap.
+- `deployment-control/`: deployment operations API, job runner, kubectl helpers, Nuxt UI.
+- Infra/docs: Docker, Kubernetes, Helm, Terraform, cloud folders, Jenkins/GitLab/GitHub docs, root docs.
 
-If the request spans multiple subsystems, list all touched systems up front and sequence work from producer -> consumer (contract source first).
+If the task spans multiple subsystems, work from producer to consumer.
 
-## Step 2: Find True Entry Points
+## Find Real Entry Points
 
-Locate exact files before coding.
+Use `rg` first. Open only the relevant files once the owning path is clear.
 
-- Use `rg`/`rg --files` first.
-- Open only relevant files; avoid broad file sweeps after scope is clear.
-- Confirm current scripts in each touched `package.json` before running commands.
+Start from:
 
-Primary anchors:
+- `backend/src/server.ts`
+- `backend/src/routes/`, `backend/src/controllers/`, `backend/src/services/`
+- `frontend/lib/api.ts`
+- `frontend/pages/chat.tsx`, `frontend/pages/insights.tsx`, `frontend/pages/map.tsx`, `frontend/pages/market-pulse.tsx`
+- `frontend/server/api/routers/insights.ts`
+- `mcp/src/server.ts`, `mcp/src/tools/`, `mcp/src/core/`
+- `agentic-ai/src/index.ts`, `agentic-ai/src/http/server.ts`, `agentic-ai/src/orchestrator/`
+- `grpc/proto/market_pulse.proto`, `grpc/src/services/`
+- `deployment-control/src/server.ts`, `deployment-control/ui/`
 
-- Backend bootstrap: `backend/src/server.ts`
-- Backend routes/controllers/services: `backend/src/routes`, `backend/src/controllers`, `backend/src/services`
-- Graph + Neo4j: `backend/src/graph`
-- Frontend API wrapper: `frontend/lib/api.ts`
-- Frontend key pages: `frontend/pages/chat.tsx`, `frontend/pages/insights.tsx`, `frontend/pages/map.tsx`
-- MCP server/tools/core: `mcp/src/server.ts`, `mcp/src/tools`, `mcp/src/core`
-- Agentic entry/orchestrator: `agentic-ai/src/index.ts`, `agentic-ai/src/orchestrator`
-- gRPC contract + service: `grpc/proto/market_pulse.proto`, `grpc/src/services/marketPulseService.ts`
-- Deployment-control API/UI: `deployment-control/src/server.ts`, `deployment-control/ui/`
+## Subsystem Playbooks
 
-## Step 3: Apply Subsystem Playbook
-
-### Backend changes
+### Backend
 
 1. Update route/controller/service in `backend/src/`.
-2. Maintain middleware/route ordering guarantees in `backend/src/server.ts`.
-3. If response shape changes, update all consumers (`frontend`, `mcp`, and `agentic-ai` when applicable).
+2. Preserve middleware and route ordering in `backend/src/server.ts`.
+3. If an endpoint or payload changes, update frontend callers, MCP wrappers, and docs in the same task.
 4. Add or adjust tests under `backend/tests`.
 
-### Frontend changes
+### Frontend
 
-1. Edit page/component with minimal churn.
-2. Keep API integrations aligned across all call sites.
-3. Check for direct backend URL usage beyond `frontend/lib/api.ts`.
-4. Avoid broad rewrites in very large files; patch locally.
+1. Patch the smallest owning page or component.
+2. Check both `frontend/lib/api.ts` and direct page-level `fetch(...)` usage before assuming one edit is enough.
+3. Keep large files like `chat.tsx` and `insights.tsx` localized.
+4. Update only the tests needed for the changed behavior.
 
-### MCP changes
+### MCP
 
-1. Add or modify tool logic in `mcp/src/tools`.
-2. Ensure input validation remains strict.
-3. Register/wire tool exports in `mcp/src/server.ts` as needed.
-4. Preserve output format consistency expected by MCP clients.
+1. Update the correct tool module in `mcp/src/tools/`.
+2. Keep Zod validation strict.
+3. Preserve text-first, stringified JSON output patterns expected by clients.
+4. Validate with `npm run build` and at least one focused `client:call`.
 
-### Agentic AI changes
+### Agentic AI
 
-1. Decide runtime target first (default/LangGraph/CrewAI).
-2. Keep tool invocation contracts aligned with MCP server behavior.
-3. Validate at least one realistic goal path.
+1. Decide whether the change belongs to the default orchestrator, LangGraph, CrewAI, or HTTP/A2A layer.
+2. Keep tool call contracts aligned with the MCP server.
+3. Validate with a realistic goal run when behavior changes.
 
-### gRPC changes
+### gRPC
 
-1. Treat `grpc/proto/market_pulse.proto` as contract source.
-2. Update handlers/services after proto edits.
-3. Preserve backward compatibility where possible.
-4. Run proto lint on every proto change.
+1. Treat `grpc/proto/market_pulse.proto` as the contract source.
+2. Update handlers and service wiring after proto edits.
+3. Run proto lint and tests on proto changes.
 
-### Deployment-control changes
+### Deployment Control
 
 1. Keep API and UI behavior aligned.
-2. Preserve job state semantics and output handling.
-3. Avoid introducing security assumptions; this service is typically run behind trusted controls.
+2. Preserve `queued/running/succeeded/failed` job semantics.
+3. Remember there is no built-in auth/RBAC; do not silently widen trust assumptions.
 
-## Step 4: Enforce Cross-Service Contract Safety
+## Cross-Service Contract Checks
 
-Run these checks whenever relevant:
+Inspect dependent consumers whenever a producer changes:
 
-- Backend endpoint or payload change:
-  - update frontend callers
-  - update MCP wrappers/tools that hit backend APIs
-  - update docs/examples
+- Backend REST changes:
+  - `frontend/lib/api.ts`
+  - direct frontend `fetch(...)` callers in `frontend/pages/`
+  - MCP tools in `mcp/src/tools/`
 
-- MCP tool name/input/output change:
-  - verify `mcp` client call path
-  - verify agentic-ai integrations consuming that tool
-  - update `mcp/README.md`
+- Frontend local tRPC changes:
+  - `frontend/server/api/routers/`
+  - `frontend/lib/trpc.tsx`
+  - consuming pages/components
 
-- tRPC/local insights change in frontend:
-  - verify page-level usage and `frontend/server/api/routers/insights.ts`
+- MCP tool changes:
+  - `mcp/src/client.ts`
+  - `agentic-ai/src/lang/tools.ts`
+  - docs in `mcp/README.md`
 
-- gRPC proto change:
-  - update service impl
-  - run proto lint + tests
-  - update grpc docs/examples
+- Agentic A2A/HTTP changes:
+  - `agentic-ai/src/http/server.ts`
+  - `mcp/src/tools/a2a.ts`
+  - docs in `agentic-ai/README.md` and `mcp/README.md`
 
-- Deployment-control API change:
-  - update corresponding Nuxt UI calls/state
-  - update deployment-control docs
+- gRPC contract changes:
+  - `grpc/src/services/`
+  - proto docs/examples/tests
 
-## Step 5: Validate Only What Changed
+Use `estatewise-contracts` if the contract surface is non-trivial.
 
-Run the smallest sufficient verification matrix.
+## Validation Matrix
 
-### Root
+Run the smallest sufficient check set:
 
-- `npm run dev` (when full-stack behavior matters)
-- `npm run format` or `npm run lint` only when requested or clearly needed
+- Root: `npm run dev`, `npm run format`, `npm run lint`
+- Backend: `cd backend && npm run build && npm run test`
+- Frontend: `cd frontend && npm run build && npm run test`, plus `npm run lint` when UI or TS lint-sensitive paths changed
+- MCP: `cd mcp && npm run build && npm run client:call -- <tool> '<json>'`
+- Agentic AI: `cd agentic-ai && npm run build && npm run dev "realistic goal"`
+- gRPC: `cd grpc && npm run build && npm run test && npm run proto:check`
+- Deployment Control: `cd deployment-control && npm run build` or `npm run build:api && npm run build:ui`
 
-### Backend (`cd backend`)
+If environment dependencies block validation, state exactly what was skipped and why.
 
-- `npm run build`
-- `npm run test`
+## High-Risk Files
 
-### Frontend (`cd frontend`)
+- `backend/src/server.ts`
+- `backend/src/services/geminiChat.service.ts`
+- `frontend/pages/chat.tsx`
+- `frontend/pages/insights.tsx`
+- `frontend/lib/api.ts`
+- `mcp/src/core/http.ts`
+- `mcp/src/core/token.ts`
+- `agentic-ai/src/http/server.ts`
+- `grpc/proto/market_pulse.proto`
 
-- `npm run build`
-- `npm run test`
-- `npm run lint` when touching UI/TS lint-sensitive code
+Prefer minimal diffs and avoid style-only churn in these files.
 
-### MCP (`cd mcp`)
+## Documentation Requirements
 
-- `npm run build`
-- `npm run client:dev` or `npm run client:call -- <tool> '<json>'`
-
-### Agentic AI (`cd agentic-ai`)
-
-- `npm run build`
-- `npm run dev \"<realistic goal>\"` or `npm run test`
-
-### gRPC (`cd grpc`)
-
-- `npm run build`
-- `npm run test`
-- `npm run proto:check` if proto touched
-
-### Deployment-control (`cd deployment-control`)
-
-- `npm run build:api`
-- `npm run build:ui` or `npm run build`
-
-If environment dependencies block tests (keys/services/cluster access), report exactly what was skipped and why.
-
-## Step 6: Update Documentation Where Needed
-
-Update only the docs affected by the change:
+Update affected docs when behavior or commands change:
 
 - `backend/README.md`
 - `frontend/README.md`
@@ -174,48 +158,14 @@ Update only the docs affected by the change:
 - `agentic-ai/README.md`
 - `grpc/README.md`
 - `deployment-control/README.md`
-- root docs when architecture/ops behavior changed (`ARCHITECTURE.md`, `DEPLOYMENTS.md`, `DEVOPS.md`, `GRPC_TRPC.md`, `RAG_SYSTEM.md`)
+- root docs like `README.md`, `ARCHITECTURE.md`, `DEPLOYMENTS.md`, `DEVOPS.md`, `GRPC_TRPC.md`, `RAG_SYSTEM.md`
 
-## High-Risk Files (Extra Caution)
+## Done Criteria
 
-- `backend/src/services/geminiChat.service.ts`
-- `backend/src/server.ts`
-- `frontend/pages/chat.tsx`
-- `frontend/pages/insights.tsx`
-- `frontend/lib/api.ts`
-- `mcp/src/core/token.ts`
-- `mcp/src/core/http.ts`
+Finish only when all are true:
 
-In these files, prefer minimal diffs and avoid style-only churn.
-
-## Environment Notes
-
-Core backend variables are commonly required:
-
-- `MONGO_URI`
-- `JWT_SECRET`
-- `GOOGLE_AI_API_KEY`
-- `PINECONE_API_KEY`
-- `PINECONE_INDEX`
-
-Graph workflows additionally require Neo4j settings and ingest readiness.
-
-## Completion Checklist
-
-Mark the task complete only when all items are true:
-
-1. Requested behavior is implemented.
-2. Affected package-level validations ran (or skips were explicitly documented).
-3. Cross-service consumers were updated for any contract changes.
+1. The requested behavior is implemented.
+2. Relevant validations ran, or skips are explicitly documented.
+3. Producer and consumer paths were updated for any contract change.
 4. Relevant docs were updated.
-5. Final report includes changed files and exact validation commands.
-
-## Response Format
-
-Use this structure in the final user response:
-
-1. Outcome summary (what changed).
-2. File list with purpose.
-3. Validation commands run and results.
-4. Any skipped checks with concrete reason.
-5. Optional next step(s) only if natural.
+5. The handoff includes changed files and exact validation commands.

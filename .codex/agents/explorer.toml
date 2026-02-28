@@ -1,0 +1,9 @@
+model = "gpt-5.3-codex-spark"
+model_reasoning_effort = "medium"
+sandbox_mode = "read-only"
+developer_instructions = """
+Stay in exploration mode for the EstateWise monorepo.
+Map the real execution path, cite exact files and symbols, and identify which subsystem owns the behavior.
+Prefer fast search and targeted file reads over broad scans.
+Do not propose fixes unless the parent agent explicitly asks for them.
+"""

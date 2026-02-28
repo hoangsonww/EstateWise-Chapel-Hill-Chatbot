@@ -1,0 +1,131 @@
+# Prompt before pushing changes to a remote.
+prefix_rule(
+    pattern = ["git", "push"],
+    decision = "prompt",
+    justification = "Pushing changes affects the remote repository and should stay user-directed.",
+    match = [
+        "git push",
+        "git push origin main",
+        "git push -u origin feature/codex-support",
+    ],
+    not_match = [
+        "git status",
+        "git commit -m message",
+    ],
+)
+
+# Prompt before creating commits.
+prefix_rule(
+    pattern = ["git", "commit"],
+    decision = "prompt",
+    justification = "Creating commits changes repository history and should happen with explicit approval.",
+    match = [
+        "git commit -m add-codex-skills",
+        "git commit --amend --no-edit",
+    ],
+    not_match = [
+        "git add .",
+        "git status",
+    ],
+)
+
+# Prompt before installing JavaScript dependencies.
+prefix_rule(
+    pattern = ["npm", "install"],
+    decision = "prompt",
+    justification = "Dependency installs change lockfiles and may run lifecycle scripts.",
+    match = [
+        "npm install",
+        "npm install zod",
+        "npm install --save-dev vitest",
+    ],
+    not_match = [
+        "npm run build",
+        "npm run test",
+    ],
+)
+
+# Prompt before installing Python dependencies.
+prefix_rule(
+    pattern = ["pip", "install"],
+    decision = "prompt",
+    justification = "Python dependency installs mutate the environment and may affect other tooling.",
+    match = [
+        "pip install -r requirements.txt",
+        "pip install crewai",
+    ],
+    not_match = [
+        "pip list",
+    ],
+)
+
+# Prompt before cluster operations.
+prefix_rule(
+    pattern = ["kubectl"],
+    decision = "prompt",
+    justification = "kubectl commands can affect live cluster state.",
+    match = [
+        "kubectl get pods -n estatewise",
+        "kubectl rollout restart deployment/estatewise-backend -n estatewise",
+    ],
+    not_match = [],
+)
+
+# Prompt before Helm release changes.
+prefix_rule(
+    pattern = ["helm", ["install", "upgrade", "uninstall", "rollback"]],
+    decision = "prompt",
+    justification = "Helm release operations can change or remove running workloads.",
+    match = [
+        "helm upgrade estatewise ./helm/estatewise",
+        "helm install estatewise ./helm/estatewise",
+        "helm rollback estatewise 2",
+    ],
+    not_match = [
+        "helm lint ./helm/estatewise",
+    ],
+)
+
+# Prompt before Terraform apply or destroy.
+prefix_rule(
+    pattern = ["terraform", ["apply", "destroy"]],
+    decision = "prompt",
+    justification = "Terraform apply and destroy can change infrastructure state.",
+    match = [
+        "terraform apply",
+        "terraform apply -auto-approve",
+        "terraform destroy",
+    ],
+    not_match = [
+        "terraform plan",
+        "terraform fmt",
+    ],
+)
+
+# Prompt before Docker image pushes.
+prefix_rule(
+    pattern = ["docker", "push"],
+    decision = "prompt",
+    justification = "Pushing images publishes artifacts to a registry.",
+    match = [
+        "docker push ghcr.io/example/estatewise-mcp:latest",
+    ],
+    not_match = [
+        "docker build .",
+        "docker images",
+    ],
+)
+
+# Prompt before recursive force deletes.
+prefix_rule(
+    pattern = ["rm", ["-rf", "-fr"]],
+    decision = "prompt",
+    justification = "Recursive force deletion is destructive; prefer reviewing the target carefully first.",
+    match = [
+        "rm -rf .next",
+        "rm -fr node_modules",
+    ],
+    not_match = [
+        "rm file.txt",
+    ],
+)

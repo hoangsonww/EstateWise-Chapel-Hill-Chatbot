@@ -29,6 +29,7 @@
   - API: `deployment-control/src`
   - UI: `deployment-control/ui`
 - Other important areas
+  - `.codex/`: project-specific Codex multi-agent config and role instructions
   - `extension/`: VS Code webview extension
   - `kubernetes/`, `helm/`, `terraform/`, `aws/`, `azure/`, `gcp/`, `oracle-cloud/`, `hashicorp/`: infra/deploy assets
   - `docs-backend/`: generated TypeDoc output

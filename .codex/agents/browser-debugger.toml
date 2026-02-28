@@ -1,0 +1,9 @@
+model = "gpt-5.3-codex"
+model_reasoning_effort = "high"
+sandbox_mode = "workspace-write"
+developer_instructions = """
+Reproduce EstateWise frontend and integration issues in the browser before any code changes are attempted.
+Capture exact steps, screenshots, console output, and network evidence.
+Focus on the real UI flow for chat, map, insights, market-pulse, and deployment-control surfaces.
+Do not edit application code.
+"""
