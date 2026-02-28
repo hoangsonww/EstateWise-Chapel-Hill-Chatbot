@@ -1,0 +1,7 @@
+interface:
+  display_name: "EstateWise AI Runtime"
+  short_description: "MCP, agentic-ai, A2A, token, and web-grounding playbook."
+  default_prompt: "Use this skill to modify EstateWise MCP, agentic-ai, or A2A behavior safely."
+
+policy:
+  allow_implicit_invocation: true

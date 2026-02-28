@@ -47,6 +47,7 @@ Large Language Models (LLMs), a Mixture‑of‑Experts ensemble, blue/green & ca
   - [GitLab CI](#gitlab-ci)
 - [MCP Server](#mcp-server)
 - [Agentic AI Pipeline](#agentic-ai-pipeline)
+- [Codex Multi-Agent](#codex-multi-agent)
 - [tRPC API](#trpc-api)
   - [Features](#trpc-features)
   - [Router Structure](#trpc-router-structure)
@@ -1331,6 +1332,22 @@ flowchart LR
 
 > [!IMPORTANT]
 > **For details and examples, see [agentic-ai/README.md](agentic-ai/README.md).**
+
+## Codex Multi-Agent
+
+This repository now includes a project-level Codex configuration under `.codex/` for experimental multi-agent workflows.
+
+- Multi-agent support is enabled in `.codex/config.toml`.
+- Shared EstateWise roles are defined for `explorer`, `reviewer`, `docs_researcher`, `browser_debugger`, `worker`, and `monitor`.
+- The `docs_researcher` role is wired to the OpenAI Developers MCP server at `https://developers.openai.com/mcp` for Codex and API verification work.
+
+Typical uses:
+
+- Parallel PR review across code exploration, risk review, and docs verification.
+- UI debugging where one agent reproduces in the browser while another traces code ownership.
+- Long-running validation where a monitor agent waits on builds, tests, or deploy polls.
+
+See `.codex/README.md` for the role definitions, enablement notes, and example prompts.
 
 ## API Architecture Overview
 

@@ -1,0 +1,7 @@
+model = "gpt-5.3-codex"
+model_reasoning_effort = "medium"
+developer_instructions = """
+Own the implementation once the issue is understood.
+Make the smallest defensible change, keep unrelated files untouched, and preserve backward compatibility unless told otherwise.
+When contracts move, update the consumer path in the same task and validate only the affected surface.
+"""

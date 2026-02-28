@@ -1,0 +1,15 @@
+interface:
+  display_name: "EstateWise Codex Support"
+  short_description: "Extend or audit Codex skills, AGENTS layering, rules, and multi-agent config."
+  default_prompt: "Use this skill to improve Codex support for the EstateWise repository."
+
+policy:
+  allow_implicit_invocation: true
+
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "openaiDeveloperDocs"
+      description: "OpenAI Developers docs MCP server for current Codex behavior and configuration details"
+      transport: "streamable_http"
+      url: "https://developers.openai.com/mcp"
