@@ -1,16 +1,5 @@
 # EstateWise Deployment Reference
 
-<p align="center">
-  <img src="https://img.shields.io/badge/AWS-ECS%20Fargate-FF9900?logo=amazonaws&logoColor=white" alt="AWS"/>
-  <img src="https://img.shields.io/badge/Azure-Container%20Apps-0078D4?logo=microsoftazure&logoColor=white" alt="Azure"/>
-  <img src="https://img.shields.io/badge/GCP-Cloud%20Run-4285F4?logo=googlecloud&logoColor=white" alt="GCP"/>
-  <img src="https://img.shields.io/badge/Oracle%20Cloud-OCI-FF0000?logo=oracle&logoColor=white" alt="OCI"/>
-  <img src="https://img.shields.io/badge/HashiCorp-Terraform,%20Consul,%20Nomad-844FBA?logo=hashicorp&logoColor=white" alt="HashiCorp"/>
-  <img src="https://img.shields.io/badge/Kubernetes-1.29-326CE5?logo=kubernetes&logoColor=white" alt="Kubernetes"/>
-  <img src="https://img.shields.io/badge/Vercel-Frontend%20%26%20Edge-000000?logo=vercel&logoColor=white" alt="Vercel"/>
-  <img src="https://img.shields.io/badge/Jenkins-Multi--cloud%20CI/CD-D24939?logo=jenkins&logoColor=white" alt="Jenkins"/>
-</p>
-
 EstateWise ships with five production-grade deployment tracks so you can choose the cloud that best fits your stack:
 
 1. **AWS** – ECS on Fargate behind an ALB with CodePipeline / CodeBuild CI/CD.
