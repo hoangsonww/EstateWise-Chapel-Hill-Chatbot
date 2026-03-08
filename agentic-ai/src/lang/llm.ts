@@ -4,6 +4,7 @@ import {
   GoogleGenerativeAIEmbeddings,
 } from "@langchain/google-genai";
 import { getCostTrackingCallbacks } from "../costs/langchain.js";
+import { buildLangSmithModelConfig, initializeLangSmith } from "./langsmith.js";
 
 export type ChatModel = ChatOpenAI | ChatGoogleGenerativeAI;
 const GEMINI_EMBEDDING_DIMENSIONS = 768;
@@ -74,11 +75,17 @@ class FixedDimensionGoogleGenerativeAIEmbeddings extends GoogleGenerativeAIEmbed
 
 /** Select a chat LLM (Google Gemini preferred) from env. */
 export function getChatModel(): ChatModel {
+  initializeLangSmith({ runtime: "langgraph", surface: "langgraph" });
   const { GOOGLE_AI_API_KEY, OPENAI_API_KEY } = process.env as Record<
     string,
     string | undefined
   >;
   const callbacks = getCostTrackingCallbacks();
+  const tracingConfig = buildLangSmithModelConfig({
+    runtime: "langgraph",
+    surface: "langgraph",
+    component: "chat-model",
+  });
   if (GOOGLE_AI_API_KEY) {
     const model = process.env.GOOGLE_AI_MODEL || "gemini-2.5-flash";
     return new ChatGoogleGenerativeAI({
@@ -86,6 +93,8 @@ export function getChatModel(): ChatModel {
       model,
       temperature: 0.2,
       callbacks,
+      tags: tracingConfig.tags,
+      metadata: tracingConfig.metadata,
     });
   }
   if (OPENAI_API_KEY) {
@@ -95,6 +104,8 @@ export function getChatModel(): ChatModel {
       model,
       temperature: 0.2,
       callbacks,
+      tags: tracingConfig.tags,
+      metadata: tracingConfig.metadata,
     });
   }
   throw new Error("Missing GOOGLE_AI_API_KEY or OPENAI_API_KEY for chat model");
@@ -102,6 +113,7 @@ export function getChatModel(): ChatModel {
 
 /** Select an embeddings model matching the chosen provider. */
 export function getEmbeddings() {
+  initializeLangSmith({ runtime: "langgraph", surface: "langgraph" });
   const { GOOGLE_AI_API_KEY, OPENAI_API_KEY } = process.env as Record<
     string,
     string | undefined
@@ -115,7 +127,10 @@ export function getEmbeddings() {
   }
   if (OPENAI_API_KEY) {
     const model = process.env.OPENAI_EMBED_MODEL || "text-embedding-3-large";
-    return new OpenAIEmbeddings({ apiKey: OPENAI_API_KEY, model });
+    return new OpenAIEmbeddings({
+      apiKey: OPENAI_API_KEY,
+      model,
+    });
   }
   throw new Error("Missing GOOGLE_AI_API_KEY or OPENAI_API_KEY for embeddings");
 }

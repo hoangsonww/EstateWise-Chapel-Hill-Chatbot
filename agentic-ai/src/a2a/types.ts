@@ -12,6 +12,7 @@ export interface A2ATaskInput {
   runtime: AgentRuntime;
   rounds: number;
   threadId?: string;
+  requestId?: string;
 }
 
 export interface A2ATaskError {

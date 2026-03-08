@@ -13,6 +13,7 @@ import { AgentOrchestrator } from "./orchestrator/AgentOrchestrator.js";
 import { runEstateWiseAgent } from "./lang/graph.js";
 import { runCrewAIGoal } from "./crewai/CrewRunner.js";
 import type { CostReport } from "./costs/tracker.js";
+import { initializeLangSmith } from "./lang/langsmith.js";
 
 /**
  * Agentic AI CLI entrypoint.
@@ -33,12 +34,27 @@ async function main() {
     (a) => a === "--crewai" || a === "--runtime=crewai",
   );
   const threadId = process.env.THREAD_ID;
+  const selectedRuntime =
+    crewFlag || process.env.AGENT_RUNTIME === "crewai"
+      ? "crewai"
+      : runtimeFlag || process.env.AGENT_RUNTIME === "langgraph"
+        ? "langgraph"
+        : "default";
+  initializeLangSmith({ runtime: selectedRuntime, surface: "cli" });
 
   if (runtimeFlag || process.env.AGENT_RUNTIME === "langgraph") {
     // LangGraph + LangChain runtime
     // eslint-disable-next-line no-console
     console.log("Using LangGraph runtime...\n");
-    const result = await runEstateWiseAgent({ input: goal, threadId });
+    const result = await runEstateWiseAgent({
+      input: goal,
+      threadId,
+      trace: {
+        runtime: "langgraph",
+        surface: "cli",
+        component: "cli-entrypoint",
+      },
+    });
     for (const msg of result.messages) {
       const name = msg.name ? `${msg.role}:${msg.name}` : msg.role;
       console.log(`[${name}] ${msg.content}`);

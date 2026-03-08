@@ -28,6 +28,22 @@ Parameters:
     Type: String
     Description: Secrets Manager ARN containing PINECONE_API_KEY (optional).
     Default: ''
+  LangSmithKeySecretArn:
+    Type: String
+    Description: Secrets Manager ARN containing LANGSMITH_API_KEY (optional).
+    Default: ''
+  LangSmithProject:
+    Type: String
+    Description: LangSmith project name.
+    Default: estatewise-agentic-ai
+  LangSmithEndpoint:
+    Type: String
+    Description: LangSmith API endpoint override (optional).
+    Default: ''
+  LangSmithEnabled:
+    Type: String
+    AllowedValues: ['true', 'false']
+    Default: 'false'
   PineconeIndex:
     Type: String
     Default: estatewise-index
@@ -58,6 +74,8 @@ Conditions:
   HasGoogleKey: !Not [!Equals [!Ref GoogleApiKeySecretArn, '']]
   HasOpenAiKey: !Not [!Equals [!Ref OpenAiKeySecretArn, '']]
   HasPineconeKey: !Not [!Equals [!Ref PineconeKeySecretArn, '']]
+  HasLangSmithKey: !Not [!Equals [!Ref LangSmithKeySecretArn, '']]
+  HasLangSmithEndpoint: !Not [!Equals [!Ref LangSmithEndpoint, '']]
   HasNeo4jPassword: !Not [!Equals [!Ref Neo4jPasswordSecretArn, '']]
   HasNeo4jUri: !Not [!Equals [!Ref Neo4jUri, '']]
   HasNeo4jUser: !Not [!Equals [!Ref Neo4jUser, '']]
@@ -85,6 +103,7 @@ Resources:
                   - !If [HasGoogleKey, !Ref GoogleApiKeySecretArn, !Ref 'AWS::NoValue']
                   - !If [HasOpenAiKey, !Ref OpenAiKeySecretArn, !Ref 'AWS::NoValue']
                   - !If [HasPineconeKey, !Ref PineconeKeySecretArn, !Ref 'AWS::NoValue']
+                  - !If [HasLangSmithKey, !Ref LangSmithKeySecretArn, !Ref 'AWS::NoValue']
                   - !If [HasNeo4jPassword, !Ref Neo4jPasswordSecretArn, !Ref 'AWS::NoValue']
       Tags:
         - Key: Environment
@@ -115,6 +134,11 @@ Resources:
           Environment:
             - Name: AGENT_RUNTIME
               Value: !Ref RuntimeSelector
+            - Name: LANGSMITH_ENABLED
+              Value: !Ref LangSmithEnabled
+            - Name: LANGSMITH_PROJECT
+              Value: !Ref LangSmithProject
+            - !If [HasLangSmithEndpoint, { Name: LANGSMITH_ENDPOINT, Value: !Ref LangSmithEndpoint }, { Ref: 'AWS::NoValue' }]
             - !If [HasNeo4jUri, { Name: NEO4J_URI, Value: !Ref Neo4jUri }, { Ref: 'AWS::NoValue' }]
             - !If [HasNeo4jUser, { Name: NEO4J_USERNAME, Value: !Ref Neo4jUser }, { Ref: 'AWS::NoValue' }]
             - Name: PINECONE_INDEX
@@ -123,6 +147,7 @@ Resources:
             - !If [HasGoogleKey, { Name: GOOGLE_AI_API_KEY, ValueFrom: !Ref GoogleApiKeySecretArn }, { Ref: 'AWS::NoValue' }]
             - !If [HasOpenAiKey, { Name: OPENAI_API_KEY, ValueFrom: !Ref OpenAiKeySecretArn }, { Ref: 'AWS::NoValue' }]
             - !If [HasPineconeKey, { Name: PINECONE_API_KEY, ValueFrom: !Ref PineconeKeySecretArn }, { Ref: 'AWS::NoValue' }]
+            - !If [HasLangSmithKey, { Name: LANGSMITH_API_KEY, ValueFrom: !Ref LangSmithKeySecretArn }, { Ref: 'AWS::NoValue' }]
             - !If [HasNeo4jPassword, { Name: NEO4J_PASSWORD, ValueFrom: !Ref Neo4jPasswordSecretArn }, { Ref: 'AWS::NoValue' }]
           LogConfiguration:
             LogDriver: awslogs

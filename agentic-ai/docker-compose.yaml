@@ -15,6 +15,12 @@ services:
       NEO4J_URI: ${NEO4J_URI:-}
       NEO4J_USERNAME: ${NEO4J_USERNAME:-}
       NEO4J_PASSWORD: ${NEO4J_PASSWORD:-}
+      LANGSMITH_ENABLED: ${LANGSMITH_ENABLED:-false}
+      LANGSMITH_API_KEY: ${LANGSMITH_API_KEY:-}
+      LANGSMITH_PROJECT: ${LANGSMITH_PROJECT:-estatewise-agentic-ai}
+      LANGSMITH_ENDPOINT: ${LANGSMITH_ENDPOINT:-}
+      LANGSMITH_RUN_TAGS: ${LANGSMITH_RUN_TAGS:-estatewise,agentic-ai}
+      LANGSMITH_STRICT: ${LANGSMITH_STRICT:-false}
     tty: true
     stdin_open: true
     command: ["--langgraph"]
