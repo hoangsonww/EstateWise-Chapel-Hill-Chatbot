@@ -13,7 +13,10 @@ import commuteProfileRoutes from "./routes/commute-profile.routes";
 import graphRoutes from "./routes/graph.routes";
 import postRoutes from "./routes/post.routes";
 import commentRoutes from "./routes/comment.routes";
+import savedSearchRoutes from "./routes/saved-search.routes";
+import notificationRoutes from "./routes/notification.routes";
 import { errorHandler } from "./middleware/error.middleware";
+import { startAlertJob } from "./jobs/alertJob";
 import cookieParser from "cookie-parser";
 import * as trpcExpress from "@trpc/server/adapters/express";
 import { appRouter } from "./trpc/routers";
@@ -148,6 +151,8 @@ app.use("/api/commute-profiles", commuteProfileRoutes);
 app.use("/api/graph", graphRoutes);
 app.use("/api/posts", postRoutes);
 app.use("/api/comments", commentRoutes);
+app.use("/api/saved-searches", savedSearchRoutes);
+app.use("/api/notifications", notificationRoutes);
 
 // tRPC endpoint - non-blocking, optional alternative API
 app.use(
@@ -263,6 +268,9 @@ db.once("open", () => {
 
   // Seed forum posts non-blocking
   runForumSeeding();
+
+  // Start the saved-search alert job
+  startAlertJob();
 
   // Only start listening after DB is open
   app.listen(PORT, () => {
