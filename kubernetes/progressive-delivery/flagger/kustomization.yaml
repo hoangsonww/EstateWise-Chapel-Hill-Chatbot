@@ -1,0 +1,12 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: estatewise-delivery
+resources:
+  - resource-governance.yaml
+  - network-policy.yaml
+  - loadtester.yaml
+  - frontend-preview-deployment.yaml
+  - frontend-preview-service.yaml
+  - frontend-preview-hpa.yaml
+  - frontend-preview-metric-template.yaml
+  - frontend-preview-canary.yaml

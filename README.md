@@ -31,6 +31,10 @@ Large Language Models (LLMs), a Mixture‑of‑Experts ensemble, blue/green & ca
   - [Backend Setup](#backend-setup)
   - [Frontend Setup](#frontend-setup)
 - [Deployment](#deployment)
+  - [GitOps Control Plane (Argo CD + Flux CD)](#gitops-control-plane-argo-cd--flux-cd)
+  - [Progressive Delivery (Argo Rollouts + Flagger)](#progressive-delivery-argo-rollouts--flagger)
+  - [Workflow Orchestration (Argo Workflows)](#workflow-orchestration-argo-workflows)
+  - [Bootstrap & Preflight](#bootstrap--preflight)
 - [Usage](#usage)
 - [User Interface](#user-interface)
 - [API Endpoints](#api-endpoints)
@@ -263,6 +267,9 @@ EstateWise is packed with both UI and AI features to enhance your home-finding e
 - **Production-Ready DevOps & Multi-Cloud Delivery:**  
   - Turn-key deployments for **AWS (ECS Fargate)**, **Azure (Container Apps)**, **GCP (Cloud Run)**, and **HashiCorp Terraform + Kubernetes (Consul/Nomad mesh)**.  
   - Built-in support for **Vercel** (frontend + optional backend edge) and **kustomize/Helm** manifests for any Kubernetes cluster.  
+  - Enterprise GitOps control plane with **Argo CD** and **Flux CD** in non-overlapping ownership scopes.
+  - Progressive delivery with **Argo Rollouts** for core services and **Flagger** in an isolated delivery namespace.
+  - Operational automation with **Argo Workflows** (`WorkflowTemplate` + `CronWorkflow`) and cluster preflight validation.
   - Helm charts and Kustomize manifests available in `helm/` and `kubernetes/` for easy customization and deployment to Kubernetes environments.
   - CI/CD ready with **Jenkins**, **GitHub Actions**, **Azure Pipelines**, and **Cloud Build**.  
   - See [DEPLOYMENTS.md](DEPLOYMENTS.md) for diagrams, step-by-step guides, and environment toggles.
@@ -671,6 +678,115 @@ Example managed credentials
 > See [DEPLOYMENTS.md](DEPLOYMENTS.md) for platform guides, [DEVOPS.md](DEVOPS.md) for comprehensive operational documentation, and [PRODUCTION-READINESS.md](PRODUCTION-READINESS.md) for the complete checklist.
 
 EstateWise has **enterprise-grade DevOps practices** across major clouds. Choose your deployment strategy and platform:
+
+### GitOps Control Plane (Argo CD + Flux CD)
+
+EstateWise now ships with a dual-controller GitOps topology that is production-safe by design:
+
+- **Argo CD owns core platform delivery** (`kubernetes/overlays/prod-gitops`) and Argo-native controllers.
+- **Flux owns Flagger lifecycle** and the isolated `estatewise-delivery` canary sandbox.
+- Controller scopes are intentionally separated to avoid reconciliation loops.
+- Canonical GitOps repository URL:
+  - `https://github.com/hoangsonww/EstateWise-Chapel-Hill-Chatbot.git`
+
+```mermaid
+flowchart TB
+  Repo[GitHub Repository<br/>hoangsonww/EstateWise-Chapel-Hill-Chatbot]
+
+  subgraph ArgoCD["Argo CD Scope"]
+    ArgoRoot[Root App]
+    ArgoCore[estatewise-core app]
+    ArgoRolloutsCtl[Argo Rollouts Controller App]
+    ArgoWfCtl[Argo Workflows Controller App]
+    ArgoWfDefs[Workflow Definitions App]
+  end
+
+  subgraph Flux["Flux Scope"]
+    FluxSource[GitRepository source]
+    FluxCtl[Flux controllers Kustomization]
+    FluxFlagger[Flagger Kustomization]
+    FlaggerCtl[Flagger HelmRelease]
+  end
+
+  subgraph Runtime["Runtime Namespaces"]
+    CoreNs[estatewise]
+    RolloutsNs[argo-rollouts]
+    WorkflowsNs[argo-workflows]
+    DeliveryNs[estatewise-delivery]
+    FlaggerNs[flagger-system]
+  end
+
+  Repo --> ArgoRoot
+  ArgoRoot --> ArgoCore --> CoreNs
+  ArgoRoot --> ArgoRolloutsCtl --> RolloutsNs
+  ArgoRoot --> ArgoWfCtl --> WorkflowsNs
+  ArgoRoot --> ArgoWfDefs --> WorkflowsNs
+
+  Repo --> FluxSource --> FluxCtl --> FlaggerCtl --> FlaggerNs
+  FluxSource --> FluxFlagger --> DeliveryNs
+```
+
+### Progressive Delivery (Argo Rollouts + Flagger)
+
+- **Argo Rollouts** manages progressive delivery for `estatewise-backend` and `estatewise-frontend` in `estatewise`.
+- **Flagger** runs canary analysis in `estatewise-delivery` against `estatewise-frontend-preview`, isolated from core production workloads.
+- This split allows production-grade canary experimentation without controller contention on core services.
+
+```mermaid
+flowchart LR
+  subgraph CoreProd["Core Production Namespace (estatewise)"]
+    BR[Rollout: estatewise-backend]
+    FR[Rollout: estatewise-frontend]
+    BAT[AnalysisTemplate: backend-*]
+    FAT[AnalysisTemplate: frontend-*]
+  end
+
+  subgraph Delivery["Delivery Sandbox (estatewise-delivery)"]
+    FCanary[Flagger Canary: estatewise-frontend-preview]
+    FDeploy[Deployment: estatewise-frontend-preview]
+    FMetrics[MetricTemplate]
+    FLoad[flagger-loadtester]
+  end
+
+  BR --> BAT
+  FR --> FAT
+  FCanary --> FDeploy
+  FCanary --> FMetrics
+  FCanary --> FLoad
+```
+
+### Workflow Orchestration (Argo Workflows)
+
+- `WorkflowTemplate` pipelines gate rollout health and smoke checks.
+- `CronWorkflow` performs scheduled nightly validation.
+- Workflow namespaces include Pod Security labels, quotas, and limit ranges.
+
+```mermaid
+sequenceDiagram
+  participant Cron as CronWorkflow
+  participant WF as WorkflowTemplate
+  participant R as Argo Rollouts
+  participant S as Core Services
+
+  Cron->>WF: Trigger nightly smoke pipeline
+  WF->>S: Pre-deploy smoke checks
+  WF->>R: Wait for backend rollout Healthy
+  WF->>R: Wait for frontend rollout Healthy
+  WF->>S: Post-deploy smoke checks
+  WF-->>Cron: Success/Failure status
+```
+
+### Bootstrap & Preflight
+
+Use the GitOps bootstrap and policy-aware preflight scripts before promoting into production:
+
+```bash
+# Install/apply GitOps control plane manifests
+bash kubernetes/gitops/bootstrap.sh
+
+# Validate rendered manifests + source URL policy
+bash kubernetes/gitops/preflight.sh
+```
 
 ### Advanced Deployment Strategies
 

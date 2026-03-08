@@ -21,6 +21,7 @@ Key capabilities:
 - **Graph Analysis**: Find similar properties and explain relationships using Neo4j
 - **Market Intelligence**: Price trends, inventory analysis, competitive positioning, affordability metrics
 - **Web Research**: Public internet search and page fetch for current external context
+- **MCP Primitives**: Production-ready `tools`, `resources`, and `prompts` for richer client UX
 - **Batch Operations**: Compare, enrich, and export multiple properties efficiently
 - **A2A Interop**: Create, wait, list, and cancel remote Agentic AI tasks via A2A JSON-RPC
 - **Token Management**: Secure access/refresh tokens with HMAC signatures
@@ -169,6 +170,11 @@ Note: `npm run dev` starts the stdio MCP server and waits for a client to connec
 npm run client:dev    # lists tools by spawning dist/server.js
 npm run client        # lists tools (built)
 npm run client:call -- properties.search '{"q":"chapel hill 3 bed"}'
+# Additional MCP primitive inspection:
+node dist/client.js resources
+node dist/client.js resource estatewise://server/tools
+node dist/client.js prompts
+node dist/client.js prompt workflow.market-brief '{"market":"Austin TX"}'
 ```
 
 ### Build & Run
@@ -189,7 +195,31 @@ npm start
   - `WEB_TIMEOUT_MS` (default: `12000`) – timeout for `web.search` and `web.fetch` outbound requests
   - `MCP_CACHE_TTL_MS` (default: `30000`) – cache TTL for GET responses
   - `MCP_CACHE_MAX` (default: `200`) – max cached GET responses
+  - `MCP_SERVER_NAME` / `MCP_SERVER_VERSION` – server identity metadata
+  - `MCP_TOOL_TIMEOUT_MS` (default: `30000`) – per-tool timeout guardrail
+  - `MCP_TOOL_MAX_ARG_BYTES` (default: `65536`) – max serialized tool argument size
+  - `MCP_TOOL_MAX_CONCURRENT` (default: `32`) – max concurrent in-flight tool calls
+  - `MCP_TOOL_ALLOWLIST` / `MCP_TOOL_DENYLIST` – optional CSV policy controls for tool execution
   - `MCP_DEBUG` (default: `false`) – verbose debug logs
+
+## MCP Resources & Prompts
+
+In addition to `tools/*`, this server now exposes discoverable `resources/*` and `prompts/*`.
+
+- **Static resources**
+  - `estatewise://server/config`
+  - `estatewise://server/tools`
+  - `estatewise://server/monitoring`
+  - `estatewise://server/governance`
+- **Template resources**
+  - `estatewise://tool/{name}/schema`
+  - `estatewise://tool/{name}/usage`
+- **Prompts**
+  - `workflow.property-underwriting`
+  - `workflow.market-brief`
+  - `workflow.portfolio-risk-review`
+
+These primitives are intended for enterprise clients that need schema introspection, diagnostics context, and reusable workflow templates.
 
 ## Included Tools
 

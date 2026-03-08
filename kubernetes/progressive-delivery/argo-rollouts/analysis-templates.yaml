@@ -1,0 +1,83 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: backend-success-rate
+  namespace: estatewise
+spec:
+  metrics:
+    - name: success-rate
+      interval: 60s
+      count: 5
+      failureLimit: 2
+      successCondition: result[0] >= 99
+      provider:
+        prometheus:
+          address: http://prometheus.monitoring.svc.cluster.local:9090
+          query: |
+            (
+              sum(rate(http_requests_total{app="estatewise-backend",status!~"5.."}[2m])) /
+              clamp_min(sum(rate(http_requests_total{app="estatewise-backend"}[2m])), 1)
+            ) * 100
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: backend-latency-p95
+  namespace: estatewise
+spec:
+  metrics:
+    - name: latency-p95
+      interval: 60s
+      count: 5
+      failureLimit: 2
+      successCondition: result[0] <= 0.8
+      provider:
+        prometheus:
+          address: http://prometheus.monitoring.svc.cluster.local:9090
+          query: |
+            histogram_quantile(
+              0.95,
+              sum(rate(http_request_duration_seconds_bucket{app="estatewise-backend"}[2m])) by (le)
+            )
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: frontend-success-rate
+  namespace: estatewise
+spec:
+  metrics:
+    - name: success-rate
+      interval: 60s
+      count: 5
+      failureLimit: 2
+      successCondition: result[0] >= 99
+      provider:
+        prometheus:
+          address: http://prometheus.monitoring.svc.cluster.local:9090
+          query: |
+            (
+              sum(rate(http_requests_total{app="estatewise-frontend",status!~"5.."}[2m])) /
+              clamp_min(sum(rate(http_requests_total{app="estatewise-frontend"}[2m])), 1)
+            ) * 100
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: frontend-latency-p95
+  namespace: estatewise
+spec:
+  metrics:
+    - name: latency-p95
+      interval: 60s
+      count: 5
+      failureLimit: 2
+      successCondition: result[0] <= 1.2
+      provider:
+        prometheus:
+          address: http://prometheus.monitoring.svc.cluster.local:9090
+          query: |
+            histogram_quantile(
+              0.95,
+              sum(rate(http_request_duration_seconds_bucket{app="estatewise-frontend"}[2m])) by (le)
+            )

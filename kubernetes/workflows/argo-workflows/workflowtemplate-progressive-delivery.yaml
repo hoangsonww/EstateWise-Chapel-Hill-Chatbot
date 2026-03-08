@@ -1,0 +1,102 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: estatewise-progressive-delivery-pipeline
+  namespace: argo-workflows
+  labels:
+    app.kubernetes.io/part-of: estatewise
+spec:
+  serviceAccountName: estatewise-workflow-runner
+  activeDeadlineSeconds: 7200
+  podGC:
+    strategy: OnWorkflowCompletion
+  ttlStrategy:
+    secondsAfterSuccess: 86400
+    secondsAfterFailure: 259200
+  entrypoint: pipeline
+  arguments:
+    parameters:
+      - name: backendUrl
+        value: http://estatewise-backend.estatewise.svc.cluster.local/health
+      - name: frontendUrl
+        value: http://estatewise-frontend.estatewise.svc.cluster.local/
+  templates:
+    - name: pipeline
+      steps:
+        - - name: pre-deploy-smoke
+            template: smoke-check
+            arguments:
+              parameters:
+                - name: backendUrl
+                  value: "{{workflow.parameters.backendUrl}}"
+                - name: frontendUrl
+                  value: "{{workflow.parameters.frontendUrl}}"
+        - - name: wait-backend-rollout
+            template: wait-rollout-healthy
+            arguments:
+              parameters:
+                - name: namespace
+                  value: estatewise
+                - name: rolloutName
+                  value: estatewise-backend
+        - - name: wait-frontend-rollout
+            template: wait-rollout-healthy
+            arguments:
+              parameters:
+                - name: namespace
+                  value: estatewise
+                - name: rolloutName
+                  value: estatewise-frontend
+        - - name: post-deploy-smoke
+            template: smoke-check
+            arguments:
+              parameters:
+                - name: backendUrl
+                  value: "{{workflow.parameters.backendUrl}}"
+                - name: frontendUrl
+                  value: "{{workflow.parameters.frontendUrl}}"
+
+    - name: smoke-check
+      inputs:
+        parameters:
+          - name: backendUrl
+          - name: frontendUrl
+      script:
+        image: curlimages/curl:8.12.1
+        command: [sh]
+        source: |
+          set -euo pipefail
+          echo "Checking backend: {{inputs.parameters.backendUrl}}"
+          curl -fsSL "{{inputs.parameters.backendUrl}}"
+
+          echo "Checking frontend: {{inputs.parameters.frontendUrl}}"
+          curl -fsSL "{{inputs.parameters.frontendUrl}}" | grep -qi "estatewise"
+
+          echo "Smoke checks passed"
+
+    - name: wait-rollout-healthy
+      inputs:
+        parameters:
+          - name: namespace
+          - name: rolloutName
+      script:
+        image: bitnami/kubectl:1.31.2
+        command: [sh]
+        source: |
+          set -euo pipefail
+          ns="{{inputs.parameters.namespace}}"
+          ro="{{inputs.parameters.rolloutName}}"
+
+          for i in $(seq 1 90); do
+            phase=$(kubectl -n "$ns" get rollout "$ro" -o jsonpath='{.status.phase}' 2>/dev/null || true)
+            echo "rollout=$ro phase=${phase:-unknown}"
+            if [ "$phase" = "Healthy" ]; then
+              echo "Rollout $ro is healthy"
+              exit 0
+            fi
+            sleep 10
+          done
+
+          echo "Timed out waiting for rollout $ro to become Healthy"
+          kubectl -n "$ns" get rollout "$ro" -o yaml || true
+          exit 1

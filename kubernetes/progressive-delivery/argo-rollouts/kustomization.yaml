@@ -1,0 +1,9 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: estatewise
+resources:
+  - analysis-templates.yaml
+  - backend-rollout.yaml
+  - frontend-rollout.yaml
+  - backend-hpa-rollout.yaml
+  - frontend-hpa-rollout.yaml

@@ -1,0 +1,47 @@
+apiVersion: flagger.app/v1beta1
+kind: Canary
+metadata:
+  name: estatewise-frontend-preview
+  namespace: estatewise-delivery
+spec:
+  provider: kubernetes
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: estatewise-frontend-preview
+  progressDeadlineSeconds: 600
+  service:
+    port: 80
+    targetPort: 3000
+  autoscalerRef:
+    apiVersion: autoscaling/v2
+    kind: HorizontalPodAutoscaler
+    name: estatewise-frontend-preview-hpa
+  analysis:
+    interval: 1m
+    threshold: 5
+    maxWeight: 50
+    stepWeight: 10
+    metrics:
+      - name: frontend-preview-error-rate
+        templateRef:
+          name: frontend-preview-error-rate
+        thresholdRange:
+          max: 1
+        interval: 1m
+    webhooks:
+      - name: smoke-test
+        type: pre-rollout
+        url: http://flagger-loadtester.estatewise-delivery/
+        timeout: 30s
+        metadata:
+          type: bash
+          cmd: |
+            curl -sf http://estatewise-frontend-preview-canary.estatewise-delivery/ | grep -qi "estatewise"
+      - name: load-test
+        type: rollout
+        url: http://flagger-loadtester.estatewise-delivery/
+        timeout: 20s
+        metadata:
+          type: cmd
+          cmd: "hey -z 45s -q 5 -c 2 http://estatewise-frontend-preview-canary.estatewise-delivery/"

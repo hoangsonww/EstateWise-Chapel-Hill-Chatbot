@@ -1,0 +1,34 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: estatewise-platform-root
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: estatewise-platform-root
+    app.kubernetes.io/part-of: estatewise
+spec:
+  project: estatewise-platform
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  source:
+    repoURL: https://github.com/hoangsonww/EstateWise-Chapel-Hill-Chatbot.git
+    targetRevision: main
+    path: kubernetes/gitops/argocd/apps
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+      - ApplyOutOfSyncOnly=true
+      - ServerSideApply=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 3m

@@ -1,0 +1,103 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: estatewise-backend
+  namespace: estatewise
+  labels:
+    app: estatewise-backend
+    app.kubernetes.io/part-of: estatewise
+spec:
+  replicas: 2
+  revisionHistoryLimit: 5
+  selector:
+    matchLabels:
+      app: estatewise-backend
+  template:
+    metadata:
+      labels:
+        app: estatewise-backend
+        app.kubernetes.io/part-of: estatewise
+      annotations:
+        consul.hashicorp.com/connect-service: "estatewise-backend"
+        consul.hashicorp.com/connect-service-port: "http"
+    spec:
+      containers:
+        - name: backend
+          image: ghcr.io/your-org/estatewise-app-backend:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3001
+              name: http
+          envFrom:
+            - configMapRef:
+                name: estatewise-shared-config
+          env:
+            - name: MONGO_URI
+              valueFrom:
+                secretKeyRef:
+                  name: estatewise-secrets
+                  key: mongoUri
+            - name: GOOGLE_AI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: estatewise-secrets
+                  key: googleAiApiKey
+            - name: PINECONE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: estatewise-secrets
+                  key: pineconeApiKey
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: estatewise-secrets
+                  key: jwtSecret
+            - name: PINECONE_INDEX
+              valueFrom:
+                secretKeyRef:
+                  name: estatewise-secrets
+                  key: pineconeIndex
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3001
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3001
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: 500m
+              memory: 1Gi
+  strategy:
+    canary:
+      maxSurge: 25%
+      maxUnavailable: 0
+      stableMetadata:
+        labels:
+          role: stable
+      canaryMetadata:
+        labels:
+          role: canary
+      analysis:
+        templates:
+          - templateName: backend-success-rate
+          - templateName: backend-latency-p95
+      steps:
+        - setWeight: 10
+        - pause:
+            duration: 3m
+        - setWeight: 25
+        - pause:
+            duration: 5m
+        - setWeight: 50
+        - pause:
+            duration: 10m
+        - setWeight: 100

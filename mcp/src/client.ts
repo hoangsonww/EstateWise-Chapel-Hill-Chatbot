@@ -53,6 +53,10 @@ function renderContentBlock(
  * Minimal interactive MCP client.
  * - `list` prints tools
  * - `call <tool> <jsonArgs>` invokes a tool
+ * - `resources` lists resources/templates
+ * - `resource <uri>` reads one resource
+ * - `prompts` lists prompts
+ * - `prompt <name> <jsonArgs?>` gets one prompt
  * Default demo lists then calls `properties.search`.
  */
 async function main() {
@@ -75,70 +79,129 @@ async function main() {
     version: "0.1.0",
   });
   await client.connect(transport);
+  try {
+    const [, , cmd, ...rest] = process.argv;
 
-  const [, , cmd, ...rest] = process.argv;
+    if (cmd === "list") {
+      const tools = await client.listTools();
+      // eslint-disable-next-line no-console
+      console.log("Available tools:");
+      for (const t of tools.tools) {
+        // eslint-disable-next-line no-console
+        console.log(`- ${t.name}${t.description ? `: ${t.description}` : ""}`);
+      }
+      return;
+    }
 
-  if (cmd === "list") {
+    if (cmd === "call") {
+      const parseFlagIndex = rest.indexOf("--parse");
+      const parseJson = parseFlagIndex !== -1;
+      if (parseFlagIndex !== -1) rest.splice(parseFlagIndex, 1);
+      const name = rest[0];
+      const argsJson = rest[1];
+      if (!name)
+        throw new Error(
+          "Usage: node dist/client.js call <toolName> <jsonArgs>",
+        );
+      const args = argsJson ? JSON.parse(argsJson) : {};
+      const result = await client.callTool({ name, arguments: args });
+      if ("content" in result && Array.isArray(result.content)) {
+        // eslint-disable-next-line no-console
+        console.log(`Result from ${name}:`);
+        for (const c of result.content) {
+          // eslint-disable-next-line no-console
+          console.log(renderContentBlock(c, { parseJsonText: parseJson }));
+        }
+      } else {
+        // eslint-disable-next-line no-console
+        console.log(JSON.stringify(result, null, 2));
+      }
+      return;
+    }
+
+    if (cmd === "resources") {
+      const [resources, templates] = await Promise.all([
+        client.listResources(),
+        client.listResourceTemplates(),
+      ]);
+      // eslint-disable-next-line no-console
+      console.log("Resources:");
+      for (const r of resources.resources) {
+        // eslint-disable-next-line no-console
+        console.log(`- ${r.uri}${r.name ? ` (${r.name})` : ""}`);
+      }
+      // eslint-disable-next-line no-console
+      console.log("\nResource Templates:");
+      for (const t of templates.resourceTemplates) {
+        // eslint-disable-next-line no-console
+        console.log(`- ${t.uriTemplate}${t.name ? ` (${t.name})` : ""}`);
+      }
+      return;
+    }
+
+    if (cmd === "resource") {
+      const uri = rest[0];
+      if (!uri) throw new Error("Usage: node dist/client.js resource <uri>");
+      const result = await client.readResource({ uri });
+      // eslint-disable-next-line no-console
+      console.log(JSON.stringify(result, null, 2));
+      return;
+    }
+
+    if (cmd === "prompts") {
+      const prompts = await client.listPrompts();
+      // eslint-disable-next-line no-console
+      console.log("Prompts:");
+      for (const p of prompts.prompts) {
+        // eslint-disable-next-line no-console
+        console.log(`- ${p.name}${p.description ? `: ${p.description}` : ""}`);
+      }
+      return;
+    }
+
+    if (cmd === "prompt") {
+      const name = rest[0];
+      const argsJson = rest[1];
+      if (!name)
+        throw new Error(
+          "Usage: node dist/client.js prompt <name> <jsonArgsOptional>",
+        );
+      const args = argsJson ? JSON.parse(argsJson) : {};
+      const result = await client.getPrompt({ name, arguments: args });
+      // eslint-disable-next-line no-console
+      console.log(JSON.stringify(result, null, 2));
+      return;
+    }
+
+    // Default demo: list tools, then call a sample
     const tools = await client.listTools();
     // eslint-disable-next-line no-console
     console.log("Available tools:");
     for (const t of tools.tools) {
       // eslint-disable-next-line no-console
-      console.log(`- ${t.name}${t.description ? `: ${t.description}` : ""}`);
+      console.log(`- ${t.name}`);
     }
-    return;
-  }
 
-  if (cmd === "call") {
-    const parseFlagIndex = rest.indexOf("--parse");
-    const parseJson = parseFlagIndex !== -1;
-    if (parseFlagIndex !== -1) rest.splice(parseFlagIndex, 1);
-    const name = rest[0];
-    const argsJson = rest[1];
-    if (!name)
-      throw new Error("Usage: node dist/client.js call <toolName> <jsonArgs>");
-    const args = argsJson ? JSON.parse(argsJson) : {};
-    const result = await client.callTool({ name, arguments: args });
-    if ("content" in result && Array.isArray(result.content)) {
+    // Example: call properties.search
+    try {
+      const result = await client.callTool({
+        name: "properties.search",
+        arguments: { q: "3 bed in Chapel Hill", topK: 3 },
+      });
       // eslint-disable-next-line no-console
-      console.log(`Result from ${name}:`);
-      for (const c of result.content) {
-        // eslint-disable-next-line no-console
-        console.log(renderContentBlock(c, { parseJsonText: parseJson }));
+      console.log("\nDemo: properties.search result:");
+      if ("content" in result && Array.isArray(result.content)) {
+        for (const c of result.content)
+          console.log(renderContentBlock(c, { parseJsonText: true }));
+      } else {
+        console.log(JSON.stringify(result, null, 2));
       }
-    } else {
+    } catch (err) {
       // eslint-disable-next-line no-console
-      console.log(JSON.stringify(result, null, 2));
+      console.error("properties.search failed:", (err as Error).message);
     }
-    return;
-  }
-
-  // Default demo: list tools, then call a sample
-  const tools = await client.listTools();
-  // eslint-disable-next-line no-console
-  console.log("Available tools:");
-  for (const t of tools.tools) {
-    // eslint-disable-next-line no-console
-    console.log(`- ${t.name}`);
-  }
-
-  // Example: call properties.search
-  try {
-    const result = await client.callTool({
-      name: "properties.search",
-      arguments: { q: "3 bed in Chapel Hill", topK: 3 },
-    });
-    // eslint-disable-next-line no-console
-    console.log("\nDemo: properties.search result:");
-    if ("content" in result && Array.isArray(result.content)) {
-      for (const c of result.content)
-        console.log(renderContentBlock(c, { parseJsonText: true }));
-    } else {
-      console.log(JSON.stringify(result, null, 2));
-    }
-  } catch (err) {
-    // eslint-disable-next-line no-console
-    console.error("properties.search failed:", (err as Error).message);
+  } finally {
+    await client.close();
   }
 }
 

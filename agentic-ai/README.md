@@ -1133,6 +1133,7 @@ The agents coordinate via the CoordinatorAgent over a shared blackboard:
 The CLI integrates with the local MCP server to access EstateWise backend tools:
 
 - Spawns `../mcp/dist/server.js` over stdio and uses `@modelcontextprotocol/sdk` to list/call tools.
+- On startup, validates runtime-specific required MCP tools (warn by default, strict optional).
 - Tool outputs are text blocks; the orchestrator stores both the raw result and an extracted text for the Reporter.
 - Includes `web.search` and `web.fetch` for internet context when goals require fresh external facts.
 
@@ -1184,6 +1185,12 @@ Set the following environment variables as needed:
   - `A2A_MAX_TASKS` (default `500`) limits in-memory task records retained by the A2A server.
   - `A2A_TASK_RETENTION_MS` (default `86400000`) controls retention of completed A2A tasks.
   - `A2A_WAIT_TIMEOUT_MS` (default `120000`) sets default max wait time for `tasks.wait`.
+- MCP client integration
+  - `MCP_SERVER_COMMAND` (default Node executable) and `MCP_SERVER_ARGS` (default `["dist/server.js"]`) for MCP spawn customization.
+  - `MCP_SERVER_CWD` (default `../mcp`) to point to MCP build location.
+  - `MCP_CLIENT_STARTUP_RETRIES` (default `2`) and `MCP_CLIENT_STARTUP_RETRY_MS` (default `750`) for startup resilience.
+  - `MCP_CLIENT_CALL_TIMEOUT_MS` (default `45000`) and `MCP_CLIENT_LIST_CACHE_MS` (default `15000`) for client-side behavior.
+  - `MCP_REQUIRED_TOOLS_MODE` with `off|warn|strict` (default `warn`) to control runtime contract enforcement.
 
 Please make sure to have upserted properties to Pinecone and ingested the graph to Neo4j if you plan to use those tools - they will return empty results otherwise!
 
@@ -1212,7 +1219,8 @@ See [COSTS.md](COSTS.md) for details on pricing assumptions and calculations.
 
 The CLI includes robust error handling:
 - Uncaught exceptions in agents or the orchestrator are caught and logged; the run exits gracefully
-- The orchestrator retries failed MCP calls once with a short backoff.
+- The MCP client enforces startup retries, tool-call timeouts, and one retry on failed tool calls.
+- Runtime-specific MCP tool contracts are validated at startup to detect producer/consumer drift early.
 - Tool JSON text is parsed defensively; malformed responses are surfaced but do not crash the run.
 - LangGraph runtime persists state to the in‑memory checkpointer by default; set `THREAD_ID` to continue a run.
 

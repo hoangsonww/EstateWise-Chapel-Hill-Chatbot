@@ -1,0 +1,37 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: estatewise-argo-workflow-definitions
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "30"
+spec:
+  project: estatewise-platform
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argo-workflows
+  source:
+    repoURL: https://github.com/hoangsonww/EstateWise-Chapel-Hill-Chatbot.git
+    targetRevision: main
+    path: kubernetes/workflows/argo-workflows
+  syncPolicy:
+    managedNamespaceMetadata:
+      labels:
+        pod-security.kubernetes.io/enforce: baseline
+        pod-security.kubernetes.io/audit: restricted
+        pod-security.kubernetes.io/warn: restricted
+        app.kubernetes.io/part-of: estatewise
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 2m

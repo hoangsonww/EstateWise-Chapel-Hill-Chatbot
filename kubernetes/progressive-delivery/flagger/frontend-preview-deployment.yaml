@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: estatewise-frontend-preview
+  namespace: estatewise-delivery
+  labels:
+    app: estatewise-frontend-preview
+    app.kubernetes.io/part-of: estatewise
+spec:
+  revisionHistoryLimit: 5
+  selector:
+    matchLabels:
+      app: estatewise-frontend-preview
+  template:
+    metadata:
+      labels:
+        app: estatewise-frontend-preview
+        app.kubernetes.io/part-of: estatewise
+    spec:
+      containers:
+        - name: frontend
+          image: ghcr.io/your-org/estatewise-app-frontend:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3000
+              name: http
+          env:
+            - name: NEXT_PUBLIC_API_BASE_URL
+              value: https://api.estatewise.prod
+          resources:
+            requests:
+              cpu: 150m
+              memory: 256Mi
+            limits:
+              cpu: 300m
+              memory: 512Mi

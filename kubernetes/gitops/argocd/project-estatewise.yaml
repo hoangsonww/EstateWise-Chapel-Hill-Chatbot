@@ -1,0 +1,30 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: estatewise-platform
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: estatewise-platform
+    app.kubernetes.io/part-of: estatewise
+spec:
+  description: EstateWise platform project with strict destination and repo boundaries.
+  sourceRepos:
+    - https://github.com/hoangsonww/EstateWise-Chapel-Hill-Chatbot.git
+    - https://argoproj.github.io/argo-helm
+  destinations:
+    - namespace: estatewise
+      server: https://kubernetes.default.svc
+    - namespace: argo-rollouts
+      server: https://kubernetes.default.svc
+    - namespace: argo-workflows
+      server: https://kubernetes.default.svc
+    - namespace: argocd
+      server: https://kubernetes.default.svc
+  clusterResourceWhitelist:
+    - group: '*'
+      kind: '*'
+  namespaceResourceWhitelist:
+    - group: '*'
+      kind: '*'
+  orphanedResources:
+    warn: true

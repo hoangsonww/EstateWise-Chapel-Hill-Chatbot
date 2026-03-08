@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flagger-loadtester
+  namespace: estatewise-delivery
+  labels:
+    app: flagger-loadtester
+    app.kubernetes.io/part-of: estatewise
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: flagger-loadtester
+  template:
+    metadata:
+      labels:
+        app: flagger-loadtester
+        app.kubernetes.io/part-of: estatewise
+    spec:
+      containers:
+        - name: loadtester
+          image: ghcr.io/fluxcd/flagger-loadtester:0.32.0
+          imagePullPolicy: IfNotPresent
+          command:
+            - ./loadtester
+            - -port=8080
+            - -log-level=info
+          ports:
+            - containerPort: 8080
+              name: http
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: flagger-loadtester
+  namespace: estatewise-delivery
+  labels:
+    app: flagger-loadtester
+    app.kubernetes.io/part-of: estatewise
+spec:
+  type: ClusterIP
+  selector:
+    app: flagger-loadtester
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080

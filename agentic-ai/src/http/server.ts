@@ -19,6 +19,10 @@ import { runCrewAIGoal } from "../crewai/CrewRunner.js";
 import { A2AProtocol } from "../a2a/protocol.js";
 import type { AgentRuntime } from "../a2a/types.js";
 import type { CostReport } from "../costs/tracker.js";
+import {
+  getRequiredToolsForRuntime,
+  parseRequiredToolsMode,
+} from "../mcp/contracts.js";
 
 /** Send a JSON response with CORS headers. */
 function sendJson(res: http.ServerResponse, status: number, body: unknown) {
@@ -308,6 +312,15 @@ const server = http.createServer(async (req, res) => {
       runtimes: supportedRuntimes,
       protocols: ["http", "a2a", "mcp"],
       defaultRounds: 5,
+      mcp: {
+        requiredToolsMode: parseRequiredToolsMode(
+          process.env.MCP_REQUIRED_TOOLS_MODE,
+        ),
+        requiredTools: {
+          default: getRequiredToolsForRuntime("default"),
+          langgraph: getRequiredToolsForRuntime("langgraph"),
+        },
+      },
       a2a: {
         card: `${baseUrl}/.well-known/agent-card.json`,
         rpc: `${baseUrl}/a2a`,

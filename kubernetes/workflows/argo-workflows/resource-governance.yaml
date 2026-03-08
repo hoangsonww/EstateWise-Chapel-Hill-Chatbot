@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: argo-workflows-quota
+  namespace: argo-workflows
+  labels:
+    app.kubernetes.io/part-of: estatewise
+spec:
+  hard:
+    pods: "100"
+    requests.cpu: "20"
+    requests.memory: 32Gi
+    limits.cpu: "40"
+    limits.memory: 64Gi
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: argo-workflows-limits
+  namespace: argo-workflows
+  labels:
+    app.kubernetes.io/part-of: estatewise
+spec:
+  limits:
+    - type: Container
+      defaultRequest:
+        cpu: 100m
+        memory: 128Mi
+      default:
+        cpu: 1
+        memory: 1Gi

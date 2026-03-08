@@ -1,0 +1,75 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: estatewise-delivery-default-deny
+  namespace: estatewise-delivery
+  labels:
+    app.kubernetes.io/part-of: estatewise
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: estatewise-delivery-allow-dns-egress
+  namespace: estatewise-delivery
+  labels:
+    app.kubernetes.io/part-of: estatewise
+spec:
+  podSelector: {}
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: estatewise-delivery-allow-same-namespace
+  namespace: estatewise-delivery
+  labels:
+    app.kubernetes.io/part-of: estatewise
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - podSelector: {}
+  egress:
+    - to:
+        - podSelector: {}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: estatewise-delivery-allow-flagger-to-loadtester
+  namespace: estatewise-delivery
+  labels:
+    app.kubernetes.io/part-of: estatewise
+spec:
+  podSelector:
+    matchLabels:
+      app: flagger-loadtester
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: flagger-system
+      ports:
+        - protocol: TCP
+          port: 8080

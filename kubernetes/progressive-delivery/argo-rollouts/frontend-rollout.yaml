@@ -1,0 +1,65 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: estatewise-frontend
+  namespace: estatewise
+  labels:
+    app: estatewise-frontend
+    app.kubernetes.io/part-of: estatewise
+spec:
+  replicas: 2
+  revisionHistoryLimit: 5
+  selector:
+    matchLabels:
+      app: estatewise-frontend
+  template:
+    metadata:
+      labels:
+        app: estatewise-frontend
+        app.kubernetes.io/part-of: estatewise
+      annotations:
+        consul.hashicorp.com/connect-service: "estatewise-frontend"
+        consul.hashicorp.com/connect-service-port: "http"
+    spec:
+      containers:
+        - name: frontend
+          image: ghcr.io/your-org/estatewise-app-frontend:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3000
+              name: http
+          env:
+            - name: NEXT_PUBLIC_API_BASE_URL
+              value: "https://api.estatewise.local"
+          resources:
+            requests:
+              cpu: 150m
+              memory: 256Mi
+            limits:
+              cpu: 300m
+              memory: 512Mi
+  strategy:
+    canary:
+      maxSurge: 25%
+      maxUnavailable: 0
+      stableMetadata:
+        labels:
+          role: stable
+      canaryMetadata:
+        labels:
+          role: canary
+      analysis:
+        templates:
+          - templateName: frontend-success-rate
+          - templateName: frontend-latency-p95
+      steps:
+        - setWeight: 10
+        - pause:
+            duration: 2m
+        - setWeight: 25
+        - pause:
+            duration: 5m
+        - setWeight: 50
+        - pause:
+            duration: 8m
+        - setWeight: 100
