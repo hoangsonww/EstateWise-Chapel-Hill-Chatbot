@@ -5,6 +5,7 @@ import {
   Blackboard,
 } from "../core/types.js";
 import { ToolClient } from "../mcp/ToolClient.js";
+import { getRequiredToolsForRuntime } from "../mcp/contracts.js";
 
 function extractToolText(result: unknown) {
   const res = result as any;
@@ -54,7 +55,9 @@ export class AgentOrchestrator {
    * @param rounds Number of full agent passes (default 4)
    */
   async run(goal: string, rounds = 4): Promise<AgentMessage[]> {
-    await this.toolClient.start();
+    await this.toolClient.start({
+      requiredTools: getRequiredToolsForRuntime("default"),
+    });
     const history: AgentMessage[] = [];
     const ctx = ((): AgentContext => ({
       goal,
@@ -102,7 +105,9 @@ export class AgentOrchestrator {
     rounds: number,
     onEvent: (e: AgentStreamEvent) => void,
   ): Promise<void> {
-    await this.toolClient.start();
+    await this.toolClient.start({
+      requiredTools: getRequiredToolsForRuntime("default"),
+    });
     const history: AgentMessage[] = [];
     const ctx = ((): AgentContext => ({
       goal,

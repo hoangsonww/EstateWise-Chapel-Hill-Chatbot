@@ -636,8 +636,12 @@ kubectl apply -k kubernetes/base -n estatewise
 # Apply production overlay
 kubectl apply -k kubernetes/overlays/prod -n estatewise
 
+# Apply GitOps-ready production overlay (Argo Rollouts based)
+kubectl apply -k kubernetes/overlays/prod-gitops
+
 # Check deployment status
 kubectl get deployments -n estatewise
+kubectl get rollouts.argoproj.io -n estatewise
 kubectl get pods -n estatewise
 kubectl get services -n estatewise
 
@@ -654,6 +658,7 @@ kubectl port-forward svc/estatewise-backend 3001:3001 -n estatewise
 ```bash
 # Manual scaling
 kubectl scale deployment/estatewise-backend --replicas=5 -n estatewise
+kubectl scale rollout/estatewise-backend --replicas=5 -n estatewise
 
 # Autoscaling (HPA)
 kubectl autoscale deployment estatewise-backend \
@@ -665,6 +670,42 @@ kubectl autoscale deployment estatewise-backend \
 # Check autoscaler status
 kubectl get hpa -n estatewise
 ```
+
+### GitOps and Progressive Delivery Stack
+
+EstateWise supports a production topology where:
+
+- **Argo CD** manages core applications and Argo-native controllers.
+- **Argo Rollouts** handles backend/frontend progressive delivery in `estatewise`.
+- **Flux CD** manages Flagger controller and isolated canary workloads.
+- **Flagger** performs canary analysis in `estatewise-delivery`.
+- **Argo Workflows** runs delivery gates and scheduled operational workflows.
+
+Bootstrap references:
+
+```bash
+# Argo CD app-of-apps bootstrap
+kubectl apply -k kubernetes/gitops/argocd
+
+# Flux source + kustomization bootstrap
+kubectl apply -k kubernetes/gitops/flux
+
+# Preflight policy/render checks
+bash kubernetes/gitops/preflight.sh
+```
+
+GitOps manifests are pinned to this repo URL:
+
+- `https://github.com/hoangsonww/EstateWise-Chapel-Hill-Chatbot.git`
+
+Production hardening included in this stack:
+
+- Argo CD `ignoreDifferences` for Rollout replica counts (prevents HPA/GitOps drift loops).
+- Flagger isolated to `estatewise-delivery` namespace under Flux ownership.
+- Namespace pod-security labels and quotas/limitranges for delivery/workflow namespaces.
+- Argo Workflow TTL and pod GC controls for operational hygiene.
+
+Use `kubernetes/gitops/README.md` as the source of truth for ownership boundaries and verification commands.
 
 ---
 

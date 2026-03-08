@@ -1,0 +1,19 @@
+apiVersion: argoproj.io/v1alpha1
+kind: CronWorkflow
+metadata:
+  name: estatewise-nightly-smoke
+  namespace: argo-workflows
+  labels:
+    app.kubernetes.io/part-of: estatewise
+spec:
+  schedule: "0 3 * * *"
+  timezone: "UTC"
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 300
+  suspend: false
+  successfulJobsHistoryLimit: 5
+  failedJobsHistoryLimit: 5
+  workflowSpec:
+    serviceAccountName: estatewise-workflow-runner
+    workflowTemplateRef:
+      name: estatewise-progressive-delivery-pipeline

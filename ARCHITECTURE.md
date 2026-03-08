@@ -32,6 +32,10 @@ This document describes the comprehensive end-to-end architecture for EstateWise
   - [State Management](#state-management)
 - [Infrastructure & Deployment](#infrastructure--deployment)
   - [Multi-Cloud Architecture](#multi-cloud-architecture)
+  - [GitOps Control Plane Architecture](#gitops-control-plane-architecture)
+  - [Controller Ownership Boundaries](#controller-ownership-boundaries)
+  - [Progressive Delivery Control Loops](#progressive-delivery-control-loops)
+  - [Operational Workflow Orchestration](#operational-workflow-orchestration)
   - [Advanced Deployment Strategies](#advanced-deployment-strategies)
   - [Deployment Control UI](#deployment-control-ui)
   - [Infrastructure as Code](#infrastructure-as-code)
@@ -735,6 +739,126 @@ flowchart TB
   style Jenkins fill:#D24939,color:#fff
   style BGDeploy fill:#00D084,color:#000
   style Canary fill:#FF6B6B,color:#fff
+```
+
+### GitOps Control Plane Architecture
+
+EstateWise uses a dual-controller GitOps architecture with explicit scope boundaries:
+
+- **Argo CD** reconciles core platform applications and Argo-native controllers.
+- **Flux CD** reconciles Flagger controller lifecycle and isolated canary workloads.
+- **Canonical GitOps repository**:
+  - `https://github.com/hoangsonww/EstateWise-Chapel-Hill-Chatbot.git`
+
+```mermaid
+flowchart TB
+  Repo[GitHub Repo<br/>EstateWise-Chapel-Hill-Chatbot]
+
+  subgraph ArgoCD["Argo CD (argocd namespace)"]
+    Root[estatewise-platform-root]
+    CoreApp[estatewise-core app]
+    RolloutsCtlApp[argo-rollouts controller app]
+    RolloutsGovApp[argo-rollouts governance app]
+    WorkflowsCtlApp[argo-workflows controller app]
+    WorkflowDefsApp[workflow definitions app]
+  end
+
+  subgraph Flux["Flux CD (flux-system namespace)"]
+    FluxSrc[GitRepository source]
+    FluxControllers[estatewise-flux-controllers]
+    FluxFlagger[estatewise-flux-flagger]
+    FlaggerHelm[flagger HelmRelease]
+  end
+
+  subgraph Namespaces["Managed Runtime Namespaces"]
+    EstatewiseNs[estatewise]
+    RolloutsNs[argo-rollouts]
+    WorkflowsNs[argo-workflows]
+    DeliveryNs[estatewise-delivery]
+    FlaggerNs[flagger-system]
+  end
+
+  Repo --> Root
+  Root --> CoreApp --> EstatewiseNs
+  Root --> RolloutsCtlApp --> RolloutsNs
+  Root --> RolloutsGovApp --> RolloutsNs
+  Root --> WorkflowsCtlApp --> WorkflowsNs
+  Root --> WorkflowDefsApp --> WorkflowsNs
+
+  Repo --> FluxSrc --> FluxControllers --> FlaggerHelm --> FlaggerNs
+  FluxSrc --> FluxFlagger --> DeliveryNs
+```
+
+### Controller Ownership Boundaries
+
+The control plane is intentionally split to prevent reconciliation contention:
+
+- **Argo CD ownership**
+  - `kubernetes/overlays/prod-gitops`
+  - `kubernetes/progressive-delivery/argo-rollouts/platform`
+  - `kubernetes/workflows/argo-workflows`
+- **Flux ownership**
+  - `kubernetes/gitops/flux/controllers`
+  - `kubernetes/progressive-delivery/flagger`
+
+This model avoids drift loops between Argo CD and Flux and keeps production vs sandbox delivery concerns separated.
+
+### Progressive Delivery Control Loops
+
+EstateWise runs two complementary progressive delivery loops:
+
+1. **Argo Rollouts** for core `estatewise-backend` and `estatewise-frontend` in `estatewise`.
+2. **Flagger** for isolated canary validation in `estatewise-delivery`.
+
+```mermaid
+flowchart LR
+  subgraph Core["Core Production (estatewise)"]
+    BR[Rollout: estatewise-backend]
+    FR[Rollout: estatewise-frontend]
+    BAT[AnalysisTemplates: backend]
+    FAT[AnalysisTemplates: frontend]
+    BHPA[HPA -> backend rollout]
+    FHPA[HPA -> frontend rollout]
+  end
+
+  subgraph Sandbox["Canary Sandbox (estatewise-delivery)"]
+    FC[Flagger Canary: estatewise-frontend-preview]
+    FD[Deployment: estatewise-frontend-preview]
+    FM[MetricTemplate]
+    FL[flagger-loadtester]
+  end
+
+  BR --> BAT
+  FR --> FAT
+  BHPA --> BR
+  FHPA --> FR
+
+  FC --> FD
+  FC --> FM
+  FC --> FL
+```
+
+### Operational Workflow Orchestration
+
+Argo Workflows provides operational gates and scheduled validation:
+
+- `WorkflowTemplate`: `estatewise-progressive-delivery-pipeline`
+- `WorkflowTemplate`: `estatewise-ops-toolkit`
+- `CronWorkflow`: `estatewise-nightly-smoke`
+
+```mermaid
+sequenceDiagram
+  participant Cron as CronWorkflow
+  participant Wf as WorkflowTemplate
+  participant R as Rollouts API
+  participant S as estatewise services
+
+  Cron->>Wf: Start nightly smoke run
+  Wf->>S: Execute pre-deploy smoke checks
+  Wf->>R: Wait for backend Healthy
+  Wf->>R: Wait for frontend Healthy
+  Wf->>S: Execute post-deploy smoke checks
+  Wf-->>Cron: Report success/failure
 ```
 
 ### Advanced Deployment Strategies

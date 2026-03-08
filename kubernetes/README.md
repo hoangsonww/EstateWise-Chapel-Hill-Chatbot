@@ -21,14 +21,42 @@ flowchart LR
 ```
 kubernetes/
 ├─ base/                       # Core workloads + ingress
+├─ gitops/                     # Argo CD + Flux GitOps definitions
+│  ├─ argocd/                  # AppProject + app-of-apps bootstrap
+│  └─ flux/                    # Flux sources/kustomizations + Flagger controller release
 ├─ overlays/                   # Kustomize overlays (prod, multi-region)
+├─ progressive-delivery/       # Argo Rollouts + Flagger canary resources
 ├─ monitoring/                 # Prometheus, Grafana, Loki, Jaeger
+├─ workflows/                  # Argo Workflows templates + cron workflows
 ├─ jobs/                       # Batch jobs + cronjobs
 ├─ chaos/                      # Chaos experiments and scripts
 ├─ disaster-recovery/          # DR automation
 ├─ security/                   # Security manifests (image signing)
 └─ scripts/                    # Blue/green + canary deploy helpers
 ```
+
+## Enterprise Delivery Topology
+
+EstateWise now supports a production-grade GitOps and progressive-delivery stack:
+
+- **Argo CD** for app delivery and controller lifecycle.
+- **Argo Rollouts** for backend/frontend progressive deployments.
+- **Flux CD** for additional GitOps reconciliation scope.
+- **Flagger** (managed by Flux) for isolated canary analysis.
+- **Argo Workflows** for operational orchestration and scheduled validation.
+
+### Controller ownership boundary
+
+- Argo CD owns `kubernetes/overlays/prod-gitops` and Argo-native controllers/workflows.
+- Flux owns Flagger controller and `kubernetes/progressive-delivery/flagger`.
+- Do not configure both controllers to reconcile the same path/resource set.
+
+See `kubernetes/gitops/README.md` for full bootstrap and verification steps.
+Run `bash kubernetes/gitops/preflight.sh` before production sync to validate rendered manifests and GitOps source URL consistency.
+
+Canonical GitOps repo URL used by control-plane manifests:
+
+- `https://github.com/hoangsonww/EstateWise-Chapel-Hill-Chatbot.git`
 
 ## Base Manifests
 
@@ -56,6 +84,12 @@ Apply production overlay:
 
 ```bash
 kubectl apply -k kubernetes/overlays/prod
+```
+
+Apply GitOps-ready production overlay (Argo Rollouts-based core workloads):
+
+```bash
+kubectl apply -k kubernetes/overlays/prod-gitops
 ```
 
 Use overlays for:
@@ -120,6 +154,13 @@ kubectl apply -f kubernetes/jobs/load-testing-job.yaml
 - `canary-deploy.sh`
 
 These are used by the `deployment-control` dashboard and can also be run manually.
+
+## Progressive Delivery Resources
+
+- Argo Rollouts definitions are in `kubernetes/progressive-delivery/argo-rollouts/`.
+- Flagger resources are in `kubernetes/progressive-delivery/flagger/` (Flux-managed scope).
+
+> `kubernetes/base/progressive-delivery-config.yaml` is a legacy file and is superseded by the new `kubernetes/progressive-delivery/*` layout.
 
 ## Ingress Notes
 

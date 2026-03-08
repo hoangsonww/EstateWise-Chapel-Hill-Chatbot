@@ -5,7 +5,8 @@
       "Bash(curl:*)",
       "Bash(npx tsc:*)",
       "Bash(chmod:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(python3:*)"
     ],
     "deny": [],
     "ask": []

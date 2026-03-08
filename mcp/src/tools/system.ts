@@ -1,7 +1,9 @@
 import { z } from "zod";
 import { config } from "../core/config.js";
 import { httpCacheClear, httpGetCached as httpGet, qs } from "../core/http.js";
-import { catalog } from "../core/registry.js";
+import { getGovernanceSnapshot } from "../core/governance.js";
+import { getMetricsSnapshot } from "../core/metrics.js";
+import { getToolCatalogSnapshot } from "../core/registry.js";
 import type { ToolDef } from "../core/registry.js";
 
 /** System and diagnostics tools for MCP server. */
@@ -17,6 +19,11 @@ export const systemTools: ToolDef[] = [
         a2aBaseUrl: config.a2aBaseUrl,
         a2aTimeoutMs: config.a2aTimeoutMs,
         webTimeoutMs: config.webTimeoutMs,
+        cacheTtlMs: config.cacheTtlMs,
+        cacheMax: config.cacheMax,
+        toolTimeoutMs: config.toolTimeoutMs,
+        toolMaxArgBytes: config.toolMaxArgBytes,
+        toolMaxConcurrent: config.toolMaxConcurrent,
       };
       return { content: [{ type: "text", text: JSON.stringify(safe) }] };
     },
@@ -82,11 +89,60 @@ export const systemTools: ToolDef[] = [
     description: "List registered tool names and descriptions.",
     schema: {},
     handler: async () => {
-      const tools = catalog.map((t) => ({
-        name: t.name,
-        description: t.description,
-      }));
+      const tools = getToolCatalogSnapshot();
       return { content: [{ type: "text", text: JSON.stringify({ tools }) }] };
+    },
+  },
+  {
+    name: "system.toolSchema",
+    description:
+      "Return a normalized schema summary for one tool by name (fields + required).",
+    schema: { name: z.string() },
+    handler: async (args: any) => {
+      const { name } = args as { name: string };
+      const tool = getToolCatalogSnapshot().find(
+        (entry) => entry.name === name,
+      );
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify({
+              tool: tool || null,
+              found: !!tool,
+            }),
+          },
+        ],
+      };
+    },
+  },
+  {
+    name: "system.capabilities",
+    description:
+      "Return MCP server capabilities and operational guardrails for clients and operators.",
+    schema: {},
+    handler: async () => {
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify({
+              server: {
+                name: config.serverName,
+                version: config.serverVersion,
+              },
+              capabilities: {
+                tools: { listChanged: true },
+                resources: { listChanged: true, subscribe: true },
+                prompts: { listChanged: true },
+                logging: {},
+              },
+              governance: getGovernanceSnapshot(),
+              metrics: getMetricsSnapshot({ detailed: false }).summary,
+            }),
+          },
+        ],
+      };
     },
   },
   {

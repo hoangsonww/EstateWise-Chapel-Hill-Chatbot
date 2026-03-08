@@ -1,0 +1,30 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../base
+  - ./extras
+  - ../../progressive-delivery/argo-rollouts
+patches:
+  - target:
+      kind: Deployment
+      name: estatewise-backend
+      namespace: estatewise
+    path: patches/delete-backend-deployment.yaml
+  - target:
+      kind: Deployment
+      name: estatewise-frontend
+      namespace: estatewise
+    path: patches/delete-frontend-deployment.yaml
+  - target:
+      kind: Ingress
+      name: estatewise-ingress
+    patch: |-
+      - op: replace
+        path: /spec/rules/0/host
+        value: app.estatewise.prod
+      - op: replace
+        path: /spec/tls/0/hosts/0
+        value: app.estatewise.prod
+      - op: replace
+        path: /metadata/annotations/cert-manager.io~1cluster-issuer
+        value: letsencrypt-prod

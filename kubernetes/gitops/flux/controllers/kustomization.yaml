@@ -1,0 +1,8 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - namespace-flagger-system.yaml
+  - namespace-estatewise-delivery.yaml
+  - resource-governance-flagger-system.yaml
+  - source-flagger.yaml
+  - helmrelease-flagger.yaml

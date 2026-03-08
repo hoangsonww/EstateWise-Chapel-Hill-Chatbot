@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: estatewise-frontend-preview
+  namespace: estatewise-delivery
+  labels:
+    app: estatewise-frontend-preview
+    app.kubernetes.io/part-of: estatewise
+spec:
+  type: ClusterIP
+  selector:
+    app: estatewise-frontend-preview
+  ports:
+    - name: http
+      port: 80
+      targetPort: 3000

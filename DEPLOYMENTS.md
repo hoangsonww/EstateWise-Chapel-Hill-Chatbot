@@ -26,6 +26,13 @@ In addition, the monorepo already supports **Vercel** deployments for the fronte
 
 It also supports advanced deployment strategies like **Blue-Green** and **Canary** deployments for zero-downtime releases and safe progressive delivery.
 
+The Kubernetes production path now includes an enterprise GitOps control plane with:
+
+- **Argo CD** for app-of-apps orchestration and core platform reconciliation.
+- **Argo Rollouts** for core backend/frontend progressive delivery.
+- **Flux CD + Flagger** for isolated canary experimentation in a dedicated delivery namespace.
+- **Argo Workflows** for rollout gating, scheduled smoke tests, and operational automation.
+
 > [!IMPORTANT]
 > **NEW**: GitLab CI/CD is now also supported out of the box via `.gitlab-ci.yml`, mirroring the Jenkins flow and wiring directly into the Kubernetes blue/green and canary scripts through `gitlab/deploy.sh`.
 
@@ -37,6 +44,11 @@ For more information on EstateWise DevOps, CI/CD pipelines, monitoring, and trou
 
 - [High-Level Architecture](#high-level-architecture)
 - [Advanced Deployment Strategies](#advanced-deployment-strategies)
+- [Kubernetes GitOps Control Plane (Recommended)](#kubernetes-gitops-control-plane-recommended)
+  - [Controller Ownership Model](#controller-ownership-model)
+  - [Bootstrap and Validation Flow](#bootstrap-and-validation-flow)
+- [Progressive Delivery Runtime](#progressive-delivery-runtime)
+- [Argo Workflows Operations Runtime](#argo-workflows-operations-runtime)
 - [AWS Deployment](#aws-deployment)
 - [Azure Deployment](#azure-deployment)
 - [Google Cloud Deployment](#google-cloud-deployment)
@@ -85,6 +97,44 @@ flowchart LR
   GCP -.->|HTTPS| Users
   HC -.->|Ingress Controller| Users
   VC -.->|Edge CDN| Users
+```
+
+```mermaid
+flowchart TB
+  Repo[GitHub Repo<br/>hoangsonww/EstateWise-Chapel-Hill-Chatbot]
+
+  subgraph Argo["Argo CD Control Plane"]
+    Root[estatewise-platform-root]
+    Core[estatewise-core]
+    RolloutsCtl[argo-rollouts-controller app]
+    RolloutsGov[argo-rollouts-governance app]
+    WorkflowsCtl[argo-workflows-controller app]
+    WorkflowDefs[argo-workflow-definitions app]
+  end
+
+  subgraph Flux["Flux + Flagger Control Plane"]
+    GitSrc[GitRepository]
+    FluxCtl[estatewise-flux-controllers]
+    FluxFlagger[estatewise-flux-flagger]
+    FlaggerHelm[flagger HelmRelease]
+  end
+
+  subgraph Runtime
+    EstatewiseNS[estatewise]
+    RolloutsNS[argo-rollouts]
+    WorkflowsNS[argo-workflows]
+    DeliveryNS[estatewise-delivery]
+    FlaggerNS[flagger-system]
+  end
+
+  Repo --> Root --> Core --> EstatewiseNS
+  Root --> RolloutsCtl --> RolloutsNS
+  Root --> RolloutsGov --> RolloutsNS
+  Root --> WorkflowsCtl --> WorkflowsNS
+  Root --> WorkflowDefs --> WorkflowsNS
+
+  Repo --> GitSrc --> FluxCtl --> FlaggerHelm --> FlaggerNS
+  GitSrc --> FluxFlagger --> DeliveryNS
 ```
 
 Each target shares the same containers and environment variables – only the infrastructure wrapper changes.
@@ -162,6 +212,137 @@ CANARY_STAGE_DURATION=120
 For comprehensive guides on deployment strategies, CI/CD pipelines, monitoring, and troubleshooting, see:
 
 📘 **[DEVOPS.md](DEVOPS.md)** - Complete DevOps and deployment strategy guide
+
+---
+
+## Kubernetes GitOps Control Plane (Recommended)
+
+For production Kubernetes deployments, the recommended path is the GitOps control plane under `kubernetes/gitops/`.
+
+- Argo CD manifests: `kubernetes/gitops/argocd/`
+- Flux manifests: `kubernetes/gitops/flux/`
+- Core production overlay: `kubernetes/overlays/prod-gitops/`
+- Canonical repo URL:
+  - `https://github.com/hoangsonww/EstateWise-Chapel-Hill-Chatbot.git`
+
+### Controller Ownership Model
+
+```mermaid
+flowchart LR
+  subgraph ArgoCD
+    ACore[estatewise-core]
+    ARollCtl[rollouts controller]
+    ARollGov[rollouts governance]
+    AWfCtl[workflows controller]
+    AWfDefs[workflow definitions]
+  end
+
+  subgraph Flux
+    FControllers[flux controllers + flagger helm]
+    FFlagger[flagger delivery workloads]
+  end
+
+  subgraph Paths
+    P1[kubernetes/overlays/prod-gitops]
+    P2[kubernetes/progressive-delivery/argo-rollouts/platform]
+    P3[kubernetes/workflows/argo-workflows]
+    P4[kubernetes/gitops/flux/controllers]
+    P5[kubernetes/progressive-delivery/flagger]
+  end
+
+  ACore --> P1
+  ARollCtl --> P2
+  ARollGov --> P2
+  AWfCtl --> P3
+  AWfDefs --> P3
+
+  FControllers --> P4
+  FFlagger --> P5
+```
+
+Argo CD and Flux must not reconcile the same resources. The repository layout already enforces this split.
+
+### Bootstrap and Validation Flow
+
+```bash
+# 1) Install/apply control planes
+bash kubernetes/gitops/bootstrap.sh
+
+# 2) Validate rendering + source URL policy
+bash kubernetes/gitops/preflight.sh
+```
+
+`preflight.sh` validates:
+
+- all key Kustomize entrypoints render cleanly,
+- repo/source URL policy is respected,
+- control-plane manifests remain internally consistent before sync.
+
+---
+
+## Progressive Delivery Runtime
+
+EstateWise uses two progressive-delivery runtimes in production:
+
+1. **Argo Rollouts** for core workloads in `estatewise`.
+2. **Flagger** for preview canary analysis in `estatewise-delivery`.
+
+```mermaid
+flowchart TB
+  subgraph Core["Core Namespace: estatewise"]
+    BR[Rollout: estatewise-backend]
+    FR[Rollout: estatewise-frontend]
+    BAT[AnalysisTemplate backend-*]
+    FAT[AnalysisTemplate frontend-*]
+    BHPA[HPA -> backend rollout]
+    FHPA[HPA -> frontend rollout]
+  end
+
+  subgraph Delivery["Delivery Namespace: estatewise-delivery"]
+    FC[Canary: estatewise-frontend-preview]
+    FD[Deployment: estatewise-frontend-preview]
+    FM[MetricTemplate]
+    FL[flagger-loadtester]
+  end
+
+  BR --> BAT
+  FR --> FAT
+  BHPA --> BR
+  FHPA --> FR
+
+  FC --> FD
+  FC --> FM
+  FC --> FL
+```
+
+This architecture supports production-safe experimentation without interfering with core backend/frontend rollouts.
+
+---
+
+## Argo Workflows Operations Runtime
+
+Argo Workflows in `argo-workflows` provides reusable operational automation:
+
+- `WorkflowTemplate`: `estatewise-progressive-delivery-pipeline`
+- `WorkflowTemplate`: `estatewise-ops-toolkit`
+- `CronWorkflow`: `estatewise-nightly-smoke`
+
+```mermaid
+sequenceDiagram
+  participant Cron as CronWorkflow
+  participant Wf as WorkflowTemplate
+  participant Rollouts as Argo Rollouts API
+  participant Svc as EstateWise Services
+
+  Cron->>Wf: Schedule nightly run
+  Wf->>Svc: Pre-deploy smoke checks
+  Wf->>Rollouts: Wait for backend Healthy
+  Wf->>Rollouts: Wait for frontend Healthy
+  Wf->>Svc: Post-deploy smoke checks
+  Wf-->>Cron: Success/Failure
+```
+
+Namespace governance (Pod Security labels, quotas, limit ranges) is codified for `argo-workflows`, `argo-rollouts`, `flagger-system`, and `estatewise-delivery`.
 
 ---
 
@@ -349,7 +530,9 @@ Path: [`hashicorp/`](hashicorp/README.md) and [`kubernetes/`](kubernetes/README.
 **Stack highlights**
 - Terraform modules that install Consul and Nomad via Helm charts on any Kubernetes cluster (EKS, AKS, GKE, or self-managed).
 - Consul provides service discovery / mesh; Nomad runs scheduled jobs (market ingest, analytics pipelines).
-- Kubernetes manifests (`kubernetes/estates/`) deploy backend + frontend workloads with optional Consul sidecars.
+- Kubernetes manifests under `kubernetes/` deploy backend + frontend workloads with optional Consul sidecars.
+- Recommended runtime entrypoint is the GitOps overlay:
+  - `kubernetes/overlays/prod-gitops`
 - `hashicorp/deploy.sh` automates `terraform init/plan/apply`, wiring kubeconfig + Helm providers.
 
 **Quick start**
@@ -359,8 +542,10 @@ cd hashicorp
   --kubeconfig ~/.kube/config \
   --context estatewise-eks \
   --do-apply
-kubectl apply -f ../kubernetes/estates/backend.yaml
-kubectl apply -f ../kubernetes/estates/frontend.yaml
+
+# GitOps-oriented validation + apply path
+bash ../kubernetes/gitops/preflight.sh
+kubectl apply -k ../kubernetes/overlays/prod-gitops
 ```
 
 **Mermaid – HashiCorp flow**
@@ -536,8 +721,14 @@ docker build -f agentic-ai/Dockerfile -t ghcr.io/your-org/estatewise-agentic:lat
 # Build MCP server image
 docker build -t ghcr.io/your-org/estatewise-mcp:latest mcp/
 
-# Apply Kubernetes overlays
-kubectl apply -k kubernetes/overlays/prod
+# Bootstrap GitOps control plane
+bash kubernetes/gitops/bootstrap.sh
+
+# Preflight validation
+bash kubernetes/gitops/preflight.sh
+
+# Apply Kubernetes GitOps-ready overlay (if running imperative mode)
+kubectl apply -k kubernetes/overlays/prod-gitops
 ```
 
 For deeper dives, follow the platform-specific READMEs inside each directory.

@@ -6,6 +6,7 @@ import { Pinecone } from "@pinecone-database/pinecone";
 import { PineconeStore } from "@langchain/pinecone";
 import neo4j, { Driver } from "neo4j-driver";
 import { ToolClient } from "../mcp/ToolClient.js";
+import { getRequiredToolsForRuntime } from "../mcp/contracts.js";
 import { getActiveCostTracker } from "../costs/tracker.js";
 
 /** Alias for LangChain structured tool type. */
@@ -96,7 +97,9 @@ async function withToolInstrumentation<T>(
 
 /** Start shared MCP client before LangGraph runs tools. */
 export async function startMcp() {
-  await mcp.start();
+  await mcp.start({
+    requiredTools: getRequiredToolsForRuntime("langgraph"),
+  });
 }
 
 /** Stop shared MCP client after LangGraph completes. */

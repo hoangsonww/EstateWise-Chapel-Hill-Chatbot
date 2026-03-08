@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: estatewise-delivery-quota
+  namespace: estatewise-delivery
+  labels:
+    app.kubernetes.io/part-of: estatewise
+spec:
+  hard:
+    pods: "30"
+    requests.cpu: "6"
+    requests.memory: 8Gi
+    limits.cpu: "12"
+    limits.memory: 16Gi
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: estatewise-delivery-limits
+  namespace: estatewise-delivery
+  labels:
+    app.kubernetes.io/part-of: estatewise
+spec:
+  limits:
+    - type: Container
+      defaultRequest:
+        cpu: 100m
+        memory: 128Mi
+      default:
+        cpu: 500m
+        memory: 512Mi

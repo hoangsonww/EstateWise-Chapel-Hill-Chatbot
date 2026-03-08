@@ -1,31 +1,15 @@
 import { z } from "zod";
 import type { ToolDef } from "../core/registry.js";
+import { getGovernanceSnapshot } from "../core/governance.js";
+import {
+  getMetricsSnapshot,
+  getToolUsage,
+  resetMetrics,
+} from "../core/metrics.js";
 
 /**
  * Monitoring & metrics tools for tracking MCP server usage and performance.
  */
-
-// In-memory metrics storage
-const metrics = {
-  toolCalls: new Map<string, number>(),
-  errors: new Map<string, number>(),
-  lastCalls: new Map<string, number>(),
-  totalRequests: 0,
-  totalErrors: 0,
-  startTime: Date.now(),
-};
-
-/** Record a tool call */
-export function recordToolCall(toolName: string, success: boolean) {
-  metrics.totalRequests++;
-  metrics.toolCalls.set(toolName, (metrics.toolCalls.get(toolName) || 0) + 1);
-  metrics.lastCalls.set(toolName, Date.now());
-
-  if (!success) {
-    metrics.totalErrors++;
-    metrics.errors.set(toolName, (metrics.errors.get(toolName) || 0) + 1);
-  }
-}
 
 export const monitoringTools: ToolDef[] = [
   {
@@ -35,46 +19,10 @@ export const monitoringTools: ToolDef[] = [
     schema: { detailed: z.boolean().optional() },
     handler: async (args: any) => {
       const { detailed = false } = args as { detailed?: boolean };
-
-      const uptime = Date.now() - metrics.startTime;
-      const uptimeHours = (uptime / (1000 * 60 * 60)).toFixed(2);
-
       const stats = {
-        uptime: {
-          ms: uptime,
-          hours: parseFloat(uptimeHours),
-          formatted: formatDuration(uptime),
-        },
-        requests: {
-          total: metrics.totalRequests,
-          errors: metrics.totalErrors,
-          successRate:
-            metrics.totalRequests > 0
-              ? (
-                  ((metrics.totalRequests - metrics.totalErrors) /
-                    metrics.totalRequests) *
-                  100
-                ).toFixed(2) + "%"
-              : "N/A",
-        },
-        toolCalls: Object.fromEntries(metrics.toolCalls),
-        errors: Object.fromEntries(metrics.errors),
+        ...getMetricsSnapshot({ detailed }),
+        governance: getGovernanceSnapshot(),
       };
-
-      if (detailed) {
-        const lastCalls: Record<string, string> = {};
-        for (const [tool, timestamp] of metrics.lastCalls) {
-          lastCalls[tool] = new Date(timestamp).toISOString();
-        }
-        (stats as any).lastCalls = lastCalls;
-
-        // Top tools by usage
-        const topTools = Array.from(metrics.toolCalls.entries())
-          .sort((a, b) => b[1] - a[1])
-          .slice(0, 10)
-          .map(([name, count]) => ({ name, count }));
-        (stats as any).topTools = topTools;
-      }
 
       return {
         content: [{ type: "text", text: JSON.stringify(stats, null, 2) }],
@@ -88,24 +36,7 @@ export const monitoringTools: ToolDef[] = [
     schema: { toolName: z.string() },
     handler: async (args: any) => {
       const { toolName } = args as { toolName: string };
-
-      const calls = metrics.toolCalls.get(toolName) || 0;
-      const errors = metrics.errors.get(toolName) || 0;
-      const lastCall = metrics.lastCalls.get(toolName);
-
-      const usage = {
-        toolName,
-        calls,
-        errors,
-        successRate:
-          calls > 0
-            ? (((calls - errors) / calls) * 100).toFixed(2) + "%"
-            : "N/A",
-        lastCalled: lastCall ? new Date(lastCall).toISOString() : "Never",
-        timeSinceLastCall: lastCall
-          ? formatDuration(Date.now() - lastCall)
-          : "N/A",
-      };
+      const usage = getToolUsage(toolName);
 
       return {
         content: [{ type: "text", text: JSON.stringify(usage, null, 2) }],
@@ -133,12 +64,7 @@ export const monitoringTools: ToolDef[] = [
         };
       }
 
-      metrics.toolCalls.clear();
-      metrics.errors.clear();
-      metrics.lastCalls.clear();
-      metrics.totalRequests = 0;
-      metrics.totalErrors = 0;
-      metrics.startTime = Date.now();
+      resetMetrics();
 
       return {
         content: [
@@ -161,6 +87,7 @@ export const monitoringTools: ToolDef[] = [
     handler: async () => {
       const uptime = process.uptime();
       const memory = process.memoryUsage();
+      const metrics = getMetricsSnapshot({ detailed: false }).summary;
 
       const health = {
         status: "healthy",
@@ -182,13 +109,10 @@ export const monitoringTools: ToolDef[] = [
         },
         metrics: {
           totalRequests: metrics.totalRequests,
-          errorRate:
-            metrics.totalRequests > 0
-              ? ((metrics.totalErrors / metrics.totalRequests) * 100).toFixed(
-                  2,
-                ) + "%"
-              : "0%",
+          totalErrors: metrics.totalErrors,
+          successRatePct: Number(metrics.successRatePct.toFixed(2)),
         },
+        governance: getGovernanceSnapshot(),
       };
 
       return {
@@ -198,7 +122,7 @@ export const monitoringTools: ToolDef[] = [
   },
 ];
 
-/** Format duration in ms to human-readable string */
+/** Format duration in ms to human-readable string. */
 function formatDuration(ms: number): string {
   const seconds = Math.floor(ms / 1000);
   const minutes = Math.floor(seconds / 60);

@@ -1,0 +1,10 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: argo-workflows
+resources:
+  - namespace.yaml
+  - resource-governance.yaml
+  - rbac.yaml
+  - workflowtemplate-progressive-delivery.yaml
+  - workflowtemplate-operations.yaml
+  - cronworkflow-nightly-smoke.yaml

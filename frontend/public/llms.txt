@@ -1,0 +1,37 @@
+# EstateWise Frontend
+
+> EstateWise Frontend is a Next.js web application for real-estate discovery and analysis, including AI chat, market insights, maps, dashboards, and community forums.
+
+This file curates the highest-value routes for LLM inference and agent discovery.
+Prioritize the Core Experience section first for most user questions.
+Some routes require authentication (for example profile and parts of community interactions).
+Markdown mirrors (`.md`) are not currently published for all pages, so use these canonical URLs directly.
+
+## Core Experience
+
+- [Home](https://estatewise.vercel.app/): Main landing page and entry point for product navigation.
+- [AI Chat](https://estatewise.vercel.app/chat): Conversational assistant for property and market questions with streamed responses.
+- [Insights](https://estatewise.vercel.app/insights): Analytics, charts, and decision-support views for real-estate exploration.
+- [Market Pulse](https://estatewise.vercel.app/market-pulse): Market trend snapshots and pulse-style dashboard views.
+- [Map](https://estatewise.vercel.app/map): Geographic property browsing and map-first discovery.
+- [Charts](https://estatewise.vercel.app/charts): Data visualization-focused exploration.
+- [Forums](https://estatewise.vercel.app/forums): Community posts and discussion hub.
+
+## Platform and Integration Endpoints
+
+- [tRPC API Endpoint](https://estatewise.vercel.app/api/trpc): Frontend-hosted typed API endpoint used by insights data workflows.
+- [Sitemap](https://estatewise.vercel.app/sitemap.xml): Full crawl-oriented route listing and change metadata.
+- [Frontend Project README](https://github.com/davidnguyen060899/EstateWise-Chatbot/blob/main/frontend/README.md): Architecture and route-level implementation notes for developers and tooling.
+
+## Account and Policies
+
+- [Login](https://estatewise.vercel.app/login): User sign-in flow.
+- [Sign Up](https://estatewise.vercel.app/signup): Account registration flow.
+- [Reset Password](https://estatewise.vercel.app/reset-password): Password recovery flow.
+- [Profile](https://estatewise.vercel.app/profile): Authenticated user profile and account settings.
+- [Terms](https://estatewise.vercel.app/terms): Terms of service.
+- [Privacy](https://estatewise.vercel.app/privacy): Privacy policy and data handling details.
+
+## Optional
+
+- [Analyzer](https://estatewise.vercel.app/analyzer): Extended analysis interface; secondary to core chat/insights flows.

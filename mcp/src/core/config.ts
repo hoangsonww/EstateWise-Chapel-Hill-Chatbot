@@ -9,10 +9,20 @@ const toBool = (v: string | undefined, d: boolean) => {
   return s === "1" || s === "true" || s === "yes" || s === "on";
 };
 
+const toCsvList = (v: string | undefined): string[] => {
+  if (!v) return [];
+  return v
+    .split(",")
+    .map((part) => part.trim())
+    .filter((part) => part.length > 0);
+};
+
 /**
  * MCP server configuration resolved from environment variables with defaults.
  */
 export const config = {
+  serverName: process.env.MCP_SERVER_NAME || "estatewise-mcp",
+  serverVersion: process.env.MCP_SERVER_VERSION || "0.2.0",
   apiBaseUrl:
     process.env.API_BASE_URL || "https://estatewise-backend.vercel.app",
   frontendBaseUrl:
@@ -24,5 +34,19 @@ export const config = {
   webTimeoutMs: toInt(process.env.WEB_TIMEOUT_MS, 12_000),
   cacheTtlMs: toInt(process.env.MCP_CACHE_TTL_MS, 30_000),
   cacheMax: toInt(process.env.MCP_CACHE_MAX, 200),
+  toolTimeoutMs: Math.max(
+    1_000,
+    toInt(process.env.MCP_TOOL_TIMEOUT_MS, 30_000),
+  ),
+  toolMaxArgBytes: Math.max(
+    1_024,
+    toInt(process.env.MCP_TOOL_MAX_ARG_BYTES, 65_536),
+  ),
+  toolMaxConcurrent: Math.max(
+    1,
+    toInt(process.env.MCP_TOOL_MAX_CONCURRENT, 32),
+  ),
+  toolAllowList: toCsvList(process.env.MCP_TOOL_ALLOWLIST),
+  toolDenyList: toCsvList(process.env.MCP_TOOL_DENYLIST),
   debug: toBool(process.env.MCP_DEBUG, false),
 };

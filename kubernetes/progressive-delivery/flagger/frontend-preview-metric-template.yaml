@@ -1,0 +1,14 @@
+apiVersion: flagger.app/v1beta1
+kind: MetricTemplate
+metadata:
+  name: frontend-preview-error-rate
+  namespace: estatewise-delivery
+spec:
+  provider:
+    type: prometheus
+    address: http://prometheus.monitoring.svc.cluster.local:9090
+  query: |
+    100 - (
+      sum(rate(http_requests_total{app="estatewise-frontend-preview",status!~"5.."}[{{ interval }}])) /
+      clamp_min(sum(rate(http_requests_total{app="estatewise-frontend-preview"}[{{ interval }}])), 1)
+    ) * 100

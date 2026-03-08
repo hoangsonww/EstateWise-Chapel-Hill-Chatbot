@@ -1,0 +1,45 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: estatewise-ops-toolkit
+  namespace: argo-workflows
+  labels:
+    app.kubernetes.io/part-of: estatewise
+spec:
+  serviceAccountName: estatewise-workflow-runner
+  activeDeadlineSeconds: 10800
+  podGC:
+    strategy: OnWorkflowCompletion
+  ttlStrategy:
+    secondsAfterSuccess: 86400
+    secondsAfterFailure: 259200
+  entrypoint: operations
+  templates:
+    - name: operations
+      steps:
+        - - name: trigger-mongodb-backup
+            template: backup-job-from-cron
+            arguments:
+              parameters:
+                - name: namespace
+                  value: estatewise
+                - name: cronjobName
+                  value: mongodb-backup
+
+    - name: backup-job-from-cron
+      inputs:
+        parameters:
+          - name: namespace
+          - name: cronjobName
+      script:
+        image: bitnami/kubectl:1.31.2
+        command: [sh]
+        source: |
+          set -euo pipefail
+          ns="{{inputs.parameters.namespace}}"
+          cj="{{inputs.parameters.cronjobName}}"
+          job="${cj}-manual-$(date +%s)"
+
+          kubectl -n "$ns" create job --from=cronjob/$cj "$job"
+          kubectl -n "$ns" wait --for=condition=complete --timeout=30m job/$job
+          kubectl -n "$ns" logs job/$job --tail=200 || true
