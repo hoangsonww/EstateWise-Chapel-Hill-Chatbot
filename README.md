@@ -1388,6 +1388,9 @@ A production-grade, multi-runtime agent stack is available under `agentic-ai/`:
 - **Default Orchestrator:** deterministic, round-based specialist agents sharing a blackboard.
 - **LangChain + LangGraph:** ReAct tool-calling runtime over MCP + optional Pinecone/Neo4j tools.
 - **CrewAI (Python):** crew-style sequential execution with structured timeline output.
+- **A2A Bridge:** Expose agent tasks and lifecycle via JSON-RPC for cross-agent collaboration.
+- **Runtime selection:** via CLI flags or HTTP parameters, with consistent tool access and tracing across runtimes.
+- **Observability:** built-in cost telemetry, tool execution traces, and optional LangSmith integration.
 
 ### Runtime Entry Points
 
@@ -1408,6 +1411,8 @@ A production-grade, multi-runtime agent stack is available under `agentic-ai/`:
 - **Tool execution traces:** LangGraph includes per-tool duration/status/output in responses.
 - **LangSmith integration:** optional enterprise tracing with `LANGSMITH_ENABLED`, `LANGSMITH_API_KEY`, `LANGSMITH_PROJECT`.
 - **Request correlation:** `requestId` (or `x-request-id`) flows through HTTP runs into LangGraph trace metadata.
+- **A2A task events:** Task lifecycle events (start, tool call, end) are emitted for A2A runs, enabling cross-agent observability.
+- **Runtime metadata endpoint:** `/config` exposes current runtime modes and LangSmith status for client awareness.
 
 ### Quick Start
 
