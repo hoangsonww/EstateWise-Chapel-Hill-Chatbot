@@ -109,6 +109,8 @@ _Feel free to use the app as a guest or sign up for an account to save your conv
 ![Swagger](https://img.shields.io/badge/Swagger-85EA2D?style=for-the-badge&logo=swagger&logoColor=white)
 ![Postman](https://img.shields.io/badge/Postman-FF6C37?style=for-the-badge&logo=postman&logoColor=white)
 ![Husky](https://img.shields.io/badge/Husky-6C6C6C?style=for-the-badge&logo=apachekylin&logoColor=white)
+![Server-Sent Events](https://img.shields.io/badge/Server--Sent%20Events-000000?style=for-the-badge&logo=serverless&logoColor=white)
+![WebSockets](https://img.shields.io/badge/WebSockets-000000?style=for-the-badge&logo=socketdotio&logoColor=white)
 ![Jupyter Notebook](https://img.shields.io/badge/Jupyter%20Notebook-F37626?style=for-the-badge&logo=jupyter&logoColor=white)
 ![Jest](https://img.shields.io/badge/Jest-C21325?style=for-the-badge&logo=jest&logoColor=white)
 ![Selenium WebDriver](https://img.shields.io/badge/Selenium%20WebDriver-43B02A?style=for-the-badge&logo=selenium&logoColor=white)
@@ -118,6 +120,10 @@ _Feel free to use the app as a guest or sign up for an account to save your conv
 ![Leaflet](https://img.shields.io/badge/Leaflet-199900?style=for-the-badge&logo=leaflet&logoColor=white)
 ![MCP](https://img.shields.io/badge/MCP-Model%20Context%20Protocol-6E56CF?style=for-the-badge&logo=modelcontextprotocol&logoColor=white)
 ![A2A](https://img.shields.io/badge/A2A-Agent--to--Agent_Protocol-0EA5E9?style=for-the-badge)
+![LangChain](https://img.shields.io/badge/LangChain-000000?style=for-the-badge&logo=langchain&logoColor=white)
+![LangGraph](https://img.shields.io/badge/LangGraph-000000?style=for-the-badge&logo=langgraph&logoColor=white)
+![LangSmith](https://img.shields.io/badge/LangSmith-000000?style=for-the-badge&logo=langchain&logoColor=white)
+![CrewAI](https://img.shields.io/badge/CrewAI-red?style=for-the-badge&logo=crewai&logoColor=white)
 ![Zod](https://img.shields.io/badge/Zod-3068B7?style=for-the-badge&logo=zod&logoColor=white)
 ![D3.js](https://img.shields.io/badge/D3.js-F9A03C?style=for-the-badge&logo=d3&logoColor=white)
 ![OpenAPI](https://img.shields.io/badge/OpenAPI-6E6E6E?style=for-the-badge&logo=openapiinitiative&logoColor=white)
@@ -1377,73 +1383,91 @@ npm run client:call -- monitoring.stats '{"detailed":true}'
 
 ## Agentic AI Pipeline
 
-A production-ready, multi‑agent CLI with three runtimes to drive research and analysis with tools:
+A production-grade, multi-runtime agent stack is available under `agentic-ai/`:
 
-- **Orchestrator (default):** Round‑based, MCP‑first agents using a shared blackboard.
-- **LangChain + LangGraph:** Tool‑calling ReAct agent with MCP, Pinecone, and Neo4j tools.
-- **CrewAI (Python):** Sequential crew for planning, analysis, graph insights, finance, and reporting.
+- **Default Orchestrator:** deterministic, round-based specialist agents sharing a blackboard.
+- **LangChain + LangGraph:** ReAct tool-calling runtime over MCP + optional Pinecone/Neo4j tools.
+- **CrewAI (Python):** crew-style sequential execution with structured timeline output.
+- **A2A Bridge:** Expose agent tasks and lifecycle via JSON-RPC for cross-agent collaboration.
+- **Runtime selection:** via CLI flags or HTTP parameters, with consistent tool access and tracing across runtimes.
+- **Observability:** built-in cost telemetry, tool execution traces, and optional LangSmith integration.
 
-**Location**
-- `agentic-ai/`
+### Runtime Entry Points
 
-**Agents (orchestrator runtime)**
-- Planner, Coordinator, ZpidFinder, PropertyAnalyst, AnalyticsAnalyst, GraphAnalyst, DedupeRanking, MapAnalyst, FinanceAnalyst, Compliance, Reporter
-- Coordination: Shared blackboard (ZPIDs, parsed filters, web context, analytics, links, finance) with retries and JSON normalization.
+| Surface | Endpoint / Command | Notes |
+|---------|--------------------|-------|
+| CLI | `npm run dev -- "<goal>"` | Default orchestrator runtime |
+| CLI (LangGraph) | `npm run dev -- --langgraph "<goal>"` | ReAct runtime with tool traces |
+| CLI (CrewAI) | `npm run dev -- --crewai "<goal>"` | Python crew runtime |
+| HTTP batch | `POST /run` | Supports `runtime`, `rounds`, `threadId`, `requestId` |
+| HTTP stream | `GET /run/stream` | SSE streaming + optional `requestId` correlation |
+| Runtime metadata | `GET /config` | Includes runtime/tool modes and LangSmith status |
+| A2A JSON-RPC | `POST /a2a` | `tasks.create/get/list/wait/cancel` (supports optional `requestId`) |
+| A2A events | `GET /a2a/tasks/{taskId}/events` | SSE task lifecycle stream |
 
-**Quick start (Orchestrator)**
-```
+### Observability & Tracing
+
+- **Cost telemetry:** LangChain/Crew usage is tracked and exposed in `/costs/latest`.
+- **Tool execution traces:** LangGraph includes per-tool duration/status/output in responses.
+- **LangSmith integration:** optional enterprise tracing with `LANGSMITH_ENABLED`, `LANGSMITH_API_KEY`, `LANGSMITH_PROJECT`.
+- **Request correlation:** `requestId` (or `x-request-id`) flows through HTTP runs into LangGraph trace metadata.
+- **A2A task events:** Task lifecycle events (start, tool call, end) are emitted for A2A runs, enabling cross-agent observability.
+- **Runtime metadata endpoint:** `/config` exposes current runtime modes and LangSmith status for client awareness.
+
+### Quick Start
+
+```bash
 cd mcp && npm run build
-cd ../agentic-ai && npm run dev "Find 3-bed homes in Chapel Hill, NC; explain 123456 vs 654321; estimate $600k at 6.25%."
+cd ../agentic-ai
+npm run dev "Find 3-bed homes in Chapel Hill, NC and compare two ZPIDs"
 ```
 
-**LangGraph runtime**
-```
+```bash
 cd agentic-ai
-npm run dev -- --langgraph "Compare 123456 vs 654321 and show a map"
-# or AGENT_RUNTIME=langgraph npm run dev -- "..."
+LANGSMITH_ENABLED=true LANGSMITH_API_KEY=<key> npm run dev -- --langgraph \
+  "Compare 123456 vs 654321, include map + mortgage"
 ```
 
-**CrewAI runtime**
-```
+```bash
 cd agentic-ai/crewai
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-export OPENAI_API_KEY=sk-...
 cd ..
-npm run dev -- --crewai "Find 3-bed homes in Chapel Hill; explain two ZPIDs and estimate mortgage"
+npm run dev -- --crewai "Find 3-bed homes in Chapel Hill and summarize investment risks"
 ```
-
-**Notes:**
-- Orchestrator spawns `mcp/dist/server.js` over stdio; extend by adding MCP tools in `mcp/` and agents in `agentic-ai/src/agents/`.
-- LangGraph adds Pinecone vector retrieval and Neo4j Cypher QA; see `agentic-ai/src/lang/`.
-- CrewAI is optional and requires Python with the deps in `agentic-ai/crewai/requirements.txt`.
 
 ```mermaid
 flowchart LR
-    subgraph Orchestrator
-    Goal --> Planner --> Coordinator
-    Coordinator -->|parseGoal| UPG["util.parseGoal"]
-    Coordinator -->|webResearch| WS["web.search"]
-    Coordinator -->|lookup| PL["properties.lookup"]
-    Coordinator -->|search| PS["properties.search"]
-    Coordinator -->|analytics| AS["analytics.summarizeSearch"]
-    Coordinator -->|graph| GE["graph.explain"]
-    Coordinator -->|rank| DR["DedupeRanking"]
-    Coordinator -->|map| MLZ["map.linkForZpids"]
-    Coordinator -->|finance| FM["finance.mortgage"]
-    Coordinator -->|compliance| Compliance
-    Compliance --> Reporter
-    end
+  subgraph EntryPoints
+    CLI[CLI]
+    HTTP[HTTP /run]
+    A2A[A2A /a2a]
+  end
 
-    subgraph LangGraph
-    LG[ReAct Agent] --> MCP[MCP Tools]
-    LG --> Pinecone
-    LG --> Neo4j
-    end
+  subgraph AgenticAI
+    Selector{Runtime Selector}
+    ORCH[Orchestrator Runtime]
+    LG[LangGraph Runtime]
+    CREW[CrewAI Runtime]
+  end
 
-    subgraph CrewAI
-    PlannerC --> AnalystC --> GraphC --> FinanceC --> ReporterC
-    end
+  subgraph Tools
+    MCP[MCP Tools]
+    Pinecone[Pinecone]
+    Neo4j[Neo4j]
+  end
+
+  CLI --> Selector
+  HTTP --> Selector
+  A2A --> Selector
+  Selector --> ORCH
+  Selector --> LG
+  Selector --> CREW
+  ORCH --> MCP
+  LG --> MCP
+  LG --> Pinecone
+  LG --> Neo4j
+  CREW --> MCP
 ```
 
 > [!IMPORTANT]

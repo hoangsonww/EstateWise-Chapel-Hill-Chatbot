@@ -20,6 +20,7 @@ interface CreateTaskParams {
   runtime?: AgentRuntime;
   rounds?: number;
   threadId?: string;
+  requestId?: string;
   metadata?: Record<string, unknown>;
 }
 
@@ -28,6 +29,7 @@ interface NormalizedCreateTaskParams {
   runtime: AgentRuntime;
   rounds: number;
   threadId?: string;
+  requestId?: string;
   metadata: Record<string, unknown>;
 }
 
@@ -192,6 +194,7 @@ export class A2AProtocol {
       runtime: parsed.runtime,
       rounds: parsed.rounds,
       threadId: parsed.threadId,
+      requestId: parsed.requestId,
     };
     const task = this.taskStore.create(input, parsed.metadata);
     return { task };
@@ -243,6 +246,7 @@ function parseCreateTaskParams(
   const runtime = parseRuntime(p.runtime);
   const rounds = parseOptionalPositiveInt(p.rounds, defaultRounds, 20);
   const threadId = typeof p.threadId === "string" ? p.threadId : undefined;
+  const requestId = parseOptionalRequestId(p.requestId);
   const metadata = isRecord(p.metadata) ? p.metadata : {};
 
   return {
@@ -250,8 +254,16 @@ function parseCreateTaskParams(
     runtime,
     rounds,
     threadId,
+    requestId,
     metadata,
   };
+}
+
+function parseOptionalRequestId(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  return trimmed.slice(0, 128);
 }
 
 function parseTaskId(params: unknown): string {

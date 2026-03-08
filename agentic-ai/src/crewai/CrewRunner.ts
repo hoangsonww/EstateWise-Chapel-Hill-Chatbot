@@ -2,6 +2,7 @@ import { spawn } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { CostTracker, type CostReport } from "../costs/tracker.js";
+import { initializeLangSmith } from "../lang/langsmith.js";
 
 export interface CrewTimelineEntry {
   agent: string;
@@ -163,6 +164,7 @@ export class CrewRuntime {
   private readonly timeoutMs: number;
 
   constructor(private readonly defaults: CrewRunnerOptions = {}) {
+    initializeLangSmith({ runtime: "crewai", surface: "crewai" });
     const here = path.dirname(fileURLToPath(import.meta.url));
     this.python = defaults.python || process.env.PYTHON_BIN || "python3";
     this.cwd = defaults.cwd || path.resolve(here, "../../crewai");

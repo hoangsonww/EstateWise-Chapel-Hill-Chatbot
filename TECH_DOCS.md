@@ -32,6 +32,8 @@ Below, we outline the architecture, key components, and challenges faced during 
 ![Swagger](https://img.shields.io/badge/Swagger-85EA2D?style=for-the-badge&logo=swagger&logoColor=white)
 ![Postman](https://img.shields.io/badge/Postman-FF6C37?style=for-the-badge&logo=postman&logoColor=white)
 ![Husky](https://img.shields.io/badge/Husky-6C6C6C?style=for-the-badge&logo=apachekylin&logoColor=white)
+![Server-Sent Events](https://img.shields.io/badge/Server--Sent%20Events-000000?style=for-the-badge&logo=serverless&logoColor=white)
+![WebSockets](https://img.shields.io/badge/WebSockets-000000?style=for-the-badge&logo=socketdotio&logoColor=white)
 ![Jupyter Notebook](https://img.shields.io/badge/Jupyter%20Notebook-F37626?style=for-the-badge&logo=jupyter&logoColor=white)
 ![Jest](https://img.shields.io/badge/Jest-C21325?style=for-the-badge&logo=jest&logoColor=white)
 ![Selenium WebDriver](https://img.shields.io/badge/Selenium%20WebDriver-43B02A?style=for-the-badge&logo=selenium&logoColor=white)
@@ -40,8 +42,12 @@ Below, we outline the architecture, key components, and challenges faced during 
 ![Neo4j](https://img.shields.io/badge/Neo4j-008CC1?style=for-the-badge&logo=neo4j&logoColor=white)
 ![Leaflet](https://img.shields.io/badge/Leaflet-199900?style=for-the-badge&logo=leaflet&logoColor=white)
 ![MCP](https://img.shields.io/badge/MCP-Model%20Context%20Protocol-6E56CF?style=for-the-badge&logo=modelcontextprotocol&logoColor=white)
-![Zod](https://img.shields.io/badge/Zod-3068B7?style=for-the-badge&logo=zod&logoColor=white)
 ![A2A](https://img.shields.io/badge/A2A-Agent--to--Agent_Protocol-0EA5E9?style=for-the-badge)
+![LangChain](https://img.shields.io/badge/LangChain-000000?style=for-the-badge&logo=langchain&logoColor=white)
+![LangGraph](https://img.shields.io/badge/LangGraph-000000?style=for-the-badge&logo=langgraph&logoColor=white)
+![LangSmith](https://img.shields.io/badge/LangSmith-000000?style=for-the-badge&logo=langchain&logoColor=white)
+![CrewAI](https://img.shields.io/badge/CrewAI-red?style=for-the-badge&logo=crewai&logoColor=white)
+![Zod](https://img.shields.io/badge/Zod-3068B7?style=for-the-badge&logo=zod&logoColor=white)
 ![D3.js](https://img.shields.io/badge/D3.js-F9A03C?style=for-the-badge&logo=d3&logoColor=white)
 ![OpenAPI](https://img.shields.io/badge/OpenAPI-6E6E6E?style=for-the-badge&logo=openapiinitiative&logoColor=white)
 ![GitHub Actions](https://img.shields.io/badge/GitHub%20Actions-2088FF?style=for-the-badge&logo=github-actions&logoColor=white)
@@ -52,6 +58,7 @@ Below, we outline the architecture, key components, and challenges faced during 
 ![Yelp Detect Secrets](https://img.shields.io/badge/Yelp%20Detect--Secrets-red?style=for-the-badge&logo=yelp&logoColor=white)
 ![Jenkins](https://img.shields.io/badge/Jenkins-D24939?style=for-the-badge&logo=jenkins&logoColor=white)
 ![Travis CI](https://img.shields.io/badge/Travis%20CI-3EAAAF?style=for-the-badge&logo=travis&logoColor=white)
+![Flux](https://img.shields.io/badge/Flux_CD-007ACC?style=for-the-badge&logo=flux&logoColor=white)
 ![Helm](https://img.shields.io/badge/Helm-0F1689?style=for-the-badge&logo=helm&logoColor=white)
 ![Kustomize & K8s](https://img.shields.io/badge/Kustomize_&_Kubernetes-326CE5?style=for-the-badge&logo=kubernetes&logoColor=white)
 ![Consul](https://img.shields.io/badge/Consul-CA2171?style=for-the-badge&logo=consul&logoColor=white)
@@ -602,22 +609,35 @@ They are ultra-specific and tailored to the task at hand, ensuring that the AI c
 
 ### 6.6 Agentic AI Runtime
 
-EstateWise also includes a multi-agent runtime that extends the core MoE pipeline with tool-driven workflows (search, ranking, graph explainers, finance). It runs as a CLI and coordinates specialized agents with a shared blackboard for structured outputs.
+EstateWise includes a production `agentic-ai/` package that extends the core MoE pipeline with runtime-selectable, tool-centric workflows.
+
+**Runtime modes:**
+- `default`: round-based orchestrator with specialist agents and blackboard state.
+- `langgraph`: ReAct tool-calling runtime over MCP with optional Pinecone and Neo4j augmentation.
+- `crewai`: Python CrewAI runtime bridged from Node for crew-style execution.
+
+**Entry surfaces:**
+- CLI: `npm run dev -- "<goal>"` (`--langgraph`, `--crewai`, or `AGENT_RUNTIME`).
+- HTTP: `POST /run`, `GET /run/stream`, `GET /config`.
+- A2A: `POST /a2a` (JSON-RPC, optional task `requestId`), `GET /a2a/tasks/{taskId}/events` (SSE).
 
 ```mermaid
 flowchart LR
-  User[CLI User] --> Orchestrator[Agent Orchestrator]
-  Orchestrator --> Agents[Specialist Agents]
-  Agents --> MCP[MCP Tools]
-  MCP --> API[Backend APIs]
-  MCP --> Graph[Neo4j]
-  MCP --> Vector[Pinecone]
+  Input[CLI / HTTP / A2A] --> Selector{runtime}
+  Selector --> O[default orchestrator]
+  Selector --> L[langgraph react]
+  Selector --> C[crewai]
+  O --> MCP[MCP Tools]
+  L --> MCP
+  L --> Pinecone
+  L --> Neo4j
+  C --> MCP
 ```
 
-**Docs & entry points:**
-- CLI source lives in `agentic-ai/`
-- Full usage, runtimes, and examples: [agentic-ai/README.md](agentic-ai/README.md)
-- Tooling layer details: [mcp/README.md](mcp/README.md)
+**Observability updates:**
+- LangGraph run output includes normalized `toolExecutions` (status, duration, output/error).
+- Cost telemetry is returned for LangGraph and CrewAI runs.
+- Optional LangSmith tracing is supported via environment configuration with strict-mode validation.
 
 ---
 
@@ -664,25 +684,25 @@ const model = genAI.getGenerativeModel({
 ### 7.4 Agentic AI Orchestration
 
 **What it is:**  
-A multi-agent CLI runtime that coordinates specialized agents through shared tools and a blackboard, enabling deeper research workflows beyond the standard chat pipeline.
+A runtime router that executes the same business intent through one of three modes (`default`, `langgraph`, `crewai`) and standardizes output envelopes across CLI/HTTP/A2A surfaces.
 
-**Why we use it:**
-- Allows longer, tool-heavy workflows (search, ranking, graph explainers, finance).
-- Provides a deterministic orchestration layer with retries and structured outputs.
-- Supports multiple runtimes (orchestrator, LangGraph, CrewAI) for experimentation.
+**Current orchestration contract:**
+- HTTP batch: `POST /run` with `goal`, optional `runtime`, `rounds`, `threadId`, `requestId`.
+- HTTP stream: `GET /run/stream` with the same runtime controls plus SSE progress events.
+- Runtime config discovery: `GET /config` reports supported runtimes, MCP tool requirements, and LangSmith tracing state.
+- Request correlation: `requestId` (or `x-request-id`) is carried into LangGraph trace metadata.
 
 ```mermaid
 flowchart LR
-  Goal[User Goal] --> Planner[Planner]
-  Planner --> Coordinator[Coordinator]
-  Coordinator --> Tools[MCP Tools]
-  Tools --> Analyzer[Analyst Agents]
-  Analyzer --> Reporter[Report Synthesizer]
+  Goal[User Goal] --> Runtime[Runtime Selector]
+  Runtime --> Default[Orchestrator]
+  Runtime --> LangGraph[LangGraph ReAct]
+  Runtime --> CrewAI[CrewAI Runner]
+  Default --> Tools[MCP Tool Layer]
+  LangGraph --> Tools
+  CrewAI --> Tools
+  Tools --> Reporter[Unified Result Envelope]
 ```
-
-**Docs & entry points:**
-- CLI source lives in `agentic-ai/`
-- Full usage, runtimes, and examples: [agentic-ai/README.md](agentic-ai/README.md)
 
 ### 7.5 MCP Server (Model Context Protocol)
 
@@ -710,24 +730,24 @@ flowchart TB
 ### 7.6 Agent-to-Agent Communication
 
 **What it is:**
-A structured protocol for agents to communicate, share intermediate results, and coordinate actions during complex workflows.
+A JSON-RPC task protocol exposed by `agentic-ai` for asynchronous agent-to-agent execution.
 
 **Why we use it:**
-- Enables collaboration between specialized agents (e.g., Data Analyst shares insights with Financial Advisor).
-- Facilitates more complex reasoning and richer final outputs.
-- Supports dynamic workflows where agents can call on each other as needed.
+- Standardizes inter-agent task lifecycle (`queued`, `running`, `succeeded`, `failed`, `canceled`).
+- Supports async execution with polling (`tasks.get`, `tasks.wait`) or live streams (`/a2a/tasks/{taskId}/events`).
+- Enables runtime selection per task without changing caller integration.
 
 ```mermaid
 sequenceDiagram
-  participant A as Data Analyst
-  participant B as Financial Advisor
-  participant C as Master Merger
-  A->>B: Share price trend analysis
-  B->>A: Request additional data on financing options
-  A->>C: Send analyzed data and insights
-  B->>C: Send financial analysis
-  C->>A: Request clarification on data points
-  C->>B: Request clarification on financial assumptions
+  participant Client as A2A Client
+  participant API as Agentic /a2a
+  participant Runtime as Selected Runtime
+  Client->>API: tasks.create(goal, runtime, rounds)
+  API->>Runtime: execute task
+  Runtime-->>API: task updates + output/error
+  Client->>API: tasks.wait(taskId) or tasks.get(taskId)
+  API-->>Client: terminal task state + result
+  Client->>API: GET /a2a/tasks/{taskId}/events (optional SSE)
 ```
 
 *Note: The chain-of-thought reasoning and agentic AI orchestration are designed to work together seamlessly, allowing for complex workflows that can adapt to a wide range of user queries and scenarios.*
@@ -1471,14 +1491,24 @@ Additional resources, diagrams, and references for developers and data scientist
 
 The following environment variables are required for the application to function correctly. Ensure they are set in your `.env` file.
 
-| Name                   | Purpose                            |
-| ---------------------- | ---------------------------------- |
-| `MONGO_URI`            | MongoDB connection string          |
-| `GOOGLE_AI_API_KEY`    | Google Gemini & Embedding API key  |
-| `PINECONE_API_KEY`     | Pinecone service key               |
-| `PINECONE_ENVIRONMENT` | Pinecone environment identifier    |
-| `PINECONE_INDEX`       | Name of your Pinecone vector index |
-| `JWT_SECRET`           | Secret key for signing JWTs        |
+| Name | Purpose |
+| ---- | ------- |
+| `MONGO_URI` | MongoDB connection string |
+| `JWT_SECRET` | Secret key for signing JWTs |
+| `GOOGLE_AI_API_KEY` | Google Gemini API key (chat + embeddings) |
+| `OPENAI_API_KEY` | OpenAI API key (fallback/runtime + CrewAI) |
+| `PINECONE_API_KEY` | Pinecone service key |
+| `PINECONE_INDEX` | Name of your Pinecone vector index |
+| `NEO4J_URI` | Neo4j endpoint for graph workflows |
+| `NEO4J_USERNAME` / `NEO4J_PASSWORD` | Neo4j credentials |
+| `AGENT_RUNTIME` | Default agentic runtime (`default`, `langgraph`, `crewai`) |
+| `THREAD_ID` | Optional LangGraph conversation continuity identifier |
+| `LANGSMITH_ENABLED` | Enable/disable LangSmith tracing explicitly |
+| `LANGSMITH_API_KEY` | LangSmith authentication key |
+| `LANGSMITH_PROJECT` | LangSmith project name |
+| `LANGSMITH_ENDPOINT` | Optional custom LangSmith endpoint |
+| `LANGSMITH_RUN_TAGS` | Comma-separated baseline trace tags |
+| `LANGSMITH_STRICT` | Fail fast on tracing misconfiguration |
 
 ### B. AI/ML Flow Chart
 

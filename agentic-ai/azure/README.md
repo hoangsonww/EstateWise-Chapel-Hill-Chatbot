@@ -15,6 +15,8 @@ Deploy the Agentic AI orchestrator to Azure Container Apps using the provided Bi
 | `registryServer` | Container registry login server (e.g., `estatewiseacr.azurecr.io`). |
 | `registryIdentity` | `system` for managed identity pull or client secret identity. |
 | `googleAiApiKey` / `openAiApiKey` / `pineconeApiKey` | Optional secrets injected as environment variables. |
+| `langsmithApiKey` | Optional `LANGSMITH_API_KEY` secret. |
+| `langsmithEnabled`, `langsmithProject`, `langsmithEndpoint` | LangSmith tracing controls. |
 | `pineconeIndex` | Pinecone index name. |
 | `neo4jUri`, `neo4jUser`, `neo4jPassword` | Optional Neo4j settings. |
 | `agentRuntime` | `default`, `langgraph`, or `crewai`. |
@@ -32,7 +34,9 @@ az deployment group create \
       registryServer="estatewiseacr.azurecr.io" \
       logAnalyticsWorkspaceId="/subscriptions/<sub>/resourceGroups/estatewise-rg/providers/Microsoft.OperationalInsights/workspaces/estatewise-law" \
       logAnalyticsCustomerId=$(az monitor log-analytics workspace show -g estatewise-rg -n estatewise-law --query customerId -o tsv) \
-      logAnalyticsSharedKey=$(az monitor log-analytics workspace get-shared-keys -g estatewise-rg -n estatewise-law --query primarySharedKey -o tsv)
+      logAnalyticsSharedKey=$(az monitor log-analytics workspace get-shared-keys -g estatewise-rg -n estatewise-law --query primarySharedKey -o tsv) \
+      langsmithEnabled="false" \
+      langsmithProject="estatewise-agentic-ai"
 ```
 
 Grant the container app identity `AcrPull` on the registry if needed:

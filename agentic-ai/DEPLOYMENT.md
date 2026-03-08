@@ -21,6 +21,8 @@ This guide covers packaging and running the Agentic AI CLI in production. The Do
 | `PINECONE_API_KEY` / `PINECONE_INDEX` | Pinecone credentials for retrieval. |
 | `NEO4J_URI` / `NEO4J_USERNAME` / `NEO4J_PASSWORD` | Neo4j creds for graph tools (optional). |
 | `THREAD_ID` | Persistent LangGraph thread identifier (optional). |
+| `LANGSMITH_ENABLED` / `LANGSMITH_API_KEY` | Enable LangSmith tracing and authenticate ingestion (optional, recommended). |
+| `LANGSMITH_PROJECT` / `LANGSMITH_ENDPOINT` | Project and endpoint overrides for LangSmith traces (optional). |
 
 The container runs `node dist/index.js` by default. Command flags like `--langgraph` or `--crewai` can be passed via `docker run` or Kubernetes `args`.
 
@@ -36,6 +38,9 @@ services:
       GOOGLE_AI_API_KEY: ${GOOGLE_AI_API_KEY}
       PINECONE_API_KEY: ${PINECONE_API_KEY}
       PINECONE_INDEX: estatewise-index
+      LANGSMITH_ENABLED: "true"
+      LANGSMITH_API_KEY: ${LANGSMITH_API_KEY}
+      LANGSMITH_PROJECT: estatewise-agentic-ai
     stdin_open: true
     tty: true
     command: ["--langgraph"]
@@ -62,6 +67,7 @@ Agentic AI automatically spawns the MCP server from `/app/mcp/dist/server.js`. W
 ## Observability & Operations
 
 - Metrics/logs: scrape container logs (stdout). Add sidecars or OTEL exporters as needed.
+- Tracing: LangSmith is supported out of the box for LangChain/LangGraph (`LANGSMITH_ENABLED=true`, `LANGSMITH_API_KEY`, `LANGSMITH_PROJECT`).
 - Health: the CLI exits with non-zero on failures; use Kubernetes restart policies to restart the pod.
 - Scaling: increase `replicas` in the deployment or run the CLI as a CronJob for batch workloads.
 

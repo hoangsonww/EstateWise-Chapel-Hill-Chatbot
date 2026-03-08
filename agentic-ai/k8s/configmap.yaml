@@ -10,3 +10,6 @@ metadata:
 data:
   AGENT_RUNTIME: "langgraph"
   PINECONE_INDEX: "estatewise-index"
+  LANGSMITH_ENABLED: "false"
+  LANGSMITH_PROJECT: "estatewise-agentic-ai"
+  LANGSMITH_RUN_TAGS: "estatewise,agentic-ai,k8s"

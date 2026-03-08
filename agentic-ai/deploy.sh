@@ -56,6 +56,10 @@ case "$TARGET" in
     [[ -n ${AGENTIC_AWS_GOOGLE_SECRET:-} ]] && PARAMS+=(GoogleApiKeySecretArn=$AGENTIC_AWS_GOOGLE_SECRET)
     [[ -n ${AGENTIC_AWS_OPENAI_SECRET:-} ]] && PARAMS+=(OpenAiKeySecretArn=$AGENTIC_AWS_OPENAI_SECRET)
     [[ -n ${AGENTIC_AWS_PINECONE_SECRET:-} ]] && PARAMS+=(PineconeKeySecretArn=$AGENTIC_AWS_PINECONE_SECRET)
+    [[ -n ${AGENTIC_AWS_LANGSMITH_SECRET:-} ]] && PARAMS+=(LangSmithKeySecretArn=$AGENTIC_AWS_LANGSMITH_SECRET)
+    [[ -n ${AGENTIC_AWS_LANGSMITH_PROJECT:-} ]] && PARAMS+=(LangSmithProject=$AGENTIC_AWS_LANGSMITH_PROJECT)
+    [[ -n ${AGENTIC_AWS_LANGSMITH_ENDPOINT:-} ]] && PARAMS+=(LangSmithEndpoint=$AGENTIC_AWS_LANGSMITH_ENDPOINT)
+    [[ -n ${AGENTIC_AWS_LANGSMITH_ENABLED:-} ]] && PARAMS+=(LangSmithEnabled=$AGENTIC_AWS_LANGSMITH_ENABLED)
     [[ -n ${AGENTIC_AWS_NEO4J_URI:-} ]] && PARAMS+=(Neo4jUri=$AGENTIC_AWS_NEO4J_URI)
     [[ -n ${AGENTIC_AWS_NEO4J_USER:-} ]] && PARAMS+=(Neo4jUser=$AGENTIC_AWS_NEO4J_USER)
     [[ -n ${AGENTIC_AWS_NEO4J_SECRET:-} ]] && PARAMS+=(Neo4jPasswordSecretArn=$AGENTIC_AWS_NEO4J_SECRET)
@@ -88,6 +92,10 @@ case "$TARGET" in
         googleAiApiKey="${AGENTIC_AZURE_GOOGLE_KEY:-}" \
         openAiApiKey="${AGENTIC_AZURE_OPENAI_KEY:-}" \
         pineconeApiKey="${AGENTIC_AZURE_PINECONE_KEY:-}" \
+        langsmithApiKey="${AGENTIC_AZURE_LANGSMITH_KEY:-}" \
+        langsmithEnabled="${AGENTIC_AZURE_LANGSMITH_ENABLED:-false}" \
+        langsmithProject="${AGENTIC_AZURE_LANGSMITH_PROJECT:-estatewise-agentic-ai}" \
+        langsmithEndpoint="${AGENTIC_AZURE_LANGSMITH_ENDPOINT:-}" \
         neo4jUri="${AGENTIC_AZURE_NEO4J_URI:-}" \
         neo4jUser="${AGENTIC_AZURE_NEO4J_USER:-}" \
         neo4jPassword="${AGENTIC_AZURE_NEO4J_PASSWORD:-}" 
@@ -106,7 +114,7 @@ case "$TARGET" in
     gcloud deployment-manager deployments "$ACTION" "$DEPLOYMENT" \
       --project "$AGENTIC_GCP_PROJECT" \
       --config "$SCRIPT_DIR/gcp/cloudrun.yaml" \
-      --properties "region=${AGENTIC_GCP_REGION},image=${AGENTIC_GCP_IMAGE},serviceAccount=${AGENTIC_GCP_SERVICE_ACCOUNT},runtime=${AGENTIC_GCP_RUNTIME:-langgraph},pineconeIndex=${AGENTIC_GCP_PINECONE_INDEX:-estatewise-index},neo4jUri=${AGENTIC_GCP_NEO4J_URI:-},neo4jUser=${AGENTIC_GCP_NEO4J_USER:-}"
+      --properties "region=${AGENTIC_GCP_REGION},image=${AGENTIC_GCP_IMAGE},serviceAccount=${AGENTIC_GCP_SERVICE_ACCOUNT},runtime=${AGENTIC_GCP_RUNTIME:-langgraph},pineconeIndex=${AGENTIC_GCP_PINECONE_INDEX:-estatewise-index},langsmithEnabled=${AGENTIC_GCP_LANGSMITH_ENABLED:-false},langsmithProject=${AGENTIC_GCP_LANGSMITH_PROJECT:-estatewise-agentic-ai},langsmithEndpoint=${AGENTIC_GCP_LANGSMITH_ENDPOINT:-},neo4jUri=${AGENTIC_GCP_NEO4J_URI:-},neo4jUser=${AGENTIC_GCP_NEO4J_USER:-}"
     ;;
   compose)
     docker compose -f "$SCRIPT_DIR/docker-compose.yaml" up -d --build

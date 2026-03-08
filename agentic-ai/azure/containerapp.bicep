@@ -6,6 +6,10 @@ param registryIdentity string = 'system'
 param googleAiApiKey string = ''
 param openAiApiKey string = ''
 param pineconeApiKey string = ''
+param langsmithApiKey string = ''
+param langsmithEnabled string = 'false'
+param langsmithProject string = 'estatewise-agentic-ai'
+param langsmithEndpoint string = ''
 param pineconeIndex string = 'estatewise-index'
 param neo4jUri string = ''
 param neo4jUser string = ''
@@ -53,6 +57,10 @@ resource app 'Microsoft.App/containerApps@2023-05-01' = {
           name: 'pinecone-api-key'
           value: pineconeApiKey
         }
+        if (langsmithApiKey != '') {
+          name: 'langsmith-api-key'
+          value: langsmithApiKey
+        }
         if (neo4jPassword != '') {
           name: 'neo4j-password'
           value: neo4jPassword
@@ -68,6 +76,18 @@ resource app 'Microsoft.App/containerApps@2023-05-01' = {
             {
               name: 'AGENT_RUNTIME'
               value: agentRuntime
+            }
+            {
+              name: 'LANGSMITH_ENABLED'
+              value: langsmithEnabled
+            }
+            {
+              name: 'LANGSMITH_PROJECT'
+              value: langsmithProject
+            }
+            if (langsmithEndpoint != '') {
+              name: 'LANGSMITH_ENDPOINT'
+              value: langsmithEndpoint
             }
             if (pineconeIndex != '') {
               name: 'PINECONE_INDEX'
@@ -92,6 +112,10 @@ resource app 'Microsoft.App/containerApps@2023-05-01' = {
             if (pineconeApiKey != '') {
               name: 'PINECONE_API_KEY'
               secretRef: 'pinecone-api-key'
+            }
+            if (langsmithApiKey != '') {
+              name: 'LANGSMITH_API_KEY'
+              secretRef: 'langsmith-api-key'
             }
             if (neo4jPassword != '') {
               name: 'NEO4J_PASSWORD'

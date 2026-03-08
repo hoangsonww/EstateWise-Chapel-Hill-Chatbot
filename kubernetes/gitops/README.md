@@ -24,12 +24,47 @@ Canonical GitOps repository URL used by manifests:
 
 This separation prevents drift loops between Argo CD and Flux.
 
+## GitOps Topology
+
+```mermaid
+flowchart LR
+  Repo["EstateWise GitOps Repo"] --> Argo["Argo CD Root App"]
+  Repo --> FluxSrc["Flux GitRepository Source"]
+
+  Argo --> Overlay["kubernetes/overlays/prod-gitops"]
+  Argo --> Rollouts["Argo Rollouts Controller"]
+  Argo --> Workflows["Argo Workflows Controller"]
+  Argo --> Templates["WorkflowTemplates / CronWorkflows"]
+
+  FluxSrc --> FluxKs["Flux Kustomizations"]
+  FluxKs --> Flagger["Flagger Controller (flagger-system)"]
+  FluxKs --> Canary["Canary Sandbox Workloads (estatewise-delivery)"]
+```
+
 ## Bootstrap Order
 
 1. Install Flux controllers.
 2. Install Argo CD controller.
 3. Apply Argo CD project + root app.
 4. Apply Flux source + Kustomization objects.
+
+```mermaid
+sequenceDiagram
+  participant Op as Platform Operator
+  participant Flux as Flux CD
+  participant Argo as Argo CD
+  participant Repo as GitOps Repo
+  participant Cluster as Kubernetes Cluster
+
+  Op->>Flux: Install Flux controllers
+  Op->>Argo: Install Argo CD controller
+  Op->>Argo: Apply project + root app
+  Argo->>Repo: Pull desired platform state
+  Argo->>Cluster: Reconcile overlays + Argo controllers + workflows
+  Op->>Flux: Apply GitRepository + Kustomizations
+  Flux->>Repo: Pull Flagger manifests
+  Flux->>Cluster: Reconcile Flagger + canary sandbox workloads
+```
 
 Or use the bundled script:
 

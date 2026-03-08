@@ -2,6 +2,67 @@
 
 This document describes the comprehensive end-to-end architecture for EstateWise, spanning frontend UI, backend services, API protocols (REST, tRPC, gRPC), data and graph pipelines, AI/ML systems, MCP tooling, agentic orchestration, IDE extensions, and CI/CD infrastructure.
 
+![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)
+![Express](https://img.shields.io/badge/Express.js-000000?style=for-the-badge&logo=express&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
+![React](https://img.shields.io/badge/React-61DAFB?style=for-the-badge&logo=react&logoColor=black)
+![Next.js](https://img.shields.io/badge/Next.js-000000?style=for-the-badge&logo=nextdotjs&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-06B6D4?style=for-the-badge&logo=tailwind-css&logoColor=white)
+![Vue](https://img.shields.io/badge/Vue-4FC08D?style=for-the-badge&logo=vuedotjs&logoColor=white)
+![Nuxt](https://img.shields.io/badge/Nuxt-00C58E?style=for-the-badge&logo=nuxt&logoColor=white)
+![Framer Motion](https://img.shields.io/badge/Framer%20Motion-000000?style=for-the-badge&logo=framer&logoColor=white)
+![Chart.js](https://img.shields.io/badge/Chart.js-F38B4A?style=for-the-badge&logo=chartdotjs&logoColor=white)
+![Shadcn UI](https://img.shields.io/badge/Shadcn%20UI-000000?style=for-the-badge&logo=shadcn/ui&logoColor=white)
+![MongoDB](https://img.shields.io/badge/MongoDB-47A248?style=for-the-badge&logo=mongodb&logoColor=white)
+![Pinecone](https://img.shields.io/badge/Pinecone-FF6F61?style=for-the-badge&logo=googledataflow&logoColor=white)
+![Redis](https://img.shields.io/badge/Redis-DC382D?style=for-the-badge&logo=redis&logoColor=white)
+![Google AI](https://img.shields.io/badge/Google%20AI-4285F4?style=for-the-badge&logo=google&logoColor=white)
+![JWT](https://img.shields.io/badge/JWT-black?style=for-the-badge&logo=json-web-tokens)
+![Amazon Web Services](https://img.shields.io/badge/Amazon%20Web%20Services-124568?style=for-the-badge&logo=task&logoColor=white)
+![Google Cloud Platform](https://img.shields.io/badge/Google%20Cloud%20Platform-4285F4?style=for-the-badge&logo=googlecloud&logoColor=white)
+![Microsoft Azure](https://img.shields.io/badge/Microsoft%20Azure-0078D4?style=for-the-badge&logo=micropython&logoColor=white)
+![Oracle Cloud Infrastructure](https://img.shields.io/badge/Oracle%20Cloud-red?style=for-the-badge&logo=circle&logoColor=white)
+![Terraform](https://img.shields.io/badge/Terraform-623CE4?style=for-the-badge&logo=terraform&logoColor=white)
+![Vercel](https://img.shields.io/badge/Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
+![Prometheus](https://img.shields.io/badge/Prometheus-E6512D?style=for-the-badge&logo=prometheus&logoColor=white)
+![Grafana](https://img.shields.io/badge/Grafana-F46800?style=for-the-badge&logo=grafana&logoColor=white)
+![Swagger](https://img.shields.io/badge/Swagger-85EA2D?style=for-the-badge&logo=swagger&logoColor=white)
+![Postman](https://img.shields.io/badge/Postman-FF6C37?style=for-the-badge&logo=postman&logoColor=white)
+![Husky](https://img.shields.io/badge/Husky-6C6C6C?style=for-the-badge&logo=apachekylin&logoColor=white)
+![Jupyter Notebook](https://img.shields.io/badge/Jupyter%20Notebook-F37626?style=for-the-badge&logo=jupyter&logoColor=white)
+![Jest](https://img.shields.io/badge/Jest-C21325?style=for-the-badge&logo=jest&logoColor=white)
+![Selenium WebDriver](https://img.shields.io/badge/Selenium%20WebDriver-43B02A?style=for-the-badge&logo=selenium&logoColor=white)
+![Cypress](https://img.shields.io/badge/Cypress-17202C?style=for-the-badge&logo=cypress&logoColor=white)
+![VS Code Extension](https://img.shields.io/badge/VS%20Code%20Extension-007ACC?style=for-the-badge&logo=gitextensions&logoColor=white)
+![Neo4j](https://img.shields.io/badge/Neo4j-008CC1?style=for-the-badge&logo=neo4j&logoColor=white)
+![Leaflet](https://img.shields.io/badge/Leaflet-199900?style=for-the-badge&logo=leaflet&logoColor=white)
+![MCP](https://img.shields.io/badge/MCP-Model%20Context%20Protocol-6E56CF?style=for-the-badge&logo=modelcontextprotocol&logoColor=white)
+![A2A](https://img.shields.io/badge/A2A-Agent--to--Agent_Protocol-0EA5E9?style=for-the-badge)
+![LangChain](https://img.shields.io/badge/LangChain-000000?style=for-the-badge&logo=langchain&logoColor=white)
+![LangGraph](https://img.shields.io/badge/LangGraph-000000?style=for-the-badge&logo=langgraph&logoColor=white)
+![LangSmith](https://img.shields.io/badge/LangSmith-000000?style=for-the-badge&logo=langchain&logoColor=white)
+![CrewAI](https://img.shields.io/badge/CrewAI-red?style=for-the-badge&logo=crewai&logoColor=white)
+![Zod](https://img.shields.io/badge/Zod-3068B7?style=for-the-badge&logo=zod&logoColor=white)
+![D3.js](https://img.shields.io/badge/D3.js-F9A03C?style=for-the-badge&logo=d3&logoColor=white)
+![OpenAPI](https://img.shields.io/badge/OpenAPI-6E6E6E?style=for-the-badge&logo=openapiinitiative&logoColor=white)
+![GitHub Actions](https://img.shields.io/badge/GitHub%20Actions-2088FF?style=for-the-badge&logo=github-actions&logoColor=white)
+![GitHub Packages](https://img.shields.io/badge/GitHub%20Packages-2EA44F?style=for-the-badge&logo=github&logoColor=white)
+![Dependabot](https://img.shields.io/badge/Dependabot-blue?style=for-the-badge&logo=dependabot&logoColor=white)
+![Trivy](https://img.shields.io/badge/Trivy-5B8FF9?style=for-the-badge&logo=trivy&logoColor=white)
+![CodeQL](https://img.shields.io/badge/CodeQL-2B7489?style=for-the-badge&logo=codeblocks&logoColor=white)
+![Yelp Detect Secrets](https://img.shields.io/badge/Yelp%20Detect--Secrets-red?style=for-the-badge&logo=yelp&logoColor=white)
+![Jenkins](https://img.shields.io/badge/Jenkins-D24939?style=for-the-badge&logo=jenkins&logoColor=white)
+![Travis CI](https://img.shields.io/badge/Travis%20CI-3EAAAF?style=for-the-badge&logo=travis&logoColor=white)
+![Helm](https://img.shields.io/badge/Helm-0F1689?style=for-the-badge&logo=helm&logoColor=white)
+![Kustomize & K8s](https://img.shields.io/badge/Kustomize_&_Kubernetes-326CE5?style=for-the-badge&logo=kubernetes&logoColor=white)
+![Consul](https://img.shields.io/badge/Consul-CA2171?style=for-the-badge&logo=consul&logoColor=white)
+![Nomad](https://img.shields.io/badge/Nomad-00BC7F?style=for-the-badge&logo=hashicorp&logoColor=white)
+![HashiCorp](https://img.shields.io/badge/HashiCorp-4F5D95?style=for-the-badge&logo=hashicorp&logoColor=white)
+![tRPC](https://img.shields.io/badge/tRPC-2596BE?style=for-the-badge&logo=trpc&logoColor=white)
+![gRPC](https://img.shields.io/badge/gRPC-4285F4?style=for-the-badge&logo=grocy&logoColor=white)
+![Protocol Buffers](https://img.shields.io/badge/Protocol%20Buffers-4285F4?style=for-the-badge&logo=proton&logoColor=white)
+
 ## Table of Contents
 
 - [System Overview](#system-overview)
@@ -24,9 +85,10 @@ This document describes the comprehensive end-to-end architecture for EstateWise
   - [Chain-of-Thought (CoT) Processing](#chain-of-thought-cot-processing)
 - [Model Context Protocol (MCP) Architecture](#model-context-protocol-mcp-architecture)
 - [Agentic AI Architecture](#agentic-ai-architecture)
-  - [Multi-Runtime Support](#multi-runtime-support)
-  - [Orchestrator Agent Pipeline](#orchestrator-agent-pipeline)
-  - [Agent-to-Agent (A2A) Communication](#a2a-communication)
+  - [Multi-Runtime + Multi-Surface](#multi-runtime--multi-surface)
+  - [Runtime Contracts](#runtime-contracts)
+  - [HTTP + A2A Contract Surface](#http--a2a-contract-surface)
+  - [Traceability and Observability](#traceability-and-observability)
 - [Frontend Architecture](#frontend-architecture)
   - [Component Hierarchy](#component-hierarchy)
   - [State Management](#state-management)
@@ -501,83 +563,71 @@ The MCP layer now includes internet research tools (`web.search`, `web.fetch`) s
 
 ## Agentic AI Architecture
 
-### Multi-Runtime Support
+EstateWise agentic execution is delivered through one package (`agentic-ai/`) with three runtime modes and three client surfaces (CLI, HTTP, A2A).
+
+### Multi-Runtime + Multi-Surface
 
 ```mermaid
 flowchart TB
-  subgraph "Runtime Selection"
-    Goal[User Goal]
-    Selector{Select Runtime}
+  subgraph "Client Surfaces"
+    CLI[CLI]
+    HTTP[HTTP /run + /run/stream]
+    A2A[A2A JSON-RPC /a2a]
   end
 
-  subgraph "Orchestrator Runtime"
-    O_Plan[Planner]
-    O_Coord[Coordinator]
-    O_Agents[Specialized Agents]
-    O_Black[Blackboard]
+  subgraph "Agentic Runtime Selector"
+    Selector{runtime}
   end
 
-  subgraph "LangGraph Runtime"
-    L_React[ReAct Agent]
-    L_Tools[MCP + Direct + Web Tools]
-    L_Memory[Conversation Memory]
+  subgraph "Runtime Modes"
+    ORCH[default orchestrator]
+    LG[langgraph react agent]
+    CREW[crewai python runner]
   end
 
-  subgraph "CrewAI Runtime"
-    C_Crew[Agent Crew]
-    C_Plan[Planning Agent]
-    C_Exec[Execution Agents]
-    C_Report[Reporter Agent]
+  subgraph "Execution Backends"
+    MCP[MCP stdio tool server]
+    Pinecone[Pinecone vector search]
+    Neo4j[Neo4j graph queries]
   end
 
-  Goal --> Selector
-  Selector -->|--orchestrator| O_Plan
-  Selector -->|--langgraph| L_React
-  Selector -->|--crewai| C_Crew
+  CLI --> Selector
+  HTTP --> Selector
+  A2A --> Selector
 
-  O_Plan --> O_Coord
-  O_Coord --> O_Agents
-  O_Agents --> O_Black
+  Selector --> ORCH
+  Selector --> LG
+  Selector --> CREW
 
-  L_React --> L_Tools
-  L_Tools --> L_Memory
-
-  C_Crew --> C_Plan
-  C_Plan --> C_Exec
-  C_Exec --> C_Report
+  ORCH --> MCP
+  LG --> MCP
+  LG --> Pinecone
+  LG --> Neo4j
+  CREW --> MCP
 ```
 
-### Orchestrator Agent Pipeline
+### Runtime Contracts
 
-```mermaid
-stateDiagram-v2
-  [*] --> Planner: User Goal
-  Planner --> Coordinator: Execution Plan
-  Coordinator --> ParseGoal: Extract Filters
-  ParseGoal --> WebResearch: Optional Fresh Context
-  WebResearch --> PropertyLookup: Find Properties
-  PropertyLookup --> PropertySearch: Expand Search
-  PropertySearch --> Analytics: Analyze Results
-  Analytics --> GraphAnalysis: Graph Relations
-  GraphAnalysis --> Ranking: Dedupe & Rank
-  Ranking --> MapGeneration: Create Map Links
-  MapGeneration --> Finance: Calculate Metrics
-  Finance --> Compliance: Check Compliance
-  Compliance --> Reporter: Generate Report
-  Reporter --> [*]: Final Output
-```
+| Runtime | Primary execution model | Typical use |
+|---------|--------------------------|-------------|
+| `default` | round-based planner/coordinator + specialists | deterministic multi-step analysis |
+| `langgraph` | tool-calling ReAct agent with checkpointer | adaptive research with deeper tool autonomy |
+| `crewai` | Python crew pipeline via Node bridge | CrewAI-native task orchestration |
 
-### A2A Communication
+### HTTP + A2A Contract Surface
 
-```mermaid
-flowchart LR
-  Orchestrator[Orchestrator Runtime] -->|HTTP/gRPC| LangGraph[LangGraph Runtime]
-  Orchestrator -->|HTTP/gRPC| CrewAI[CrewAI Runtime]
-  LangGraph -->|HTTP/gRPC| Orchestrator
-  CrewAI -->|HTTP/gRPC| Orchestrator
-```
+- `POST /run` accepts `goal`, `runtime`, `rounds`, `threadId`, and optional `requestId`.
+- `GET /run/stream` supports SSE streaming with `runtime`, `rounds`, `threadId`, and optional `requestId`.
+- `GET /config` returns runtime support, MCP required-tool mode, and LangSmith tracing status.
+- `POST /a2a` supports JSON-RPC methods: `agent.getCard`, `tasks.create/get/list/wait/cancel` (with optional `requestId` on task creation).
+- `GET /a2a/tasks/{taskId}/events` streams task lifecycle events via SSE.
 
-A2A communication enables runtime interoperability, allowing agents in one runtime to delegate tasks to another runtime’s agents when their specialized capabilities are needed. For example, the Orchestrator may call a ReAct agent in the LangGraph runtime for complex reasoning, or delegate a multi-step execution plan to the CrewAI runtime’s agent crew.
+### Traceability and Observability
+
+- LangGraph responses include normalized `toolExecutions` with status, duration, and output/error.
+- Cost tracking aggregates token/cost usage per run for LangGraph and CrewAI responses.
+- Optional LangSmith tracing enriches runs with runtime/surface/component/request metadata and thread correlation.
+- HTTP `requestId` (or `x-request-id`) is propagated to LangGraph trace metadata for cross-system correlation.
 
 ## Frontend Architecture
 
@@ -637,6 +687,7 @@ flowchart LR
 
 ## Infrastructure & Deployment
 
+> [!NOTE]
 > **Production-Ready Infrastructure**: EstateWise features enterprise-grade DevOps with advanced deployment strategies, comprehensive monitoring, and multi-cloud support. See [DEVOPS.md](DEVOPS.md) for complete operational documentation.
 
 ### Multi-Cloud Architecture
@@ -1393,7 +1444,7 @@ erDiagram
 | **Frontend** | `NEXT_PUBLIC_API_BASE_URL` | `NEXT_PUBLIC_GOOGLE_ANALYTICS`<br>`NEXT_PUBLIC_SENTRY_DSN` |
 | **gRPC** | `GRPC_SERVER_PORT`<br>`GRPC_SERVER_HOST` | `GRPC_USE_TLS`<br>`GRPC_CERT_PATH`<br>`GRPC_KEY_PATH` |
 | **MCP** | `API_BASE_URL` | `FRONTEND_BASE_URL`<br>`LOG_LEVEL` |
-| **Agentic** | `OPENAI_API_KEY` (for CrewAI) | `LANGCHAIN_API_KEY`<br>`AGENT_RUNTIME` |
+| **Agentic** | `GOOGLE_AI_API_KEY` or `OPENAI_API_KEY` | `AGENT_RUNTIME`<br>`THREAD_ID`<br>`LANGSMITH_ENABLED`<br>`LANGSMITH_API_KEY`<br>`LANGSMITH_PROJECT`<br>`LANGSMITH_ENDPOINT`<br>`LANGSMITH_RUN_TAGS`<br>`LANGSMITH_STRICT` |
 
 ## Performance Targets & SLOs
 
@@ -1519,7 +1570,7 @@ gitGraph
 
 - Migrate from Express to Fastify for better performance
 - Implement event sourcing for audit trail
-- Add distributed tracing (OpenTelemetry)
+- Extend LangSmith tracing with OpenTelemetry export bridge
 - Improve test coverage to 90%+
 - Optimize bundle sizes
 - Implement progressive web app (PWA) features
@@ -1551,4 +1602,4 @@ gitGraph
 
 ---
 
-*This architecture document is maintained alongside the codebase. Last updated: January 2025*
+*This architecture document is maintained alongside the codebase. Last updated: March 8, 2026*

@@ -22,6 +22,12 @@ resources:
                     value: ${runtime}
                   - name: PINECONE_INDEX
                     value: ${pineconeIndex}
+                  - name: LANGSMITH_ENABLED
+                    value: ${langsmithEnabled}
+                  - name: LANGSMITH_PROJECT
+                    value: ${langsmithProject}
+                  - name: LANGSMITH_ENDPOINT
+                    value: ${langsmithEndpoint}
                   - name: GOOGLE_AI_API_KEY
                     valueSource:
                       secretKeyRef:
@@ -36,6 +42,11 @@ resources:
                     valueSource:
                       secretKeyRef:
                         secret: projects/$(projectId)/secrets/PINECONE_API_KEY
+                        version: latest
+                  - name: LANGSMITH_API_KEY
+                    valueSource:
+                      secretKeyRef:
+                        secret: projects/$(projectId)/secrets/LANGSMITH_API_KEY
                         version: latest
                   - name: NEO4J_URI
                     value: ${neo4jUri}

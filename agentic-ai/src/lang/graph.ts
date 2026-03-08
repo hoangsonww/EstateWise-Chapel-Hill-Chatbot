@@ -14,6 +14,11 @@ import {
   stopMcp,
   type LangTool,
 } from "./tools.js";
+import {
+  buildLangSmithRunnableConfig,
+  initializeLangSmith,
+  type LangSmithRunContext,
+} from "./langsmith.js";
 
 const BASE_SYSTEM_PROMPT = `
 You are EstateWise, a real-estate research and analysis agent.
@@ -61,6 +66,7 @@ export interface LangGraphRunOptions {
   tools?: LangTool[];
   appendTools?: LangTool[];
   checkpointer?: ReturnType<typeof getCheckpointer>;
+  trace?: LangSmithRunContext;
 }
 
 export interface NormalizedMessage {
@@ -100,6 +106,7 @@ export type RunInput = {
   threadId?: string;
   context?: LangGraphRunContext;
   additionalInstructions?: string;
+  trace?: LangSmithRunContext;
 };
 
 export function createEstateWiseAgentGraph(config: {
@@ -262,6 +269,10 @@ export class EstateWiseLangGraphRuntime {
   }
 
   async run(options: LangGraphRunOptions): Promise<LangGraphRunResult> {
+    initializeLangSmith({
+      runtime: "langgraph",
+      surface: options.trace?.surface || "langgraph",
+    });
     const costTracker = new CostTracker();
     return await withCostTracking(costTracker, async () => {
       const startedAt = Date.now();
@@ -328,9 +339,20 @@ export class EstateWiseLangGraphRuntime {
           llm: this.llm,
         });
         const threadId = options.threadId ?? this.defaultThreadId;
+        const tracingConfig = buildLangSmithRunnableConfig({
+          runtime: "langgraph",
+          surface: options.trace?.surface || "langgraph",
+          component: options.trace?.component || "react-agent",
+          threadId,
+          requestId: options.trace?.requestId,
+          runName: options.trace?.runName,
+          tags: options.trace?.tags,
+          metadata: options.trace?.metadata,
+        });
         const result = await app.invoke(
           { messages: [{ role: "user", content: options.goal }] },
           {
+            ...tracingConfig,
             configurable: { thread_id: threadId },
           } as any,
         );
@@ -377,5 +399,6 @@ export async function runEstateWiseAgent(input: RunInput) {
     threadId: input.threadId,
     context: input.context,
     additionalInstructions: input.additionalInstructions,
+    trace: input.trace,
   });
 }

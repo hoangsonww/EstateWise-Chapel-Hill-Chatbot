@@ -9,6 +9,7 @@ In addition to being the CLI, this agentic pipeline is also being used in our ma
   <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white" />
   <img alt="LangChain" src="https://img.shields.io/badge/LangChain-6B46C1?style=for-the-badge&logo=langchain&logoColor=white" />
   <img alt="LangGraph" src="https://img.shields.io/badge/LangGraph-1E90FF?style=for-the-badge&logo=langgraph&logoColor=white" />
+  <img alt="LangSmith" src="https://img.shields.io/badge/LangSmith-121212?style=for-the-badge&logoColor=white" />
   <img alt="MCP" src="https://img.shields.io/badge/MCP-Model%20Context%20Protocol-6A5ACD?style=for-the-badge&logoColor=white&logo=modelcontextprotocol" />
   <img alt="A2A" src="https://img.shields.io/badge/A2A-Agent--to--Agent-0EA5E9?style=for-the-badge" />
   <img alt="OpenAI" src="https://img.shields.io/badge/OpenAI-412991?style=for-the-badge&logo=openai&logoColor=white" />
@@ -28,6 +29,7 @@ In addition to being the CLI, this agentic pipeline is also being used in our ma
 - [Deployment](#deployment)
 - [Use With Your Own Clients](#use-with-your-own-clients)
   - [LangChain + LangGraph Runtime](#langchain--langgraph-runtime)
+  - [LangSmith Observability](#langsmith-observability)
   - [CrewAI Runtime](#crewai-runtime)
   - [A2A Protocol (Agent-to-Agent)](#a2a-protocol-agent-to-agent)
 - [Enterprise Pipeline System](#enterprise-pipeline-system)
@@ -57,6 +59,7 @@ Agentic AI is a standalone, multi‑agent CLI that orchestrates real‑estate re
 - Orchestrator coordinates clear, deterministic step execution over MCP tools.
 - Built-in A2A protocol endpoints for agent-to-agent task orchestration and streaming.
 - Optional LangGraph runtime (ReAct agent with tool calling and memory).
+- Optional LangSmith tracing with request/thread metadata for production observability.
 - Optional CrewAI runtime (Python crew of planner/researcher/analyst/reporter).
 - Output is a clean terminal transcript with a final summary and links.
 
@@ -134,7 +137,8 @@ You can integrate Agentic AI in multiple ways depending on your stack and requir
 
 1) **HTTP (recommended for web/mobile)**
 - **Bring up the server:** `npm run serve` (dev) or `npm run start:server` (prod)
-- Call `POST /run` from your app with a `goal` and optional `runtime`/`rounds`/`threadId`.
+- Call `POST /run` from your app with a `goal` and optional `runtime`/`rounds`/`threadId`/`requestId` (for trace correlation).
+- Use `GET /run/stream` for SSE progress updates and `GET /config` to inspect runtime/tool/tracing settings.
 
 Browser (vanilla JS)
 ```html
@@ -142,7 +146,7 @@ Browser (vanilla JS)
 async function run(goal){
   const res = await fetch('http://localhost:4318/run',{
     method:'POST',headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ goal, runtime: 'default' })
+    body: JSON.stringify({ goal, runtime: 'default', requestId: crypto.randomUUID() })
   });
   const json = await res.json();
   console.log(json);
@@ -154,8 +158,14 @@ Node (fetch)
 ```js
 import fetch from 'node-fetch';
 const res = await fetch('http://localhost:4318/run', {
-  method: 'POST', headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ goal: 'Find 3 bed homes; map + mortgage', runtime: 'langgraph', threadId: 'demo-1' })
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json', 'x-request-id': 'estatewise-demo-1' },
+  body: JSON.stringify({
+    goal: 'Find 3 bed homes; map + mortgage',
+    runtime: 'langgraph',
+    threadId: 'demo-1',
+    requestId: 'estatewise-demo-1'
+  })
 });
 const json = await res.json();
 console.log(json);
@@ -166,9 +176,16 @@ Python (requests)
 import requests
 r = requests.post('http://localhost:4318/run', json={
   'goal': 'Compare 123456 vs 654321 and estimate payments',
-  'runtime': 'default', 'rounds': 5
+  'runtime': 'default',
+  'rounds': 5,
+  'requestId': 'estatewise-python-demo'
 })
 print(r.json())
+```
+
+Inspect runtime configuration:
+```bash
+curl -s http://localhost:4318/config | jq
 ```
 
 2) **Spawn the CLI (simple servers/services)**
@@ -215,6 +232,8 @@ Agentic AI exposes an A2A interface in addition to existing `/run` and `/run/str
     - `tasks.cancel`
 - Task event stream:
   - `GET /a2a/tasks/{taskId}/events` (SSE)
+- Task statuses:
+  - `queued`, `running`, `succeeded`, `failed`, `canceled`
 
 Example: create an async task via JSON-RPC
 ```bash
@@ -227,7 +246,8 @@ curl -s http://localhost:4318/a2a \
     "params":{
       "goal":"Find 3-bed homes in Chapel Hill with strong schools",
       "runtime":"langgraph",
-      "rounds":5
+      "rounds":5,
+      "requestId":"a2a-demo-1"
     }
   }'
 ```
@@ -253,6 +273,7 @@ Tips
 # Ensure env is configured
 # Required: one of GOOGLE_AI_API_KEY or OPENAI_API_KEY
 # Optional: PINECONE_API_KEY + PINECONE_INDEX, Neo4j NEO4J_URI/NEO4J_USERNAME/NEO4J_PASSWORD
+# Optional (recommended): LANGSMITH_ENABLED=true + LANGSMITH_API_KEY for tracing
 
 # Run with the LangGraph agent
 npm run dev -- --langgraph "Find 3-bed homes in Chapel Hill; show a map and explain two ZPIDs"
@@ -266,6 +287,7 @@ What it adds:
 - Tools include MCP tools (search/lookup/analytics/web/graph/map/finance), Pinecone vector retrieval, and Neo4j Cypher QA.
 - Lightweight in-memory checkpointer; easy to swap for Redis/Postgres in production.
 - Structured telemetry via `toolExecutions` (duration, status, JSON/text output) so you can surface traces in your UI.
+- Native LangSmith tracing support for LangChain/LangGraph with runtime tags, metadata, and request correlation.
 - Programmatic `EstateWiseLangGraphRuntime` class to inject custom context, instructions, or additional tools per thread.
 
 **Programmatic usage**
@@ -314,6 +336,32 @@ flowchart TD
   Agent -->|memory| CP[(Checkpointer)]
   Agent -->|plan/reflect| Steps[Dynamic Plan]
   Steps --> Agent
+```
+
+### LangSmith Observability
+
+LangSmith is integrated as an optional first-class tracing layer for LangChain/LangGraph execution.
+
+What is traced:
+- Root run metadata: runtime, surface (`cli`, `http`, `http-stream`, `a2a`), component, environment.
+- Correlation fields: `threadId` and `requestId` (when provided).
+- Chat model runs with inherited tags/metadata.
+- Existing `toolExecutions` and cost telemetry remain available in API responses.
+
+Key behavior:
+- Tracing is enabled when `LANGSMITH_ENABLED=true` or `LANGSMITH_API_KEY` is set.
+- If tracing is requested but no API key is provided:
+  - default mode logs a warning and continues with tracing disabled.
+  - `LANGSMITH_STRICT=true` fails fast at startup/run initialization.
+- `/config` includes a `langsmith` block so clients can introspect tracing state.
+
+Recommended production env:
+```bash
+LANGSMITH_ENABLED=true
+LANGSMITH_API_KEY=lsv2_pt_...
+LANGSMITH_PROJECT=estatewise-agentic-ai
+LANGSMITH_RUN_TAGS=estatewise,agentic-ai,prod
+LANGSMITH_STRICT=true
 ```
 
 ### CrewAI Runtime
@@ -1156,6 +1204,7 @@ agentic-ai/
    ├─ lang/           # LangChain + LangGraph runtime
    │  ├─ llm.ts       # Chat/embedding model selection (Google/OpenAI)
    │  ├─ tools.ts     # MCP wrappers, Pinecone retrieval, Neo4j Cypher tools
+   │  ├─ langsmith.ts # LangSmith bootstrap + trace context helpers
    │  ├─ memory.ts    # Checkpointer (MemorySaver by default)
    │  └─ graph.ts     # createReactAgent + runner
    ├─ crewai/         # Python CrewAI runner (invoked from Node)
@@ -1185,6 +1234,15 @@ Set the following environment variables as needed:
   - `A2A_MAX_TASKS` (default `500`) limits in-memory task records retained by the A2A server.
   - `A2A_TASK_RETENTION_MS` (default `86400000`) controls retention of completed A2A tasks.
   - `A2A_WAIT_TIMEOUT_MS` (default `120000`) sets default max wait time for `tasks.wait`.
+- LangSmith observability (optional, recommended in production)
+  - `LANGSMITH_ENABLED=true|false` enables/disables tracing explicitly.
+  - `LANGSMITH_API_KEY` authentication key for LangSmith ingestion.
+  - `LANGSMITH_PROJECT` project name (default `estatewise-agentic-ai`).
+  - `LANGSMITH_ENDPOINT` custom API endpoint (self-hosted or regional).
+  - `LANGSMITH_WORKSPACE_ID` optional workspace/account scoping when required by your LangSmith setup.
+  - `LANGSMITH_RUN_TAGS` comma-separated baseline tags applied to traces.
+  - `LANGSMITH_STRICT=true` fails fast on tracing misconfiguration (for enterprise hard-fail policies).
+  - `AGENTIC_SERVICE_NAME` optional service tag override for tracing metadata.
 - MCP client integration
   - `MCP_SERVER_COMMAND` (default Node executable) and `MCP_SERVER_ARGS` (default `["dist/server.js"]`) for MCP spawn customization.
   - `MCP_SERVER_CWD` (default `../mcp`) to point to MCP build location.
