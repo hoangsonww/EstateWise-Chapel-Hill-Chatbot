@@ -3,6 +3,9 @@ import Notification, { INotification } from "../models/Notification.model";
 import { NotificationResponseDto } from "../dto/notification.dto";
 import { AppError } from "../utils/AppError";
 
+/** Maximum notifications returned per query to avoid unbounded reads. */
+const MAX_NOTIFICATIONS_PER_QUERY = 200;
+
 function toDto(n: INotification): NotificationResponseDto {
   return {
     _id: (n as any)._id?.toString() ?? "",
@@ -62,7 +65,7 @@ export class NotificationService {
 
     const docs = await Notification.find(filter)
       .sort({ createdAt: -1 })
-      .limit(200)
+      .limit(MAX_NOTIFICATIONS_PER_QUERY)
       .lean();
     return docs.map((d) => toDto(d as unknown as INotification));
   }

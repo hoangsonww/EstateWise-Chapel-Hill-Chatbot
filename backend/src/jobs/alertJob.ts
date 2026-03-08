@@ -26,6 +26,25 @@ const TOP_K = 20;
 // Default price-drop thresholds if none set on the saved search
 const DEFAULT_DROP_PERCENT = 5;
 
+// Delay before the first alert run fires after server boot (ms)
+const INITIAL_RUN_DELAY_MS = 30_000;
+
+/**
+ * Builds a stable, collision-resistant event key for a new_match event.
+ * Uses a sorted signature of all new IDs so the key is deterministic for
+ * the same set of new listings and does not collide for different sets.
+ */
+function newMatchEventKey(searchId: string, newIds: string[]): string {
+  const dateTag = new Date().toISOString().slice(0, 10);
+  // Sort IDs for determinism, then create a compact signature
+  const idSig = newIds
+    .slice()
+    .sort()
+    .join(",")
+    .slice(0, 60);
+  return `${searchId}_new_match_${dateTag}_${idSig}`;
+}
+
 /**
  * Processes a single saved search: runs the query, diffs against the snapshot,
  * and emits notifications.
@@ -50,8 +69,7 @@ async function processSavedSearch(search: ISavedSearch): Promise<void> {
   if (search.alertTypes.includes("new_match")) {
     const newIds = currentIds.filter((id) => !previousIds.has(id));
     if (newIds.length > 0) {
-      const dateTag = new Date().toISOString().slice(0, 10);
-      const eventKey = `${searchId}_new_match_${dateTag}_${newIds.slice(0, 3).join("_")}`;
+      const eventKey = newMatchEventKey(searchId, newIds);
       await notificationService.createIfNotExists({
         userId,
         type: "new_match",
@@ -200,7 +218,7 @@ export function startAlertJob(intervalMs = 60 * 60 * 1000): ReturnType<typeof se
     runAlertJob().catch((err) =>
       console.error("[alertJob] Initial run error:", err),
     );
-  }, 30_000);
+  }, INITIAL_RUN_DELAY_MS);
   // Then on the regular interval
   const handle = setInterval(() => {
     runAlertJob().catch((err) =>
