@@ -1,5 +1,5 @@
 ###############################################################################
-# Makefile for EstateWise Monorepo
+# Makefile for the EstateWise Monorepo
 #
 # Description:
 #   This Makefile orchestrates installation, building, development, testing,
