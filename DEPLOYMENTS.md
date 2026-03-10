@@ -31,24 +31,37 @@ For more information on EstateWise DevOps, CI/CD pipelines, monitoring, and trou
 
 ## Table of Contents
 
-- [High-Level Architecture](#high-level-architecture)
-- [Advanced Deployment Strategies](#advanced-deployment-strategies)
-- [Kubernetes GitOps Control Plane (Recommended)](#kubernetes-gitops-control-plane-recommended)
-  - [Controller Ownership Model](#controller-ownership-model)
-  - [Bootstrap and Validation Flow](#bootstrap-and-validation-flow)
-- [Progressive Delivery Runtime](#progressive-delivery-runtime)
-- [Argo Workflows Operations Runtime](#argo-workflows-operations-runtime)
-- [AWS Deployment](#aws-deployment)
-- [Azure Deployment](#azure-deployment)
-- [Google Cloud Deployment](#google-cloud-deployment)
-- [Oracle Cloud Deployment](#oracle-cloud-deployment)
-- [HashiCorp + Kubernetes Stack](#hashicorp--kubernetes-stack)
-- [Agentic AI Orchestrator](#agentic-ai-orchestrator)
-- [MCP Server](#mcp-server)
-- [Vercel Frontend/Backend](#vercel-frontendbackend)
-- [CI/CD Integration](#cicd-integration)
-- [Choosing the Right Path](#choosing-the-right-path)
-- [Reference Commands](#reference-commands)
+- [EstateWise Deployment Reference](#estatewise-deployment-reference)
+  - [Table of Contents](#table-of-contents)
+  - [High-Level Architecture](#high-level-architecture)
+  - [Advanced Deployment Strategies](#advanced-deployment-strategies)
+    - [Available Strategies](#available-strategies)
+    - [Blue-Green Deployments](#blue-green-deployments)
+    - [Canary Deployments](#canary-deployments)
+    - [Documentation](#documentation)
+  - [Kubernetes GitOps Control Plane (Recommended)](#kubernetes-gitops-control-plane-recommended)
+    - [Controller Ownership Model](#controller-ownership-model)
+    - [Bootstrap and Validation Flow](#bootstrap-and-validation-flow)
+  - [Progressive Delivery Runtime](#progressive-delivery-runtime)
+  - [Argo Workflows Operations Runtime](#argo-workflows-operations-runtime)
+  - [Deployment Control UI](#deployment-control-ui)
+  - [AWS Deployment](#aws-deployment)
+  - [Azure Deployment](#azure-deployment)
+  - [Google Cloud Deployment](#google-cloud-deployment)
+  - [Oracle Cloud Deployment](#oracle-cloud-deployment)
+  - [HashiCorp + Kubernetes Stack](#hashicorp--kubernetes-stack)
+  - [Agentic AI Orchestrator](#agentic-ai-orchestrator)
+  - [MCP Server](#mcp-server)
+  - [Vercel Frontend/Backend](#vercel-frontendbackend)
+  - [CI/CD Integration](#cicd-integration)
+    - [Jenkins](#jenkins)
+      - [Multi-Cloud Deployment Toggles](#multi-cloud-deployment-toggles)
+      - [Advanced Deployment Strategy Toggles](#advanced-deployment-strategy-toggles)
+    - [GitHub Actions](#github-actions)
+    - [GitLab CI](#gitlab-ci)
+    - [Azure DevOps (Optional)](#azure-devops-optional)
+  - [Choosing the Right Path](#choosing-the-right-path)
+  - [Reference Commands](#reference-commands)
 
 ---
 
@@ -555,6 +568,7 @@ graph TD
 
 - **Container Image** – See `agentic-ai/Dockerfile`; build with `docker build -f agentic-ai/Dockerfile .` and push to your registry.
 - **Docker Compose** – `agentic-ai/docker-compose.yaml` starts the orchestrator with all dependencies (LLM/Pinecone/Neo4j) supplied via `.env`.
+- **Podman** – `agentic-ai/podman-compose.yaml` for running the orchestrator in a Podman environment with similar env var configuration.
 - **Kubernetes** – Apply `agentic-ai/k8s/` manifests (ConfigMap, Secret, Deployment) to run the CLI in a cluster with tty/stdin enabled.
 - **Cloud providers** – Fargate template (`agentic-ai/aws/ecs-service.yaml`), Azure Container Apps Bicep (`agentic-ai/azure/containerapp.bicep`), and Cloud Run config (`agentic-ai/gcp/cloudrun.yaml`).
 
@@ -566,6 +580,7 @@ Full instructions live in [agentic-ai/DEPLOYMENT.md](agentic-ai/DEPLOYMENT.md).
 
 - **Container Image** – `mcp/Dockerfile` packages the MCP stdio server for sidecar usage; build/push to `ghcr.io/your-org/estatewise-mcp`.
 - **Docker Compose** – `mcp/docker-compose.yaml` runs the server with caches tuned via env vars.
+- **Podman** – `mcp/podman-compose.yaml` for running the MCP server in a Podman environment with similar env var configuration.
 - **Kubernetes Sidecar** – `mcp/k8s/sidecar-example.yaml` demonstrates pairing the MCP container with the Agentic AI deployment in the same pod.
 - **Cloud providers** – Fargate template (`mcp/aws/ecs-service.yaml`), Azure Container Apps Bicep (`mcp/azure/containerapp.bicep`), and Cloud Run config (`mcp/gcp/cloudrun.yaml`).
 
