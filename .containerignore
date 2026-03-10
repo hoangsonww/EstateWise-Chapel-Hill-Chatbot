@@ -1,0 +1,17 @@
+**/node_modules
+**/.next
+**/dist
+**/coverage
+**/.turbo
+**/.cache
+**/.venv
+**/*.log
+**/.DS_Store
+.git
+.gitignore
+.vscode
+.idea
+docs
+docs-backend
+data
+tmp

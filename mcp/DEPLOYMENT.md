@@ -1,6 +1,6 @@
 # MCP Deployment Guide
 
-![Docker](https://img.shields.io/badge/Docker-Container-blue?logo=docker) ![Kubernetes](https://img.shields.io/badge/Kubernetes-Orchestration-blue?logo=kubernetes)
+![Docker](https://img.shields.io/badge/Docker-Container-blue?logo=docker) ![Podman](https://img.shields.io/badge/Podman-Container-892CA0?logo=podman) ![Kubernetes](https://img.shields.io/badge/Kubernetes-Orchestration-blue?logo=kubernetes)
 
 This document describes how to build, containerise, and run the EstateWise MCP server in production. The MCP server exposes EstateWise tools over Model Context Protocol stdio and is designed to run alongside clients such as the Agentic AI CLI.
 
@@ -10,12 +10,15 @@ This document describes how to build, containerise, and run the EstateWise MCP s
 # From repo root
 cd mcp
 
-# Build image locally
+# Docker
 docker build -t estatewise-mcp:latest .
-
-# Tag & push to registry
 docker tag estatewise-mcp:latest ghcr.io/your-org/estatewise-mcp:latest
 docker push ghcr.io/your-org/estatewise-mcp:latest
+
+# Podman
+podman build -t estatewise-mcp:latest .
+podman tag estatewise-mcp:latest ghcr.io/your-org/estatewise-mcp:latest
+podman push ghcr.io/your-org/estatewise-mcp:latest
 ```
 
 ### Runtime Environment Variables
@@ -28,10 +31,11 @@ docker push ghcr.io/your-org/estatewise-mcp:latest
 | `MCP_CACHE_MAX` | Maximum cached entries | `200` |
 | `MCP_DEBUG` | Verbose logging (`true/false`) | `false` |
 
-### Docker Compose (Local/DevOps)
+### Docker / Podman Compose (Local/DevOps)
+
+Both `docker-compose.yaml` and `podman-compose.yaml` are provided in this directory and are functionally identical.
 
 ```yaml
-version: "3.9"
 services:
   mcp:
     image: ghcr.io/your-org/estatewise-mcp:latest
@@ -42,10 +46,14 @@ services:
     stdin_open: true
 ```
 
-Launch: `docker compose up -d mcp`. Clients can exec into the container and spawn the server:
-
 ```bash
+# Docker
+docker compose up -d mcp
 docker compose exec -it mcp node dist/server.js
+
+# Podman
+podman compose up -d mcp
+podman compose exec -it mcp node dist/server.js
 ```
 
 > **Tip:** stdio-based MCP servers typically run as sidecars or child processes. Keep `tty` and `stdin_open` enabled so orchestrators can attach to the server.
@@ -68,7 +76,7 @@ Configure secrets and configmaps referenced in the manifest with `API_BASE_URL`,
 
 ## Observability & Operations
 
-- Logs are emitted to STDOUT/STDERR. Capture via Docker logging drivers or Kubernetes log collection (Fluent Bit, Cloud Logging, etc.).
+- Logs are emitted to STDOUT/STDERR. Capture via Docker/Podman logging drivers or Kubernetes log collection (Fluent Bit, Cloud Logging, etc.).
 - Adjust cache tunables with `MCP_CACHE_TTL_MS` and `MCP_CACHE_MAX` to suit backend load.
 - For high availability, schedule at least two replicas alongside the Agentic AI deployment.
 

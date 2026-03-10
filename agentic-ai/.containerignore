@@ -1,0 +1,7 @@
+node_modules
+npm-debug.log
+tsconfig.tsbuildinfo
+.env
+.DS_Store
+dist
+crewai/.venv

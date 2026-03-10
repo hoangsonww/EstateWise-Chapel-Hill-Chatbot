@@ -14,62 +14,104 @@ Large Language Models (LLMs), a Mixture‑of‑Experts ensemble, blue/green & ca
 
 ## Table of Contents
 
-- [Live App](#live-app)
-  - [Key Technologies](#key-technologies-used)
-  - [AI Techniques](#ai-techniques)
-- [Features](#features)
-- [Architecture](#architecture)
-  - [Detailed Diagram](#detailed-diagram)
-  - [Backend](#backend)
-  - [Frontend](#frontend)
-  - [High-Level Architecture Flow Diagrams](#high-level-architecture-flow-diagrams)
-    - [AI Architecture Flow Diagram](#ai-architecture-flow-diagram)
-    - [Mermaid UML Diagram](#mermaid-diagram)
-    - [Overall App Architecture Flow Diagram](#overall-app-architecture-flow-diagram)
-    - [Neo4j Graph Integration](#neo4j-graph-integration)
-- [Setup & Installation](#setup--installation)
-  - [Backend Setup](#backend-setup)
-  - [Frontend Setup](#frontend-setup)
-- [Deployment](#deployment)
-  - [GitOps Control Plane (Argo CD + Flux CD)](#gitops-control-plane-argo-cd--flux-cd)
-  - [Progressive Delivery (Argo Rollouts + Flagger)](#progressive-delivery-argo-rollouts--flagger)
-  - [Workflow Orchestration (Argo Workflows)](#workflow-orchestration-argo-workflows)
-  - [Bootstrap & Preflight](#bootstrap--preflight)
-- [Usage](#usage)
-- [User Interface](#user-interface)
-- [API Endpoints](#api-endpoints)
-  - [Authentication](#authentication)
-  - [Conversations](#conversations)
-  - [Chat](#chat)
-  - [Swagger API Documentation](#swagger-api-documentation)
-- [Project Structure](#project-structure)
-- [Dockerization](#dockerization)
-- [Prometheus Monitoring & Visualizations](#prometheus-monitoring--visualizations)
-- [CI/CD Pipelines](#cicd-pipelines)
-  - [GitHub Actions](#github-actions)
-  - [Jenkins (Primary CI/CD)](#jenkins-primary-cicd)
-  - [GitLab CI](#gitlab-ci)
-- [MCP Server](#mcp-server)
-- [Agentic AI Pipeline](#agentic-ai-pipeline)
-- [Codex Multi-Agent](#codex-multi-agent)
-- [tRPC API](#trpc-api)
-  - [Features](#trpc-features)
-  - [Router Structure](#trpc-router-structure)
-  - [Type Safety](#trpc-type-safety)
-- [gRPC Services](#grpc-services)
-  - [Protocol Buffers](#protocol-buffers)
-  - [Service Definitions](#service-definitions)
-  - [Performance Benefits](#grpc-performance-benefits)
-- [Travis CI](#travis-ci)
-- [Testing](#testing)
-- [OpenAPI Specification](#openapi-specification)
-- [JSDoc & TypeDoc](#jsdoc--typedoc)
-- [Containerization](#containerization)
-- [VS Code Extension](#vs-code-extension)
-- [Mintlify Documentation](#mintlify-documentation)
-- [Contributing](#contributing)
-- [License](#license)
-- [Contact](#contact)
+- [EstateWise - Your Intelligent Estate Assistant 🏡](#estatewise---your-intelligent-estate-assistant-)
+  - [Table of Contents](#table-of-contents)
+  - [Live App](#live-app)
+    - [Key Technologies Used](#key-technologies-used)
+    - [AI Techniques](#ai-techniques)
+      - [Hybrid RAG at a Glance](#hybrid-rag-at-a-glance)
+  - [Features](#features)
+  - [Architecture](#architecture)
+    - [Detailed Diagram](#detailed-diagram)
+    - [Backend](#backend)
+    - [Frontend](#frontend)
+    - [High-Level Architecture Flow Diagrams](#high-level-architecture-flow-diagrams)
+      - [AI Architecture Flow Diagram](#ai-architecture-flow-diagram)
+      - [Mermaid Diagram](#mermaid-diagram)
+      - [Overall App Architecture Flow Diagram](#overall-app-architecture-flow-diagram)
+      - [Neo4j Graph Integration](#neo4j-graph-integration)
+  - [Setup \& Installation](#setup--installation)
+    - [Backend Setup](#backend-setup)
+    - [Frontend Setup](#frontend-setup)
+  - [Deployment](#deployment)
+    - [GitOps Control Plane (Argo CD + Flux CD)](#gitops-control-plane-argo-cd--flux-cd)
+    - [Progressive Delivery (Argo Rollouts + Flagger)](#progressive-delivery-argo-rollouts--flagger)
+    - [Workflow Orchestration (Argo Workflows)](#workflow-orchestration-argo-workflows)
+    - [Bootstrap \& Preflight](#bootstrap--preflight)
+    - [Advanced Deployment Strategies](#advanced-deployment-strategies)
+    - [Multi-Cloud Deployment Platforms](#multi-cloud-deployment-platforms)
+    - [CI/CD \& DevOps Features](#cicd--devops-features)
+    - [Deployment Architecture Overview](#deployment-architecture-overview)
+    - [Azure Deployment](#azure-deployment)
+  - [Usage](#usage)
+  - [User Interface](#user-interface)
+    - [Landing Page](#landing-page)
+    - [Chat Interface - Dark Mode](#chat-interface---dark-mode)
+    - [Chat Interface - Light Mode](#chat-interface---light-mode)
+    - [Visualizations Page](#visualizations-page)
+    - [Insights \& Tools Page](#insights--tools-page)
+      - [More Tools...](#more-tools)
+    - [Market Insights Page](#market-insights-page)
+    - [Deal Analyzer Page](#deal-analyzer-page)
+    - [Map Page](#map-page)
+    - [Forum Page](#forum-page)
+    - [Profile Page](#profile-page)
+    - [Login Page](#login-page)
+    - [Register Page](#register-page)
+    - [Reset Password Page](#reset-password-page)
+  - [API Endpoints](#api-endpoints)
+    - [Graph](#graph)
+    - [Properties (Map Helpers)](#properties-map-helpers)
+    - [Authentication](#authentication)
+    - [Conversations](#conversations)
+    - [Chat](#chat)
+    - [Swagger API Documentation](#swagger-api-documentation)
+  - [Project Structure](#project-structure)
+  - [Dockerization](#dockerization)
+  - [Prometheus Monitoring \& Visualizations](#prometheus-monitoring--visualizations)
+  - [CI/CD Pipelines](#cicd-pipelines)
+    - [GitHub Actions](#github-actions)
+    - [Jenkins (Primary CI/CD)](#jenkins-primary-cicd)
+    - [GitLab CI](#gitlab-ci)
+  - [MCP Server](#mcp-server)
+    - [Tool Categories](#tool-categories)
+    - [Key Features](#key-features)
+    - [Environment Variables](#environment-variables)
+    - [Quick Start](#quick-start)
+    - [Notes](#notes)
+  - [Agentic AI Pipeline](#agentic-ai-pipeline)
+    - [Runtime Entry Points](#runtime-entry-points)
+    - [Observability \& Tracing](#observability--tracing)
+    - [Quick Start](#quick-start-1)
+  - [Codex Multi-Agent](#codex-multi-agent)
+  - [API Architecture Overview](#api-architecture-overview)
+    - [When to Use Each API](#when-to-use-each-api)
+    - [tRPC API](#trpc-api)
+      - [tRPC Features](#trpc-features)
+      - [tRPC Router Structure](#trpc-router-structure)
+      - [tRPC Architecture](#trpc-architecture)
+      - [tRPC Request Flow](#trpc-request-flow)
+      - [tRPC Type Safety](#trpc-type-safety)
+    - [gRPC Services](#grpc-services)
+      - [Protocol Buffers](#protocol-buffers)
+      - [Service Definitions](#service-definitions)
+      - [gRPC Architecture](#grpc-architecture)
+      - [gRPC Communication Flow](#grpc-communication-flow)
+      - [gRPC vs REST vs tRPC Comparison](#grpc-vs-rest-vs-trpc-comparison)
+      - [gRPC Performance Benefits](#grpc-performance-benefits)
+  - [Travis CI](#travis-ci)
+  - [Testing](#testing)
+    - [Running Tests](#running-tests)
+  - [OpenAPI Specification](#openapi-specification)
+  - [JSDoc \& TypeDoc](#jsdoc--typedoc)
+    - [JSDoc (for JavaScript)](#jsdoc-for-javascript)
+    - [TypeDoc (for TypeScript)](#typedoc-for-typescript)
+  - [Containerization](#containerization)
+  - [VS Code Extension](#vs-code-extension)
+  - [Mintlify Documentation](#mintlify-documentation)
+  - [Contributing](#contributing)
+  - [License](#license)
+  - [Contact](#contact)
 
 ## Live App
 
@@ -104,6 +146,7 @@ _Feel free to use the app as a guest or sign up for an account to save your conv
 ![Terraform](https://img.shields.io/badge/Terraform-623CE4?style=for-the-badge&logo=terraform&logoColor=white)
 ![Vercel](https://img.shields.io/badge/Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
+![Podman](https://img.shields.io/badge/Podman-000000?style=for-the-badge&logo=podman&logoColor=white)
 ![Prometheus](https://img.shields.io/badge/Prometheus-E6512D?style=for-the-badge&logo=prometheus&logoColor=white)
 ![Grafana](https://img.shields.io/badge/Grafana-F46800?style=for-the-badge&logo=grafana&logoColor=white)
 ![Swagger](https://img.shields.io/badge/Swagger-85EA2D?style=for-the-badge&logo=swagger&logoColor=white)
@@ -372,7 +415,7 @@ graph LR
 - **JWT Authentication:** Secure user sessions using JSON Web Tokens.
 - **Integration with AI & RAG:** Communicates with AI APIs and uses **Google Gemini API & Pinecone** for advanced property recommendation logic.
 - **Swagger API Documentation:** Automatically generated API documentation for easy reference and testing.
-- **Docker:** Containerization for easy deployment and scalability.
+- **Docker & Podman:** Containerization for easy deployment and scalability.
 - **OpenAPI Specification:** An OpenAPI specification file (`openapi.yaml`) is included in the root directory. You can use Swagger UI or Postman to explore and test the API endpoints.
 - **Prometheus Monitoring:** Collects and visualizes metrics for performance monitoring.
 - **GitHub Actions:** CI/CD pipeline for automated testing and deployment.
@@ -903,7 +946,7 @@ See [DEVOPS.md](DEVOPS.md) for detailed guides and [kubernetes/scripts/](kuberne
   - **GCP Cloud Run**: Serverless container deployment option via Cloud Build; autoscaling to zero when idle.
   - **Microsoft Azure**: Another option for hosting the backend with easy scaling.
   - **Vercel** (Backup): Node server largely stateless, can run on Vercel for smaller workloads.
-  - **Docker**: Containerized backend for consistent environments across dev, test, and prod.
+  - **Docker / Podman**: Containerized backend for consistent environments across dev, test, and prod. Both Docker Compose and Podman Compose files are provided (see [`docker/README.md`](docker/README.md)).
   - **Load Balancing & SSL**: ALB (AWS) or Cloud Load Balancing (GCP) with managed SSL certs for secure HTTPS.
   - **Secrets Management**: Vault (HashiCorp), AWS Secrets Manager, or GCP Secret Manager for sensitive config.
 
@@ -1184,8 +1227,8 @@ EstateWise/
 ├── .env                      # Environment variables for development
 ├── README.md                 # This file
 ├── TECH_DOCS.md              # Detailed technical documentation (highly recommended to read)
-├── docker-compose.yml        # Docker configuration for backend and frontend
-├── Dockerfile                # Dockerfile for application
+├── docker-compose.yml        # Docker/Podman Compose configuration for backend and frontend
+├── Dockerfile                # Root Dockerfile for application
 ├── openapi.yaml              # OpenAPI specification for API documentation
 ├── EDA-CLI-Chatbot.ipynb        # Jupyter notebook for CLI chatbot
 ├── Initial-Data-Analysis.ipynb  # Jupyter notebook for initial data analysis
@@ -1195,18 +1238,29 @@ EstateWise/
 
 ## Dockerization
 
-To run the application **(OPTIONAL)** using Docker:
+To run the application **(OPTIONAL)** using Docker or Podman:
 
-1. Ensure you have [Docker](https://www.docker.com/) installed.
-2. In the project root directory, run:
+1. Ensure you have [Docker](https://www.docker.com/) (v2+) or [Podman](https://podman.io/) (4.1+) installed.
+2. Copy `/.env.example` to `/.env` and fill in real values.
+3. In the project root directory, run:
 
    ```bash
-   docker-compose up --build
+   # Docker — quick start (basic compose, frontend + backend only)
+   docker compose up --build
+
+   # Docker — production stack (nginx, mongo, healthchecks)
+   docker compose -f docker/compose.prod.yml --env-file .env up --build -d
+
+   # Podman — quick start
+   podman compose up --build
+
+   # Podman — production stack
+   podman compose -f docker/podman-compose.prod.yml --env-file .env up --build -d
    ```
 
-This command builds and starts both the backend and frontend services as defined in the `docker-compose.yml` file.
+See [`docker/README.md`](docker/README.md) for full details on ports, profiles, and optional services (Neo4j, Agentic AI).
 
-However, you don't need to run the app using Docker. You can run the backend and frontend separately as described in the **Setup & Installation** section.
+However, you don't need to run the app using Docker or Podman. You can run the backend and frontend separately as described in the **Setup & Installation** section.
 
 ## Prometheus Monitoring & Visualizations
 
@@ -2049,10 +2103,16 @@ For more details, see [jsdoc.app](https://jsdoc.app) and [typedoc.org](https://t
 
 ## Containerization
 
-The application is containerized using Docker to ensure consistent, portable, and reproducible builds across different environments.
+The application is containerized using Docker or Podman to ensure consistent, portable, and reproducible builds across different environments.
 
 * **Backend and Frontend Dockerfiles:**
   The `backend/Dockerfile` and `frontend/Dockerfile` define how to build the container images for their respective services. They include steps to install dependencies, build the code, and configure the production servers.
+
+* **Production Stack:**
+  The `docker/` directory contains a full production compose stack (`compose.prod.yml` for Docker, `podman-compose.prod.yml` for Podman) with Nginx, MongoDB, healthchecks, and optional Neo4j/Agentic AI profiles. See [`docker/README.md`](docker/README.md) for details.
+
+* **Package-level Compose:**
+  Each package with its own container also ships a `podman-compose.yaml` alongside its `docker-compose.yaml` (`agentic-ai/`, `mcp/`).
 
 * **GitHub Actions Integration:**
   As part of the CI/CD pipeline, the workflow automatically builds these Docker images after testing and linting have succeeded. It uses the `docker/build-push-action@v5` to build the images and then push them to GitHub Container Registry (GHCR).
@@ -2060,11 +2120,15 @@ The application is containerized using Docker to ensure consistent, portable, an
 * **Image Scanning:**
   Once the images are built and published, they are scanned for vulnerabilities using Trivy in the pipeline to catch any security issues before deployment.
 
-* **docker-compose Usage (Local):**
-  For local development or quick testing, a `docker-compose.yml` file is included. This file defines both the backend and frontend containers, along with their dependencies, allowing you to spin up the entire stack with a single command:
+* **Local Usage:**
+  For local development or quick testing:
 
   ```bash
-  docker-compose up --build
+  # Docker
+  docker compose up --build
+
+  # Podman
+  podman compose up --build
   ```
 
 * **Deployment:**

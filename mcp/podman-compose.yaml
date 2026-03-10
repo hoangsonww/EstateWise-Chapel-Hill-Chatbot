@@ -1,0 +1,22 @@
+# Podman Compose — MCP Server
+# Usage: podman-compose up --build
+# Or with podman compose plugin: podman compose up --build
+#
+# Functionally identical to docker-compose.yaml.
+# Podman reads Dockerfile natively; no Containerfile alias needed.
+
+services:
+  mcp:
+    build: .
+    image: ghcr.io/your-org/estatewise-mcp:latest
+    restart: unless-stopped
+    environment:
+      API_BASE_URL: ${API_BASE_URL:-https://estatewise-backend.vercel.app}
+      FRONTEND_BASE_URL: ${FRONTEND_BASE_URL:-https://estatewise.vercel.app}
+      MCP_CACHE_TTL_MS: ${MCP_CACHE_TTL_MS:-30000}
+      MCP_CACHE_MAX: ${MCP_CACHE_MAX:-200}
+    volumes:
+      - ./logs:/var/log/mcp
+    command: ["node", "dist/server.js"]
+    tty: true
+    stdin_open: true

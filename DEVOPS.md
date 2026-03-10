@@ -59,7 +59,7 @@ EstateWise employs enterprise-grade DevOps practices with multiple deployment st
 - **Zero-Downtime Deployments**: Traffic switching without service interruption
 - **Automated Rollbacks**: Health checks and metrics-based automatic rollbacks
 - **Multi-Cloud Support**: AWS, Azure, GCP, OCI, and Kubernetes deployments
-- **Container-First**: Docker-based builds with vulnerability scanning
+- **Container-First**: Docker/Podman-based builds with vulnerability scanning
 - **Infrastructure as Code**: Terraform, CloudFormation, Bicep support
 
 It also supports Jenkins, GitHub Actions, and GitLab CI/CD for flexible pipeline management, with Jenkins being the primary orchestrator for production deployments. For monitoring, Prometheus and Grafana provide observability into application health and performance.

@@ -1,0 +1,32 @@
+# Podman Compose — Agentic AI Orchestrator
+# Usage: podman-compose up --build
+# Or with podman compose plugin: podman compose up --build
+#
+# Functionally identical to docker-compose.yaml.
+# Podman reads Dockerfile natively; no Containerfile alias needed.
+
+services:
+  agentic-ai:
+    build:
+      context: ..
+      dockerfile: agentic-ai/Dockerfile
+    image: ghcr.io/your-org/estatewise-agentic:latest
+    environment:
+      AGENT_RUNTIME: ${AGENT_RUNTIME:-langgraph}
+      GOOGLE_AI_API_KEY: ${GOOGLE_AI_API_KEY}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      PINECONE_API_KEY: ${PINECONE_API_KEY}
+      PINECONE_INDEX: ${PINECONE_INDEX:-estatewise-index}
+      THREAD_ID: ${THREAD_ID:-}
+      NEO4J_URI: ${NEO4J_URI:-}
+      NEO4J_USERNAME: ${NEO4J_USERNAME:-}
+      NEO4J_PASSWORD: ${NEO4J_PASSWORD:-}
+      LANGSMITH_ENABLED: ${LANGSMITH_ENABLED:-false}
+      LANGSMITH_API_KEY: ${LANGSMITH_API_KEY:-}
+      LANGSMITH_PROJECT: ${LANGSMITH_PROJECT:-estatewise-agentic-ai}
+      LANGSMITH_ENDPOINT: ${LANGSMITH_ENDPOINT:-}
+      LANGSMITH_RUN_TAGS: ${LANGSMITH_RUN_TAGS:-estatewise,agentic-ai}
+      LANGSMITH_STRICT: ${LANGSMITH_STRICT:-false}
+    tty: true
+    stdin_open: true
+    command: ["--langgraph"]
