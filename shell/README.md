@@ -1,6 +1,6 @@
 # Shell Utilities
 
-Production-oriented helper scripts for development, CI, Docker builds, and Terraform workflows. These scripts are thin wrappers around npm, Docker, AWS CLI, and Terraform with consistent logging and safety checks.
+Production-oriented helper scripts for development, CI, container builds (Docker/Podman), and Terraform workflows. These scripts are thin wrappers around npm, Docker/Podman, AWS CLI, and Terraform with consistent logging and safety checks.
 
 ## Workflow Overview
 
@@ -25,9 +25,18 @@ flowchart LR
 Build a portable dev/CI toolbox image with Node, Terraform, AWS CLI, git, curl, jq, and build essentials:
 
 ```bash
+# Docker
 docker build -t estatewise-tools -f shell/Dockerfile .
-
 docker run --rm -it \
+  -v "$(pwd)":/workspace \
+  -w /workspace \
+  -p 3000:3000 \
+  -p 3001:3001 \
+  estatewise-tools
+
+# Podman
+podman build -t estatewise-tools -f shell/Dockerfile .
+podman run --rm -it \
   -v "$(pwd)":/workspace \
   -w /workspace \
   -p 3000:3000 \

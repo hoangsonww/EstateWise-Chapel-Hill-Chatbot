@@ -566,9 +566,9 @@ graph TD
 
 ## Agentic AI Orchestrator
 
-- **Container Image** – See `agentic-ai/Dockerfile`; build with `docker build -f agentic-ai/Dockerfile .` and push to your registry.
+- **Container Image** – See `agentic-ai/Dockerfile`; build with `docker build -f agentic-ai/Dockerfile .` (or `podman build`) and push to your registry.
 - **Docker Compose** – `agentic-ai/docker-compose.yaml` starts the orchestrator with all dependencies (LLM/Pinecone/Neo4j) supplied via `.env`.
-- **Podman** – `agentic-ai/podman-compose.yaml` for running the orchestrator in a Podman environment with similar env var configuration.
+- **Podman** – `agentic-ai/podman-compose.yaml` for running the orchestrator under Podman (identical service config, no deprecated `version` key). Requires Podman 4.1+.
 - **Kubernetes** – Apply `agentic-ai/k8s/` manifests (ConfigMap, Secret, Deployment) to run the CLI in a cluster with tty/stdin enabled.
 - **Cloud providers** – Fargate template (`agentic-ai/aws/ecs-service.yaml`), Azure Container Apps Bicep (`agentic-ai/azure/containerapp.bicep`), and Cloud Run config (`agentic-ai/gcp/cloudrun.yaml`).
 
@@ -578,9 +578,9 @@ Full instructions live in [agentic-ai/DEPLOYMENT.md](agentic-ai/DEPLOYMENT.md).
 
 ## MCP Server
 
-- **Container Image** – `mcp/Dockerfile` packages the MCP stdio server for sidecar usage; build/push to `ghcr.io/your-org/estatewise-mcp`.
+- **Container Image** – `mcp/Dockerfile` packages the MCP stdio server for sidecar usage; build with `docker build` or `podman build` and push to `ghcr.io/your-org/estatewise-mcp`.
 - **Docker Compose** – `mcp/docker-compose.yaml` runs the server with caches tuned via env vars.
-- **Podman** – `mcp/podman-compose.yaml` for running the MCP server in a Podman environment with similar env var configuration.
+- **Podman** – `mcp/podman-compose.yaml` for running the MCP server under Podman (identical service config, no deprecated `version` key). Requires Podman 4.1+.
 - **Kubernetes Sidecar** – `mcp/k8s/sidecar-example.yaml` demonstrates pairing the MCP container with the Agentic AI deployment in the same pod.
 - **Cloud providers** – Fargate template (`mcp/aws/ecs-service.yaml`), Azure Container Apps Bicep (`mcp/azure/containerapp.bicep`), and Cloud Run config (`mcp/gcp/cloudrun.yaml`).
 
@@ -719,11 +719,13 @@ az pipelines run --name estatewise-container-apps --variables IMAGE_TAG=$(git re
 # Trigger Cloud Build manually
 gcloud builds submit --config gcp/cloudbuild.yaml --substitutions=_REGION=us-east1
 
-# Build Agentic AI container image
+# Build Agentic AI container image (Docker or Podman)
 docker build -f agentic-ai/Dockerfile -t ghcr.io/your-org/estatewise-agentic:latest .
+# podman build -f agentic-ai/Dockerfile -t ghcr.io/your-org/estatewise-agentic:latest .
 
-# Build MCP server image
+# Build MCP server image (Docker or Podman)
 docker build -t ghcr.io/your-org/estatewise-mcp:latest mcp/
+# podman build -t ghcr.io/your-org/estatewise-mcp:latest mcp/
 
 # Bootstrap GitOps control plane
 bash kubernetes/gitops/bootstrap.sh

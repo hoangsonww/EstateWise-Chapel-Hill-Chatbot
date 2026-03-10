@@ -1,15 +1,19 @@
 # Agentic AI Deployment Guide
 
-![Docker](https://img.shields.io/badge/Docker-Container-blue?logo=docker) ![Kubernetes](https://img.shields.io/badge/Kubernetes-Orchestration-blue?logo=kubernetes)
+![Docker](https://img.shields.io/badge/Docker-Container-blue?logo=docker) ![Podman](https://img.shields.io/badge/Podman-Container-892CA0?logo=podman) ![Kubernetes](https://img.shields.io/badge/Kubernetes-Orchestration-blue?logo=kubernetes)
 
-This guide covers packaging and running the Agentic AI CLI in production. The Docker image includes the Node.js orchestrator, the built MCP server, and the optional CrewAI Python runtime.
+This guide covers packaging and running the Agentic AI CLI in production. The container image includes the Node.js orchestrator, the built MCP server, and the optional CrewAI Python runtime.
 
 ## Build & Push
 
 ```bash
-# From repo root
- docker build -f agentic-ai/Dockerfile -t ghcr.io/your-org/estatewise-agentic:latest .
- docker push ghcr.io/your-org/estatewise-agentic:latest
+# From repo root — Docker
+docker build -f agentic-ai/Dockerfile -t ghcr.io/your-org/estatewise-agentic:latest .
+docker push ghcr.io/your-org/estatewise-agentic:latest
+
+# From repo root — Podman
+podman build -f agentic-ai/Dockerfile -t ghcr.io/your-org/estatewise-agentic:latest .
+podman push ghcr.io/your-org/estatewise-agentic:latest
 ```
 
 ## Required Environment Variables
@@ -24,12 +28,13 @@ This guide covers packaging and running the Agentic AI CLI in production. The Do
 | `LANGSMITH_ENABLED` / `LANGSMITH_API_KEY` | Enable LangSmith tracing and authenticate ingestion (optional, recommended). |
 | `LANGSMITH_PROJECT` / `LANGSMITH_ENDPOINT` | Project and endpoint overrides for LangSmith traces (optional). |
 
-The container runs `node dist/index.js` by default. Command flags like `--langgraph` or `--crewai` can be passed via `docker run` or Kubernetes `args`.
+The container runs `node dist/index.js` by default. Command flags like `--langgraph` or `--crewai` can be passed via `docker run` / `podman run` or Kubernetes `args`.
 
-## Docker Compose
+## Docker / Podman Compose
+
+Both `docker-compose.yaml` and `podman-compose.yaml` are provided in this directory. They are functionally identical.
 
 ```yaml
-version: "3.9"
 services:
   agentic-ai:
     image: ghcr.io/your-org/estatewise-agentic:latest
@@ -46,7 +51,15 @@ services:
     command: ["--langgraph"]
 ```
 
-Launch with `docker compose up -d agentic-ai`. Use `docker compose exec agentic-ai node dist/index.js "Find houses in Chapel Hill"` to issue ad‑hoc commands.
+```bash
+# Docker
+docker compose up -d agentic-ai
+docker compose exec agentic-ai node dist/index.js "Find houses in Chapel Hill"
+
+# Podman
+podman compose up -d agentic-ai
+podman compose exec agentic-ai node dist/index.js "Find houses in Chapel Hill"
+```
 
 ## Kubernetes Deployment
 
@@ -73,7 +86,7 @@ Agentic AI automatically spawns the MCP server from `/app/mcp/dist/server.js`. W
 
 ## CrewAI Runtime
 
-The Docker image contains a Python virtual environment at `/opt/crewai`. Enable it by setting `AGENT_RUNTIME=crewai` or invoking `node dist/index.js --crewai "goal"`. The CrewAI runner expects `OPENAI_API_KEY`.
+The container image contains a Python virtual environment at `/opt/crewai`. Enable it by setting `AGENT_RUNTIME=crewai` or invoking `node dist/index.js --crewai "goal"`. The CrewAI runner expects `OPENAI_API_KEY`.
 
 ## Checklist
 

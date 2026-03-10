@@ -61,12 +61,20 @@ Destroy:
 terraform destroy -var 'container_image=...'
 ```
 
-## Run Terraform in Docker
+## Run Terraform in Docker / Podman
 
 ```bash
+# Docker
 docker build -t estatewise-terraform -f terraform/Dockerfile .
-
 docker run --rm -it \
+  -v "$(pwd)":/workspace \
+  -v "$HOME/.aws":/home/terraform/.aws:ro \
+  -w /workspace/terraform \
+  estatewise-terraform init
+
+# Podman
+podman build -t estatewise-terraform -f terraform/Dockerfile .
+podman run --rm -it \
   -v "$(pwd)":/workspace \
   -v "$HOME/.aws":/home/terraform/.aws:ro \
   -w /workspace/terraform \

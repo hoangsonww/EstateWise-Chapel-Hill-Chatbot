@@ -16,14 +16,15 @@ flowchart LR
 ```
 
 ## What's Included
-- `compose.prod.yml`: Full-stack production compose (frontend, backend, nginx, mongo; optional neo4j).
+- `compose.prod.yml`: Full-stack production compose for Docker (frontend, backend, nginx, mongo; optional neo4j).
+- `podman-compose.prod.yml`: Equivalent full-stack compose for Podman (same services, no `version` key).
 - `backend.Dockerfile`: Multi-stage backend image with healthcheck.
 - `frontend.Dockerfile`: Multi-stage Next.js image with healthcheck.
 - `agentic-ai.Dockerfile`: Multi-stage Agentic AI + MCP image with healthcheck.
 - `nginx/`: Reverse proxy that routes `/api` + `/trpc` to the backend and all other traffic to the frontend.
 
 ## Prerequisites
-- Docker + Docker Compose (v2+).
+- **Docker** + Docker Compose (v2+), **or** **Podman** (4.1+) with `podman-compose` or the `podman compose` plugin.
 - A root `.env` file based on `/.env.example`.
 
 ## Quick Start
@@ -33,7 +34,11 @@ flowchart LR
 
 2) Build and run:
    ```bash
+   # Docker
    docker compose -f docker/compose.prod.yml --env-file .env up --build -d
+
+   # Podman
+   podman compose -f docker/podman-compose.prod.yml --env-file .env up --build -d
    ```
 
 3) Access:
@@ -91,13 +96,21 @@ flowchart TB
 ## Neo4j (optional)
 Enable the Neo4j container via profile and update the `.env` values:
 ```bash
+# Docker
 docker compose -f docker/compose.prod.yml --profile graph --env-file .env up -d
+
+# Podman
+podman compose -f docker/podman-compose.prod.yml --profile graph --env-file .env up -d
 ```
 
 ## Agentic AI (optional)
 Enable the Agentic AI HTTP server via profile:
 ```bash
+# Docker
 docker compose -f docker/compose.prod.yml --profile agentic --env-file .env up -d
+
+# Podman
+podman compose -f docker/podman-compose.prod.yml --profile agentic --env-file .env up -d
 ```
 
 Then call `POST /run` on `http://localhost:4318` with `{ goal, runtime?, rounds?, threadId? }`.
@@ -128,20 +141,35 @@ sequenceDiagram
 
 ## Operational Guidance
 - Healthchecks are baked into backend, frontend, and agentic images.
-- Use `docker compose logs -f backend` to inspect API startup and Mongo connectivity.
+- Use `docker compose logs -f backend` (or `podman compose logs -f backend`) to inspect API startup and Mongo connectivity.
 - For production TLS, terminate HTTPS in front of Nginx (load balancer or managed ingress).
 - Scale backend/agentic with replicas behind Nginx if needed (external orchestrator required).
 
 ## Stopping
 ```bash
+# Docker
 docker compose -f docker/compose.prod.yml down
+
+# Podman
+podman compose -f docker/podman-compose.prod.yml down
 ```
 
 ## Cleanup
 To remove all containers, networks, and volumes created by the compose file:
 ```bash
+# Docker
 docker compose -f docker/compose.prod.yml down -v
+
+# Podman
+podman compose -f docker/podman-compose.prod.yml down -v
 ```
+
+## Podman Notes
+- Podman 4.1+ is required for BuildKit-style `--mount=type=cache` directives in the Dockerfiles.
+- Podman reads `Dockerfile` natively — no `Containerfile` symlinks are needed.
+- `.containerignore` files are included alongside `.dockerignore` for Podman tooling that checks for them.
+- If you hit permission issues with rootless Podman, add `:Z` to volume mounts for SELinux relabeling (e.g., `./logs:/var/log/mcp:Z`).
+- `podman-compose` (PyPI) and the built-in `podman compose` plugin both work. The plugin ships with Podman 4.7+.
 
 For more advanced setups (e.g., Kubernetes, cloud deployments), refer to the respective
 documentation in the repository.

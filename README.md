@@ -946,8 +946,7 @@ See [DEVOPS.md](DEVOPS.md) for detailed guides and [kubernetes/scripts/](kuberne
   - **GCP Cloud Run**: Serverless container deployment option via Cloud Build; autoscaling to zero when idle.
   - **Microsoft Azure**: Another option for hosting the backend with easy scaling.
   - **Vercel** (Backup): Node server largely stateless, can run on Vercel for smaller workloads.
-  - **Docker**: Containerized backend for consistent environments across dev, test, and prod.
-  - **Podman**: Alternative to Docker for containerization, with similar commands and workflows.
+  - **Docker / Podman**: Containerized backend for consistent environments across dev, test, and prod. Both Docker Compose and Podman Compose files are provided (see [`docker/README.md`](docker/README.md)).
   - **Load Balancing & SSL**: ALB (AWS) or Cloud Load Balancing (GCP) with managed SSL certs for secure HTTPS.
   - **Secrets Management**: Vault (HashiCorp), AWS Secrets Manager, or GCP Secret Manager for sensitive config.
 
@@ -1228,8 +1227,8 @@ EstateWise/
 ├── .env                      # Environment variables for development
 ├── README.md                 # This file
 ├── TECH_DOCS.md              # Detailed technical documentation (highly recommended to read)
-├── docker-compose.yml        # Docker configuration for backend and frontend
-├── Dockerfile                # Dockerfile for application
+├── docker-compose.yml        # Docker/Podman Compose configuration for backend and frontend
+├── Dockerfile                # Root Dockerfile for application
 ├── openapi.yaml              # OpenAPI specification for API documentation
 ├── EDA-CLI-Chatbot.ipynb        # Jupyter notebook for CLI chatbot
 ├── Initial-Data-Analysis.ipynb  # Jupyter notebook for initial data analysis
@@ -1241,14 +1240,25 @@ EstateWise/
 
 To run the application **(OPTIONAL)** using Docker or Podman:
 
-1. Ensure you have [Docker](https://www.docker.com/) or [Podman](https://podman.io/) installed.
-2. In the project root directory, run:
+1. Ensure you have [Docker](https://www.docker.com/) (v2+) or [Podman](https://podman.io/) (4.1+) installed.
+2. Copy `/.env.example` to `/.env` and fill in real values.
+3. In the project root directory, run:
 
    ```bash
-   docker-compose up --build    # or with Podman: podman-compose up --build
+   # Docker — quick start (basic compose, frontend + backend only)
+   docker compose up --build
+
+   # Docker — production stack (nginx, mongo, healthchecks)
+   docker compose -f docker/compose.prod.yml --env-file .env up --build -d
+
+   # Podman — quick start
+   podman compose up --build
+
+   # Podman — production stack
+   podman compose -f docker/podman-compose.prod.yml --env-file .env up --build -d
    ```
 
-This command builds and starts both the backend and frontend services as defined in the `docker-compose.yml` file.
+See [`docker/README.md`](docker/README.md) for full details on ports, profiles, and optional services (Neo4j, Agentic AI).
 
 However, you don't need to run the app using Docker or Podman. You can run the backend and frontend separately as described in the **Setup & Installation** section.
 
@@ -2093,10 +2103,16 @@ For more details, see [jsdoc.app](https://jsdoc.app) and [typedoc.org](https://t
 
 ## Containerization
 
-The application is containerized using Docker to ensure consistent, portable, and reproducible builds across different environments.
+The application is containerized using Docker or Podman to ensure consistent, portable, and reproducible builds across different environments.
 
 * **Backend and Frontend Dockerfiles:**
   The `backend/Dockerfile` and `frontend/Dockerfile` define how to build the container images for their respective services. They include steps to install dependencies, build the code, and configure the production servers.
+
+* **Production Stack:**
+  The `docker/` directory contains a full production compose stack (`compose.prod.yml` for Docker, `podman-compose.prod.yml` for Podman) with Nginx, MongoDB, healthchecks, and optional Neo4j/Agentic AI profiles. See [`docker/README.md`](docker/README.md) for details.
+
+* **Package-level Compose:**
+  Each package with its own container also ships a `podman-compose.yaml` alongside its `docker-compose.yaml` (`agentic-ai/`, `mcp/`).
 
 * **GitHub Actions Integration:**
   As part of the CI/CD pipeline, the workflow automatically builds these Docker images after testing and linting have succeeded. It uses the `docker/build-push-action@v5` to build the images and then push them to GitHub Container Registry (GHCR).
@@ -2104,11 +2120,15 @@ The application is containerized using Docker to ensure consistent, portable, an
 * **Image Scanning:**
   Once the images are built and published, they are scanned for vulnerabilities using Trivy in the pipeline to catch any security issues before deployment.
 
-* **docker-compose Usage (Local):**
-  For local development or quick testing, a `docker-compose.yml` file is included. This file defines both the backend and frontend containers, along with their dependencies, allowing you to spin up the entire stack with a single command:
+* **Local Usage:**
+  For local development or quick testing:
 
   ```bash
-  docker-compose up --build     # or with Podman:  podman-compose up --build
+  # Docker
+  docker compose up --build
+
+  # Podman
+  podman compose up --build
   ```
 
 * **Deployment:**

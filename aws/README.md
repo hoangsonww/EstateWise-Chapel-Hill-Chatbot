@@ -107,13 +107,13 @@ Environment variables required by the script:
 - `JWT_SECRET`, `GOOGLE_AI_API_KEY`, `PINECONE_API_KEY`
 - Optional: `PINECONE_INDEX`, `MONGO_INITDB_DATABASE`
 
-## Local Dev (docker-compose)
+## Local Dev (Docker / Podman Compose)
 
 `docker-compose.yml` provides DocumentDB-local plus frontend/backend containers:
 
 ```bash
 cd aws
-docker compose up --build
+docker compose up --build    # or: podman compose up --build
 ```
 
 Set `MONGO_URI`, `JWT_SECRET`, `GOOGLE_AI_API_KEY`, `PINECONE_API_KEY`, and `PINECONE_INDEX` in the compose file first.

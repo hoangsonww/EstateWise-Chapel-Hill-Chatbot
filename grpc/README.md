@@ -58,10 +58,15 @@ Create a `.env` file in `grpc/` to override defaults.
 
 ## Deployment
 
-- **Docker**:
+- **Docker / Podman**:
   ```bash
+  # Docker
   docker build -t estatewise/market-pulse-grpc .
   docker run -p 50051:50051 estatewise/market-pulse-grpc
+
+  # Podman
+  podman build -t estatewise/market-pulse-grpc .
+  podman run -p 50051:50051 estatewise/market-pulse-grpc
   ```
 - **AWS ECS**: see `grpc/aws/README.md`.
 - **Azure Container Apps**: see `grpc/azure/README.md`.

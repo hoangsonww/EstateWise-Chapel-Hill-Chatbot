@@ -1435,9 +1435,9 @@ This section describes how to monitor, debug, and troubleshoot the GitHub Action
   * Confirm that the `DB_*` secrets are valid and that the database is reachable from the GitHub runner.
   * Validate that firewalls or network rules allow connections from GitHub-hosted runners.
 
-* **Docker and Deployment**
+* **Container Image and Deployment**
 
-  * If Docker pushes fail, verify that `GHCR` credentials are correct and that the user has permission to push packages.
+  * If Docker/Podman pushes fail, verify that `GHCR` credentials are correct and that the user has permission to push packages.
   * For AWS or Vercel deploy steps, confirm that deployment secrets are valid and permissions are correct.
 
 **Common troubleshooting commands:**
@@ -1466,13 +1466,16 @@ Rolling back quickly ensures minimal disruption for users and reduces operationa
   * Use your infrastructure-as-code (IaC) tools (e.g., CloudFormation, Terraform) to redeploy the previous working stack definition.
   * If using Docker images, redeploy the prior known working tag (e.g., `ghcr.io/owner/estatewise-app-frontend:previous`).
 
-* **Docker Images Rollback**
+* **Container Images Rollback**
 
   * If the latest pushed image is broken, redeploy an earlier image tagged as `latest` or use a SHA-tagged release:
 
     ```bash
     docker pull ghcr.io/your-org/estatewise-app-frontend:<previous-sha>
     docker run ...
+    # Or with Podman:
+    # podman pull ghcr.io/your-org/estatewise-app-frontend:<previous-sha>
+    # podman run ...
     ```
   * For Kubernetes or similar orchestrators, update the deployment to use the previous container image tag.
 
@@ -1566,7 +1569,8 @@ Below is a simplified flow diagram of the entire application architecture, from 
          │ - AI processing & RAG       │
          │ - MongoDB & Pinecone        │
          │ - Swagger API Docs          │
-         │ - Dockerized for deployment │
+         │ - Containerized (Docker/    │
+         │   Podman) for deployment   │
          └─────────────┬───────────────┘
                        │
                        │

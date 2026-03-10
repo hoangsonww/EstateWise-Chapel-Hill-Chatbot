@@ -108,6 +108,7 @@ npm start "Lookup ZPID for 123 Main St, Chapel Hill, NC and show similar homes n
 
 - **Container Image** – Production Dockerfile is provided; see [DEPLOYMENT.md](DEPLOYMENT.md) for build/push instructions.
 - **Docker Compose** – `docker-compose.yaml` launches the orchestrator with all dependencies.
+- **Podman Compose** – `podman-compose.yaml` provides the same config for Podman users (Podman 4.1+).
 - **Kubernetes** – Manifests under [`k8s/`](k8s) deploy the CLI (with embedded MCP server) to a cluster.
 
 > [!TIP]
