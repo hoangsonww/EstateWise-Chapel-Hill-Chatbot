@@ -36,7 +36,7 @@ jobs:
           ls -R .
 
   # ────────────────────────────────────────────────────────────────
-  #  💾 0.1 Cache Dependencies                                     #
+  #  💾 0.5 Cache Dependencies                                     #
   #   Caches npm dependencies to speed up the pipeline.            #
   # ────────────────────────────────────────────────────────────────
   cache-deps:
