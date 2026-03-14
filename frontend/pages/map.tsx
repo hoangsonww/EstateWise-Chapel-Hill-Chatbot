@@ -12,8 +12,10 @@ import { useRouter } from "next/router";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { searchPropertiesForMap, getPropertiesByIds } from "@/lib/api";
+import { Label } from "@/components/ui/label";
+import { searchPropertiesForMap, getPropertiesByIds, createSavedSearch } from "@/lib/api";
 import { toast } from "sonner";
+import Cookies from "js-cookie";
 import {
   MapPin,
   BarChart3,
@@ -25,10 +27,13 @@ import {
   HelpCircle,
   Users,
   Settings,
+  Bookmark,
+  Bell,
 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -223,6 +228,16 @@ export default function MapPage() {
   const [listings, setListings] = useState<Listing[]>([]);
   const [q, setQ] = useState(qParam);
 
+  // Save-search dialog state
+  const token = useMemo(
+    () => Cookies.get("estatewise_token") || Cookies.get("token") || "",
+    [],
+  );
+  const isAuthed = Boolean(token);
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+  const [saveName, setSaveName] = useState("");
+  const [saving, setSaving] = useState(false);
+
   const navLinks = [
     { href: "/chat", label: "Chat", Icon: MessageCircleMore },
     { href: "/insights", label: "Insights", Icon: GitBranch },
@@ -364,6 +379,39 @@ export default function MapPage() {
     router.push({ pathname: "/map", query: { q } });
   }
 
+  async function handleSaveSearch() {
+    if (!q.trim()) {
+      toast.error("Run a search first before saving it.");
+      return;
+    }
+    if (!isAuthed) {
+      toast.error("Please log in to save searches.");
+      return;
+    }
+    setSaveDialogOpen(true);
+    setSaveName(q.trim());
+  }
+
+  async function confirmSaveSearch() {
+    if (!saveName.trim()) {
+      toast.error("Please enter a name for this search.");
+      return;
+    }
+    setSaving(true);
+    try {
+      await createSavedSearch(
+        { name: saveName.trim(), query: q.trim(), alertTypes: ["new_match"], frequency: "daily" },
+        token,
+      );
+      toast.success("Search saved! Manage alerts in Saved Searches.");
+      setSaveDialogOpen(false);
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to save search");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return (
     <>
       <Head>
@@ -435,13 +483,37 @@ export default function MapPage() {
                 )}
               </div>
               <Tooltip>
-                <TooltipTrigger asChild>
-                  <span>
-                    <DarkModeToggle />
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent>Toggle theme</TooltipContent>
-              </Tooltip>
+                  <TooltipTrigger asChild>
+                    <Link
+                      href="/saved-searches"
+                      className="inline-flex h-8 w-8 items-center justify-center hover:text-primary transition-colors"
+                      aria-label="Saved Searches"
+                    >
+                      <Bookmark className="w-5 h-5" />
+                    </Link>
+                  </TooltipTrigger>
+                  <TooltipContent>Saved Searches</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Link
+                      href="/notifications"
+                      className="inline-flex h-8 w-8 items-center justify-center hover:text-primary transition-colors"
+                      aria-label="Notifications"
+                    >
+                      <Bell className="w-5 h-5" />
+                    </Link>
+                  </TooltipTrigger>
+                  <TooltipContent>Notifications</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span>
+                      <DarkModeToggle />
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>Toggle theme</TooltipContent>
+                </Tooltip>
             </nav>
           </div>
         </header>
@@ -552,6 +624,17 @@ export default function MapPage() {
                       refine. For specific homes, pass{" "}
                       <code>?zpids=123,456</code> in the URL.
                     </div>
+                    {q.trim() && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full flex items-center gap-2"
+                        onClick={handleSaveSearch}
+                      >
+                        <Bookmark className="w-4 h-4" />
+                        Save this search as an alert
+                      </Button>
+                    )}
                     {/* Removed current map link display per request */}
                   </CardContent>
                 </Card>
@@ -580,6 +663,45 @@ export default function MapPage() {
           </motion.div>
         </motion.main>
       </div>
+
+      {/* ── Save Search Dialog ── */}
+      <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Save this search as an alert</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="space-y-1">
+              <Label htmlFor="map-save-name">Name</Label>
+              <Input
+                id="map-save-name"
+                placeholder="e.g. 3BR Chapel Hill"
+                value={saveName}
+                onChange={(e) => setSaveName(e.target.value)}
+              />
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Query: <span className="font-medium text-foreground">{q}</span>
+            </p>
+            <p className="text-xs text-muted-foreground">
+              You will be notified daily when new listings match this search.
+              Manage alert preferences in{" "}
+              <Link href="/saved-searches" className="underline text-primary">
+                Saved Searches
+              </Link>
+              .
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSaveDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={confirmSaveSearch} disabled={saving}>
+              {saving ? "Saving…" : "Save"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

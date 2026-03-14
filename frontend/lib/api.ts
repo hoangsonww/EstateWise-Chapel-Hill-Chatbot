@@ -485,3 +485,196 @@ export async function downvoteComment(
   }
   return await res.json();
 }
+
+// ─── Saved Searches ──────────────────────────────────────────────────────────
+
+export type AlertFrequency = "hourly" | "daily" | "custom";
+export type AlertType = "new_match" | "price_drop" | "status_change";
+
+export interface SavedSearch {
+  _id: string;
+  userId: string;
+  name: string;
+  query: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  filters?: Record<string, any>;
+  frequency: AlertFrequency;
+  alertTypes: AlertType[];
+  lastRunAt?: string | null;
+  lastResultIds: string[];
+  priceDropPercent?: number | null;
+  priceDropAmount?: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateSavedSearchPayload {
+  name: string;
+  query: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  filters?: Record<string, any>;
+  frequency?: AlertFrequency;
+  alertTypes?: AlertType[];
+  priceDropPercent?: number;
+  priceDropAmount?: number;
+}
+
+/**
+ * Creates a new saved search.
+ */
+export async function createSavedSearch(
+  payload: CreateSavedSearchPayload,
+  token: string,
+): Promise<SavedSearch> {
+  const res = await fetch(`${API_BASE_URL}/api/saved-searches`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || "Failed to create saved search");
+  }
+  return await res.json();
+}
+
+/**
+ * Returns all saved searches for the authenticated user.
+ */
+export async function getSavedSearches(token: string): Promise<SavedSearch[]> {
+  const res = await fetch(`${API_BASE_URL}/api/saved-searches`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || "Failed to fetch saved searches");
+  }
+  return await res.json();
+}
+
+/**
+ * Updates a saved search by ID.
+ */
+export async function updateSavedSearch(
+  id: string,
+  payload: Partial<CreateSavedSearchPayload>,
+  token: string,
+): Promise<SavedSearch> {
+  const res = await fetch(`${API_BASE_URL}/api/saved-searches/${id}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || "Failed to update saved search");
+  }
+  return await res.json();
+}
+
+/**
+ * Deletes a saved search by ID.
+ */
+export async function deleteSavedSearch(
+  id: string,
+  token: string,
+): Promise<void> {
+  const res = await fetch(`${API_BASE_URL}/api/saved-searches/${id}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || "Failed to delete saved search");
+  }
+}
+
+// ─── Notifications ────────────────────────────────────────────────────────────
+
+export interface AppNotification {
+  _id: string;
+  userId: string;
+  type: AlertType;
+  title: string;
+  body: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  metadata?: Record<string, any>;
+  isRead: boolean;
+  eventKey: string;
+  createdAt: string;
+}
+
+/**
+ * Fetches notifications for the authenticated user.
+ * @param unreadOnly - When true, only returns unread notifications.
+ */
+export async function getNotifications(
+  token: string,
+  unreadOnly = false,
+): Promise<AppNotification[]> {
+  const url = `${API_BASE_URL}/api/notifications${unreadOnly ? "?unreadOnly=true" : ""}`;
+  const res = await fetch(url, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || "Failed to fetch notifications");
+  }
+  return await res.json();
+}
+
+/**
+ * Returns the count of unread notifications.
+ */
+export async function getUnreadNotificationCount(
+  token: string,
+): Promise<number> {
+  const res = await fetch(`${API_BASE_URL}/api/notifications/unread-count`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) return 0;
+  const data = await res.json();
+  return data.count ?? 0;
+}
+
+/**
+ * Marks a single notification as read.
+ */
+export async function markNotificationRead(
+  id: string,
+  token: string,
+): Promise<AppNotification> {
+  const res = await fetch(`${API_BASE_URL}/api/notifications/${id}/read`, {
+    method: "PUT",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || "Failed to mark notification as read");
+  }
+  return await res.json();
+}
+
+/**
+ * Marks all notifications as read.
+ */
+export async function markAllNotificationsRead(
+  token: string,
+): Promise<{ updated: number }> {
+  const res = await fetch(`${API_BASE_URL}/api/notifications/read-all`, {
+    method: "PUT",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || "Failed to mark all notifications as read");
+  }
+  return await res.json();
+}
+
