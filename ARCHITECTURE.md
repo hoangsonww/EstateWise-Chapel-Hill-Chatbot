@@ -291,6 +291,11 @@ EstateWise implements three complementary API protocols to serve different use c
 - **Use Cases**: Public API, mobile apps, third-party integrations
 - **Documentation**: OpenAPI/Swagger at `/api-docs`
 - **Authentication**: JWT tokens in Authorization header
+- **Key Graph Endpoints**:
+  - `GET /api/graph/similar/:zpid`
+  - `GET /api/graph/explain?from=<zpid>&to=<zpid>`
+  - `GET /api/graph/neighborhood/:name`
+  - `GET /api/graph/overview?limit=250` (sampled global graph payload for UI visualization)
 
 ### tRPC (TypeScript-first)
 - **Protocol**: JSON over HTTP with type inference
@@ -391,6 +396,11 @@ flowchart TD
 ```
 
 ### Graph Service (Neo4j)
+
+- Supports explainability and graph-native UI workflows:
+  - Similar-property reasoning and path explanations.
+  - Neighborhood aggregate summaries with sampled listings.
+  - Sampled global overview payload (`/api/graph/overview`) for browser-safe visualization of large graphs.
 
 ```mermaid
 graph LR
@@ -665,10 +675,13 @@ graph TD
   Insights --> Tools[Graph Tools]
   Insights --> Calc[Calculators]
   Insights --> ZPID[ZPID Finder]
+  Insights --> GlobalGraph[Global Graph View]
 
   Map --> Leaflet[Leaflet Map]
   Map --> Markers[Property Markers]
   Map --> Controls[Map Controls]
+  Map --> ResultsPanel[Results Panel<br/>Snapshot + Top Matches]
+  ResultsPanel --> FocusMap[Focus Marker Actions]
 ```
 
 ### State Management
