@@ -178,6 +178,16 @@ export async function graphNeighborhood(name: string, limit = 50) {
   return await res.json();
 }
 
+export async function graphOverview(limit = 250) {
+  const url = `${API_BASE_URL}/api/graph/overview?limit=${limit}`;
+  const res = await fetch(url);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Graph overview failed (${res.status})`);
+  }
+  return await res.json();
+}
+
 // Properties API
 export async function getPropertiesByIds(zpids: (string | number)[]) {
   const ids = zpids.map(String).join(",");

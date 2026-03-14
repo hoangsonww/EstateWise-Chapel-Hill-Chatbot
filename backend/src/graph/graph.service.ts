@@ -21,6 +21,39 @@ export interface SimilarWithReason {
   reasons: string[];
 }
 
+export interface GraphOverviewNode {
+  id: string;
+  type: "property" | "zip" | "neighborhood";
+  label: string;
+  zpid?: number;
+  price?: number | null;
+  code?: string;
+  name?: string;
+}
+
+export interface GraphOverviewEdge {
+  source: string;
+  target: string;
+  type: "IN_ZIP" | "IN_NEIGHBORHOOD";
+}
+
+export interface GraphOverview {
+  totals: {
+    properties: number;
+    zips: number;
+    neighborhoods: number;
+    edges: number;
+  };
+  sample: {
+    properties: number;
+    zips: number;
+    neighborhoods: number;
+    edges: number;
+  };
+  nodes: GraphOverviewNode[];
+  edges: GraphOverviewEdge[];
+}
+
 export async function getSimilarByZpid(
   zpid: number,
   limit = 10,
@@ -115,5 +148,108 @@ export async function getNeighborhoodStats(
     avgPrice: r.avgPrice != null ? Number(r.avgPrice) : null,
     avgArea: r.avgArea != null ? Number(r.avgArea) : null,
     properties: (r.properties || []) as GraphProperty[],
+  };
+}
+
+export async function getGraphOverview(limit = 250): Promise<GraphOverview> {
+  const totalsRows = await runRead(
+    `
+    CALL {
+      MATCH (p:Property)
+      RETURN count(p) AS properties
+    }
+    CALL {
+      MATCH (z:Zip)
+      RETURN count(z) AS zips
+    }
+    CALL {
+      MATCH (n:Neighborhood)
+      RETURN count(n) AS neighborhoods
+    }
+    CALL {
+      MATCH (:Property)-[r:IN_ZIP|IN_NEIGHBORHOOD]->()
+      RETURN count(r) AS edges
+    }
+    RETURN properties, zips, neighborhoods, edges
+    `,
+  );
+
+  const sampleRows = await runRead(
+    `
+    MATCH (p:Property)
+    WHERE p.zpid IS NOT NULL
+    WITH p
+    ORDER BY p.zpid DESC
+    LIMIT toInteger($limit)
+    WITH collect(p) AS props
+    UNWIND props AS pz
+    OPTIONAL MATCH (pz)-[:IN_ZIP]->(z:Zip)
+    WITH props,
+      collect(DISTINCT z) AS zips,
+      collect(DISTINCT {
+        source: "p:" + toString(pz.zpid),
+        target: CASE WHEN z IS NULL THEN NULL ELSE "z:" + toString(z.code) END,
+        type: "IN_ZIP"
+      }) AS zipEdges
+    UNWIND props AS ph
+    OPTIONAL MATCH (ph)-[:IN_NEIGHBORHOOD]->(n:Neighborhood)
+    WITH props, zips, zipEdges,
+      collect(DISTINCT n) AS neighborhoods,
+      collect(DISTINCT {
+        source: "p:" + toString(ph.zpid),
+        target: CASE WHEN n IS NULL THEN NULL ELSE "n:" + n.name END,
+        type: "IN_NEIGHBORHOOD"
+      }) AS neighborhoodEdges
+    WITH
+      [p IN props WHERE p IS NOT NULL | {
+        id: "p:" + toString(p.zpid),
+        type: "property",
+        label: coalesce(p.streetAddress, "ZPID " + toString(p.zpid)),
+        zpid: p.zpid,
+        price: p.price
+      }] AS propertyNodes,
+      [z IN zips WHERE z IS NOT NULL | {
+        id: "z:" + toString(z.code),
+        type: "zip",
+        label: "ZIP " + toString(z.code),
+        code: z.code
+      }] AS zipNodes,
+      [n IN neighborhoods WHERE n IS NOT NULL | {
+        id: "n:" + n.name,
+        type: "neighborhood",
+        label: n.name,
+        name: n.name
+      }] AS neighborhoodNodes,
+      [e IN zipEdges WHERE e.target IS NOT NULL] AS zipEdgesFiltered,
+      [e IN neighborhoodEdges WHERE e.target IS NOT NULL] AS neighborhoodEdgesFiltered
+    RETURN
+      propertyNodes + zipNodes + neighborhoodNodes AS nodes,
+      zipEdgesFiltered + neighborhoodEdgesFiltered AS edges,
+      size(propertyNodes) AS propertyCount,
+      size(zipNodes) AS zipCount,
+      size(neighborhoodNodes) AS neighborhoodCount
+    `,
+    { limit },
+  );
+
+  const totals = (totalsRows[0] || {}) as Record<string, number>;
+  const sample = (sampleRows[0] || {}) as Record<string, any>;
+  const edges = (sample.edges || []) as GraphOverviewEdge[];
+
+  return {
+    totals: {
+      properties: Number(totals.properties || 0),
+      zips: Number(totals.zips || 0),
+      neighborhoods: Number(totals.neighborhoods || 0),
+      edges: Number(totals.edges || 0),
+    },
+    sample: {
+      properties: Number(sample.propertyCount || 0),
+      zips: Number(sample.zipCount || 0),
+      neighborhoods: Number(sample.neighborhoodCount || 0),
+      edges: Number(edges.length),
+    },
+    nodes: (sample.nodes || []) as GraphOverviewNode[],
+    edges,
   };
 }

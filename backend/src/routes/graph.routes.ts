@@ -3,6 +3,7 @@ import {
   similarByZpid,
   explainPropertyPath,
   neighborhoodStats,
+  graphOverview,
 } from "../controllers/graph.controller";
 
 const router = Router();
@@ -77,5 +78,23 @@ router.get("/explain", explainPropertyPath);
  *         description: Stats and properties
  */
 router.get("/neighborhood/:name", neighborhoodStats);
+
+/**
+ * @swagger
+ * /api/graph/overview:
+ *   get:
+ *     summary: Sampled global graph view for visualization
+ *     tags: [Graph]
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 250
+ *     responses:
+ *       200:
+ *         description: Sampled nodes/edges and total graph counts
+ */
+router.get("/overview", graphOverview);
 
 export default router;

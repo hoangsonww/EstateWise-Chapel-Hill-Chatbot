@@ -3,6 +3,7 @@ import {
   getSimilarByZpid,
   explainPath,
   getNeighborhoodStats,
+  getGraphOverview,
 } from "../graph/graph.service";
 import { isNeo4jEnabled } from "../graph/neo4j.client";
 
@@ -65,5 +66,22 @@ export async function neighborhoodStats(req: Request, res: Response) {
     return res
       .status(500)
       .json({ error: "Failed to retrieve neighborhood stats" });
+  }
+}
+
+export async function graphOverview(req: Request, res: Response) {
+  try {
+    if (!isNeo4jEnabled())
+      return res.status(503).json({ error: "Neo4j is not configured" });
+    const parsed = Number(req.query.limit ?? 250);
+    const limit = Math.max(
+      50,
+      Math.min(600, Number.isFinite(parsed) ? Math.floor(parsed) : 250),
+    );
+    const data = await getGraphOverview(limit);
+    return res.json(data);
+  } catch (err) {
+    console.error("/graph/overview error", err);
+    return res.status(500).json({ error: "Failed to retrieve graph overview" });
   }
 }
