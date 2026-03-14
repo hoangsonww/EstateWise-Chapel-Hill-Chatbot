@@ -1673,7 +1673,7 @@ export default function Home() {
                 <Link href="/map">
                   <Button
                     variant="ghost"
-                    className="rounded-full px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg cursor-pointer text-white hover:bg-white/10 hover:text-white"
+                    className="rounded-full px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg cursor-pointer text-white hover:bg-white/10 hover:text-white border-2 border-dashed border-white/70"
                     aria-label="Properties Map"
                     title="Properties Map"
                   >
