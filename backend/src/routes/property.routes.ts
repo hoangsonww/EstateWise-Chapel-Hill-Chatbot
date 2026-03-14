@@ -126,6 +126,61 @@ const router = Router();
  */
 router.get("/", getPropertyData);
 
+/**
+ * @swagger
+ * /api/properties/by-ids:
+ *   get:
+ *     summary: Fetch property metadata for a list of ZPIDs
+ *     tags: [Properties]
+ *     parameters:
+ *       - in: query
+ *         name: ids
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Comma-separated ZPIDs (for example `12345,67890`)
+ *     responses:
+ *       200:
+ *         description: List of matched properties with map-friendly fields
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 listings:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                       zpid:
+ *                         type: number
+ *                       price:
+ *                         type: number
+ *                       bedrooms:
+ *                         type: number
+ *                       bathrooms:
+ *                         type: number
+ *                       livingArea:
+ *                         type: number
+ *                       yearBuilt:
+ *                         type: number
+ *                       homeType:
+ *                         type: string
+ *                       homeStatus:
+ *                         type: string
+ *                       city:
+ *                         type: string
+ *                       zipcode:
+ *                         type: string
+ *                       latitude:
+ *                         type: number
+ *                       longitude:
+ *                         type: number
+ *       500:
+ *         description: Failed to fetch properties by ids
+ */
 router.get("/by-ids", getPropertiesByIds);
 
 /**

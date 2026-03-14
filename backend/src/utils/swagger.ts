@@ -47,6 +47,8 @@ const options = {
   apis: [
     "./src/routes/*.ts",
     "./src/routes/*.js",
+    "./src/server.ts",
+    "./src/server.js",
     "./src/models/*.ts",
     "./src/models/*.js",
   ],

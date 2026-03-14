@@ -24,6 +24,7 @@ import {
   graphSimilar,
   graphExplain,
   graphNeighborhood,
+  graphOverview,
   lookupZpid,
 } from "@/lib/api";
 import { toast } from "sonner";
@@ -55,6 +56,29 @@ import { motion } from "framer-motion";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type GraphNode = Record<string, any>;
 type GraphRel = { type: string };
+type GraphOverviewNode = {
+  id: string;
+  type: "property" | "zip" | "neighborhood";
+  label: string;
+  price?: number | null;
+};
+type GraphOverviewEdge = { source: string; target: string; type: string };
+type GraphOverviewData = {
+  totals: {
+    properties: number;
+    zips: number;
+    neighborhoods: number;
+    edges: number;
+  };
+  sample: {
+    properties: number;
+    zips: number;
+    neighborhoods: number;
+    edges: number;
+  };
+  nodes: GraphOverviewNode[];
+  edges: GraphOverviewEdge[];
+};
 
 function prettyMoney(n?: number | null) {
   if (n == null || isNaN(Number(n))) return "N/A";
@@ -666,6 +690,27 @@ export default function InsightsPage() {
       toast.error(e.message || "Failed to get neighborhood stats");
     } finally {
       setHoodLoading(false);
+    }
+  }
+
+  // ────────────────────────────────────────────────────────────────────────
+  // Graph Overview (sampled)
+  const [overviewLimit, setOverviewLimit] = useState(240);
+  const [overviewLoading, setOverviewLoading] = useState(false);
+  const [overviewData, setOverviewData] = useState<GraphOverviewData | null>(
+    null,
+  );
+
+  async function onFetchOverview() {
+    try {
+      setOverviewLoading(true);
+      const res = await graphOverview(overviewLimit);
+      setOverviewData(res as GraphOverviewData);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (e: any) {
+      toast.error(e.message || "Failed to load graph overview");
+    } finally {
+      setOverviewLoading(false);
     }
   }
 
@@ -1293,6 +1338,92 @@ The tool searches for connections through:
                     ) : (
                       <p className="text-sm text-muted-foreground">
                         Enter a neighborhood name to see summary stats.
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+              <motion.div variants={fadeUpItem}>
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                      <span className="flex items-center gap-2">
+                        <GitBranch className="w-5 h-5" /> Global Graph View
+                      </span>
+                      <HelpDialog
+                        title="How to Use Global Graph View"
+                        content={`This tool visualizes a substantial sampled subset of the full property graph database.
+
+**Why sampled:**
+• The full graph is very large (~30,000 properties)
+• Rendering everything at once would hurt browser performance
+
+**What you get:**
+• Property nodes
+• ZIP nodes
+• Neighborhood nodes
+• Property-to-ZIP and property-to-neighborhood relationships
+
+**Tips:**
+• Increase sample size for broader coverage
+• Use drag + zoom to inspect clusters
+• Node color indicates entity type`}
+                      />
+                    </CardTitle>
+                    <CardDescription>
+                      Explore a sampled global subgraph of all properties,
+                      neighborhoods, and ZIP relationships.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="flex flex-col gap-3">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
+                      <Field
+                        label={`Property Sample Size: ${overviewLimit}`}
+                        className="md:col-span-2"
+                      >
+                        <Slider
+                          value={[overviewLimit]}
+                          min={100}
+                          max={400}
+                          step={20}
+                          onValueChange={(v) => setOverviewLimit(v[0])}
+                          className="w-full"
+                        />
+                      </Field>
+                      <Button
+                        onClick={onFetchOverview}
+                        disabled={overviewLoading}
+                      >
+                        {overviewLoading ? "Loading..." : "Fetch"}
+                      </Button>
+                    </div>
+                    <Separator />
+                    {overviewData ? (
+                      <div className="space-y-3">
+                        <div className="text-sm">
+                          <span className="font-medium">Showing:</span>{" "}
+                          {overviewData.sample.properties} of{" "}
+                          {overviewData.totals.properties} properties •{" "}
+                          {overviewData.sample.zips} ZIPs •{" "}
+                          {overviewData.sample.neighborhoods} neighborhoods •{" "}
+                          {overviewData.sample.edges} edges
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Sampled for performance from the full graph database.
+                          Drag nodes and zoom to explore clusters.
+                        </p>
+                        <div className="rounded-md border p-2 bg-muted/30">
+                          <GlobalGraphSample
+                            nodes={overviewData.nodes}
+                            edges={overviewData.edges}
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">
+                        Fetch a sampled global graph view to explore the larger
+                        database without loading all properties at once.
                       </p>
                     )}
                   </CardContent>
@@ -2375,6 +2506,238 @@ function NeighborhoodForceGraph({
   }, [name, JSON.stringify((properties || []).slice(0, 60))]);
 
   return <svg ref={ref} className="w-full h-80" />;
+}
+
+function GlobalGraphSample({
+  nodes,
+  edges,
+}: {
+  nodes: GraphOverviewNode[];
+  edges: GraphOverviewEdge[];
+}) {
+  const ref = useRef<SVGSVGElement>(null);
+
+  useEffect(() => {
+    let simulation: undefined | { stop: () => void };
+    let themeObserver: MutationObserver | null = null;
+
+    (async () => {
+      if (!ref.current) return;
+
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const d3: any = await import("d3");
+        const width = 720;
+        const height = 440;
+
+        const svg = d3.select(ref.current);
+        svg.selectAll("*").remove();
+        svg.attr("viewBox", `0 0 ${width} ${height}`);
+
+        if (!nodes?.length) return;
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const dataNodes: any[] = nodes.map((n, idx) => ({
+          id: n.id || `node-${idx}`,
+          type: n.type || "property",
+          label: n.label || "Node",
+          price: n.price,
+        }));
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const dataLinks: any[] = (edges || [])
+          .filter((e) => e.source && e.target)
+          .map((e) => ({ source: e.source, target: e.target, type: e.type }));
+
+        const g = svg.append("g");
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const zoomed = (event: any) => g.attr("transform", event.transform);
+        svg.call(d3.zoom().scaleExtent([0.45, 4]).on("zoom", zoomed));
+
+        const theme = () => {
+          const isDark = document.documentElement.classList.contains("dark");
+          return {
+            text: isDark ? "#e5e7eb" : "#111827",
+            muted: isDark ? "#94a3b8" : "#64748b",
+            link: isDark ? "#475569" : "#cbd5e1",
+            labelStroke: isDark ? "#0f172a" : "#f8fafc",
+          };
+        };
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const color = (d: any) => {
+          if (d.type === "zip") return "#f59e0b";
+          if (d.type === "neighborhood") return "#22c55e";
+          return "#38bdf8";
+        };
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const radius = (d: any) => {
+          if (d.type === "zip") return 8;
+          if (d.type === "neighborhood") return 10;
+          const p = Number(d.price || 0);
+          if (!Number.isFinite(p) || p <= 0) return 4;
+          return Math.max(4, Math.min(8, Math.sqrt(p / 100000)));
+        };
+
+        const link = g
+          .append("g")
+          .selectAll("line")
+          .data(dataLinks)
+          .join("line")
+          .attr("stroke", theme().link)
+          .attr("stroke-width", 1.1)
+          .attr("stroke-opacity", 0.8);
+
+        const node = g
+          .append("g")
+          .selectAll("circle")
+          .data(dataNodes)
+          .join("circle")
+          .attr("r", radius)
+          .attr("fill", color)
+          .attr("fill-opacity", 0.9)
+          .call(
+            d3
+              .drag()
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              .on("start", (event: any, d: any) => {
+                if (!event.active && simulation)
+                  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                  // @ts-ignore
+                  simulation.alphaTarget(0.2).restart();
+                d.fx = d.x;
+                d.fy = d.y;
+              })
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              .on("drag", (event: any, d: any) => {
+                d.fx = event.x;
+                d.fy = event.y;
+              })
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              .on("end", (event: any, d: any) => {
+                if (!event.active && simulation)
+                  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                  // @ts-ignore
+                  simulation.alphaTarget(0);
+                d.fx = null;
+                d.fy = null;
+              }),
+          );
+
+        node.append("title").text(
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (d: any) =>
+            `${d.label}${d.type === "property" && d.price ? ` • ${prettyMoney(Number(d.price))}` : ""}`,
+        );
+
+        const labels = g
+          .append("g")
+          .selectAll("text")
+          .data(dataNodes.filter((n) => n.type !== "property"))
+          .join("text")
+          .attr("font-size", 10)
+          .attr("text-anchor", "middle")
+          .attr("paint-order", "stroke")
+          .attr("stroke-width", 2)
+          .attr("fill", theme().text)
+          .attr("stroke", theme().labelStroke)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .text((d: any) => d.label.slice(0, 26));
+
+        const legend = svg.append("g").attr("transform", "translate(14,16)");
+        const legendData = [
+          { label: "Property", color: "#38bdf8", y: 8 },
+          { label: "ZIP", color: "#f59e0b", y: 28 },
+          { label: "Neighborhood", color: "#22c55e", y: 48 },
+        ];
+        legend
+          .selectAll("circle")
+          .data(legendData)
+          .join("circle")
+          .attr("cx", 6)
+          .attr("cy", (d: { y: number }) => d.y)
+          .attr("r", 5)
+          .attr("fill", (d: { color: string }) => d.color);
+        legend
+          .selectAll("text")
+          .data(legendData)
+          .join("text")
+          .attr("x", 18)
+          .attr("y", (d: { y: number }) => d.y + 4)
+          .attr("font-size", 10)
+          .attr("fill", theme().muted)
+          .text((d: { label: string }) => d.label);
+
+        const applyTheme = () => {
+          const t = theme();
+          link.attr("stroke", t.link);
+          labels.attr("fill", t.text).attr("stroke", t.labelStroke);
+          legend.selectAll("text").attr("fill", t.muted);
+        };
+        applyTheme();
+
+        themeObserver = new MutationObserver(() => applyTheme());
+        themeObserver.observe(document.documentElement, {
+          attributes: true,
+          attributeFilter: ["class"],
+        });
+
+        simulation = d3
+          .forceSimulation(dataNodes)
+          .force(
+            "link",
+            d3
+              .forceLink(dataLinks)
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              .id((d: any) => d.id)
+              .distance(36)
+              .strength(0.55),
+          )
+          .force("charge", d3.forceManyBody().strength(-55))
+          .force("center", d3.forceCenter(width / 2, height / 2))
+          .force(
+            "collision",
+            d3
+              .forceCollide()
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              .radius((d: any) => radius(d) + 2.5),
+          )
+          .on("tick", () => {
+            link
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              .attr("x1", (d: any) => d.source.x)
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              .attr("y1", (d: any) => d.source.y)
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              .attr("x2", (d: any) => d.target.x)
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              .attr("y2", (d: any) => d.target.y);
+
+            node
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              .attr("cx", (d: any) => d.x)
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              .attr("cy", (d: any) => d.y);
+
+            labels
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              .attr("x", (d: any) => d.x)
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              .attr("y", (d: any) => d.y - 12);
+          });
+      } catch (err) {
+        console.error("Failed to render graph overview", err);
+      }
+    })();
+
+    return () => {
+      simulation?.stop?.();
+      themeObserver?.disconnect();
+    };
+  }, [nodes, edges]);
+
+  return <svg ref={ref} className="w-full h-[28rem]" />;
 }
 
 function QuickPricePerSqft() {

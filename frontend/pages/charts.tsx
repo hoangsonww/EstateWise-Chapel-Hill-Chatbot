@@ -332,7 +332,7 @@ export default function ChartsPage() {
             <div className="flex items-center gap-2 min-w-0 flex-1">
               <BarChart3 className="w-6 h-6 text-primary shrink-0" />
               <span className="font-extrabold tracking-tight text-lg truncate">
-                Insights Dashboard
+                Visualizations Dashboard
               </span>
             </div>
             <nav className="ml-auto flex items-center gap-3">

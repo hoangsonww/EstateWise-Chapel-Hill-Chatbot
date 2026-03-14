@@ -73,6 +73,16 @@ const PORT = process.env.PORT || 3001;
 app.use(cookieParser());
 
 // ─── Status Monitor Middleware ───────────────────────────────────────────────
+/**
+ * @swagger
+ * /status:
+ *   get:
+ *     summary: Runtime status monitor dashboard
+ *     tags: [System]
+ *     responses:
+ *       200:
+ *         description: HTML status dashboard
+ */
 app.use(
   statusMonitor({
     title: "EstateWise Status",
@@ -129,6 +139,22 @@ app.use(express.json());
 app.use(favicon(path.join(__dirname, "public", "favicon.ico")));
 
 // ─── Expose Prometheus /metrics endpoint ───────────────────────────────────
+/**
+ * @swagger
+ * /metrics:
+ *   get:
+ *     summary: Prometheus metrics endpoint
+ *     tags: [System]
+ *     responses:
+ *       200:
+ *         description: Prometheus metrics text format
+ *         content:
+ *           text/plain:
+ *             schema:
+ *               type: string
+ *       500:
+ *         description: Failed to render metrics
+ */
 app.get("/metrics", async (req, res) => {
   try {
     res.set("Content-Type", client.register.contentType);
@@ -150,6 +176,27 @@ app.use("/api/posts", postRoutes);
 app.use("/api/comments", commentRoutes);
 
 // tRPC endpoint - non-blocking, optional alternative API
+/**
+ * @swagger
+ * /trpc/{procedure}:
+ *   post:
+ *     summary: tRPC procedure endpoint
+ *     tags: [System]
+ *     parameters:
+ *       - in: path
+ *         name: procedure
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: tRPC procedure path (may include dot-separated segments)
+ *     responses:
+ *       200:
+ *         description: tRPC response envelope
+ *       400:
+ *         description: tRPC request validation error
+ *       500:
+ *         description: tRPC server error
+ */
 app.use(
   "/trpc",
   trpcExpress.createExpressMiddleware({
@@ -162,11 +209,31 @@ app.use(
 );
 
 // Serve Swagger JSON definition
+/**
+ * @swagger
+ * /swagger.json:
+ *   get:
+ *     summary: OpenAPI specification document
+ *     tags: [System]
+ *     responses:
+ *       200:
+ *         description: OpenAPI JSON document
+ */
 app.get("/swagger.json", (req, res) => {
   res.json(swaggerSpec);
 });
 
 // Serve Swagger UI using a CDN
+/**
+ * @swagger
+ * /api-docs:
+ *   get:
+ *     summary: Swagger UI documentation page
+ *     tags: [System]
+ *     responses:
+ *       200:
+ *         description: Swagger UI HTML page
+ */
 app.get("/api-docs", (req, res) => {
   res.send(`
     <!DOCTYPE html>
@@ -206,6 +273,16 @@ app.get("/api-docs", (req, res) => {
 });
 
 // Redirect root to /api-docs
+/**
+ * @swagger
+ * /:
+ *   get:
+ *     summary: Root redirect
+ *     tags: [System]
+ *     responses:
+ *       302:
+ *         description: Redirects to /api-docs
+ */
 app.get("/", (req, res) => {
   res.redirect("/api-docs");
 });

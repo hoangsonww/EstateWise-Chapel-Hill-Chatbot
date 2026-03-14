@@ -607,6 +607,7 @@ The graph layer enhances explainability by allowing the AI to reference relation
   - `GET /api/graph/similar/:zpid?limit=10` → graph‑based similar properties + reasons (same neighborhood/zip, similar edge).
   - `GET /api/graph/explain?from=<zpid>&to=<zpid>` → shortest path explanation between two properties.
   - `GET /api/graph/neighborhood/:name?limit=50` → stats + sample properties in a neighborhood.
+  - `GET /api/graph/overview?limit=250` → sampled global graph subset (properties, ZIPs, neighborhoods) for visualization.
 
 Note: The graph layer is optional. If not configured, the API gracefully responds with 503 for graph routes and the chat pipeline skips graph context.
 
@@ -1127,6 +1128,7 @@ EstateWise features a modern, animated, and fully responsive user interface buil
 - **GET** `/api/graph/similar/:zpid?limit=10` – Find similar properties via explicit relationships with reasons (same neighborhood/zip, vector similarity edge when present).
 - **GET** `/api/graph/explain?from=<zpid>&to=<zpid>` – Return the shortest path (≤3 hops) between two homes over `IN_ZIP|IN_NEIGHBORHOOD|SIMILAR_TO`.
 - **GET** `/api/graph/neighborhood/:name?limit=50` – Neighborhood stats and a sample list of properties.
+- **GET** `/api/graph/overview?limit=250` – Return a sampled global graph payload sized for browser visualization.
 
 Graph endpoints are available when Neo4j is configured; otherwise they respond with `503`.
 

@@ -37,7 +37,10 @@ import { motion } from "framer-motion";
 type Listing = {
   id: string;
   zpid?: number;
+  score?: number;
   price?: number;
+  homeType?: string;
+  homeStatus?: string;
   city?: string;
   zipcode?: string;
   latitude?: number;
@@ -222,6 +225,11 @@ export default function MapPage() {
   const [loading, setLoading] = useState(false);
   const [listings, setListings] = useState<Listing[]>([]);
   const [q, setQ] = useState(qParam);
+  const [selectedListingId, setSelectedListingId] = useState<string | null>(
+    null,
+  );
+  const mapInstanceRef = useRef<any>(null);
+  const markerByIdRef = useRef<Record<string, any>>({});
 
   const navLinks = [
     { href: "/chat", label: "Chat", Icon: MessageCircleMore },
@@ -247,7 +255,10 @@ export default function MapPage() {
           const items: Listing[] = (data.listings || []).map((l: any) => ({
             id: String(l.zpid || l.id),
             zpid: l.zpid ?? Number(l.id),
+            score: l.score,
             price: l.price,
+            homeType: l.homeType,
+            homeStatus: l.homeStatus,
             city: l.city,
             zipcode: l.zipcode,
             latitude: l.latitude,
@@ -263,7 +274,10 @@ export default function MapPage() {
           const items: Listing[] = (data.listings || []).map((l: any) => ({
             id: l.id,
             zpid: Number(l.id),
+            score: l.score,
             price: l.price,
+            homeType: l.homeType,
+            homeStatus: l.homeStatus,
             city: l.city,
             zipcode: l.zipcode,
             latitude: l.latitude,
@@ -286,7 +300,10 @@ export default function MapPage() {
           const items: Listing[] = (data.listings || []).map((l: any) => ({
             id: l.id,
             zpid: Number(l.id),
+            score: l.score,
             price: l.price,
+            homeType: l.homeType,
+            homeStatus: l.homeStatus,
             city: l.city,
             zipcode: l.zipcode,
             latitude: l.latitude,
@@ -318,11 +335,13 @@ export default function MapPage() {
     const L = window.L;
     // Clear previous
     mapRef.current.innerHTML = "";
+    markerByIdRef.current = {};
 
     const map = L.map(mapRef.current).setView(
       [DEFAULT_CENTER.lat, DEFAULT_CENTER.lng],
       12,
     );
+    mapInstanceRef.current = map;
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution:
         '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>',
@@ -336,12 +355,14 @@ export default function MapPage() {
     pts.forEach((p) => {
       const m = L.marker([p.latitude, p.longitude]).addTo(map);
       const price = p.price ? `$${Number(p.price).toLocaleString()}` : "N/A";
+      const markerId = String(p.zpid || p.id);
       const zpidLink = p.zpid
         ? `https://www.zillow.com/homedetails/${p.zpid}_zpid/`
         : "#";
       m.bindPopup(
         `ZPID: ${p.zpid || p.id}<br/>${price}<br/>${p.city || ""} ${p.zipcode || ""}<br/><a href='${zpidLink}' target='_blank' rel='noopener noreferrer'>Zillow</a>`,
       );
+      markerByIdRef.current[markerId] = m;
       markers.push(m);
     });
     if (markers.length > 0) {
@@ -350,6 +371,8 @@ export default function MapPage() {
     }
 
     return () => {
+      mapInstanceRef.current = null;
+      markerByIdRef.current = {};
       map.remove();
     };
   }, [leafletReady, listings]);
@@ -362,6 +385,125 @@ export default function MapPage() {
 
   async function handleSearch() {
     router.push({ pathname: "/map", query: { q } });
+  }
+
+  function prettyMoney(n?: number | null) {
+    if (n == null || !Number.isFinite(Number(n))) return "N/A";
+    return Number(n).toLocaleString(undefined, {
+      style: "currency",
+      currency: "USD",
+      maximumFractionDigits: 0,
+    });
+  }
+
+  const mapListings = useMemo(
+    () =>
+      listings.filter(
+        (l) => Number.isFinite(l.latitude) && Number.isFinite(l.longitude),
+      ),
+    [listings],
+  );
+
+  const snapshot = useMemo(() => {
+    if (!mapListings.length) {
+      return {
+        medianPrice: null as number | null,
+        avgPricePerSqft: null as number | null,
+        avgBeds: null as number | null,
+        avgBaths: null as number | null,
+        homeTypeCounts: [] as Array<{ type: string; count: number }>,
+      };
+    }
+
+    const prices = mapListings
+      .map((l) => Number(l.price || 0))
+      .filter((p) => Number.isFinite(p) && p > 0)
+      .sort((a, b) => a - b);
+    const medianPrice =
+      prices.length === 0
+        ? null
+        : prices.length % 2 === 1
+          ? prices[(prices.length - 1) / 2]
+          : (prices[prices.length / 2 - 1] + prices[prices.length / 2]) / 2;
+
+    const ppsfVals = mapListings
+      .filter(
+        (l) =>
+          Number.isFinite(Number(l.price || 0)) &&
+          Number.isFinite(Number(l.livingArea || 0)) &&
+          Number(l.price || 0) > 0 &&
+          Number(l.livingArea || 0) > 0,
+      )
+      .map((l) => Number(l.price) / Number(l.livingArea));
+    const avgPricePerSqft =
+      ppsfVals.length > 0
+        ? ppsfVals.reduce((sum, v) => sum + v, 0) / ppsfVals.length
+        : null;
+
+    const bedVals = mapListings
+      .map((l) => Number(l.bedrooms || 0))
+      .filter((v) => Number.isFinite(v) && v > 0);
+    const bathVals = mapListings
+      .map((l) => Number(l.bathrooms || 0))
+      .filter((v) => Number.isFinite(v) && v > 0);
+    const avgBeds =
+      bedVals.length > 0
+        ? bedVals.reduce((sum, v) => sum + v, 0) / bedVals.length
+        : null;
+    const avgBaths =
+      bathVals.length > 0
+        ? bathVals.reduce((sum, v) => sum + v, 0) / bathVals.length
+        : null;
+
+    const typeMap = new Map<string, number>();
+    mapListings.forEach((l) => {
+      const type = String(l.homeType || "Unknown");
+      typeMap.set(type, (typeMap.get(type) || 0) + 1);
+    });
+    const homeTypeCounts = Array.from(typeMap.entries())
+      .map(([type, count]) => ({ type, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 6);
+
+    return {
+      medianPrice,
+      avgPricePerSqft,
+      avgBeds,
+      avgBaths,
+      homeTypeCounts,
+    };
+  }, [mapListings]);
+
+  const topMatches = useMemo(() => {
+    const hasScores = mapListings.some(
+      (l) => Number.isFinite(Number(l.score)) && Number(l.score) > 0,
+    );
+    const ranked = [...mapListings].sort((a, b) => {
+      if (hasScores) {
+        return Number(b.score || 0) - Number(a.score || 0);
+      }
+      return Number(b.price || 0) - Number(a.price || 0);
+    });
+    return ranked.slice(0, 8);
+  }, [mapListings]);
+
+  function focusListingOnMap(item: Listing) {
+    const markerId = String(item.zpid || item.id);
+    const map = mapInstanceRef.current;
+    const marker = markerByIdRef.current[markerId];
+    if (
+      !map ||
+      !marker ||
+      !Number.isFinite(item.latitude) ||
+      !Number.isFinite(item.longitude)
+    ) {
+      return;
+    }
+    setSelectedListingId(markerId);
+    map.setView([item.latitude, item.longitude], Math.max(map.getZoom(), 15), {
+      animate: true,
+    });
+    marker.openPopup();
   }
 
   return (
@@ -553,6 +695,137 @@ export default function MapPage() {
                       <code>?zpids=123,456</code> in the URL.
                     </div>
                     {/* Removed current map link display per request */}
+                  </CardContent>
+                </Card>
+
+                <Card className="mt-4">
+                  <CardHeader>
+                    <CardTitle>Results Panel</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div>
+                      <div className="text-sm font-medium mb-2">Snapshot</div>
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div className="rounded border px-2 py-2">
+                          <div className="text-muted-foreground">
+                            Median Price
+                          </div>
+                          <div className="font-medium">
+                            {prettyMoney(snapshot.medianPrice)}
+                          </div>
+                        </div>
+                        <div className="rounded border px-2 py-2">
+                          <div className="text-muted-foreground">
+                            Avg $/sqft
+                          </div>
+                          <div className="font-medium">
+                            {snapshot.avgPricePerSqft != null
+                              ? `$${snapshot.avgPricePerSqft.toFixed(0)}`
+                              : "N/A"}
+                          </div>
+                        </div>
+                        <div className="rounded border px-2 py-2">
+                          <div className="text-muted-foreground">Avg Beds</div>
+                          <div className="font-medium">
+                            {snapshot.avgBeds != null
+                              ? snapshot.avgBeds.toFixed(1)
+                              : "N/A"}
+                          </div>
+                        </div>
+                        <div className="rounded border px-2 py-2">
+                          <div className="text-muted-foreground">Avg Baths</div>
+                          <div className="font-medium">
+                            {snapshot.avgBaths != null
+                              ? snapshot.avgBaths.toFixed(1)
+                              : "N/A"}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        {snapshot.homeTypeCounts.length > 0 ? (
+                          snapshot.homeTypeCounts.map((t) => (
+                            <span
+                              key={t.type}
+                              className="inline-flex items-center rounded-full border px-2 py-0.5 text-[11px]"
+                            >
+                              {t.type}: {t.count}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-xs text-muted-foreground">
+                            No home-type data.
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="text-sm font-medium mb-2">
+                        Top Matches
+                      </div>
+                      <div className="space-y-2">
+                        {topMatches.length > 0 ? (
+                          topMatches.map((item, idx) => {
+                            const itemId = String(item.zpid || item.id);
+                            const zpidLink = item.zpid
+                              ? `https://www.zillow.com/homedetails/${item.zpid}_zpid/`
+                              : "#";
+                            return (
+                              <div
+                                key={itemId}
+                                className={`rounded border px-2 py-2 text-xs transition-colors ${
+                                  selectedListingId === itemId
+                                    ? "border-primary bg-primary/10"
+                                    : "hover:bg-muted/50"
+                                }`}
+                              >
+                                <button
+                                  type="button"
+                                  className="w-full text-left cursor-pointer"
+                                  onClick={() => focusListingOnMap(item)}
+                                >
+                                  <div className="font-medium">
+                                    #{idx + 1} {prettyMoney(item.price)} •{" "}
+                                    {item.bedrooms ?? "?"} bd /{" "}
+                                    {item.bathrooms ?? "?"} ba •{" "}
+                                    {item.livingArea ?? "?"} sqft
+                                  </div>
+                                  <div className="text-muted-foreground">
+                                    {item.city || "Unknown city"}{" "}
+                                    {item.zipcode || ""}
+                                  </div>
+                                </button>
+                                <div className="mt-1 flex items-center gap-2">
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 px-2 text-[11px] cursor-pointer"
+                                    onClick={() => focusListingOnMap(item)}
+                                  >
+                                    Focus on map
+                                  </Button>
+                                  {item.zpid ? (
+                                    <a
+                                      href={zpidLink}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-[11px] underline underline-offset-2 hover:text-primary"
+                                    >
+                                      Open Zillow
+                                    </a>
+                                  ) : null}
+                                </div>
+                              </div>
+                            );
+                          })
+                        ) : (
+                          <p className="text-xs text-muted-foreground">
+                            No listings available yet.
+                          </p>
+                        )}
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
               </motion.div>

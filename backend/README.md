@@ -198,6 +198,7 @@ Graph (Neo4j):
 - `GET /api/graph/similar/:zpid`
 - `GET /api/graph/explain?from=...&to=...`
 - `GET /api/graph/neighborhood/:name`
+- `GET /api/graph/overview?limit=250` (sampled global graph for visualization)
 
 Commute Profiles:
 - `GET /api/commute-profiles`
