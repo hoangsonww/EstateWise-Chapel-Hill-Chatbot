@@ -1,0 +1,470 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="EstateWise Context Engineering — AI agent knowledge graph and context system visualization."
+    />
+    <title>EstateWise · Context Engineering</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+    />
+    <link rel="stylesheet" href="css/styles.css" />
+  </head>
+  <body>
+    <!-- ===================================================================
+       Application Shell
+  ==================================================================== -->
+    <div
+      id="app"
+      class="app-shell"
+      role="application"
+      aria-label="EstateWise Context Engineering Dashboard"
+    >
+      <!-- ----------------------------------------------------------------
+         Header
+    ---------------------------------------------------------------- -->
+      <header class="app-header" role="banner">
+        <div class="header-brand">
+          <div class="brand-logo" aria-hidden="true">
+            <svg
+              width="28"
+              height="28"
+              viewBox="0 0 28 28"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <rect
+                width="28"
+                height="28"
+                rx="6"
+                fill="#58a6ff"
+                fill-opacity="0.15"
+              />
+              <path
+                d="M14 4L24 9.5V18.5L14 24L4 18.5V9.5L14 4Z"
+                stroke="#58a6ff"
+                stroke-width="1.5"
+                fill="none"
+              />
+              <circle cx="14" cy="14" r="3" fill="#58a6ff" />
+              <line
+                x1="14"
+                y1="4"
+                x2="14"
+                y2="11"
+                stroke="#58a6ff"
+                stroke-width="1"
+                opacity="0.6"
+              />
+              <line
+                x1="14"
+                y1="17"
+                x2="14"
+                y2="24"
+                stroke="#58a6ff"
+                stroke-width="1"
+                opacity="0.6"
+              />
+              <line
+                x1="4"
+                y1="9.5"
+                x2="11"
+                y2="13"
+                stroke="#58a6ff"
+                stroke-width="1"
+                opacity="0.6"
+              />
+              <line
+                x1="17"
+                y1="15"
+                x2="24"
+                y2="18.5"
+                stroke="#58a6ff"
+                stroke-width="1"
+                opacity="0.6"
+              />
+              <line
+                x1="24"
+                y1="9.5"
+                x2="17"
+                y2="13"
+                stroke="#58a6ff"
+                stroke-width="1"
+                opacity="0.6"
+              />
+              <line
+                x1="11"
+                y1="15"
+                x2="4"
+                y2="18.5"
+                stroke="#58a6ff"
+                stroke-width="1"
+                opacity="0.6"
+              />
+            </svg>
+          </div>
+          <div class="brand-text">
+            <span class="brand-name">EstateWise</span>
+            <span class="brand-sub">Context Engineering</span>
+          </div>
+        </div>
+
+        <nav
+          class="header-nav"
+          role="navigation"
+          aria-label="Dashboard navigation"
+        >
+          <button class="nav-btn active" data-view="graph" aria-pressed="true">
+            <span class="nav-icon" aria-hidden="true">⬡</span> Graph
+          </button>
+          <button class="nav-btn" data-view="kb" aria-pressed="false">
+            <span class="nav-icon" aria-hidden="true">◈</span> Knowledge Base
+          </button>
+          <button class="nav-btn" data-view="metrics" aria-pressed="false">
+            <span class="nav-icon" aria-hidden="true">◉</span> Metrics
+          </button>
+        </nav>
+
+        <div class="header-actions">
+          <button
+            class="icon-btn"
+            id="btn-refresh"
+            title="Refresh data"
+            aria-label="Refresh all data"
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 16 16"
+              fill="currentColor"
+              aria-hidden="true"
+            >
+              <path
+                d="M13.65 2.35A8 8 0 1 0 15 8h-2a6 6 0 1 1-1.47-3.89L9 6h6V0l-1.35 2.35z"
+              />
+            </svg>
+          </button>
+          <button
+            class="icon-btn"
+            id="btn-fit"
+            title="Fit graph to screen"
+            aria-label="Fit graph to screen"
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 16 16"
+              fill="currentColor"
+              aria-hidden="true"
+            >
+              <path
+                d="M1.5 1h4v1.5h-2.5v2.5h-1.5v-4zm9 0h4v4h-1.5v-2.5h-2.5v-1.5zm-9 9h1.5v2.5h2.5v1.5h-4v-4zm10.5 2.5v-2.5h1.5v4h-4v-1.5h2.5z"
+              />
+            </svg>
+          </button>
+          <div
+            class="status-dot"
+            id="status-indicator"
+            title="Connection status"
+            aria-label="API connection: connecting"
+          >
+            <span class="dot" aria-hidden="true"></span>
+            <span id="status-label">Connecting</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- ----------------------------------------------------------------
+         Main layout: left sidebar + canvas + right sidebar
+    ---------------------------------------------------------------- -->
+      <div class="app-body">
+        <!-- Left Sidebar -->
+        <aside
+          class="sidebar sidebar-left"
+          role="complementary"
+          aria-label="Graph filters and statistics"
+        >
+          <div class="sidebar-section">
+            <h2 class="sidebar-heading">Search</h2>
+            <div class="search-wrapper">
+              <label for="graph-search" class="sr-only"
+                >Search graph nodes</label
+              >
+              <svg
+                class="search-icon"
+                width="14"
+                height="14"
+                viewBox="0 0 16 16"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <path
+                  d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.099zm-5.242 1.656a5.5 5.5 0 1 1 0-11 5.5 5.5 0 0 1 0 11z"
+                />
+              </svg>
+              <input
+                type="search"
+                id="graph-search"
+                class="search-input"
+                placeholder="Search nodes…"
+                autocomplete="off"
+                spellcheck="false"
+                aria-label="Search graph nodes"
+              />
+            </div>
+          </div>
+
+          <div class="sidebar-section">
+            <h2 class="sidebar-heading">Node Types</h2>
+            <div
+              class="filter-list"
+              id="node-type-filters"
+              role="group"
+              aria-label="Filter by node type"
+            >
+              <!-- Populated by app.js -->
+            </div>
+          </div>
+
+          <div class="sidebar-section">
+            <h2 class="sidebar-heading">Edge Types</h2>
+            <div
+              class="filter-list"
+              id="edge-type-filters"
+              role="group"
+              aria-label="Filter by edge type"
+            >
+              <!-- Populated by app.js -->
+            </div>
+          </div>
+
+          <div class="sidebar-section">
+            <h2 class="sidebar-heading">Statistics</h2>
+            <div
+              class="stats-grid"
+              id="stats-panel"
+              aria-live="polite"
+              aria-label="Graph statistics"
+            >
+              <div class="stat-card">
+                <span class="stat-value" id="stat-nodes">—</span>
+                <span class="stat-label">Nodes</span>
+              </div>
+              <div class="stat-card">
+                <span class="stat-value" id="stat-edges">—</span>
+                <span class="stat-label">Edges</span>
+              </div>
+              <div class="stat-card">
+                <span class="stat-value" id="stat-docs">—</span>
+                <span class="stat-label">Documents</span>
+              </div>
+              <div class="stat-card">
+                <span class="stat-value" id="stat-chunks">—</span>
+                <span class="stat-label">Chunks</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="sidebar-section">
+            <h2 class="sidebar-heading">Legend</h2>
+            <div
+              class="legend"
+              id="node-legend"
+              aria-label="Node type color legend"
+            >
+              <!-- Populated by app.js -->
+            </div>
+          </div>
+        </aside>
+
+        <!-- Graph Canvas -->
+        <main
+          class="canvas-area"
+          role="main"
+          aria-label="Knowledge graph visualization"
+        >
+          <div
+            id="graph-container"
+            class="graph-container"
+            tabindex="0"
+            aria-label="Interactive knowledge graph. Use arrow keys to navigate, Enter to select nodes."
+          >
+            <!-- D3 SVG renders here -->
+          </div>
+          <div
+            id="graph-tooltip"
+            class="tooltip"
+            role="tooltip"
+            aria-hidden="true"
+          ></div>
+          <div id="graph-overlay" class="graph-overlay" aria-live="polite">
+            <div
+              class="overlay-spinner"
+              id="loading-spinner"
+              aria-label="Loading graph data"
+            >
+              <div class="spinner-ring" aria-hidden="true"></div>
+              <p>Loading knowledge graph…</p>
+            </div>
+            <div class="overlay-error hidden" id="graph-error" role="alert">
+              <p class="error-icon" aria-hidden="true">⚠</p>
+              <p id="error-message">Failed to load graph data.</p>
+              <button class="btn-secondary" id="btn-retry">Retry</button>
+            </div>
+            <div class="overlay-empty hidden" id="graph-empty">
+              <p aria-hidden="true">◌</p>
+              <p>No nodes match the current filters.</p>
+            </div>
+          </div>
+        </main>
+
+        <!-- Right Sidebar -->
+        <aside
+          class="sidebar sidebar-right"
+          id="right-sidebar"
+          role="complementary"
+          aria-label="Node details and knowledge base"
+        >
+          <button
+            class="sidebar-toggle"
+            id="toggle-right-sidebar"
+            aria-expanded="true"
+            aria-controls="right-sidebar"
+            aria-label="Collapse right sidebar"
+          >
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 12 12"
+              fill="currentColor"
+              aria-hidden="true"
+            >
+              <path
+                d="M8 2L4 6l4 4"
+                stroke="currentColor"
+                stroke-width="1.5"
+                fill="none"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </button>
+
+          <div class="sidebar-inner">
+            <!-- Node Detail Panel -->
+            <div class="sidebar-section" id="node-detail-section">
+              <h2 class="sidebar-heading">Node Detail</h2>
+              <div
+                id="node-detail-panel"
+                class="detail-panel"
+                aria-live="polite"
+              >
+                <p class="detail-empty">Click a node to inspect it.</p>
+              </div>
+            </div>
+
+            <!-- KB Search Panel -->
+            <div class="sidebar-section" id="kb-search-section">
+              <h2 class="sidebar-heading">Knowledge Base</h2>
+              <div class="search-wrapper">
+                <label for="kb-search" class="sr-only"
+                  >Search knowledge base</label
+                >
+                <svg
+                  class="search-icon"
+                  width="14"
+                  height="14"
+                  viewBox="0 0 16 16"
+                  fill="currentColor"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.099zm-5.242 1.656a5.5 5.5 0 1 1 0-11 5.5 5.5 0 0 1 0 11z"
+                  />
+                </svg>
+                <input
+                  type="search"
+                  id="kb-search"
+                  class="search-input"
+                  placeholder="Search documents…"
+                  autocomplete="off"
+                  aria-label="Search knowledge base documents"
+                />
+              </div>
+              <div
+                id="kb-results"
+                class="kb-results"
+                aria-live="polite"
+                aria-label="Knowledge base search results"
+              ></div>
+            </div>
+
+            <!-- Metrics Panel -->
+            <div class="sidebar-section" id="metrics-section">
+              <h2 class="sidebar-heading">Context Metrics</h2>
+              <div
+                id="metrics-panel"
+                class="metrics-panel"
+                aria-live="polite"
+              ></div>
+            </div>
+          </div>
+        </aside>
+      </div>
+
+      <!-- ----------------------------------------------------------------
+         Bottom Bar — real-time metrics ticker
+    ---------------------------------------------------------------- -->
+      <footer
+        class="app-footer"
+        role="contentinfo"
+        aria-label="Real-time system metrics"
+      >
+        <div class="footer-metrics" id="footer-metrics" aria-live="polite">
+          <div class="metric-pill">
+            <span class="pill-label">Assemblies</span>
+            <span class="pill-value" id="ft-assemblies">—</span>
+          </div>
+          <div class="metric-pill">
+            <span class="pill-label">Avg Time</span>
+            <span class="pill-value" id="ft-avg-time">—</span>
+          </div>
+          <div class="metric-pill">
+            <span class="pill-label">Avg Tokens</span>
+            <span class="pill-value" id="ft-avg-tokens">—</span>
+          </div>
+          <div class="metric-pill">
+            <span class="pill-label">Cache Hits</span>
+            <span class="pill-value accent-green" id="ft-cache-hits">—</span>
+          </div>
+          <div class="metric-pill">
+            <span class="pill-label">Ingestions</span>
+            <span class="pill-value" id="ft-ingestions">—</span>
+          </div>
+          <div class="metric-pill">
+            <span class="pill-label">KB Docs</span>
+            <span class="pill-value" id="ft-kb-docs">—</span>
+          </div>
+        </div>
+        <div class="footer-meta">
+          <span id="footer-timestamp" aria-label="Last refresh time"></span>
+          <span class="footer-sep" aria-hidden="true">·</span>
+          <span>EstateWise Context Engine</span>
+        </div>
+      </footer>
+    </div>
+
+    <!-- ================================================================
+       Scripts — D3 from CDN, then local modules
+  ================================================================= -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="js/metrics.js"></script>
+    <script src="js/graph-viz.js"></script>
+    <script src="js/app.js"></script>
+  </body>
+</html>

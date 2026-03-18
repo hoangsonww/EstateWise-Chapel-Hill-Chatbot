@@ -14,104 +14,38 @@ Large Language Models (LLMs), a Mixture‑of‑Experts ensemble, blue/green & ca
 
 ## Table of Contents
 
-- [EstateWise - Your Intelligent Estate Assistant 🏡](#estatewise---your-intelligent-estate-assistant-)
-  - [Table of Contents](#table-of-contents)
-  - [Live App](#live-app)
-    - [Key Technologies Used](#key-technologies-used)
-    - [AI Techniques](#ai-techniques)
-      - [Hybrid RAG at a Glance](#hybrid-rag-at-a-glance)
-  - [Features](#features)
-  - [Architecture](#architecture)
-    - [Detailed Diagram](#detailed-diagram)
-    - [Backend](#backend)
-    - [Frontend](#frontend)
-    - [High-Level Architecture Flow Diagrams](#high-level-architecture-flow-diagrams)
-      - [AI Architecture Flow Diagram](#ai-architecture-flow-diagram)
-      - [Mermaid Diagram](#mermaid-diagram)
-      - [Overall App Architecture Flow Diagram](#overall-app-architecture-flow-diagram)
-      - [Neo4j Graph Integration](#neo4j-graph-integration)
-  - [Setup \& Installation](#setup--installation)
-    - [Backend Setup](#backend-setup)
-    - [Frontend Setup](#frontend-setup)
-  - [Deployment](#deployment)
-    - [GitOps Control Plane (Argo CD + Flux CD)](#gitops-control-plane-argo-cd--flux-cd)
-    - [Progressive Delivery (Argo Rollouts + Flagger)](#progressive-delivery-argo-rollouts--flagger)
-    - [Workflow Orchestration (Argo Workflows)](#workflow-orchestration-argo-workflows)
-    - [Bootstrap \& Preflight](#bootstrap--preflight)
-    - [Advanced Deployment Strategies](#advanced-deployment-strategies)
-    - [Multi-Cloud Deployment Platforms](#multi-cloud-deployment-platforms)
-    - [CI/CD \& DevOps Features](#cicd--devops-features)
-    - [Deployment Architecture Overview](#deployment-architecture-overview)
-    - [Azure Deployment](#azure-deployment)
-  - [Usage](#usage)
-  - [User Interface](#user-interface)
-    - [Landing Page](#landing-page)
-    - [Chat Interface - Dark Mode](#chat-interface---dark-mode)
-    - [Chat Interface - Light Mode](#chat-interface---light-mode)
-    - [Visualizations Page](#visualizations-page)
-    - [Insights \& Tools Page](#insights--tools-page)
-      - [More Tools...](#more-tools)
-    - [Market Insights Page](#market-insights-page)
-    - [Deal Analyzer Page](#deal-analyzer-page)
-    - [Map Page](#map-page)
-    - [Forum Page](#forum-page)
-    - [Profile Page](#profile-page)
-    - [Login Page](#login-page)
-    - [Register Page](#register-page)
-    - [Reset Password Page](#reset-password-page)
-  - [API Endpoints](#api-endpoints)
-    - [Graph](#graph)
-    - [Properties (Map Helpers)](#properties-map-helpers)
-    - [Authentication](#authentication)
-    - [Conversations](#conversations)
-    - [Chat](#chat)
-    - [Swagger API Documentation](#swagger-api-documentation)
-  - [Project Structure](#project-structure)
-  - [Dockerization](#dockerization)
-  - [Prometheus Monitoring \& Visualizations](#prometheus-monitoring--visualizations)
-  - [CI/CD Pipelines](#cicd-pipelines)
-    - [GitHub Actions](#github-actions)
-    - [Jenkins (Primary CI/CD)](#jenkins-primary-cicd)
-    - [GitLab CI](#gitlab-ci)
-  - [MCP Server](#mcp-server)
-    - [Tool Categories](#tool-categories)
-    - [Key Features](#key-features)
-    - [Environment Variables](#environment-variables)
-    - [Quick Start](#quick-start)
-    - [Notes](#notes)
-  - [Agentic AI Pipeline](#agentic-ai-pipeline)
-    - [Runtime Entry Points](#runtime-entry-points)
-    - [Observability \& Tracing](#observability--tracing)
-    - [Quick Start](#quick-start-1)
-  - [Codex Multi-Agent](#codex-multi-agent)
-  - [API Architecture Overview](#api-architecture-overview)
-    - [When to Use Each API](#when-to-use-each-api)
-    - [tRPC API](#trpc-api)
-      - [tRPC Features](#trpc-features)
-      - [tRPC Router Structure](#trpc-router-structure)
-      - [tRPC Architecture](#trpc-architecture)
-      - [tRPC Request Flow](#trpc-request-flow)
-      - [tRPC Type Safety](#trpc-type-safety)
-    - [gRPC Services](#grpc-services)
-      - [Protocol Buffers](#protocol-buffers)
-      - [Service Definitions](#service-definitions)
-      - [gRPC Architecture](#grpc-architecture)
-      - [gRPC Communication Flow](#grpc-communication-flow)
-      - [gRPC vs REST vs tRPC Comparison](#grpc-vs-rest-vs-trpc-comparison)
-      - [gRPC Performance Benefits](#grpc-performance-benefits)
-  - [Travis CI](#travis-ci)
-  - [Testing](#testing)
-    - [Running Tests](#running-tests)
-  - [OpenAPI Specification](#openapi-specification)
-  - [JSDoc \& TypeDoc](#jsdoc--typedoc)
-    - [JSDoc (for JavaScript)](#jsdoc-for-javascript)
-    - [TypeDoc (for TypeScript)](#typedoc-for-typescript)
-  - [Containerization](#containerization)
-  - [VS Code Extension](#vs-code-extension)
-  - [Mintlify Documentation](#mintlify-documentation)
-  - [Contributing](#contributing)
-  - [License](#license)
-  - [Contact](#contact)
+- [Live App](#live-app)
+  - [Key Technologies Used](#key-technologies-used)
+  - [AI Techniques](#ai-techniques)
+- [Features](#features)
+- [Architecture](#architecture)
+- [Setup & Installation](#setup--installation)
+- [Deployment](#deployment)
+- [Usage](#usage)
+- [User Interface](#user-interface)
+- [API Endpoints](#api-endpoints)
+- [Project Structure](#project-structure)
+- [Dockerization](#dockerization)
+- [Prometheus Monitoring \& Visualizations](#prometheus-monitoring--visualizations)
+- [CI/CD Pipelines](#cicd-pipelines)
+- [MCP Server](#mcp-server)
+- [Agentic AI Pipeline](#agentic-ai-pipeline)
+- [Context Engineering](#context-engineering)
+- [Codex Multi-Agent](#codex-multi-agent)
+- [API Architecture Overview](#api-architecture-overview)
+  - [When to Use Each API](#when-to-use-each-api)
+  - [tRPC API](#trpc-api)
+  - [gRPC Services](#grpc-services)
+- [Travis CI](#travis-ci)
+- [Testing](#testing)
+- [OpenAPI Specification](#openapi-specification)
+- [JSDoc & TypeDoc](#jsdoc--typedoc)
+- [Containerization](#containerization)
+- [VS Code Extension](#vs-code-extension)
+- [Mintlify Documentation](#mintlify-documentation)
+- [Contributing](#contributing)
+- [License](#license)
+- [Contact](#contact)
 
 ## Live App
 
@@ -334,6 +268,15 @@ EstateWise is packed with both UI and AI features to enhance your home-finding e
   - After cleaning, approx. **30,772 properties** remain in the database, available for the chatbot to use.
   - Explore `Initial-Data-Analysis.ipynb` in the repo root for an initial, quick Jupyter‑powered dive into the data.
   - Explore `EDA-CLI-Chatbot.ipynb` in the repo root for a more detailed and comprehensive analysis of the data, as well as a CLI version of our chatbot.
+
+- **Context Engineering & Knowledge Graph:**
+  - Enterprise-grade context engineering system with in-memory knowledge graph (42 seed nodes, 55 edges, 12 node types).
+  - Knowledge base with hybrid retrieval (semantic + keyword + graph-enhanced) and 10 pre-loaded domain documents.
+  - Token-aware context window with priority-based allocation and per-agent budgets.
+  - Interactive D3.js force-directed graph visualization dashboard on port 4200.
+  - 10 MCP tools (`context.search`, `context.assembleForAgent`, `context.graphTraverse`, etc.) and 4 MCP resources.
+  - Ingestion pipeline for properties, conversations, and documents.
+  - Full integration with the agentic AI orchestrator via `ContextEngineerAgent`.
 
 - _and so many more features in the app..._
 
@@ -1216,6 +1159,7 @@ EstateWise/
 ├── gitlab/                   # GitLab CI/CD pipeline scripts
 ├── gcp/                      # GCP deployment scripts
 ├── mcp/                      # Model Context Protocol server (tools over stdio)
+├── context-engineering/      # Knowledge graph, knowledge base, context engine, D3 UI
 ├── .env                      # Environment variables for development
 ├── README.md                 # This file
 ├── TECH_DOCS.md              # Detailed technical documentation (highly recommended to read)
@@ -1365,6 +1309,7 @@ Bring EstateWise data, graphs, analytics, and utilities to MCP‑compatible clie
 - **Commute**: `commute.create`, `commute.list`, `commute.get`, `commute.update`, `commute.delete`
 - **System**: `system.config`, `system.time`, `system.health`, `system.tools`, `system.cache.clear`
 - **A2A Bridge**: `a2a.agentCard`, `a2a.task.create`, `a2a.task.get`, `a2a.task.wait`, `a2a.task.cancel`, `a2a.task.list`
+- **Context Engineering**: `context.search`, `context.graphOverview`, `context.findRelated`, `context.assembleContext`, `context.ingestDocument`, `context.getMetrics`, `context.nodeDetail`
 
 ### Key Features
 
@@ -1523,6 +1468,157 @@ flowchart LR
 
 > [!IMPORTANT]
 > **For details and examples, see [agentic-ai/README.md](agentic-ai/README.md).**
+
+## Context Engineering
+
+EstateWise includes an enterprise-grade **context engineering** subsystem (`context-engineering/`) that provides AI agents with structured domain knowledge through a knowledge graph, knowledge base, and intelligent context window management.
+
+![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
+![D3.js](https://img.shields.io/badge/D3.js-F9A03C?style=for-the-badge&logo=d3&logoColor=white)
+![Neo4j](https://img.shields.io/badge/Neo4j-008CC1?style=for-the-badge&logo=neo4j&logoColor=white)
+![Express](https://img.shields.io/badge/Express.js-000000?style=for-the-badge&logo=express&logoColor=white)
+
+### System Architecture
+
+```mermaid
+flowchart TB
+  subgraph "Context Engineering"
+    KG[Knowledge Graph<br/>42 nodes, 55 edges<br/>12 types, 14 edge types]
+    KB[Knowledge Base<br/>10 seed documents<br/>hybrid retrieval]
+    CE[Context Engine<br/>4 providers, ranking<br/>token budgets]
+    IP[Ingestion Pipeline<br/>property, conversation<br/>document parsers]
+    MON[Monitoring<br/>metrics, time-series<br/>rolling window]
+  end
+
+  subgraph "Integration Layer"
+    MCPT[MCP Tools<br/>10 context tools]
+    API[REST API<br/>14 endpoints]
+    WS[WebSocket<br/>real-time events]
+    UI[D3 Visualization<br/>force-directed graph]
+  end
+
+  subgraph "Consumers"
+    AGENTS[Agentic AI<br/>ContextEngineerAgent]
+    MCPS[MCP Server<br/>67+ tools]
+    BROWSER[Browser<br/>port 4200]
+  end
+
+  KG <--> CE
+  KB <--> CE
+  IP --> KG
+  IP --> KB
+  MON --> CE
+
+  CE --> MCPT
+  KG --> API
+  KB --> API
+  MON --> API
+  API --> UI
+  WS --> UI
+
+  MCPT --> MCPS
+  CE --> AGENTS
+  UI --> BROWSER
+```
+
+### Knowledge Graph
+
+The knowledge graph is an in-memory, event-driven graph with typed nodes and edges. It comes pre-seeded with 42 domain knowledge nodes:
+
+- **14 Concepts**: Property Valuation, Market Analysis, Mortgage Calculator, Investment ROI, Comparable Sales, Price Per Square Foot, Days on Market, Appreciation Rate, Property Tax, HOA Fees, School District, Crime Rate, Walk Score, Commute Time
+- **11 Agents**: Planner, Coordinator, GraphAnalyst, PropertyAnalyst, MapAnalyst, Reporter, FinanceAnalyst, ZpidFinder, AnalyticsAnalyst, DedupeRanking, Compliance
+- **7 Tools**: graph.similar, graph.explain, properties.search, properties.lookup, analytics.summarizeSearch, finance.mortgage, map.linkForZpids
+- **6 Topics**: Residential Real Estate, Commercial Real Estate, Market Trends, Financial Planning, Neighborhood Analysis, Property Search
+- **4 Workflows**: Property Search Flow, Market Research Flow, Financial Analysis Flow, Compliance Check Flow
+
+```mermaid
+graph LR
+  subgraph "Node Types"
+    P[Property] --> N[Neighborhood]
+    P --> Z[ZipCode]
+    A[Agent] --> T[Tool]
+    C[Concept] --> TP[Topic]
+    W[Workflow] --> A
+    W --> T
+  end
+
+  P -- SIMILAR_TO --> P
+  P -- IN_NEIGHBORHOOD --> N
+  P -- IN_ZIP --> Z
+  A -- USES --> T
+  A -- HAS_CAPABILITY --> C
+  T -- PRODUCES --> C
+  W -- PART_OF --> TP
+  C -- RELATED_TO --> C
+```
+
+**Graph algorithms:** BFS, DFS, Dijkstra shortest path, PageRank, community detection, connected components, betweenness centrality, neighborhood expansion.
+
+### Knowledge Base
+
+10 pre-loaded domain documents covering the full EstateWise platform:
+
+| Document | Content |
+|----------|---------|
+| Platform Overview | Architecture, capabilities, tech stack |
+| Property Search Guide | Filters, ZPID lookup, search strategies |
+| Market Analysis Methodology | Data sources, metrics, trend analysis |
+| Financial Analysis Tools | Mortgage, ROI, affordability calculators |
+| Graph & Knowledge System | Neo4j integration, graph enrichment |
+| Agent Capabilities Reference | All 12 AI agent roles and specialties |
+| MCP Tool Reference | All 67+ MCP tools and descriptions |
+| Neighborhood Analysis Guide | School districts, crime, demographics |
+| Commute Analysis | Scoring, transportation modes |
+| Compliance & Regulations | Fair housing, data privacy |
+
+**Retrieval strategies:** semantic (cosine similarity), keyword (TF-IDF), hybrid (weighted blend).
+
+### Context Window Engine
+
+The context engine assembles optimized context windows for each agent query:
+
+```mermaid
+flowchart LR
+  Q[Agent Query] --> P1[Graph Provider]
+  Q --> P2[Document Provider]
+  Q --> P3[Conversation Provider]
+  Q --> P4[Tool Result Provider]
+  P1 --> R[Ranker]
+  P2 --> R
+  P3 --> R
+  P4 --> R
+  R --> W[Token Window<br/>priority allocation]
+  W --> AC[Assembled Context<br/>for agent prompt]
+```
+
+| Priority | Level | Examples |
+|----------|-------|---------|
+| Critical (4) | System prompts, safety rules | Always included |
+| High (3) | Direct graph/KB matches | Core relevance |
+| Medium (2) | Related context, recent conversation | Supporting info |
+| Low (1) | Background knowledge | Space permitting |
+| Background (0) | Oldest/least relevant | First evicted |
+
+### D3 Visualization UI
+
+A professional dark-themed dashboard at `http://localhost:4200` featuring:
+- **Force-directed graph** with 12 color-coded node types, zoom/pan/drag, click-to-inspect
+- **Node detail panel** with properties, metadata, and neighbor navigation
+- **Knowledge base search** with scored results
+- **Real-time metrics** footer and charts
+
+### Quick Start
+
+```bash
+cd context-engineering
+npm install
+npm run dev          # Start API + D3 UI on http://localhost:4200
+npm run seed         # Verify seed data (42 nodes, 55 edges, 10 docs)
+npm run build        # Production build
+```
+
+> [!TIP]
+> **For comprehensive documentation, see [context-engineering/README.md](context-engineering/README.md).**
 
 ## Codex Multi-Agent
 

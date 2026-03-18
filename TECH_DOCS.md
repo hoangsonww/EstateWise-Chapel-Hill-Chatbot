@@ -80,95 +80,101 @@ Below, we outline the architecture, key components, and challenges faced during 
 
 ## Table of Contents
 
-- [EstateWise: AI‑Powered Real Estate Assistant for Chapel Hill, NC - AI/ML/Infrastructure Technical Documentation](#estatewise-aipowered-real-estate-assistant-for-chapel-hill-nc---aimlinfrastructure-technical-documentation)
-  - [Table of Contents](#table-of-contents)
-  - [1. Data Ingestion \& Validation](#1-data-ingestion--validation)
-    - [1.1 Streaming Parser Setup](#11-streaming-parser-setup)
-    - [1.2 Schema \& Field Selection](#12-schema--field-selection)
-    - [1.3 Cleaning \& Sanitization Utilities](#13-cleaning--sanitization-utilities)
-    - [1.4 Error Handling \& Logging](#14-error-handling--logging)
-  - [2. Embedding Generation \& Vector Store](#2-embedding-generation--vector-store)
-    - [2.1 Prompt Engineering for Embeddings](#21-prompt-engineering-for-embeddings)
-    - [2.2 Google Embedding API Integration](#22-google-embedding-api-integration)
-    - [2.3 Pinecone Batch Upsert Strategy](#23-pinecone-batch-upsert-strategy)
-    - [2.4 Monitoring \& Retry Logic](#24-monitoring--retry-logic)
-  - [3. Retrieval‑Augmented Generation (RAG)](#3-retrievalaugmented-generation-rag)
-    - [3.1 KNN Query Implementation](#31-knn-query-implementation)
-    - [3.2 Assembling Retrieval Context](#32-assembling-retrieval-context)
-    - [3.3 Caching Frequent Queries](#33-caching-frequent-queries)
-    - [3.4 Hybrid RAG (Vector + Graph)](#34-hybrid-rag-vector--graph)
-  - [4. RAG‑Decision Orchestration Layer](#4-ragdecision-orchestration-layer)
-    - [4.1 JSON‑Only Decision Protocol](#41-jsononly-decision-protocol)
-    - [4.2 Simplified Control Flow](#42-simplified-control-flow)
-    - [4.3 Implementation Highlights](#43-implementation-highlights)
-  - [5. Clustering \& Similarity Analysis](#5-clustering--similarity-analysis)
-    - [5.1 Numeric Feature Extraction \& Normalization](#51-numeric-feature-extraction--normalization)
-    - [5.2 Plain‑JS K‑Means Implementation](#52-plainjs-kmeans-implementation)
-    - [5.3 Cluster Context Injection](#53-cluster-context-injection)
-  - [6. Mixture‑of‑Experts (MoE) Ensemble](#6-mixtureofexperts-moe-ensemble)
-    - [6.1 Expert Definitions \& System Prompts](#61-expert-definitions--system-prompts)
-    - [6.2 Parallel Expert Invocations](#62-parallel-expert-invocations)
-    - [6.3 Weight Normalization \& Feedback Loop](#63-weight-normalization--feedback-loop)
-    - [6.4 Master Merger Model](#64-master-merger-model)
-    - [6.5 Prompt Engineering](#65-prompt-engineering)
-    - [6.6 Agentic AI Runtime](#66-agentic-ai-runtime)
-  - [7. Chain-of-Thought Reasoning](#7-chain-of-thought-reasoning)
-    - [7.1 Implementation](#71-implementation)
-    - [7.2 Example](#72-example)
-    - [7.3 Benefits](#73-benefits)
-    - [7.4 Agentic AI Orchestration](#74-agentic-ai-orchestration)
-    - [7.5 MCP Server (Model Context Protocol)](#75-mcp-server-model-context-protocol)
-    - [7.6 Agent-to-Agent Communication](#76-agent-to-agent-communication)
-  - [8. Backend API \& Data Layer](#8-backend-api--data-layer)
-    - [8.1 Express.js Routes \& Controllers](#81-expressjs-routes--controllers)
-    - [8.2 MongoDB Models \& Conversations](#82-mongodb-models--conversations)
-    - [8.3 Authentication \& JWT Workflow](#83-authentication--jwt-workflow)
-    - [8.4 OpenAPI / Swagger Integration](#84-openapi--swagger-integration)
-    - [8.5 tRPC API](#85-trpc-api)
-    - [8.6 gRPC Services](#86-grpc-services)
-  - [9. Frontend Integration](#9-frontend-integration)
-  - [10. Infrastructure \& Deployment](#10-infrastructure--deployment)
-    - [10.1 Deployment Strategies](#101-deployment-strategies)
-      - [Blue-Green Deployment](#blue-green-deployment)
-      - [Canary Deployment](#canary-deployment)
-      - [Rolling Update](#rolling-update)
-    - [10.2 Production Kubernetes Manifests](#102-production-kubernetes-manifests)
-    - [10.3 Multi-Cloud Deployment Options](#103-multi-cloud-deployment-options)
-    - [10.4 CI/CD Pipeline (Enhanced Jenkins)](#104-cicd-pipeline-enhanced-jenkins)
-    - [10.5 Monitoring \& Observability](#105-monitoring--observability)
-      - [Prometheus Metrics](#prometheus-metrics)
-      - [Grafana Dashboards](#grafana-dashboards)
-      - [Centralized Logging](#centralized-logging)
-    - [10.6 High Availability Setup](#106-high-availability-setup)
-    - [10.7 Disaster Recovery](#107-disaster-recovery)
-      - [Automated Backups](#automated-backups)
-      - [Recovery Procedures](#recovery-procedures)
-    - [10.8 DevOps Metrics](#108-devops-metrics)
-    - [10.9 Operational Runbooks](#109-operational-runbooks)
-    - [10.10 Chaos Engineering](#1010-chaos-engineering)
-  - [11. Challenges](#11-challenges)
-    - [11.1 Large‑Scale Data Ingestion](#111-largescale-data-ingestion)
-    - [11.2 Embedding Generation \& Rate Limits](#112-embedding-generation--rate-limits)
-    - [11.3 Vector Store Scaling](#113-vector-store-scaling)
-    - [11.4 RAG \& Context Assembly](#114-rag--context-assembly)
-    - [11.5 Mixture‑of‑Experts Complexity](#115-mixtureofexperts-complexity)
-    - [11.6 Deployment \& Infrastructure](#116-deployment--infrastructure)
-  - [12. Logging \& Monitoring](#12-logging--monitoring)
-    - [12.1 Logging](#121-logging)
-    - [12.2 Monitoring](#122-monitoring)
-    - [12.3 Visualization](#123-visualization)
-  - [13. GitHub Actions CI/CD Pipeline](#13-github-actions-cicd-pipeline)
-    - [13.1 Workflow Configuration](#131-workflow-configuration)
-    - [13.2 Configuring Secrets](#132-configuring-secrets)
-    - [13.3 Monitoring and Troubleshooting](#133-monitoring-and-troubleshooting)
-    - [13.4 Deployment Rollback](#134-deployment-rollback)
-    - [13.5 Other CI/CD Enhancements (Travis, GitLab CI, Jenkins)](#135-other-cicd-enhancements-travis-gitlab-ci-jenkins)
-  - [14. Appendices](#14-appendices)
-    - [A. Environment Variables Reference](#a-environment-variables-reference)
-    - [B. AI/ML Flow Chart](#b-aiml-flow-chart)
-    - [C. Overall App’s Flow Diagram](#c-overall-apps-flow-diagram)
-    - [D. Mermaid Sequence Diagram](#d-mermaid-sequence-diagram)
-    - [E. Vector Schema \& Metadata Example](#e-vector-schema--metadata-example)
+- [1. Data Ingestion \& Validation](#1-data-ingestion--validation)
+  - [1.1 Streaming Parser Setup](#11-streaming-parser-setup)
+  - [1.2 Schema \& Field Selection](#12-schema--field-selection)
+  - [1.3 Cleaning \& Sanitization Utilities](#13-cleaning--sanitization-utilities)
+  - [1.4 Error Handling \& Logging](#14-error-handling--logging)
+- [2. Embedding Generation \& Vector Store](#2-embedding-generation--vector-store)
+  - [2.1 Prompt Engineering for Embeddings](#21-prompt-engineering-for-embeddings)
+  - [2.2 Google Embedding API Integration](#22-google-embedding-api-integration)
+  - [2.3 Pinecone Batch Upsert Strategy](#23-pinecone-batch-upsert-strategy)
+  - [2.4 Monitoring \& Retry Logic](#24-monitoring--retry-logic)
+- [3. Retrieval‑Augmented Generation (RAG)](#3-retrievalaugmented-generation-rag)
+  - [3.1 KNN Query Implementation](#31-knn-query-implementation)
+  - [3.2 Assembling Retrieval Context](#32-assembling-retrieval-context)
+  - [3.3 Caching Frequent Queries](#33-caching-frequent-queries)
+  - [3.4 Hybrid RAG (Vector + Graph)](#34-hybrid-rag-vector--graph)
+- [4. RAG‑Decision Orchestration Layer](#4-ragdecision-orchestration-layer)
+  - [4.1 JSON‑Only Decision Protocol](#41-jsononly-decision-protocol)
+  - [4.2 Simplified Control Flow](#42-simplified-control-flow)
+  - [4.3 Implementation Highlights](#43-implementation-highlights)
+- [5. Clustering \& Similarity Analysis](#5-clustering--similarity-analysis)
+  - [5.1 Numeric Feature Extraction \& Normalization](#51-numeric-feature-extraction--normalization)
+  - [5.2 Plain‑JS K‑Means Implementation](#52-plainjs-kmeans-implementation)
+  - [5.3 Cluster Context Injection](#53-cluster-context-injection)
+- [6. Mixture‑of‑Experts (MoE) Ensemble](#6-mixtureofexperts-moe-ensemble)
+  - [6.1 Expert Definitions \& System Prompts](#61-expert-definitions--system-prompts)
+  - [6.2 Parallel Expert Invocations](#62-parallel-expert-invocations)
+  - [6.3 Weight Normalization \& Feedback Loop](#63-weight-normalization--feedback-loop)
+  - [6.4 Master Merger Model](#64-master-merger-model)
+  - [6.5 Prompt Engineering](#65-prompt-engineering)
+  - [6.6 Agentic AI Runtime](#66-agentic-ai-runtime)
+- [7. Chain-of-Thought Reasoning](#7-chain-of-thought-reasoning)
+  - [7.1 Implementation](#71-implementation)
+  - [7.2 Example](#72-example)
+  - [7.3 Benefits](#73-benefits)
+  - [7.4 Agentic AI Orchestration](#74-agentic-ai-orchestration)
+  - [7.5 MCP Server (Model Context Protocol)](#75-mcp-server-model-context-protocol)
+  - [7.6 Agent-to-Agent Communication](#76-agent-to-agent-communication)
+- [8. Backend API \& Data Layer](#8-backend-api--data-layer)
+  - [8.1 Express.js Routes \& Controllers](#81-expressjs-routes--controllers)
+  - [8.2 MongoDB Models \& Conversations](#82-mongodb-models--conversations)
+  - [8.3 Authentication \& JWT Workflow](#83-authentication--jwt-workflow)
+  - [8.4 OpenAPI / Swagger Integration](#84-openapi--swagger-integration)
+  - [8.5 tRPC API](#85-trpc-api)
+  - [8.6 gRPC Services](#86-grpc-services)
+- [9. Frontend Integration](#9-frontend-integration)
+- [10. Infrastructure \& Deployment](#10-infrastructure--deployment)
+  - [10.1 Deployment Strategies](#101-deployment-strategies)
+    - [Blue-Green Deployment](#blue-green-deployment)
+    - [Canary Deployment](#canary-deployment)
+    - [Rolling Update](#rolling-update)
+  - [10.2 Production Kubernetes Manifests](#102-production-kubernetes-manifests)
+  - [10.3 Multi-Cloud Deployment Options](#103-multi-cloud-deployment-options)
+  - [10.4 CI/CD Pipeline (Enhanced Jenkins)](#104-cicd-pipeline-enhanced-jenkins)
+  - [10.5 Monitoring \& Observability](#105-monitoring--observability)
+    - [Prometheus Metrics](#prometheus-metrics)
+    - [Grafana Dashboards](#grafana-dashboards)
+    - [Centralized Logging](#centralized-logging)
+  - [10.6 High Availability Setup](#106-high-availability-setup)
+  - [10.7 Disaster Recovery](#107-disaster-recovery)
+    - [Automated Backups](#automated-backups)
+    - [Recovery Procedures](#recovery-procedures)
+  - [10.8 DevOps Metrics](#108-devops-metrics)
+  - [10.9 Operational Runbooks](#109-operational-runbooks)
+  - [10.10 Chaos Engineering](#1010-chaos-engineering)
+- [11. Challenges](#11-challenges)
+  - [11.1 Large‑Scale Data Ingestion](#111-largescale-data-ingestion)
+  - [11.2 Embedding Generation \& Rate Limits](#112-embedding-generation--rate-limits)
+  - [11.3 Vector Store Scaling](#113-vector-store-scaling)
+  - [11.4 RAG \& Context Assembly](#114-rag--context-assembly)
+  - [11.5 Mixture‑of‑Experts Complexity](#115-mixtureofexperts-complexity)
+  - [11.6 Deployment \& Infrastructure](#116-deployment--infrastructure)
+- [12. Logging \& Monitoring](#12-logging--monitoring)
+  - [12.1 Logging](#121-logging)
+  - [12.2 Monitoring](#122-monitoring)
+  - [12.3 Visualization](#123-visualization)
+- [13. GitHub Actions CI/CD Pipeline](#13-github-actions-cicd-pipeline)
+  - [13.1 Workflow Configuration](#131-workflow-configuration)
+  - [13.2 Configuring Secrets](#132-configuring-secrets)
+  - [13.3 Monitoring and Troubleshooting](#133-monitoring-and-troubleshooting)
+  - [13.4 Deployment Rollback](#134-deployment-rollback)
+  - [13.5 Other CI/CD Enhancements (Travis, GitLab CI, Jenkins)](#135-other-cicd-enhancements-travis-gitlab-ci-jenkins)
+- [14. Context Engineering System](#14-context-engineering-system)
+  - [14.1 Knowledge Graph Architecture](#141-knowledge-graph-architecture)
+  - [14.2 Knowledge Base & Document Retrieval](#142-knowledge-base--document-retrieval)
+  - [14.3 Context Assembly Engine](#143-context-assembly-engine)
+  - [14.4 Ingestion Pipeline](#144-ingestion-pipeline)
+  - [14.5 MCP Tool Integration](#145-mcp-tool-integration)
+  - [14.6 D3 Visualization Dashboard](#146-d3-visualization-dashboard)
+  - [14.7 Monitoring & Observability](#147-monitoring--observability)
+- [15. Appendices](#15-appendices)
+  - [A. Environment Variables Reference](#a-environment-variables-reference)
+  - [B. AI/ML Flow Chart](#b-aiml-flow-chart)
+  - [C. Overall App’s Flow Diagram](#c-overall-apps-flow-diagram)
+  - [D. Mermaid Sequence Diagram](#d-mermaid-sequence-diagram)
+  - [E. Vector Schema \& Metadata Example](#e-vector-schema--metadata-example)
 
 ---
 
@@ -1507,7 +1513,306 @@ For more details, refer to the [DEVOPS.md](DEVOPS.md) and [DEPLOYMENTS.md](DEPLO
 
 ---
 
-## 14. Appendices
+## 14. Context Engineering System
+
+The `context-engineering/` package is an enterprise-grade subsystem that provides AI agents with structured domain knowledge through a knowledge graph, knowledge base, and intelligent context window management. It runs as a standalone TypeScript service on port 4200, exposing a REST API, WebSocket events, and a D3.js visualization dashboard.
+
+### 14.1 Knowledge Graph Architecture
+
+The knowledge graph is an event-driven, in-memory graph engine built on typed adjacency lists with optional Neo4j persistence.
+
+**Data Model:**
+
+```mermaid
+erDiagram
+  GraphNode {
+    string id PK
+    NodeType type
+    string label
+    json properties
+    float[] embedding
+    NodeMetadata metadata
+  }
+  GraphEdge {
+    string id PK
+    string source FK
+    string target FK
+    EdgeType type
+    float weight
+    json properties
+    EdgeMetadata metadata
+  }
+  GraphNode ||--o{ GraphEdge : "source"
+  GraphNode ||--o{ GraphEdge : "target"
+```
+
+**Node Type Taxonomy (12 types):**
+
+| Type | Description | Seed Count |
+|------|-------------|------------|
+| Property | Real estate listings with zpid, price, address | 0 (populated via ingestion) |
+| Concept | Domain concepts: valuation, mortgage, ROI, etc. | 14 |
+| Entity | Named entities extracted from text | 0 |
+| Topic | High-level categories: residential, commercial, trends | 6 |
+| Document | Knowledge base document references | 0 |
+| Conversation | Chat session nodes | 0 |
+| Agent | AI agent nodes: Planner, GraphAnalyst, etc. | 11 |
+| Tool | MCP tool nodes: graph.similar, finance.mortgage, etc. | 7 |
+| Workflow | Multi-step process definitions | 4 |
+| Neighborhood | Geographic neighborhood nodes | 0 |
+| ZipCode | ZIP code area nodes | 0 |
+| MarketSegment | Market classification segments | 0 |
+
+**Edge Type Taxonomy (14 types):**
+
+| Type | Semantics | Typical Source -> Target |
+|------|-----------|------------------------|
+| SIMILAR_TO | Similarity relationship | Property -> Property |
+| RELATED_TO | General association | Concept -> Concept |
+| BELONGS_TO | Membership | Entity -> Topic |
+| MENTIONS | Reference in text | Document -> Entity |
+| DERIVED_FROM | Derivation chain | Concept -> Concept |
+| DEPENDS_ON | Dependency | Workflow -> Tool |
+| LINKS_TO | Hyperlink/reference | Document -> Document |
+| PART_OF | Containment | Concept -> Topic |
+| USES | Tool usage | Agent -> Tool |
+| PRODUCES | Output creation | Tool -> Concept |
+| IN_NEIGHBORHOOD | Geographic membership | Property -> Neighborhood |
+| IN_ZIP | ZIP code membership | Property -> ZipCode |
+| HAS_CAPABILITY | Agent capability | Agent -> Concept |
+| PRECEDES | Temporal ordering | Workflow -> Workflow |
+
+**Traversal Algorithms:**
+
+The graph engine implements 8 traversal algorithms, each respecting configurable `TraversalOptions` (max depth, edge type filters, node type filters, minimum weight, direction):
+
+```mermaid
+flowchart LR
+  subgraph "Search"
+    BFS[BFS<br/>breadth-first]
+    DFS[DFS<br/>depth-first]
+  end
+  subgraph "Pathfinding"
+    DIJ[Dijkstra<br/>shortest path]
+    ALL[All Paths<br/>enumeration]
+  end
+  subgraph "Analysis"
+    PR[PageRank<br/>importance]
+    CD[Community Detection<br/>label propagation]
+    CC[Connected Components<br/>component discovery]
+    BC[Betweenness Centrality<br/>bridge identification]
+  end
+```
+
+**Fluent Query Builder:**
+
+```typescript
+import { query, NodeType, EdgeType } from '@estatewise/context-engineering';
+
+const result = query(graph)
+  .match(NodeType.Concept)
+  .where({ 'metadata.importance': { $gte: 0.7 } })
+  .traverse(EdgeType.RELATED_TO, { maxDepth: 2 })
+  .orderBy('metadata.importance', 'desc')
+  .limit(10)
+  .execute();
+```
+
+Supported operators: `$gt`, `$lt`, `$gte`, `$lte`, `$eq`, `$ne`, `$contains`, `$in`. Supports dot-path property access (e.g., `properties.price`, `metadata.tags`).
+
+**Neo4j Synchronization:**
+
+The `Neo4jSyncManager` provides bidirectional sync between the in-memory graph and Neo4j:
+- `pushToNeo4j()`: MERGE semantics, batched in 500-node chunks
+- `pullFromNeo4j()`: Merges into in-memory graph without overwriting newer local nodes
+- Graceful degradation: Neo4j unavailability never crashes the application
+- Configuration via `NEO4J_URI`, `NEO4J_USERNAME`, `NEO4J_PASSWORD`, `NEO4J_ENABLE`
+
+### 14.2 Knowledge Base & Document Retrieval
+
+The knowledge base stores documents with automatic chunking and TF-IDF embedding generation.
+
+**Document Processing Pipeline:**
+
+```mermaid
+flowchart LR
+  RAW[Raw Document] --> CHUNK[Auto-Chunker<br/>~500 tokens<br/>50 token overlap]
+  CHUNK --> EMB[TF-IDF Embedder<br/>128-dimensional<br/>hash projection]
+  EMB --> STORE[Document Store<br/>Map&lsaquo;id, KBDocument&rsaquo;]
+  STORE --> IDX[Chunk Index<br/>embedding vectors]
+```
+
+**Retrieval Strategies:**
+
+| Strategy | Method | Score Composition | Best For |
+|----------|--------|-------------------|----------|
+| Semantic | Cosine similarity on embeddings | Vector distance (0-1) | Conceptual matches, paraphrases |
+| Keyword | TF-IDF token frequency | Term overlap ratio | Exact term matches, technical queries |
+| Hybrid | Weighted blend | 65% semantic + 35% keyword | General-purpose retrieval |
+
+All strategies support:
+- `SearchFilter` predicates (`eq`, `ne`, `gt`, `lt`, `contains`, `in`)
+- Recency boost (exponential decay weighting for newer documents)
+- Frequency boost (prioritize frequently accessed documents)
+
+**Seed Documents (10):** The knowledge base comes pre-loaded with ~4,000 tokens of domain reference material covering platform overview, property search, market analysis, financial tools, graph system, agent capabilities, MCP tools, neighborhood analysis, commute analysis, and compliance regulations.
+
+### 14.3 Context Assembly Engine
+
+The context engine orchestrates context assembly from multiple providers with ranking and priority-based token allocation.
+
+**Assembly Pipeline:**
+
+```mermaid
+sequenceDiagram
+  participant A as Agent/Tool
+  participant E as ContextEngine
+  participant GP as GraphProvider
+  participant DP as DocumentProvider
+  participant CP as ConversationProvider
+  participant TP as ToolResultProvider
+  participant R as Ranker
+  participant W as ContextWindow
+
+  A->>E: assembleContext(query)
+  par Parallel collection
+    E->>GP: getContext()
+    E->>DP: getContext()
+    E->>CP: getContext()
+    E->>TP: getContext()
+  end
+  GP-->>E: graph items
+  DP-->>E: document items
+  CP-->>E: conversation items
+  TP-->>E: tool result items
+  E->>R: rank(items, "combined")
+  R-->>E: scored items
+  E->>W: allocate(items)
+  W-->>E: budget-fitted items
+  E-->>A: AssembledContext
+```
+
+**Priority Tiers:**
+
+| Priority | Level | Weight | Examples |
+|----------|-------|--------|---------|
+| Critical (4) | Highest | Always included | System prompts, safety rules |
+| High (3) | High | Included first | Direct graph/KB matches |
+| Medium (2) | Medium | Space permitting | Related context, recent conversation |
+| Low (1) | Low | If budget allows | Background knowledge |
+| Background (0) | Lowest | First evicted | Oldest/least relevant items |
+
+**Ranking Strategies:**
+
+| Strategy | Formula | Use Case |
+|----------|---------|----------|
+| Recency | Exponential decay (30-min half-life) | Prioritize recent information |
+| Relevance | 70% provider score + 30% keyword overlap | Match quality |
+| Importance | Priority tier + metadata importance | Domain significance |
+| Combined | 40% relevance + 30% recency + 30% importance | Default strategy |
+
+**Per-Agent Token Budgets:**
+
+| Agent Role | Budget | Reserved |
+|------------|--------|----------|
+| Orchestrator/Coordinator | 12,000 | 3,000 |
+| PropertyAnalyst | 10,000 | 2,500 |
+| FinanceAnalyst | 8,000 | 2,000 |
+| GraphAnalyst | 6,000 | 1,500 |
+| Default | 8,000 | 2,000 |
+
+### 14.4 Ingestion Pipeline
+
+```mermaid
+flowchart TB
+  subgraph "Ingestion Sources"
+    S1["{ type: 'property', data: {...} }"]
+    S2["{ type: 'conversation', data: [...] }"]
+    S3["{ type: 'document', data: '...' }"]
+  end
+
+  subgraph "Router"
+    ING[Ingester]
+  end
+
+  subgraph "Parsers"
+    PP[PropertyParser<br/>creates Property, Neighborhood,<br/>ZipCode nodes + IN_NEIGHBORHOOD,<br/>IN_ZIP edges]
+    CP[ConversationParser<br/>creates Conversation node,<br/>MENTIONS edges to ZPIDs,<br/>RELATED_TO edges to concepts]
+    DP[DocumentParser<br/>creates Document, Concept<br/>nodes + LINKS_TO, MENTIONS edges]
+  end
+
+  subgraph "Output"
+    KG[Knowledge Graph<br/>nodes + edges]
+    KB[Knowledge Base<br/>documents + chunks]
+  end
+
+  S1 --> ING --> PP
+  S2 --> ING --> CP
+  S3 --> ING --> DP
+  PP & CP & DP --> KG & KB
+```
+
+Each parser returns a `ParsedData` object containing nodes, edges, and documents. The Ingester resolves node labels to IDs (creating new nodes if needed) and persists everything to the graph and knowledge base. Batch ingestion collects errors without aborting the entire batch.
+
+### 14.5 MCP Tool Integration
+
+10 context engineering tools are registered in the MCP server for agent access:
+
+| Tool | Args | Description |
+|------|------|-------------|
+| `context.search` | query, strategy?, limit? | Hybrid search across knowledge base |
+| `context.assembleForAgent` | agentRole, query, maxTokens? | Assemble full context window |
+| `context.graphTraverse` | startNodeId, edgeTypes?, maxDepth?, direction? | BFS graph traversal |
+| `context.graphQuery` | nodeType?, filters?, limit? | Query graph with filters |
+| `context.ingest` | type, title, content, tags? | Ingest new data |
+| `context.getStats` | -- | System metrics snapshot |
+| `context.getGraphOverview` | limit? | Full graph for visualization |
+| `context.findRelated` | concept, maxDepth?, limit? | Find related knowledge nodes |
+| `context.getNodeDetail` | nodeId, includeNeighbors? | Detailed node information |
+| `context.getTimeline` | limit? | Recent activity timeline |
+
+4 MCP resources are also registered:
+- `context://graph/stats` -- Current graph statistics
+- `context://kb/stats` -- Knowledge base statistics
+- `context://metrics/snapshot` -- Metrics snapshot
+- `context://graph/nodes/{type}` -- Nodes filtered by type
+
+### 14.6 D3 Visualization Dashboard
+
+The context engineering system includes a professional dark-themed D3.js visualization dashboard:
+
+**Technology:** D3.js v7 (CDN), vanilla JavaScript, CSS Grid layout
+
+**Features:**
+- Force-directed graph with D3 force simulation (link, charge, center, collide, clustering forces)
+- 12 color-coded node types with importance-based sizing (radius 8-24px)
+- Unicode emoji icons per node type (Property, Agent, Tool, Concept, etc.)
+- Interactive: zoom/pan (0.1x-5x), drag, click-to-select with highlight, double-click to center
+- Left sidebar: search, node/edge type filters, statistics, color legend
+- Right sidebar: node detail panel, knowledge base search, metrics charts
+- Footer: real-time metric pills (assemblies, avg time, cache hits, ingestions)
+- WebSocket integration for live graph mutation events
+
+### 14.7 Monitoring & Observability
+
+The monitoring system tracks all context engineering operations:
+
+| Metric | Type | Source |
+|--------|------|--------|
+| Context assemblies | Counter + timing | ContextEngine |
+| KB searches | Counter + timing | KnowledgeBase |
+| Graph traversals | Counter + timing | Traversal functions |
+| Ingestions | Counter + timing + errors | Ingester |
+| Cache hits/misses | Counter | ToolResultProvider |
+
+Metrics are collected in a rolling window (last 1,000 events) and exposed via:
+- `GET /api/context/metrics` -- Aggregate snapshot
+- `GET /api/context/metrics/timeseries?metric=context_assembly` -- Time-series data
+- MCP resource `context://metrics/snapshot`
+
+---
+
+## 15. Appendices
 
 Additional resources, diagrams, and references for developers and data scientists who are interested working on EstateWise.
 
@@ -1533,6 +1838,8 @@ The following environment variables are required for the application to function
 | `LANGSMITH_ENDPOINT` | Optional custom LangSmith endpoint |
 | `LANGSMITH_RUN_TAGS` | Comma-separated baseline trace tags |
 | `LANGSMITH_STRICT` | Fail fast on tracing misconfiguration |
+| `CONTEXT_PORT` | Port for context engineering API + UI (default: 4200) |
+| `CONTEXT_API_BASE_URL` | Base URL for context API when used by MCP tools |
 
 ### B. AI/ML Flow Chart
 

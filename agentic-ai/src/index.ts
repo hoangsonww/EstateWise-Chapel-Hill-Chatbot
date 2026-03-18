@@ -7,6 +7,7 @@ import { FinanceAnalystAgent } from "./agents/FinanceAnalystAgent.js";
 import { ZpidFinderAgent } from "./agents/ZpidFinderAgent.js";
 import { AnalyticsAnalystAgent } from "./agents/AnalyticsAnalystAgent.js";
 import { CoordinatorAgent } from "./agents/CoordinatorAgent.js";
+import { ContextEngineerAgent } from "./agents/ContextEngineerAgent.js";
 import { DedupeRankingAgent } from "./agents/DedupeRankingAgent.js";
 import { ComplianceAgent } from "./agents/ComplianceAgent.js";
 import { AgentOrchestrator } from "./orchestrator/AgentOrchestrator.js";
@@ -110,6 +111,7 @@ async function main() {
   const orchestrator = new AgentOrchestrator().register(
     new PlannerAgent(),
     new CoordinatorAgent(),
+    new ContextEngineerAgent(),
     new ZpidFinderAgent(),
     new PropertyAnalystAgent(),
     new AnalyticsAnalystAgent(),

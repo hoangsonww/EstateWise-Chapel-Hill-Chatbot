@@ -27,6 +27,7 @@ This file is the always-on memory for Claude Code in this repository. Keep it le
 - `mcp/`: stdio MCP server with 60+ tools, token workflows, monitoring, web tools, and A2A bridge tools.
 - `agentic-ai/`: standalone multi-agent runtime with default orchestrator, LangGraph, CrewAI, and HTTP/A2A endpoints.
 - `grpc/`: market pulse proto contract and Node gRPC service.
+- `context-engineering/`: knowledge graph engine, knowledge base, context window management, ingestion pipeline, D3 visualization UI, and MCP/agent integration.
 - `deployment-control/`: ops API plus separate Nuxt UI for deployment actions.
 - Infra/docs: `docker/`, `kubernetes/`, `helm/`, `terraform/`, `aws/`, `azure/`, `gcp/`, `oracle-cloud/`, `hashicorp/`, root architecture/deployment docs.
 
@@ -40,6 +41,10 @@ This file is the always-on memory for Claude Code in this repository. Keep it le
 - Agentic CLI entry: `agentic-ai/src/index.ts`
 - Agentic HTTP/A2A server: `agentic-ai/src/http/server.ts`
 - gRPC contract: `grpc/proto/market_pulse.proto`
+- Context engineering entry: `context-engineering/src/serve.ts`
+- Context graph engine: `context-engineering/src/graph/KnowledgeGraph.ts`
+- Context factory: `context-engineering/src/factory.ts`
+- Context D3 UI: `context-engineering/src/ui/public/index.html`
 - Deployment-control API: `deployment-control/src/server.ts`
 
 ## Important Repo Gotchas
@@ -51,6 +56,7 @@ This file is the always-on memory for Claude Code in this repository. Keep it le
 - `mcp npm run dev` is stdio and waits for a client. An apparently idle terminal is expected.
 - MCP tool outputs are intentionally text-first and often stringified JSON for client portability.
 - `deployment-control` has no built-in auth/RBAC. Treat it as trusted-environment tooling unless the task adds explicit security.
+- `context-engineering` seeds 42 graph nodes + 55 edges + 10 KB docs on startup; the graph is never empty. Neo4j sync is optional (graceful degradation). UI runs on port 4200.
 
 ## Validation Defaults
 
@@ -78,6 +84,11 @@ cd agentic-ai && npm run dev "your goal"
 # gRPC
 cd grpc && npm run build && npm run test
 cd grpc && npm run proto:check
+
+# Context Engineering
+cd context-engineering && npm run build
+cd context-engineering && npm run dev        # starts API + D3 UI on :4200
+cd context-engineering && npm run seed       # verify seed data
 
 # Deployment Control
 cd deployment-control && npm run build

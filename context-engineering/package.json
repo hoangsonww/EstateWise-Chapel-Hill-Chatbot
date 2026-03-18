@@ -1,0 +1,41 @@
+{
+  "name": "@estatewise/context-engineering",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Enterprise-grade context engineering with knowledge graph, knowledge base, context window management, and D3 visualization for EstateWise AI agents",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx src/serve.ts",
+    "dev:ui": "tsx src/serve.ts --ui-only",
+    "start": "node dist/serve.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "prettier --check \"src/**/*.ts\"",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "seed": "tsx src/scripts/seed.ts",
+    "graph:export": "tsx src/scripts/export-graph.ts"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "neo4j-driver": "^5.25.0",
+    "zod": "^3.23.8",
+    "uuid": "^10.0.0",
+    "eventemitter3": "^5.0.1",
+    "ws": "^8.18.0",
+    "cors": "^2.8.5"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/uuid": "^10.0.0",
+    "@types/ws": "^8.5.13",
+    "@types/cors": "^2.8.17",
+    "@types/node": "^24.5.1",
+    "tsx": "^4.19.2",
+    "typescript": "^5.5.4",
+    "vitest": "^2.1.0",
+    "prettier": "^3.4.2"
+  }
+}
