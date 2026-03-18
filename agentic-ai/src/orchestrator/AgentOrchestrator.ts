@@ -264,6 +264,22 @@ export class AgentOrchestrator {
         web.pages = pages.slice(-5);
         break;
       }
+      case "context.search":
+      case "context.assembleContext": {
+        if (!this.blackboard.contextData) this.blackboard.contextData = {};
+        this.blackboard.contextData.latest = data ?? { raw: text };
+        break;
+      }
+      case "context.findRelated": {
+        if (!this.blackboard.contextData) this.blackboard.contextData = {};
+        this.blackboard.contextData.related = data ?? { raw: text };
+        break;
+      }
+      case "context.graphOverview": {
+        if (!this.blackboard.contextData) this.blackboard.contextData = {};
+        this.blackboard.contextData.graphOverview = data ?? { raw: text };
+        break;
+      }
       default:
         break;
     }

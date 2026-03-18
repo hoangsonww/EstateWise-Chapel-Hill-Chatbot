@@ -73,77 +73,84 @@ This document describes the comprehensive end-to-end architecture for EstateWise
 
 ## Table of Contents
 
-- [EstateWise Architecture](#estatewise-architecture)
-  - [Table of Contents](#table-of-contents)
-  - [System Overview](#system-overview)
-  - [Repository Structure](#repository-structure)
-  - [API Protocols](#api-protocols)
-    - [REST API (Primary)](#rest-api-primary)
-    - [tRPC (TypeScript-first)](#trpc-typescript-first)
-    - [gRPC (High-performance)](#grpc-high-performance)
-  - [Core Services Architecture](#core-services-architecture)
-    - [Authentication Service](#authentication-service)
-    - [Chat Service (AI Pipeline)](#chat-service-ai-pipeline)
-    - [Property Service](#property-service)
-    - [Graph Service (Neo4j)](#graph-service-neo4j)
-  - [Data Flow Architecture](#data-flow-architecture)
-    - [Real-time Data Pipeline](#real-time-data-pipeline)
-    - [RAG Pipeline](#rag-pipeline)
-    - [Hybrid RAG (Vector + Graph)](#hybrid-rag-vector--graph)
-  - [AI/ML Architecture](#aiml-architecture)
-    - [Mixture of Experts (MoE)](#mixture-of-experts-moe)
-    - [Chain-of-Thought (CoT) Processing](#chain-of-thought-cot-processing)
-  - [Model Context Protocol (MCP) Architecture](#model-context-protocol-mcp-architecture)
-  - [Agentic AI Architecture](#agentic-ai-architecture)
-    - [Multi-Runtime + Multi-Surface](#multi-runtime--multi-surface)
-    - [Runtime Contracts](#runtime-contracts)
-    - [HTTP + A2A Contract Surface](#http--a2a-contract-surface)
-    - [Traceability and Observability](#traceability-and-observability)
-  - [Frontend Architecture](#frontend-architecture)
-    - [Component Hierarchy](#component-hierarchy)
-    - [State Management](#state-management)
-  - [Infrastructure \& Deployment](#infrastructure--deployment)
-    - [Multi-Cloud Architecture](#multi-cloud-architecture)
-    - [GitOps Control Plane Architecture](#gitops-control-plane-architecture)
-    - [Controller Ownership Boundaries](#controller-ownership-boundaries)
-    - [Progressive Delivery Control Loops](#progressive-delivery-control-loops)
-    - [Operational Workflow Orchestration](#operational-workflow-orchestration)
-    - [Advanced Deployment Strategies](#advanced-deployment-strategies)
-    - [Deployment Control UI](#deployment-control-ui)
-    - [Infrastructure as Code](#infrastructure-as-code)
-    - [Production Kubernetes Architecture](#production-kubernetes-architecture)
-  - [Security Architecture](#security-architecture)
-    - [Defense in Depth](#defense-in-depth)
-    - [Secret Management](#secret-management)
-  - [Monitoring \& Observability](#monitoring--observability)
-    - [Metrics Collection](#metrics-collection)
-    - [Distributed Tracing](#distributed-tracing)
-  - [Performance Optimization](#performance-optimization)
-    - [Caching Strategy](#caching-strategy)
-    - [Load Balancing](#load-balancing)
-  - [Testing Strategy](#testing-strategy)
-    - [Test Pyramid](#test-pyramid)
-    - [CI/CD Pipeline](#cicd-pipeline)
-  - [Data Models](#data-models)
-    - [Core Entities](#core-entities)
-    - [Graph Schema (Neo4j)](#graph-schema-neo4j)
-  - [Environment Configuration](#environment-configuration)
-    - [Environment Variables Matrix](#environment-variables-matrix)
-  - [Performance Targets \& SLOs](#performance-targets--slos)
-    - [Service Level Objectives](#service-level-objectives)
-    - [Scalability Targets](#scalability-targets)
-  - [Disaster Recovery](#disaster-recovery)
-    - [Backup Strategy](#backup-strategy)
-    - [Failover Process](#failover-process)
-  - [Development Workflow](#development-workflow)
-    - [Git Flow](#git-flow)
-    - [Code Review Process](#code-review-process)
-  - [Future Roadmap](#future-roadmap)
-    - [Planned Enhancements](#planned-enhancements)
-    - [Technical Debt](#technical-debt)
-  - [Appendix](#appendix)
-    - [Glossary](#glossary)
-    - [References](#references)
+- [System Overview](#system-overview)
+- [Repository Structure](#repository-structure)
+- [API Protocols](#api-protocols)
+  - [REST API (Primary)](#rest-api-primary)
+  - [tRPC (TypeScript-first)](#trpc-typescript-first)
+  - [gRPC (High-performance)](#grpc-high-performance)
+- [Core Services Architecture](#core-services-architecture)
+  - [Authentication Service](#authentication-service)
+  - [Chat Service (AI Pipeline)](#chat-service-ai-pipeline)
+  - [Property Service](#property-service)
+  - [Graph Service (Neo4j)](#graph-service-neo4j)
+- [Data Flow Architecture](#data-flow-architecture)
+  - [Real-time Data Pipeline](#real-time-data-pipeline)
+  - [RAG Pipeline](#rag-pipeline)
+  - [Hybrid RAG (Vector + Graph)](#hybrid-rag-vector--graph)
+- [AI/ML Architecture](#aiml-architecture)
+  - [Mixture of Experts (MoE)](#mixture-of-experts-moe)
+  - [Chain-of-Thought (CoT) Processing](#chain-of-thought-cot-processing)
+- [Model Context Protocol (MCP) Architecture](#model-context-protocol-mcp-architecture)
+- [Agentic AI Architecture](#agentic-ai-architecture)
+  - [Multi-Runtime + Multi-Surface](#multi-runtime--multi-surface)
+  - [Runtime Contracts](#runtime-contracts)
+  - [HTTP + A2A Contract Surface](#http--a2a-contract-surface)
+  - [Traceability and Observability](#traceability-and-observability)
+- [Context Engineering Architecture](#context-engineering-architecture)
+  - [System Overview](#context-engineering-system-overview)
+  - [Knowledge Graph Engine](#knowledge-graph-engine)
+  - [Knowledge Base & Retrieval](#knowledge-base--retrieval)
+  - [Context Assembly Pipeline](#context-assembly-pipeline)
+  - [Ingestion Pipeline](#ingestion-pipeline)
+  - [MCP Tool Integration](#context-mcp-tool-integration)
+  - [D3 Visualization Layer](#d3-visualization-layer)
+  - [Agent Integration](#agent-integration)
+- [Frontend Architecture](#frontend-architecture)
+  - [Component Hierarchy](#component-hierarchy)
+  - [State Management](#state-management)
+- [Infrastructure \& Deployment](#infrastructure--deployment)
+  - [Multi-Cloud Architecture](#multi-cloud-architecture)
+  - [GitOps Control Plane Architecture](#gitops-control-plane-architecture)
+  - [Controller Ownership Boundaries](#controller-ownership-boundaries)
+  - [Progressive Delivery Control Loops](#progressive-delivery-control-loops)
+  - [Operational Workflow Orchestration](#operational-workflow-orchestration)
+  - [Advanced Deployment Strategies](#advanced-deployment-strategies)
+  - [Deployment Control UI](#deployment-control-ui)
+  - [Infrastructure as Code](#infrastructure-as-code)
+  - [Production Kubernetes Architecture](#production-kubernetes-architecture)
+- [Security Architecture](#security-architecture)
+  - [Defense in Depth](#defense-in-depth)
+  - [Secret Management](#secret-management)
+- [Monitoring \& Observability](#monitoring--observability)
+  - [Metrics Collection](#metrics-collection)
+  - [Distributed Tracing](#distributed-tracing)
+- [Performance Optimization](#performance-optimization)
+  - [Caching Strategy](#caching-strategy)
+  - [Load Balancing](#load-balancing)
+- [Testing Strategy](#testing-strategy)
+  - [Test Pyramid](#test-pyramid)
+  - [CI/CD Pipeline](#cicd-pipeline)
+- [Data Models](#data-models)
+  - [Core Entities](#core-entities)
+  - [Graph Schema (Neo4j)](#graph-schema-neo4j)
+- [Environment Configuration](#environment-configuration)
+  - [Environment Variables Matrix](#environment-variables-matrix)
+- [Performance Targets \& SLOs](#performance-targets--slos)
+  - [Service Level Objectives](#service-level-objectives)
+  - [Scalability Targets](#scalability-targets)
+- [Disaster Recovery](#disaster-recovery)
+  - [Backup Strategy](#backup-strategy)
+  - [Failover Process](#failover-process)
+- [Development Workflow](#development-workflow)
+  - [Git Flow](#git-flow)
+  - [Code Review Process](#code-review-process)
+- [Future Roadmap](#future-roadmap)
+  - [Planned Enhancements](#planned-enhancements)
+  - [Technical Debt](#technical-debt)
+- [Appendix](#appendix)
+  - [Glossary](#glossary)
+  - [References](#references)
 
 ## System Overview
 
@@ -273,6 +280,18 @@ EstateWise-Chapel-Hill-Chatbot/
 │   │   ├── lang/              # LangGraph runtime
 │   │   └── index.ts           # CLI entry
 │   └── crewai/                # Python CrewAI runtime
+├── context-engineering/          # Context engineering subsystem
+│   ├── src/
+│   │   ├── graph/                # Knowledge graph engine
+│   │   ├── knowledge-base/       # Document store & retrieval
+│   │   ├── context/              # Context window & providers
+│   │   ├── ingestion/            # Data ingestion parsers
+│   │   ├── monitoring/           # Metrics collection
+│   │   ├── mcp/                  # MCP tool definitions
+│   │   ├── api/                  # Express REST router
+│   │   ├── ui/public/            # D3 visualization dashboard
+│   │   ├── factory.ts            # System wiring factory
+│   │   └── serve.ts              # Standalone server
 ├── extension/                 # VS Code extension
 ├── terraform/                 # Infrastructure as Code
 ├── aws/                       # AWS deployment configs
@@ -562,6 +581,7 @@ flowchart TB
     Finance[Finance Tools<br/>mortgage, affordability, schedule]
     Utils[Utility Tools<br/>extractZpids, parseGoal, summarize]
     Map[Map Tools<br/>linkForZpids, buildLinkByQuery]
+    Context[Context Tools<br/>search, assemble, traverse, ingest]
   end
 
   Client[MCP Client] -->|stdio| Server[MCP Server]
@@ -572,14 +592,18 @@ flowchart TB
   Server --> Finance
   Server --> Utils
   Server --> Map
+  Server --> Context
 
   Props --> API[Backend API]
   Graph --> API
   Analytics --> API
   Web --> API
+  Context --> CEng[Context Engine API]
 ```
 
 The MCP layer now includes internet research tools (`web.search`, `web.fetch`) so agentic runtimes can gather up-to-date external context when required.
+
+The MCP server also exposes 7 **context engineering tools** (`context.search`, `context.graphOverview`, `context.findRelated`, `context.assembleContext`, `context.ingestDocument`, `context.getMetrics`, `context.nodeDetail`) that connect agents to the knowledge graph and knowledge base for structured domain context.
 
 ## Agentic AI Architecture
 
@@ -648,6 +672,261 @@ flowchart TB
 - Cost tracking aggregates token/cost usage per run for LangGraph and CrewAI responses.
 - Optional LangSmith tracing enriches runs with runtime/surface/component/request metadata and thread correlation.
 - HTTP `requestId` (or `x-request-id`) is propagated to LangGraph trace metadata for cross-system correlation.
+
+## Context Engineering Architecture
+
+The context engineering subsystem (`context-engineering/`) provides AI agents with structured domain knowledge through five interconnected pillars.
+
+<p align="center">
+  <img src="img/context-graph.png" alt="Context Engineering UI" width="100%"/>
+</p>
+
+### Context Engineering System Overview
+
+```mermaid
+flowchart TB
+  subgraph "Data Sources"
+    PROP[Property Data]
+    CONV[Conversations]
+    DOCS[Documents]
+    TOOLS[Tool Results]
+  end
+
+  subgraph "Ingestion Layer"
+    PP[Property Parser]
+    CP[Conversation Parser]
+    DP[Document Parser]
+  end
+
+  subgraph "Storage Layer"
+    KG[Knowledge Graph<br/>In-memory + Neo4j sync<br/>42 seed nodes, 55 edges]
+    KB[Knowledge Base<br/>TF-IDF embeddings<br/>10 seed documents]
+  end
+
+  subgraph "Context Assembly"
+    GP[Graph Provider]
+    DOP[Document Provider]
+    COP[Conversation Provider]
+    TRP[Tool Result Provider]
+    RANK[Ranker<br/>recency + relevance + importance]
+    WIN[Context Window<br/>priority-based token allocation]
+  end
+
+  subgraph "Delivery"
+    MCP_T[MCP Tools ×10]
+    REST[REST API ×14 endpoints]
+    WS_T[WebSocket events]
+    D3[D3 Visualization UI]
+  end
+
+  PROP --> PP --> KG & KB
+  CONV --> CP --> KG & KB
+  DOCS --> DP --> KG & KB
+  TOOLS --> TRP
+
+  KG --> GP
+  KB --> DOP
+
+  GP & DOP & COP & TRP --> RANK --> WIN
+
+  WIN --> MCP_T
+  KG & KB --> REST --> D3
+  KG --> WS_T --> D3
+```
+
+### Knowledge Graph Engine
+
+The knowledge graph is an event-driven, in-memory graph with typed nodes and edges, optional Neo4j persistence, and comprehensive traversal algorithms.
+
+```mermaid
+graph TD
+  subgraph "12 Node Types"
+    Property
+    Concept
+    Entity
+    Topic
+    Document
+    Conversation
+    Agent
+    Tool
+    Workflow
+    Neighborhood
+    ZipCode
+    MarketSegment
+  end
+
+  subgraph "Key Relationships"
+    Property -- SIMILAR_TO --> Property
+    Property -- IN_NEIGHBORHOOD --> Neighborhood
+    Property -- IN_ZIP --> ZipCode
+    Agent -- USES --> Tool
+    Agent -- HAS_CAPABILITY --> Concept
+    Tool -- PRODUCES --> Concept
+    Concept -- RELATED_TO --> Topic
+    Workflow -- DEPENDS_ON --> Tool
+    Document -- MENTIONS --> Entity
+  end
+```
+
+**Graph Algorithms:**
+
+| Algorithm | Purpose | Complexity |
+|-----------|---------|------------|
+| BFS | Breadth-first traversal | O(V + E) |
+| DFS | Depth-first traversal | O(V + E) |
+| Dijkstra | Shortest weighted path | O((V + E) log V) |
+| All Paths | Enumerate paths up to depth | O(V!) worst case |
+| PageRank | Node importance scoring | O(iterations x E) |
+| Community Detection | Label propagation clustering | O(iterations x E) |
+| Connected Components | Component discovery | O(V + E) |
+| Betweenness Centrality | Bridge node identification | O(V x E) |
+
+**Query Builder:**
+The fluent query builder supports filter operators (`$gt`, `$lt`, `$gte`, `$lte`, `$eq`, `$ne`, `$contains`, `$in`), dot-path property access, traversal expansion, ordering, and pagination.
+
+### Knowledge Base & Retrieval
+
+| Strategy | Method | Use Case |
+|----------|--------|----------|
+| Semantic | Cosine similarity on TF-IDF embeddings | Conceptual matches |
+| Keyword | Token frequency scoring | Exact term matches |
+| Hybrid | Weighted blend (65% semantic, 35% keyword) | Best general-purpose |
+
+The knowledge base auto-chunks documents (~500 tokens with 50-token overlap), generates 128-dimensional TF-IDF embeddings without external APIs, and supports pluggable external embedding functions (e.g., OpenAI).
+
+### Context Assembly Pipeline
+
+```mermaid
+sequenceDiagram
+  participant Agent as AI Agent
+  participant Engine as Context Engine
+  participant GP as Graph Provider
+  participant DP as Document Provider
+  participant CP as Conversation Provider
+  participant TP as Tool Result Provider
+  participant Ranker
+  participant Window as Token Window
+
+  Agent->>Engine: assembleContext(query, agentRole)
+  par Parallel Provider Calls
+    Engine->>GP: getContext(request)
+    Engine->>DP: getContext(request)
+    Engine->>CP: getContext(request)
+    Engine->>TP: getContext(request)
+  end
+  GP-->>Engine: graph items
+  DP-->>Engine: document items
+  CP-->>Engine: conversation items
+  TP-->>Engine: tool result items
+  Engine->>Ranker: rank(allItems, query, "combined")
+  Ranker-->>Engine: scored & sorted items
+  Engine->>Window: allocate(rankedItems)
+  Window-->>Engine: fitted items within budget
+  Engine-->>Agent: AssembledContext
+```
+
+**Per-Agent Token Budgets:**
+
+| Agent Role | Max Tokens | Rationale |
+|------------|------------|-----------|
+| GraphAnalyst | 6,000 | Focused graph queries |
+| PropertyAnalyst | 10,000 | Detailed property context |
+| FinanceAnalyst | 8,000 | Financial calculations |
+| Orchestrator/Coordinator | 12,000 | Broad overview needed |
+| Default | 8,000 | Balanced general use |
+
+### Ingestion Pipeline
+
+```mermaid
+flowchart LR
+  subgraph "Sources"
+    S1[Property JSON]
+    S2[Conversation Array]
+    S3[Raw Document]
+  end
+
+  subgraph "Parsers"
+    P1[PropertyParser<br/>→ Property, Neighborhood,<br/>ZipCode nodes + edges]
+    P2[ConversationParser<br/>→ Conversation nodes<br/>+ mention edges]
+    P3[DocumentParser<br/>→ Document, Concept<br/>nodes + edges]
+  end
+
+  subgraph "Targets"
+    KG[Knowledge Graph]
+    KB[Knowledge Base]
+  end
+
+  S1 --> P1
+  S2 --> P2
+  S3 --> P3
+  P1 --> KG & KB
+  P2 --> KG & KB
+  P3 --> KG & KB
+```
+
+### Context MCP Tool Integration
+
+| Tool | Description |
+|------|-------------|
+| `context.search` | Hybrid search across knowledge base |
+| `context.assembleForAgent` | Full context window assembly for an agent |
+| `context.graphTraverse` | BFS traversal from a starting node |
+| `context.graphQuery` | Filter and query graph nodes |
+| `context.ingest` | Ingest new data into the knowledge system |
+| `context.getStats` | System metrics and statistics |
+| `context.getGraphOverview` | Full graph data for visualization |
+| `context.findRelated` | Find nodes related to a concept |
+| `context.getNodeDetail` | Detailed node information with neighbors |
+| `context.getTimeline` | Recent activity timeline |
+
+### D3 Visualization Layer
+
+The context engineering system includes a standalone D3.js visualization dashboard served on port 4200:
+
+- **Force-directed graph** with D3 v7 simulation, 12 color-coded node types, importance-based sizing
+- **Interactive controls**: zoom/pan (0.1x-5x), drag, click-to-select, double-click to center
+- **Node detail panel** with properties, tags, and clickable neighbor chips
+- **Knowledge base search** with scored result cards
+- **Real-time metrics** including context assemblies, cache hit rate, ingestion counts
+- **WebSocket** integration for live graph mutation events
+
+### Agent Integration
+
+```mermaid
+flowchart TB
+  subgraph "Agentic AI Orchestrator"
+    PLAN[PlannerAgent]
+    COORD[CoordinatorAgent]
+    CTX[ContextEngineerAgent<br/>NEW]
+    ZPID[ZpidFinderAgent]
+    PROP[PropertyAnalystAgent]
+    GRAPH_A[GraphAnalystAgent]
+    FIN[FinanceAnalystAgent]
+    REP[ReporterAgent]
+  end
+
+  subgraph "Context Engineering"
+    CE[Context Engine]
+    KG_A[Knowledge Graph]
+    KB_A[Knowledge Base]
+  end
+
+  subgraph "Blackboard"
+    BB[contextData.latest<br/>contextData.related<br/>contextData.graphOverview]
+  end
+
+  CTX -->|context.assembleContext| CE
+  CTX -->|context.search| KB_A
+  CTX -->|context.graphOverview| KG_A
+  CE --> BB
+  BB --> ZPID & PROP & GRAPH_A & FIN & REP
+```
+
+The `ContextEngineerAgent` runs early in the orchestrator loop (after Planner and Coordinator) to:
+1. Analyze the current goal and conversation history
+2. Assemble relevant context from the knowledge graph and knowledge base
+3. Populate `blackboard.contextData` for downstream specialist agents
+4. Skip re-assembly when context is already populated
 
 ## Frontend Architecture
 
@@ -1613,6 +1892,7 @@ gitGraph
 - **RTO**: Recovery Time Objective
 - **RPO**: Recovery Point Objective
 - **SLO**: Service Level Objective
+- **Context Engineering**: The discipline of designing systems that supply AI agents with the right information at the right time via knowledge graphs, retrieval pipelines, and token-aware context assembly
 
 ### References
 
@@ -1622,7 +1902,8 @@ gitGraph
 - [Deployment Guide](DEPLOYMENTS.md)
 - [gRPC & tRPC Documentation](GRPC_TRPC.md)
 - [RAG Architecture Overview](RAG_SYSTEM.md)
+- [Context Engineering Documentation](context-engineering/README.md)
 
 ---
 
-*This architecture document is maintained alongside the codebase. Last updated: March 8, 2026*
+*This architecture document is maintained alongside the codebase. Last updated: March 18, 2026*

@@ -18,6 +18,13 @@ const defaultRuntimeTools = [
   "finance.affordability",
   "web.search",
   "web.fetch",
+  "context.search",
+  "context.assembleContext",
+  "context.findRelated",
+  "context.graphOverview",
+  "context.ingestDocument",
+  "context.getMetrics",
+  "context.nodeDetail",
 ] as const;
 
 const langgraphRuntimeTools = [

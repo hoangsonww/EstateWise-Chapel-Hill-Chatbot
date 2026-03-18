@@ -4,6 +4,7 @@
 export type Role =
   | "planner"
   | "coordinator"
+  | "context-engineer"
   | "graph-analyst"
   | "property-analyst"
   | "map-analyst"
@@ -81,6 +82,11 @@ export interface Blackboard {
   };
   pairs?: Array<Record<string, unknown>> | null;
   compliance?: { ok: boolean; issues: string[] } | null;
+  contextData?: {
+    latest?: Record<string, unknown> | null;
+    related?: Record<string, unknown> | null;
+    graphOverview?: Record<string, unknown> | null;
+  };
 }
 
 /** Context object provided to each agent on every turn. */

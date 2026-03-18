@@ -6,7 +6,13 @@
       "Bash(npx tsc:*)",
       "Bash(chmod:*)",
       "Bash(find:*)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(cd:*)",
+      "Bash(wc:*)",
+      "Bash(node:*)",
+      "Bash(/tmp/ESTATE_WISE_DOCS_SUMMARY.md:*)",
+      "Read(//tmp/**)",
+      "Bash(grep:*)"
     ],
     "deny": [],
     "ask": []
