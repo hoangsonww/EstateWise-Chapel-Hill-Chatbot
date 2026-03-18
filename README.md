@@ -1555,7 +1555,7 @@ graph LR
 **Graph algorithms:** BFS, DFS, Dijkstra shortest path, PageRank, community detection, connected components, betweenness centrality, neighborhood expansion.
 
 <p align="center">
-  <img src="img/context-graph.png" alt="Context Engineering Overview Diagram" width="100%"/>
+  <img src="img/context-graph.png" alt="Context Engineering UI" width="100%"/>
 </p>
 
 ### Knowledge Base

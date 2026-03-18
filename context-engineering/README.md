@@ -15,7 +15,7 @@ Enterprise-grade context engineering subsystem for the EstateWise AI real estate
 </p>
 
 <p align="center">
-  <img src="../img/context-graph.png" alt="Context Engineering Overview Diagram" width="100%"/>
+  <img src="../img/context-graph.png" alt="Context Engineering UI" width="100%"/>
 </p>
 
 ## Table of Contents

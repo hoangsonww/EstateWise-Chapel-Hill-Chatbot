@@ -1518,7 +1518,7 @@ For more details, refer to the [DEVOPS.md](DEVOPS.md) and [DEPLOYMENTS.md](DEPLO
 The `context-engineering/` package is an enterprise-grade subsystem that provides AI agents with structured domain knowledge through a knowledge graph, knowledge base, and intelligent context window management. It runs as a standalone TypeScript service on port 4200, exposing a REST API, WebSocket events, and a D3.js visualization dashboard.
 
 <p align="center">
-  <img src="img/context-graph.png" alt="Context Engineering Overview Diagram" width="100%"/>
+  <img src="img/context-graph.png" alt="Context Engineering UI" width="100%"/>
 </p>
 
 ### 14.1 Knowledge Graph Architecture
