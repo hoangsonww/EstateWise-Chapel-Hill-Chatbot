@@ -677,6 +677,10 @@ flowchart TB
 
 The context engineering subsystem (`context-engineering/`) provides AI agents with structured domain knowledge through five interconnected pillars.
 
+<p align="center">
+  <img src="img/context-graph.png" alt="Context Engineering Overview Diagram" width="100%"/>
+</p>
+
 ### Context Engineering System Overview
 
 ```mermaid

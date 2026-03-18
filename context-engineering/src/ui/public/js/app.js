@@ -13,9 +13,57 @@
 // Constants
 // ---------------------------------------------------------------------------
 
-const API_BASE = "/api/context";
+const DEFAULT_API_BASE = "/api/context";
+const LOCAL_FALLBACK_API_BASE = "http://localhost:4200/api/context";
 const REFRESH_INTERVAL_MS = 10_000;
 const DEBOUNCE_MS = 300;
+
+/**
+ * Normalizes API base values to avoid accidental double slashes.
+ * @param {string} base
+ * @returns {string}
+ */
+function normalizeApiBase(base) {
+  const trimmed = String(base || "").trim();
+  if (!trimmed) return DEFAULT_API_BASE;
+  return trimmed.endsWith("/") ? trimmed.slice(0, -1) : trimmed;
+}
+
+/**
+ * Resolves an optional API base override from query params or global config.
+ * Supported overrides:
+ *   - ?apiBase=http://localhost:4200/api/context
+ *   - window.ESTATEWISE_CONTEXT_API_BASE = "http://localhost:4200/api/context"
+ * @returns {string}
+ */
+function resolveConfiguredApiBase() {
+  const queryValue = new URLSearchParams(window.location.search)
+    .get("apiBase")
+    ?.trim();
+  const globalValue =
+    typeof window.ESTATEWISE_CONTEXT_API_BASE === "string"
+      ? window.ESTATEWISE_CONTEXT_API_BASE.trim()
+      : "";
+  return normalizeApiBase(queryValue || globalValue || DEFAULT_API_BASE);
+}
+
+/**
+ * Builds a prioritized API base list. Same-origin is tried first; if it returns
+ * an HTML 404 (common when the UI is hosted separately), localhost:4200 is used
+ * as a development fallback.
+ * @param {string} configuredBase
+ * @returns {string[]}
+ */
+function buildApiBaseCandidates(configuredBase) {
+  const candidates = [normalizeApiBase(configuredBase)];
+  const onContextServer = window.location.port === "4200";
+  if (!onContextServer && !candidates.includes(LOCAL_FALLBACK_API_BASE)) {
+    candidates.push(LOCAL_FALLBACK_API_BASE);
+  }
+  return candidates;
+}
+
+const API_BASE_CANDIDATES = buildApiBaseCandidates(resolveConfiguredApiBase());
 
 /**
  * Node type metadata: icon, display name, and CSS variable for color.
@@ -129,16 +177,55 @@ function debounce(fn, wait) {
 /**
  * Performs a fetch with a default JSON content type and returns parsed JSON.
  * Throws on non-OK HTTP status.
- * @param {string} url
+ * @param {string} path
  * @returns {Promise<unknown>}
  */
-async function apiFetch(url) {
-  const res = await fetch(url, { headers: { Accept: "application/json" } });
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(`HTTP ${res.status}: ${text || res.statusText}`);
+async function apiFetch(path) {
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  const errors = [];
+
+  for (let i = 0; i < API_BASE_CANDIDATES.length; i += 1) {
+    const base = API_BASE_CANDIDATES[i];
+    const isLastCandidate = i === API_BASE_CANDIDATES.length - 1;
+    const url = `${base}${normalizedPath}`;
+
+    try {
+      const res = await fetch(url, { headers: { Accept: "application/json" } });
+      if (!res.ok) {
+        const contentType = (
+          res.headers.get("content-type") || ""
+        ).toLowerCase();
+        const text = await res.text().catch(() => "");
+        const shouldFallback =
+          !isLastCandidate &&
+          res.status === 404 &&
+          contentType.includes("text/html");
+
+        if (shouldFallback) {
+          console.warn(
+            `[ContextApp] API base ${base} returned HTML 404, trying fallback ${API_BASE_CANDIDATES[i + 1]}.`,
+          );
+          errors.push(`${base} -> HTTP ${res.status}`);
+          continue;
+        }
+
+        throw new Error(`HTTP ${res.status}: ${text || res.statusText}`);
+      }
+
+      return res.json();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      if (!isLastCandidate) {
+        errors.push(`${base} -> ${message}`);
+        continue;
+      }
+      throw new Error(message);
+    }
   }
-  return res.json();
+
+  throw new Error(
+    `API request failed: ${errors.join(" | ") || "Unknown error"}`,
+  );
 }
 
 /**
@@ -286,17 +373,17 @@ class ContextApp {
 
   /** GET /api/context/graph -> { nodes, edges, stats } */
   async fetchGraphData() {
-    return apiFetch(`${API_BASE}/graph`);
+    return apiFetch("/graph");
   }
 
   /** GET /api/context/kb/stats */
   async fetchKBStats() {
-    return apiFetch(`${API_BASE}/kb/stats`);
+    return apiFetch("/kb/stats");
   }
 
   /** GET /api/context/metrics */
   async fetchMetrics() {
-    return apiFetch(`${API_BASE}/metrics`);
+    return apiFetch("/metrics");
   }
 
   /**
@@ -304,7 +391,7 @@ class ContextApp {
    * @param {string} query
    */
   async searchGraph(query) {
-    return apiFetch(`${API_BASE}/graph/search?q=${encodeURIComponent(query)}`);
+    return apiFetch(`/graph/search?q=${encodeURIComponent(query)}`);
   }
 
   /**
@@ -312,7 +399,7 @@ class ContextApp {
    * @param {string} query
    */
   async searchKB(query) {
-    return apiFetch(`${API_BASE}/kb/search?q=${encodeURIComponent(query)}`);
+    return apiFetch(`/kb/search?q=${encodeURIComponent(query)}`);
   }
 
   /**
@@ -320,7 +407,7 @@ class ContextApp {
    * @param {string} id
    */
   async fetchNodeDetail(id) {
-    return apiFetch(`${API_BASE}/graph/nodes/${encodeURIComponent(id)}`);
+    return apiFetch(`/graph/nodes/${encodeURIComponent(id)}`);
   }
 
   // -------------------------------------------------------------------------

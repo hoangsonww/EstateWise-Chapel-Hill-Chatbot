@@ -14,6 +14,10 @@ Enterprise-grade context engineering subsystem for the EstateWise AI real estate
   <img alt="License" src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" />
 </p>
 
+<p align="center">
+  <img src="../img/context-graph.png" alt="Context Engineering Overview Diagram" width="100%"/>
+</p>
+
 ## Table of Contents
 
 - [Architecture Overview](#architecture-overview)
@@ -727,6 +731,8 @@ Features of the visualization dashboard:
 - **WebSocket updates**: The UI connects to `/ws/graph` and receives real-time `node:added`, `node:updated`, `node:removed`, `edge:added`, and `edge:removed` events, updating the visualization without page reload.
 
 Access the dashboard at `http://localhost:4200/` after starting the server.
+
+If you host the dashboard UI from a different origin, API calls default to `/api/context` on the current origin and automatically fall back to `http://localhost:4200/api/context` when that origin returns an HTML 404 page. You can explicitly override the API base with either `?apiBase=<url>` in the dashboard URL or by setting `window.ESTATEWISE_CONTEXT_API_BASE` before `js/app.js` loads.
 
 ---
 

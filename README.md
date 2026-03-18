@@ -1554,6 +1554,10 @@ graph LR
 
 **Graph algorithms:** BFS, DFS, Dijkstra shortest path, PageRank, community detection, connected components, betweenness centrality, neighborhood expansion.
 
+<p align="center">
+  <img src="img/context-graph.png" alt="Context Engineering Overview Diagram" width="100%"/>
+</p>
+
 ### Knowledge Base
 
 10 pre-loaded domain documents covering the full EstateWise platform:
