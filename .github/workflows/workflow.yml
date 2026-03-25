@@ -532,7 +532,7 @@ jobs:
     continue-on-error: true
     steps:
       - name: Setup Trivy
-        uses: aquasecurity/setup-trivy@v0.2.3
+        uses: aquasecurity/setup-trivy@v0.2.6
         with:
           version: v0.69.3
           cache: true
