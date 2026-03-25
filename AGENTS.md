@@ -131,3 +131,43 @@
   - Exact validation commands run
   - UI screenshots or endpoint examples when relevant
   - Linked issue(s), if available
+
+# ===== AGENT SWARM COORDINATION =====
+
+## File Reservation System
+Each agent MUST declare file reservations before editing.
+Use git branch naming: `agent/<agent-name>/<bead-id>`
+Check `.beads/.status.json` before starting ANY work.
+
+## Conflict Zones (single agent only)
+- `package.json` / `package-lock.json`
+- `docker-compose.yml`
+- Any shared type definitions
+- Any config files (`tsconfig.json`, `.env.example`)
+
+## Safe Parallel Zones
+- Individual MCP servers: `mcp/servers/<name>/`
+- Individual agent modules: `agentic-ai/orchestration/<name>.ts`
+- Individual test files
+- Documentation files
+
+## Bead Assignment
+Beads: `[AREA-NUM]` (e.g., `ORCH-001`). Each in `.beads/<bead-id>.md`. Claim via `.beads/.status.json`.
+
+## Agent Communication
+1. Write to `.beads/messages/<from-agent>-<timestamp>.md`
+2. Include: finding, affected beads, recommended action
+3. Continue own work — don't block
+
+## Orchestration Agents
+| Agent ID | Model | Cost Tier | Fallback | Intent |
+|----------|-------|-----------|----------|--------|
+| `supervisor` | sonnet | medium | — | Maximize fulfillment, minimize cost |
+| `property-search` | sonnet | medium | `property-search-lite` | Precision over recall |
+| `property-search-lite` | haiku | low | — | Quick results |
+| `market-analyst` | opus | high | `market-analyst-lite` | Accuracy, cite sources |
+| `market-analyst-lite` | sonnet | medium | — | Good-enough context |
+| `conversation-mgr` | haiku | low | — | Keep conversations flowing |
+| `data-enrichment` | sonnet | medium | — | Completeness, mark gaps |
+| `recommendation` | sonnet | medium | — | Balance explore/exploit |
+| `quality-reviewer` | haiku | low | — | Catch hallucinations |

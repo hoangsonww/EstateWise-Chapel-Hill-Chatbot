@@ -9,23 +9,25 @@
     "dev:langgraph": "tsx src/index.ts --langgraph",
     "dev:crewai": "tsx src/index.ts --crewai",
     "build": "tsc -p tsconfig.json",
-    "test": "npm run build && node --test tests/runtime.test.mjs",
+    "test": "npm run build && node --test tests/*.test.mjs",
     "start": "node dist/index.js",
     "start:server": "node dist/http/server.js",
     "start:langgraph": "node dist/index.js --langgraph",
     "start:crewai": "node dist/index.js --crewai"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.18.0",
-    "@pinecone-database/pinecone": "*",
+    "@anthropic-ai/sdk": "^0.39.0",
     "@langchain/community": "*",
     "@langchain/core": "*",
     "@langchain/google-genai": "*",
     "@langchain/langgraph": "*",
     "@langchain/openai": "*",
     "@langchain/pinecone": "*",
+    "@modelcontextprotocol/sdk": "^1.18.0",
+    "@pinecone-database/pinecone": "*",
     "neo4j-driver": "*",
-    "zod": "^3.23.8"
+    "zod": "^3.23.8",
+    "zod-to-json-schema": "^3.25.1"
   },
   "devDependencies": {
     "@types/node": "^24.5.1",

@@ -1,0 +1,82 @@
+{
+  "servers": [
+    {
+      "name": "property-db",
+      "version": "1.0.0",
+      "description": "CRUD-style property database lookups – search, detail, compare, recent listings, and price history",
+      "rateLimitPerMinute": 120,
+      "timeoutMs": 15000,
+      "tools": [
+        "search_properties",
+        "get_property_details",
+        "compare_properties",
+        "get_recent_listings",
+        "get_price_history"
+      ]
+    },
+    {
+      "name": "vector-search",
+      "version": "1.0.0",
+      "description": "Embedding-based semantic property search – natural language queries, similarity matching, and description search",
+      "rateLimitPerMinute": 60,
+      "timeoutMs": 20000,
+      "tools": [
+        "semantic_property_search",
+        "find_similar_properties",
+        "search_by_description"
+      ]
+    },
+    {
+      "name": "graph-query",
+      "version": "1.0.0",
+      "description": "Knowledge-graph traversal for property relationships, neighborhoods, schools, and commute analysis",
+      "rateLimitPerMinute": 60,
+      "timeoutMs": 20000,
+      "tools": [
+        "find_related_properties",
+        "neighborhood_profile",
+        "school_district_info",
+        "commute_analysis"
+      ]
+    },
+    {
+      "name": "geocoding",
+      "version": "1.0.0",
+      "description": "Location services – forward/reverse geocoding, distance calculation, and nearby amenity search",
+      "rateLimitPerMinute": 90,
+      "timeoutMs": 15000,
+      "tools": [
+        "geocode_address",
+        "reverse_geocode",
+        "calculate_distance",
+        "find_nearby_amenities"
+      ]
+    },
+    {
+      "name": "market-data",
+      "version": "1.0.0",
+      "description": "Real-estate market analytics – aggregate stats, price trends, comparable sales, and inventory levels",
+      "rateLimitPerMinute": 60,
+      "timeoutMs": 20000,
+      "tools": [
+        "get_market_stats",
+        "get_price_trends",
+        "get_comparable_sales",
+        "get_inventory_levels"
+      ]
+    },
+    {
+      "name": "user-preferences",
+      "version": "1.0.0",
+      "description": "User-specific data management – preferences, search history, and saved/favorited properties",
+      "rateLimitPerMinute": 60,
+      "timeoutMs": 10000,
+      "tools": [
+        "get_user_preferences",
+        "update_preferences",
+        "get_search_history",
+        "get_saved_properties"
+      ]
+    }
+  ]
+}

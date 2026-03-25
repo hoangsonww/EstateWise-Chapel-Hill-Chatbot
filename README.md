@@ -1122,6 +1122,10 @@ EstateWise/
 ├── agentic-ai/               # Agentic AI services and tools
 │   ├── src/
 │   │   ├── agents/           # Agent implementations
+│   │   ├── orchestration/    # Supervisor, agent registry, intent router, tool-use loop
+│   │   ├── prompts/          # XML prompt templates, schemas, grounding rules
+│   │   ├── context/          # Token budget manager, hybrid RAG, cache strategies
+│   │   ├── observability/    # OpenTelemetry traces, metrics, cost tracking, health checks
 │   │   ├── mcp/              # Model Context Protocol tools
 │   │   └── ... (other source files, tests, etc.)
 │   ├── package.json
@@ -1159,7 +1163,13 @@ EstateWise/
 ├── gitlab/                   # GitLab CI/CD pipeline scripts
 ├── gcp/                      # GCP deployment scripts
 ├── mcp/                      # Model Context Protocol server (tools over stdio)
+│   ├── shared/               # Shared infrastructure (auth, logging, error handling)
+│   ├── servers/              # Domain MCP servers (property, market, finance, graph, commute, system)
+│   ├── client/               # Unified MCP client with connection pooling
+│   └── config/               # Server configuration, tool registries, access control
 ├── context-engineering/      # Knowledge graph, knowledge base, context engine, D3 UI
+├── .beads/                   # Bead-based context threading and session snapshots
+├── .agent-sessions/          # Persistent agent session state and checkpoints
 ├── .env                      # Environment variables for development
 ├── README.md                 # This file
 ├── TECH_DOCS.md              # Detailed technical documentation (highly recommended to read)
@@ -1193,6 +1203,15 @@ To run the application **(OPTIONAL)** using Docker or Podman:
    # Podman — production stack
    podman compose -f docker/podman-compose.prod.yml --env-file .env up --build -d
    ```
+
+To run with orchestration engine + Redis cache:
+```bash
+# Docker — agentic profile (orchestration engine, Redis cache, domain MCP servers)
+docker compose -f docker/compose.prod.yml --env-file .env --profile agentic up --build -d
+
+# Podman — agentic profile
+podman compose -f docker/podman-compose.prod.yml --env-file .env --profile agentic up --build -d
+```
 
 See [`docker/README.md`](docker/README.md) for full details on ports, profiles, and optional services (Neo4j, Agentic AI).
 
@@ -1468,6 +1487,83 @@ flowchart LR
 
 > [!IMPORTANT]
 > **For details and examples, see [agentic-ai/README.md](agentic-ai/README.md).**
+
+### Orchestration Engine (New)
+
+The orchestration engine is a supervisor-driven architecture that routes user intents to specialized domain agents, each with scoped MCP tool access, budget controls, and automatic error recovery.
+
+- Supervisor classifies intent (property search, market analysis, finance, graph exploration, etc.) and selects the optimal agent(s)
+- Agent Registry maintains 9 domain agents with declared capabilities, tool scopes, and token budgets
+- Tool-use loop enforces per-agent tool budgets (max calls, token ceiling, timeout) and circuit-breaker patterns
+- Parallel fan-out for independent sub-tasks with join barriers and partial-result aggregation
+- Structured output schemas (Zod) enforce type-safe agent responses at every handoff boundary
+- Automatic retry with exponential backoff, fallback agents, and graceful degradation on repeated failures
+- Session continuity via `.agent-sessions/` checkpoints enables multi-turn conversations across restarts
+- Bead-based context threading (`.beads/`) captures reasoning chains for audit and replay
+- Real-time event emission (SSE) for each orchestration step enables live UI progress indicators
+- Dead-letter queue captures failed tasks for offline inspection and replay
+
+```mermaid
+flowchart TB
+  User([User Request]) --> Supervisor
+
+  subgraph Orchestration Engine
+    Supervisor[Supervisor<br/>Intent Classification + Routing]
+    Supervisor --> PropertyAgent[Property Agent]
+    Supervisor --> MarketAgent[Market Agent]
+    Supervisor --> FinanceAgent[Finance Agent]
+    Supervisor --> GraphAgent[Graph Agent]
+    Supervisor --> MapAgent[Map Agent]
+    Supervisor --> Reporter[Reporter Agent]
+  end
+
+  subgraph MCP Servers
+    PropMCP[Property Server]
+    MktMCP[Market Server]
+    FinMCP[Finance Server]
+    GrMCP[Graph Server]
+    ComMCP[Commute Server]
+    SysMCP[System Server]
+  end
+
+  PropertyAgent --> PropMCP
+  MarketAgent --> MktMCP
+  FinanceAgent --> FinMCP
+  GraphAgent --> GrMCP
+  MapAgent --> ComMCP
+  Reporter --> SysMCP
+```
+
+### Prompt Engineering System (New)
+
+- XML-structured prompt templates with `<system>`, `<context>`, `<tools>`, `<constraints>`, `<output-format>` sections
+- Schema-validated prompt parameters using Zod ensure no undefined variables reach the LLM
+- Grounding rules enforce factual accuracy: agents must cite tool outputs and cannot fabricate data
+- 6-layer prompt caching (static system > agent persona > domain context > tool results > conversation > user query) reduces redundant token usage
+- Version-controlled prompt registry enables A/B testing and rollback of prompt changes
+- Prompt quality gates validate output structure before returning to the orchestrator
+
+### Context Management & Observability (New)
+
+- Token budget manager allocates context window across system prompt, RAG results, tool outputs, and conversation history
+- Hybrid RAG pipeline combines Pinecone vector search with Neo4j graph traversal for multi-signal retrieval
+- Multi-level cache (L1 in-memory LRU, L2 Redis, L3 persistent disk) with TTL-based eviction
+- 5 context strategies (full, summary, sliding-window, priority-ranked, hybrid) selectable per agent
+- OpenTelemetry-based distributed tracing across supervisor, agents, and MCP tool calls
+- 8 core metrics: request latency, tool call duration, token usage, cache hit rate, error rate, agent utilization, cost per request, queue depth
+- Cost tracking per model call with pricing table lookups and budget alerting thresholds
+- Health check endpoints for orchestration engine, MCP servers, and downstream dependencies
+
+### MCP Domain Servers (New)
+
+| Server | Port | Tools | Description |
+|--------|------|-------|-------------|
+| `property-server` | 3100 | 8 | Search, lookup, compare, enrich, sample properties |
+| `market-server` | 3101 | 5 | Price trends, inventory, affordability, competitive analysis |
+| `finance-server` | 3102 | 4 | Mortgage calculator, ROI projections, affordability |
+| `graph-server` | 3103 | 3 | Similarity, explain relationships, neighborhood analysis |
+| `commute-server` | 3104 | 2 | Commute time estimation, transit scoring |
+| `system-server` | 3105 | 2 | Cache management, health checks, monitoring |
 
 ## Context Engineering
 

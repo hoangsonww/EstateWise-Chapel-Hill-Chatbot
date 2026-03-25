@@ -7,6 +7,10 @@ WORKDIR /app
 COPY package*.json ./
 COPY tsconfig.json ./
 COPY src ./src
+COPY shared ./shared
+COPY servers ./servers
+COPY client ./client
+COPY config ./config
 
 RUN npm ci
 RUN npm run build
@@ -20,6 +24,10 @@ COPY package*.json ./
 RUN npm ci --omit=dev
 
 COPY --from=build /app/dist ./dist
+COPY shared ./shared
+COPY servers ./servers
+COPY client ./client
+COPY config ./config
 COPY .env.example ./
 
 USER node

@@ -270,12 +270,20 @@ EstateWise-Chapel-Hill-Chatbot/
 │   │   ├── server.ts          # gRPC server
 │   │   └── services/          # Service implementations
 ├── mcp/                       # Model Context Protocol server
+│   ├── shared/                # Shared infra (auth, logging, errors)
+│   ├── servers/               # Domain MCP servers (property, market, finance, graph, commute, system)
+│   ├── client/                # Unified MCP client with connection pooling
+│   ├── config/                # Server configs, tool registries, access control
 │   ├── src/
 │   │   ├── server.ts          # MCP stdio server
 │   │   └── tools/             # Tool implementations
 ├── agentic-ai/                # Multi-agent orchestration
 │   ├── src/
 │   │   ├── agents/            # Agent implementations
+│   │   ├── orchestration/     # Supervisor, agent registry, intent router, tool-use loop
+│   │   ├── prompts/           # XML prompt templates, schemas, grounding rules
+│   │   ├── context/           # Token budget manager, hybrid RAG, cache strategies
+│   │   ├── observability/     # OpenTelemetry traces, metrics, cost tracking, health checks
 │   │   ├── orchestrator/      # Default runtime
 │   │   ├── lang/              # LangGraph runtime
 │   │   └── index.ts           # CLI entry
@@ -298,7 +306,9 @@ EstateWise-Chapel-Hill-Chatbot/
 ├── azure/                     # Azure deployment configs
 ├── gcp/                       # GCP deployment configs
 ├── kubernetes/                # K8s manifests
-└── hashicorp/                 # Consul/Nomad configs
+├── hashicorp/                 # Consul/Nomad configs
+├── .beads/                    # Bead-based context threading and session snapshots
+└── .agent-sessions/           # Persistent agent session state and checkpoints
 ```
 
 ## API Protocols
@@ -672,6 +682,208 @@ flowchart TB
 - Cost tracking aggregates token/cost usage per run for LangGraph and CrewAI responses.
 - Optional LangSmith tracing enriches runs with runtime/surface/component/request metadata and thread correlation.
 - HTTP `requestId` (or `x-request-id`) is propagated to LangGraph trace metadata for cross-system correlation.
+
+### Orchestration Engine Architecture
+
+The orchestration engine implements a supervisor pattern where a central coordinator classifies user intent, selects domain agents, manages tool-use budgets, and aggregates results.
+
+```mermaid
+flowchart TB
+  Request([Incoming Request]) --> IntentClassifier
+
+  subgraph "Orchestration Engine"
+    IntentClassifier[Intent Classifier<br/>NLU + keyword fallback]
+    IntentClassifier --> Supervisor[Supervisor<br/>Agent selection + budget allocation]
+    Supervisor --> AgentRegistry[(Agent Registry<br/>9 domain agents)]
+    Supervisor --> ToolLoop[Tool-Use Loop<br/>budget enforcement + circuit breaker]
+    ToolLoop --> MCPRouter[MCP Router<br/>domain server dispatch]
+  end
+
+  subgraph "Agent Pool"
+    PA[PropertyAgent]
+    MA[MarketAgent]
+    FA[FinanceAgent]
+    GA[GraphAgent]
+    MAP[MapAgent]
+    RA[ReporterAgent]
+    ZF[ZpidFinderAgent]
+    AA[AnalyticsAgent]
+    CA[ComplianceAgent]
+  end
+
+  AgentRegistry --> PA & MA & FA & GA & MAP & RA & ZF & AA & CA
+  PA & MA & FA & GA & MAP & RA & ZF & AA & CA --> ToolLoop
+```
+
+#### Agent Registry
+
+| Agent | Domain | MCP Tools Scope | Max Tool Calls | Token Budget |
+|-------|--------|-----------------|----------------|--------------|
+| PropertyAgent | Property search and lookup | `properties.*` | 10 | 4 096 |
+| MarketAgent | Market trends and inventory | `market.*`, `analytics.*` | 8 | 4 096 |
+| FinanceAgent | Mortgage, ROI, affordability | `finance.*` | 6 | 2 048 |
+| GraphAgent | Similarity and relationships | `graph.*` | 6 | 2 048 |
+| MapAgent | Maps and commute analysis | `map.*`, `commute.*` | 4 | 2 048 |
+| ReporterAgent | Summary and presentation | `system.*` | 2 | 8 192 |
+| ZpidFinderAgent | ZPID resolution | `properties.lookup` | 4 | 1 024 |
+| AnalyticsAgent | Statistical analysis | `analytics.*` | 6 | 4 096 |
+| ComplianceAgent | Output validation and filtering | _(none -- reads only)_ | 0 | 1 024 |
+
+#### Tool-Use Loop
+
+```mermaid
+flowchart LR
+  Agent([Agent]) --> Check{Budget OK?}
+  Check -->|Yes| Call[Call MCP Tool]
+  Call --> CB{Circuit Breaker<br/>Open?}
+  CB -->|No| Execute[Execute Tool]
+  CB -->|Yes| Fallback[Fallback / Skip]
+  Execute --> Parse[Parse Result]
+  Parse --> Update[Update Blackboard]
+  Update --> Check
+  Check -->|No| Return[Return Results]
+```
+
+#### Error Recovery Strategies
+
+| Strategy | Trigger | Action |
+|----------|---------|--------|
+| Retry with backoff | Transient HTTP error (5xx) | Exponential backoff up to 3 retries |
+| Fallback agent | Primary agent timeout | Route to backup agent with reduced scope |
+| Partial result | Some tools fail in fan-out | Return successful results with warnings |
+| Circuit breaker | 3+ consecutive tool failures | Open circuit, skip tool for cooldown period |
+| Budget overflow | Token/call limit exceeded | Truncate context, summarize, and return |
+| Schema violation | Agent output fails Zod validation | Re-prompt agent with error details (1 retry) |
+| Dead letter | All retries exhausted | Log to dead-letter queue for offline inspection |
+| Graceful degradation | MCP server unreachable | Return cached result or informative error |
+| Session recovery | Checkpoint found in `.agent-sessions/` | Resume from last committed state |
+| Bead replay | Audit or debugging request | Replay reasoning chain from `.beads/` snapshots |
+
+#### Intent Classification
+
+The supervisor classifies incoming requests into intent categories using a two-pass approach: fast keyword matching for common patterns, followed by LLM-based NLU for ambiguous queries. Classification results determine which agents are activated and in what order.
+
+### MCP Domain Servers Architecture
+
+The MCP layer is decomposed into 6 domain-specific servers sharing a common infrastructure layer for authentication, logging, error handling, and connection pooling.
+
+```mermaid
+flowchart TB
+  subgraph "Shared Infrastructure"
+    Auth[Scoped Auth<br/>HMAC tokens + ACL]
+    Log[Structured Logging<br/>JSON + correlation IDs]
+    Err[Error Handling<br/>Zod validation + retries]
+    Pool[Connection Pool<br/>HTTP keep-alive]
+  end
+
+  subgraph "Domain Servers"
+    PS[Property Server :3100<br/>8 tools]
+    MS[Market Server :3101<br/>5 tools]
+    FS[Finance Server :3102<br/>4 tools]
+    GS[Graph Server :3103<br/>3 tools]
+    CS[Commute Server :3104<br/>2 tools]
+    SS[System Server :3105<br/>2 tools]
+  end
+
+  subgraph "Clients"
+    UC[Unified Client<br/>connection pooling<br/>automatic routing]
+    Agents[Orchestration Agents]
+  end
+
+  Auth & Log & Err & Pool --> PS & MS & FS & GS & CS & SS
+  Agents --> UC --> PS & MS & FS & GS & CS & SS
+```
+
+Each domain server exposes tools scoped to its domain and enforces access control via scoped HMAC tokens. The unified client handles automatic routing based on tool name prefixes (e.g., `properties.*` routes to the Property Server).
+
+### Prompt Engineering Architecture
+
+The prompt engineering system uses structured XML templates with 6-layer caching to minimize redundant token usage while maintaining high response quality.
+
+```mermaid
+flowchart LR
+  subgraph "6-Layer Prompt Cache"
+    L1[L1: Static System Prompt]
+    L2[L2: Agent Persona]
+    L3[L3: Domain Context]
+    L4[L4: Tool Results]
+    L5[L5: Conversation History]
+    L6[L6: User Query]
+  end
+
+  L1 --> L2 --> L3 --> L4 --> L5 --> L6
+  L6 --> Assembled[Assembled Prompt]
+  Assembled --> Validate{Quality Gate<br/>Schema + Grounding}
+  Validate -->|Pass| LLM[LLM Call]
+  Validate -->|Fail| Fix[Auto-fix + Re-validate]
+  Fix --> Validate
+```
+
+- **XML structure**: Each prompt template uses `<system>`, `<context>`, `<tools>`, `<constraints>`, and `<output-format>` sections
+- **4 schema types**: System prompts, agent prompts, tool-call prompts, and output-formatting prompts, all Zod-validated
+- **10 grounding rules** enforce factual accuracy: agents must cite tool outputs, cannot fabricate data, must acknowledge uncertainty, and must include source attribution
+- **Quality gates** validate output structure (JSON schema compliance, required field presence, citation coverage) before returning to the orchestrator
+
+### Context Management Architecture
+
+The context management system handles token budget allocation, retrieval-augmented generation, and multi-level caching to maximize the information density within each LLM context window.
+
+#### Token Budget Allocation
+
+The token budget manager dynamically allocates the context window across competing sections based on query type and available information:
+
+- System prompt: 10-15% (fixed ceiling)
+- RAG results: 25-40% (scaled by relevance scores)
+- Tool outputs: 20-30% (priority-ordered by agent plan)
+- Conversation history: 10-20% (sliding window with summarization)
+- User query + output buffer: 10-15% (reserved minimum)
+
+#### Hybrid RAG Pipeline
+
+The RAG pipeline combines vector similarity from Pinecone with graph traversal from Neo4j, deduplicates and re-ranks results, then allocates them within the token budget.
+
+#### Context Strategies
+
+| Strategy | Description | Best For |
+|----------|-------------|----------|
+| `full` | Include all available context up to budget | Simple queries with focused scope |
+| `summary` | Summarize long context sections before inclusion | Multi-document queries |
+| `sliding-window` | Keep recent N turns plus key historical context | Multi-turn conversations |
+| `priority-ranked` | Rank context chunks by relevance and trim lowest | Token-constrained scenarios |
+| `hybrid` | Combine summary + priority ranking dynamically | Complex analytical queries |
+
+#### Multi-Level Cache
+
+| Level | Storage | TTL | Hit Rate Target | Use Case |
+|-------|---------|-----|-----------------|----------|
+| L1 | In-memory LRU | 5 min | >80% | Hot tool results and frequent queries |
+| L2 | Redis | 1 hour | >60% | Cross-request sharing and session state |
+| L3 | Disk (`.beads/`) | 24 hours | >40% | Session replay and audit trails |
+
+### Observability Architecture
+
+The observability stack provides end-to-end visibility across the orchestration engine, MCP servers, and downstream services using OpenTelemetry-based distributed tracing.
+
+#### Telemetry Pipeline
+
+Traces and metrics flow from instrumented components through an OpenTelemetry collector to storage and visualization backends. Every orchestration step, tool call, and LLM invocation emits a span with structured attributes.
+
+#### Core Metrics
+
+| Metric | Type | Description |
+|--------|------|-------------|
+| `orchestration.request.latency` | Histogram | End-to-end request duration |
+| `orchestration.tool.call.duration` | Histogram | Per-tool call latency |
+| `orchestration.token.usage` | Counter | Token consumption per model/agent |
+| `orchestration.cache.hit.rate` | Gauge | Cache hit percentage by level |
+| `orchestration.error.rate` | Counter | Errors by type and agent |
+| `orchestration.agent.utilization` | Gauge | Agent busy/idle ratio |
+| `orchestration.cost.per.request` | Histogram | Dollar cost per completed request |
+| `orchestration.queue.depth` | Gauge | Pending tasks in orchestration queue |
+
+#### Health Checks
+
+Health check endpoints are exposed for each component: orchestration engine (`/health`), individual MCP domain servers (`/health`), Redis cache (`/health/cache`), and downstream API connectivity (`/health/deps`). Kubernetes liveness and readiness probes are configured to use these endpoints.
 
 ## Context Engineering Architecture
 
