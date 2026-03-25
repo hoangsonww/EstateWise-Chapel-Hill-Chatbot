@@ -93,12 +93,38 @@ services:
       MCP_CACHE_MAX: ${MCP_CACHE_MAX:-200}
       MCP_DEBUG: ${MCP_DEBUG:-false}
       NEO4J_ENABLE: ${NEO4J_ENABLE:-false}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      DAILY_BUDGET_USD: ${DAILY_BUDGET_USD:-10}
+      MONTHLY_BUDGET_USD: ${MONTHLY_BUDGET_USD:-200}
+      PER_REQUEST_MAX_USD: ${PER_REQUEST_MAX_USD:-0.50}
+      DEFAULT_AGENT_TIMEOUT_MS: ${DEFAULT_AGENT_TIMEOUT_MS:-60000}
+      MAX_AGENT_ITERATIONS: ${MAX_AGENT_ITERATIONS:-10}
+      MAX_CONCURRENT_AGENTS: ${MAX_CONCURRENT_AGENTS:-3}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
     depends_on:
       backend:
         condition: service_healthy
     ports:
       - "${AGENTIC_PORT:-4318}:4318"
     restart: unless-stopped
+    networks:
+      - estatewise
+
+  redis:
+    image: redis:7-alpine
+    profiles: ["agentic"]
+    restart: unless-stopped
+    command: ["redis-server", "--maxmemory", "128mb", "--maxmemory-policy", "allkeys-lru"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    expose:
+      - "6379"
+    volumes:
+      - redis-data:/data
     networks:
       - estatewise
 
@@ -129,3 +155,4 @@ volumes:
   mongo-data:
   neo4j-data:
   neo4j-logs:
+  redis-data:

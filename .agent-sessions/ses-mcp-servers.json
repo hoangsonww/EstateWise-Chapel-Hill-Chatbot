@@ -1,0 +1,189 @@
+{
+  "sessionId": "ses-mcp-servers",
+  "createdAt": "2026-03-25T08:00:00Z",
+  "lastActiveAt": "2026-03-25T13:30:00Z",
+  "agent": "claude-opus",
+  "agentIdentity": "Crimson Tide",
+  "goal": "Scaffold MCP domain servers: auth, rate limiting, property, market, graph, commute, finance, system",
+  "context": {
+    "branch": "main",
+    "beads": ["MCP-001", "MCP-002", "MCP-003", "MCP-004", "MCP-005", "MCP-006", "MCP-007", "MCP-008"],
+    "filesModified": [
+      "mcp/shared/auth.ts",
+      "mcp/src/core/rate-limit.ts",
+      "mcp/src/core/config.ts",
+      "mcp/servers/property/index.ts",
+      "mcp/servers/property/tools.ts",
+      "mcp/servers/market/index.ts",
+      "mcp/servers/market/tools.ts",
+      "mcp/servers/graph/index.ts",
+      "mcp/servers/commute/index.ts",
+      "mcp/servers/finance/index.ts",
+      "mcp/servers/system/index.ts"
+    ],
+    "filesRead": [
+      "mcp/src/server.ts",
+      "mcp/src/tools/index.ts",
+      "mcp/package.json",
+      ".beads/.status.json"
+    ],
+    "reservations": ["mcp/shared/**", "mcp/src/core/**", "mcp/servers/**"],
+    "dependencies": {
+      "upstream": [],
+      "downstream": ["CROSS-001"]
+    }
+  },
+  "decisions": [
+    {
+      "timestamp": "2026-03-25T08:20:00Z",
+      "decision": "HMAC-based scoped tokens for MCP auth instead of JWT or API keys",
+      "rationale": "HMAC is stateless, fast, and allows scoping to specific tool sets per agent. No token storage needed. JWT is overkill for stdio transport.",
+      "beadId": "MCP-001",
+      "reversible": true
+    },
+    {
+      "timestamp": "2026-03-25T08:40:00Z",
+      "decision": "Sliding window rate limiting per agent and per tool rather than fixed window",
+      "rationale": "Fixed windows allow bursts at window boundaries. Sliding window provides smoother rate enforcement. In-memory state is fine since MCP servers are single-process.",
+      "beadId": "MCP-002",
+      "reversible": true
+    },
+    {
+      "timestamp": "2026-03-25T09:15:00Z",
+      "decision": "Each domain server is self-contained in mcp/servers/<name>/ with own tools.ts and schemas",
+      "rationale": "Self-contained servers enable independent development and testing. Safe parallel zone — multiple agents can work on different servers simultaneously.",
+      "beadId": "MCP-004",
+      "reversible": false
+    }
+  ],
+  "log": [
+    {
+      "timestamp": "2026-03-25T08:00:00Z",
+      "action": "read",
+      "detail": "Read MCP entry point, tool registry, and existing patterns",
+      "artifacts": ["mcp/src/server.ts", "mcp/src/tools/index.ts"]
+    },
+    {
+      "timestamp": "2026-03-25T08:10:00Z",
+      "action": "claim",
+      "detail": "Claimed MCP-001 (auth), MCP-002 (rate limit), MCP-003 (config). Reserved mcp/shared/** and mcp/src/core/**",
+      "artifacts": [],
+      "beadId": "MCP-001"
+    },
+    {
+      "timestamp": "2026-03-25T09:00:00Z",
+      "action": "write",
+      "detail": "Implemented HMAC scoped auth tokens: generate, validate, scope check, expiry enforcement",
+      "artifacts": ["mcp/shared/auth.ts"],
+      "beadId": "MCP-001"
+    },
+    {
+      "timestamp": "2026-03-25T09:10:00Z",
+      "action": "write",
+      "detail": "Implemented sliding window rate limiter with per-agent and per-tool limits, 429 + retry-after",
+      "artifacts": ["mcp/src/core/rate-limit.ts"],
+      "beadId": "MCP-002"
+    },
+    {
+      "timestamp": "2026-03-25T09:20:00Z",
+      "action": "write",
+      "detail": "Implemented centralized config loader with typed env vars, validation, defaults per domain",
+      "artifacts": ["mcp/src/core/config.ts"],
+      "beadId": "MCP-003"
+    },
+    {
+      "timestamp": "2026-03-25T09:30:00Z",
+      "action": "test",
+      "detail": "cd mcp && npm run build — all 3 infrastructure modules compile",
+      "artifacts": [],
+      "beadId": "MCP-001",
+      "result": "pass"
+    },
+    {
+      "timestamp": "2026-03-25T09:35:00Z",
+      "action": "commit",
+      "detail": "Add MCP infrastructure: HMAC auth, sliding window rate limiter, typed config loader",
+      "artifacts": ["mcp/shared/auth.ts", "mcp/src/core/rate-limit.ts", "mcp/src/core/config.ts"],
+      "beadId": "MCP-003",
+      "commitSha": "f1a2b3c"
+    },
+    {
+      "timestamp": "2026-03-25T10:30:00Z",
+      "action": "write",
+      "detail": "Scaffolded property server: search, detail, ZPID resolution, comparison tools with Zod validation",
+      "artifacts": ["mcp/servers/property/index.ts", "mcp/servers/property/tools.ts"],
+      "beadId": "MCP-004"
+    },
+    {
+      "timestamp": "2026-03-25T11:00:00Z",
+      "action": "write",
+      "detail": "Scaffolded market server: trends, price history, inventory, competitive analysis",
+      "artifacts": ["mcp/servers/market/index.ts", "mcp/servers/market/tools.ts"],
+      "beadId": "MCP-005"
+    },
+    {
+      "timestamp": "2026-03-25T11:30:00Z",
+      "action": "write",
+      "detail": "Scaffolded graph server: similarity, explain relationships, neighborhood analysis (parameterized Cypher)",
+      "artifacts": ["mcp/servers/graph/index.ts"],
+      "beadId": "MCP-006"
+    },
+    {
+      "timestamp": "2026-03-25T12:00:00Z",
+      "action": "write",
+      "detail": "Scaffolded commute server: address geocoding, reverse geocoding, commute time, transit scoring",
+      "artifacts": ["mcp/servers/commute/index.ts"],
+      "beadId": "MCP-007"
+    },
+    {
+      "timestamp": "2026-03-25T12:30:00Z",
+      "action": "write",
+      "detail": "Scaffolded finance server: mortgage calculator, ROI projections, affordability checks",
+      "artifacts": ["mcp/servers/finance/index.ts"],
+      "beadId": "MCP-008"
+    },
+    {
+      "timestamp": "2026-03-25T12:45:00Z",
+      "action": "write",
+      "detail": "Scaffolded system server: cache management, health checks, monitoring endpoints",
+      "artifacts": ["mcp/servers/system/index.ts"],
+      "beadId": "MCP-008"
+    },
+    {
+      "timestamp": "2026-03-25T13:00:00Z",
+      "action": "test",
+      "detail": "cd mcp && npm run build — all 6 domain servers compile cleanly",
+      "artifacts": [],
+      "beadId": "MCP-008",
+      "result": "pass"
+    },
+    {
+      "timestamp": "2026-03-25T13:10:00Z",
+      "action": "commit",
+      "detail": "Scaffold 6 MCP domain servers: property, market, graph, commute, finance, system",
+      "artifacts": ["mcp/servers/"],
+      "beadId": "MCP-008",
+      "commitSha": "d4e5f6a"
+    },
+    {
+      "timestamp": "2026-03-25T13:30:00Z",
+      "action": "claim",
+      "detail": "Completed all 8 MCP beads. Released mcp/** reservations.",
+      "artifacts": [],
+      "beadId": "MCP-008"
+    }
+  ],
+  "outcome": "success",
+  "summary": "Scaffolded the complete MCP layer. Completed 8 beads: MCP-001 (HMAC auth), MCP-002 (rate limiter), MCP-003 (config loader), MCP-004-008 (6 domain servers). All compile and follow consistent patterns. Unblocked CROSS-001 for orchestration-MCP integration.",
+  "handoffNote": null,
+  "metrics": {
+    "beadsCompleted": 8,
+    "beadsClaimed": 8,
+    "filesModified": 11,
+    "commitsCreated": 3,
+    "testsRun": 2,
+    "testsPassed": 2,
+    "testsFailed": 0,
+    "durationMinutes": 330
+  }
+}

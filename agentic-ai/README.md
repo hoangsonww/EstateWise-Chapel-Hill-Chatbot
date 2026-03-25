@@ -1198,21 +1198,44 @@ flowchart LR
 ```
 agentic-ai/
 └─ src/
-   ├─ core/           # agent interfaces, types, blackboard
-   ├─ mcp/            # MCP client wrapper
-   ├─ agents/         # Planner, Coordinator, ZpidFinder, Property, Analytics, Graph, Map, Finance, Reporter
-   ├─ orchestrator/   # round-based planner/executor
-   ├─ lang/           # LangChain + LangGraph runtime
-   │  ├─ llm.ts       # Chat/embedding model selection (Google/OpenAI)
-   │  ├─ tools.ts     # MCP wrappers, Pinecone retrieval, Neo4j Cypher tools
-   │  ├─ langsmith.ts # LangSmith bootstrap + trace context helpers
-   │  ├─ memory.ts    # Checkpointer (MemorySaver by default)
-   │  └─ graph.ts     # createReactAgent + runner
-   ├─ crewai/         # Python CrewAI runner (invoked from Node)
-   │  ├─ runner.py    # stdin JSON -> crew -> stdout JSON
+   ├─ core/             # agent interfaces, types, blackboard
+   ├─ mcp/              # MCP client wrapper
+   ├─ agents/           # Planner, Coordinator, ZpidFinder, Property, Analytics, Graph, Map, Finance, Reporter
+   ├─ orchestration/    # Supervisor-driven orchestration engine
+   │  ├─ supervisor.ts      # Intent classification, agent selection, fan-out/join
+   │  ├─ agent-registry.ts  # Agent declarations, capabilities, tool scopes, budgets
+   │  ├─ intent-router.ts   # NLU + keyword-based intent classification
+   │  ├─ tool-loop.ts       # Budget-enforced tool calling with circuit breakers
+   │  ├─ session.ts         # Session persistence and checkpoint management
+   │  └─ types.ts           # Orchestration type definitions (Zod schemas)
+   ├─ prompts/          # Prompt engineering system
+   │  ├─ system/            # XML system prompt templates per agent
+   │  ├─ schemas/           # Zod schemas for prompt parameters and outputs
+   │  ├─ grounding.ts       # 10 grounding rules for factual accuracy
+   │  ├─ cache.ts           # 6-layer prompt cache (static > persona > context > tools > history > query)
+   │  └─ registry.ts        # Version-controlled prompt registry with A/B support
+   ├─ context/          # Context management
+   │  ├─ budget.ts          # Token budget allocation across context sections
+   │  ├─ strategies.ts      # 5 strategies: full, summary, sliding-window, priority-ranked, hybrid
+   │  ├─ rag.ts             # Hybrid RAG pipeline (Pinecone vector + Neo4j graph)
+   │  └─ cache.ts           # Multi-level cache (L1 in-memory, L2 Redis, L3 disk)
+   ├─ observability/    # Telemetry and monitoring
+   │  ├─ tracing.ts         # OpenTelemetry span instrumentation
+   │  ├─ metrics.ts         # 8 core metrics (latency, tokens, errors, cost, etc.)
+   │  ├─ health.ts          # Health check endpoints for orchestration + MCP servers
+   │  └─ cost-tracker.ts    # Per-request cost tracking with budget alerting
+   ├─ orchestrator/     # round-based planner/executor
+   ├─ lang/             # LangChain + LangGraph runtime
+   │  ├─ llm.ts         # Chat/embedding model selection (Google/OpenAI)
+   │  ├─ tools.ts       # MCP wrappers, Pinecone retrieval, Neo4j Cypher tools
+   │  ├─ langsmith.ts   # LangSmith bootstrap + trace context helpers
+   │  ├─ memory.ts      # Checkpointer (MemorySaver by default)
+   │  └─ graph.ts       # createReactAgent + runner
+   ├─ crewai/           # Python CrewAI runner (invoked from Node)
+   │  ├─ runner.py      # stdin JSON -> crew -> stdout JSON
    │  └─ requirements.txt
-   ├─ pipelines/      # marketResearch
-   └─ index.ts        # demo entrypoint
+   ├─ pipelines/        # marketResearch
+   └─ index.ts          # demo entrypoint
 ```
 
 ## Configuration
@@ -1282,6 +1305,237 @@ The CLI includes robust error handling:
 - Runtime-specific MCP tool contracts are validated at startup to detect producer/consumer drift early.
 - Tool JSON text is parsed defensively; malformed responses are surfaced but do not crash the run.
 - LangGraph runtime persists state to the in‑memory checkpointer by default; set `THREAD_ID` to continue a run.
+
+## Orchestration Engine
+
+The orchestration engine replaces simple round-based coordination with a supervisor-driven architecture that classifies intent, selects domain agents, enforces tool budgets, and aggregates structured results.
+
+```mermaid
+flowchart TB
+  Request([User Goal]) --> Supervisor
+
+  subgraph "Orchestration Engine"
+    Supervisor[Supervisor<br/>classify intent + allocate budget]
+    Supervisor --> Registry[(Agent Registry)]
+    Registry --> ToolLoop[Tool-Use Loop<br/>budget + circuit breaker]
+  end
+
+  subgraph "Domain Agents"
+    PA[PropertyAgent] & MA[MarketAgent] & FA[FinanceAgent]
+    GA[GraphAgent] & MAP[MapAgent] & RA[ReporterAgent]
+    ZF[ZpidFinderAgent] & AA[AnalyticsAgent] & CA[ComplianceAgent]
+  end
+
+  subgraph "MCP Servers"
+    PS[Property :3100] & MS[Market :3101] & FS[Finance :3102]
+    GS[Graph :3103] & CS[Commute :3104] & SS[System :3105]
+  end
+
+  Registry --> PA & MA & FA & GA & MAP & RA & ZF & AA & CA
+  PA --> PS
+  MA --> MS
+  FA --> FS
+  GA --> GS
+  MAP --> CS
+  RA & ZF & AA & CA --> SS
+```
+
+### Components
+
+| Component | File | Responsibility |
+|-----------|------|----------------|
+| Supervisor | `orchestration/supervisor.ts` | Intent classification, agent selection, fan-out/join, result aggregation |
+| Agent Registry | `orchestration/agent-registry.ts` | Agent declarations with capabilities, tool scopes, and token budgets |
+| Intent Router | `orchestration/intent-router.ts` | Two-pass classification: fast keyword matching + LLM-based NLU fallback |
+| Tool-Use Loop | `orchestration/tool-loop.ts` | Per-agent budget enforcement, circuit breakers, retry with backoff |
+| Session Manager | `orchestration/session.ts` | Checkpoint persistence to `.agent-sessions/`, multi-turn resume |
+| Types | `orchestration/types.ts` | Zod schemas for all orchestration boundaries |
+| Bead Writer | `orchestration/supervisor.ts` | Reasoning chain capture to `.beads/` for audit and replay |
+| Dead Letter Queue | `orchestration/tool-loop.ts` | Failed task capture for offline inspection |
+| Event Emitter | `orchestration/supervisor.ts` | Real-time SSE emission for live progress tracking |
+| Budget Allocator | `orchestration/supervisor.ts` | Dynamic token/call budget distribution across activated agents |
+
+### Agent Registry
+
+| Agent | Tool Scope | Max Calls | Token Budget |
+|-------|-----------|-----------|--------------|
+| PropertyAgent | `properties.*` | 10 | 4 096 |
+| MarketAgent | `market.*`, `analytics.*` | 8 | 4 096 |
+| FinanceAgent | `finance.*` | 6 | 2 048 |
+| GraphAgent | `graph.*` | 6 | 2 048 |
+| MapAgent | `map.*`, `commute.*` | 4 | 2 048 |
+| ReporterAgent | `system.*` | 2 | 8 192 |
+| ZpidFinderAgent | `properties.lookup` | 4 | 1 024 |
+| AnalyticsAgent | `analytics.*` | 6 | 4 096 |
+| ComplianceAgent | _(read-only)_ | 0 | 1 024 |
+
+### Error Recovery
+
+| Strategy | Trigger | Action |
+|----------|---------|--------|
+| Retry with backoff | Transient 5xx | Exponential backoff, max 3 retries |
+| Fallback agent | Primary agent timeout | Route to backup with reduced scope |
+| Partial result | Fan-out tool failure | Return successes with warnings |
+| Circuit breaker | 3+ consecutive failures | Open circuit, cooldown skip |
+| Budget overflow | Token/call limit hit | Truncate, summarize, return |
+| Schema violation | Zod validation failure | Re-prompt with error (1 retry) |
+| Dead letter | All retries exhausted | Log for offline inspection |
+| Graceful degradation | MCP server unreachable | Return cached or informative error |
+| Session recovery | Checkpoint in `.agent-sessions/` | Resume from last state |
+| Bead replay | Audit request | Replay from `.beads/` snapshots |
+
+## Prompt Engineering System
+
+The prompt system uses XML-structured templates with schema validation and multi-layer caching.
+
+### XML Prompt Structure
+
+```xml
+<prompt agent="PropertyAgent" version="1.2">
+  <system>You are a real estate property specialist...</system>
+  <context>
+    <rag-results max-tokens="2048">{{ragResults}}</rag-results>
+    <tool-results>{{toolOutputs}}</tool-results>
+  </context>
+  <tools allowed="properties.*">{{toolSchemas}}</tools>
+  <constraints>
+    <rule>Cite tool outputs with source attribution</rule>
+    <rule>Never fabricate property data</rule>
+    <rule>Acknowledge uncertainty when data is incomplete</rule>
+  </constraints>
+  <output-format schema="PropertyAnalysis">{{zodSchema}}</output-format>
+</prompt>
+```
+
+### Schemas
+
+| Schema | Purpose | Validation |
+|--------|---------|------------|
+| SystemPromptSchema | System-level instructions and persona | Required fields, max token length |
+| AgentPromptSchema | Per-agent instructions and tool scopes | Tool scope matching, budget bounds |
+| ToolCallSchema | Tool invocation parameters | Zod input validation, scope enforcement |
+| OutputFormatSchema | Structured response format | JSON schema compliance, required fields |
+
+### Grounding Rules
+
+1. Agents must cite MCP tool outputs when presenting factual data
+2. Agents cannot fabricate property listings, prices, or statistics
+3. Agents must acknowledge uncertainty when data is missing or incomplete
+4. Numerical results must include source tool name and timestamp
+5. Market trends must be derived from `market.*` tool outputs, not generated
+6. Mortgage calculations must use `finance.*` tools, not LLM arithmetic
+7. Graph relationships must come from `graph.*` tool responses
+8. Location data must reference `map.*` or `commute.*` tool outputs
+9. Comparative analysis must use `batch.compareProperties` tool results
+10. Summary sections must reference specific data points from earlier tool calls
+
+### Prompt Caching (6 Layers)
+
+| Layer | Content | Cache TTL | Invalidation |
+|-------|---------|-----------|-------------|
+| L1 | Static system prompt | Infinite | Code deploy |
+| L2 | Agent persona | 24 hours | Agent registry change |
+| L3 | Domain context (RAG) | 1 hour | New data ingestion |
+| L4 | Tool results | 5 minutes | New tool call |
+| L5 | Conversation history | Session | Session end |
+| L6 | User query | None | Per-request |
+
+## Context Management
+
+The context management system handles token budget allocation, hybrid RAG retrieval, and multi-level caching.
+
+### Token Budget Allocation
+
+The budget manager dynamically partitions the LLM context window:
+
+- **System prompt**: 10-15% (fixed ceiling)
+- **RAG results**: 25-40% (scaled by relevance scores)
+- **Tool outputs**: 20-30% (priority-ordered by agent plan)
+- **Conversation history**: 10-20% (sliding window with summarization)
+- **User query + output buffer**: 10-15% (reserved minimum)
+
+### Hybrid RAG Pipeline
+
+The pipeline combines Pinecone vector similarity with Neo4j graph traversal, then deduplicates and re-ranks results using a weighted scoring function (0.6 vector relevance + 0.3 graph proximity + 0.1 recency).
+
+### Context Strategies
+
+| Strategy | Description | Best For |
+|----------|-------------|----------|
+| `full` | All available context up to budget | Simple, focused queries |
+| `summary` | Summarize long sections before inclusion | Multi-document queries |
+| `sliding-window` | Recent N turns + key historical context | Multi-turn conversations |
+| `priority-ranked` | Rank chunks by relevance, trim lowest | Token-constrained scenarios |
+| `hybrid` | Dynamic summary + priority ranking | Complex analytical queries |
+
+### Multi-Level Cache
+
+| Level | Storage | TTL | Use Case |
+|-------|---------|-----|----------|
+| L1 | In-memory LRU | 5 min | Hot tool results, frequent queries |
+| L2 | Redis | 1 hour | Cross-request sharing, session state |
+| L3 | Disk (`.beads/`) | 24 hours | Session replay, audit trails |
+
+## Observability Stack
+
+### Distributed Tracing
+
+OpenTelemetry instrumentation spans the entire request lifecycle: supervisor intent classification, agent activation, tool-use loop iterations, MCP tool calls, and response assembly. Each span carries structured attributes for filtering and aggregation.
+
+### Core Metrics
+
+| Metric | Type | Description |
+|--------|------|-------------|
+| `orchestration.request.latency` | Histogram | End-to-end request duration |
+| `orchestration.tool.call.duration` | Histogram | Per-tool call latency |
+| `orchestration.token.usage` | Counter | Token consumption per model/agent |
+| `orchestration.cache.hit.rate` | Gauge | Cache hit % by level (L1/L2/L3) |
+| `orchestration.error.rate` | Counter | Errors by type and agent |
+| `orchestration.agent.utilization` | Gauge | Agent busy/idle ratio |
+| `orchestration.cost.per.request` | Histogram | Dollar cost per completed request |
+| `orchestration.queue.depth` | Gauge | Pending tasks in orchestration queue |
+
+### Cost Tracking
+
+| Model | Input (per 1M tokens) | Output (per 1M tokens) |
+|-------|----------------------|------------------------|
+| gemini-2.5-flash | $0.15 | $0.60 |
+| gpt-4o-mini | $0.15 | $0.60 |
+| gpt-4o | $5.00 | $15.00 |
+| text-embedding-3-large | $0.13 | -- |
+| gemini-embedding-001 | $0.01 | -- |
+
+Budget alerting thresholds can be configured per agent and per request. When a request exceeds its cost ceiling, the orchestrator truncates remaining tool calls and returns partial results.
+
+## Testing
+
+Run the full test suite, which builds the project and executes 63 tests covering orchestration, prompt engineering, context management, and observability:
+
+```bash
+cd agentic-ai && npm run test
+```
+
+Individual test targets:
+
+```bash
+# Unit tests for orchestration engine
+npm run test -- --testPathPattern=orchestration
+
+# Unit tests for prompt system
+npm run test -- --testPathPattern=prompts
+
+# Unit tests for context management
+npm run test -- --testPathPattern=context
+
+# Unit tests for observability
+npm run test -- --testPathPattern=observability
+
+# Integration tests (requires MCP build)
+cd ../mcp && npm run build && cd ../agentic-ai
+npm run test -- --testPathPattern=integration
+```
+
+Test coverage includes supervisor routing logic, agent budget enforcement, circuit breaker state transitions, prompt schema validation, grounding rule compliance, token budget allocation, cache eviction behavior, and metric emission accuracy.
 
 ## Extensibility
 

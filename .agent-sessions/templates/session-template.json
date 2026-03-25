@@ -1,0 +1,34 @@
+{
+  "sessionId": "",
+  "createdAt": "",
+  "lastActiveAt": "",
+  "agent": "",
+  "agentIdentity": "",
+  "goal": "",
+  "context": {
+    "branch": "main",
+    "beads": [],
+    "filesModified": [],
+    "filesRead": [],
+    "reservations": [],
+    "dependencies": {
+      "upstream": [],
+      "downstream": []
+    }
+  },
+  "decisions": [],
+  "log": [],
+  "outcome": "partial",
+  "summary": null,
+  "handoffNote": null,
+  "metrics": {
+    "beadsCompleted": 0,
+    "beadsClaimed": 0,
+    "filesModified": 0,
+    "commitsCreated": 0,
+    "testsRun": 0,
+    "testsPassed": 0,
+    "testsFailed": 0,
+    "durationMinutes": 0
+  }
+}

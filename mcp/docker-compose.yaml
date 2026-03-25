@@ -9,6 +9,8 @@ services:
       FRONTEND_BASE_URL: ${FRONTEND_BASE_URL:-https://estatewise.vercel.app}
       MCP_CACHE_TTL_MS: ${MCP_CACHE_TTL_MS:-30000}
       MCP_CACHE_MAX: ${MCP_CACHE_MAX:-200}
+      MCP_AUTH_ENABLED: ${MCP_AUTH_ENABLED:-true}
+      MCP_RATE_LIMIT_PER_MINUTE: ${MCP_RATE_LIMIT_PER_MINUTE:-120}
     volumes:
       - ./logs:/var/log/mcp
     command: ["node", "dist/server.js"]

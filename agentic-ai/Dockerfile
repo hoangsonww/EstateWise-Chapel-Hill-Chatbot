@@ -7,6 +7,10 @@ WORKDIR /workspace
 COPY mcp/package*.json ./mcp/
 COPY mcp/tsconfig.json ./mcp/
 COPY mcp/src ./mcp/src
+COPY mcp/shared ./mcp/shared
+COPY mcp/servers ./mcp/servers
+COPY mcp/client ./mcp/client
+COPY mcp/config ./mcp/config
 
 # Copy Agentic AI project
 COPY agentic-ai/package*.json ./agentic-ai/
@@ -35,6 +39,10 @@ RUN npm ci --prefix mcp --omit=dev && npm ci --prefix agentic-ai --omit=dev
 # Copy build outputs
 COPY --from=build /workspace/mcp/dist ./mcp/dist
 COPY --from=build /workspace/agentic-ai/dist ./agentic-ai/dist
+COPY mcp/shared ./mcp/shared
+COPY mcp/servers ./mcp/servers
+COPY mcp/client ./mcp/client
+COPY mcp/config ./mcp/config
 COPY agentic-ai/crewai ./agentic-ai/crewai
 
 # Python runtime for CrewAI
@@ -46,6 +54,13 @@ RUN apt-get update && apt-get install -y python3 python3-venv python3-pip && rm 
 ENV PATH="/opt/crewai/bin:${PATH}"
 ENV MCP_SERVER_PATH=/app/mcp/dist/server.js
 ENV AGENTIC_HOME=/app/agentic-ai
+ENV ANTHROPIC_API_KEY=""
+ENV DAILY_BUDGET_USD=10
+ENV MONTHLY_BUDGET_USD=200
+ENV PER_REQUEST_MAX_USD=0.50
+ENV DEFAULT_AGENT_TIMEOUT_MS=60000
+ENV MAX_AGENT_ITERATIONS=10
+ENV MAX_CONCURRENT_AGENTS=3
 WORKDIR /app/agentic-ai
 
 # Non-root user

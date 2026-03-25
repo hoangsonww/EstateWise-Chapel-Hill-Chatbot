@@ -24,8 +24,8 @@ This file is the always-on memory for Claude Code in this repository. Keep it le
 
 - `backend/`: Express + TypeScript API, auth, chat, properties, forums, commute, graph, Swagger, Prometheus, tRPC bridge.
 - `frontend/`: Next.js Pages Router app, chat/map/insights/market-pulse pages, direct REST calls plus local tRPC API.
-- `mcp/`: stdio MCP server with 60+ tools, token workflows, monitoring, web tools, and A2A bridge tools.
-- `agentic-ai/`: standalone multi-agent runtime with default orchestrator, LangGraph, CrewAI, and HTTP/A2A endpoints.
+- `mcp/`: stdio MCP server with 60+ tools, token workflows, monitoring, web tools, A2A bridge tools. Domain servers in `mcp/servers/` (property, market, finance, graph, commute, system), shared infra in `mcp/shared/`, unified client in `mcp/client/`, config/ACL in `mcp/config/`.
+- `agentic-ai/`: standalone multi-agent runtime with default orchestrator, LangGraph, CrewAI, and HTTP/A2A endpoints. Orchestration engine in `src/orchestration/` (supervisor, agent registry, intent router, tool-use loop). Prompt system in `src/prompts/` (XML templates, schemas, grounding, cache). Context management in `src/context/` (budget, RAG, strategies, cache). Observability in `src/observability/` (tracing, metrics, cost, health).
 - `grpc/`: market pulse proto contract and Node gRPC service.
 - `context-engineering/`: knowledge graph engine, knowledge base, context window management, ingestion pipeline, D3 visualization UI, and MCP/agent integration.
 - `deployment-control/`: ops API plus separate Nuxt UI for deployment actions.
@@ -38,8 +38,20 @@ This file is the always-on memory for Claude Code in this repository. Keep it le
 - Frontend heavy pages: `frontend/pages/chat.tsx`, `frontend/pages/insights.tsx`, `frontend/pages/map.tsx`, `frontend/pages/market-pulse.tsx`
 - MCP entry: `mcp/src/server.ts`
 - MCP tool registry: `mcp/src/tools/index.ts`
+- MCP domain servers: `mcp/servers/` (property, market, finance, graph, commute, system)
+- MCP shared auth: `mcp/shared/auth.ts`
+- MCP unified client: `mcp/client/`
 - Agentic CLI entry: `agentic-ai/src/index.ts`
 - Agentic HTTP/A2A server: `agentic-ai/src/http/server.ts`
+- Orchestration types: `agentic-ai/src/orchestration/types.ts`
+- Orchestration registry: `agentic-ai/src/orchestration/agent-registry.ts`
+- Orchestration supervisor: `agentic-ai/src/orchestration/supervisor.ts`
+- Orchestration agent loop: `agentic-ai/src/orchestration/tool-loop.ts`
+- Prompt system templates: `agentic-ai/src/prompts/system/`
+- Prompt schemas: `agentic-ai/src/prompts/schemas/`
+- Prompt grounding rules: `agentic-ai/src/prompts/grounding.ts`
+- Context strategies: `agentic-ai/src/context/strategies.ts`
+- Observability metrics: `agentic-ai/src/observability/metrics.ts`
 - gRPC contract: `grpc/proto/market_pulse.proto`
 - Context engineering entry: `context-engineering/src/serve.ts`
 - Context graph engine: `context-engineering/src/graph/KnowledgeGraph.ts`
@@ -57,6 +69,11 @@ This file is the always-on memory for Claude Code in this repository. Keep it le
 - MCP tool outputs are intentionally text-first and often stringified JSON for client portability.
 - `deployment-control` has no built-in auth/RBAC. Treat it as trusted-environment tooling unless the task adds explicit security.
 - `context-engineering` seeds 42 graph nodes + 55 edges + 10 KB docs on startup; the graph is never empty. Neo4j sync is optional (graceful degradation). UI runs on port 4200.
+- Orchestration engine enforces per-agent tool budgets (max calls, token ceiling, timeout). Exceeding budgets truncates remaining tool calls and returns partial results.
+- Circuit breakers open after 3+ consecutive MCP tool failures; subsequent calls to that tool are skipped during the cooldown period.
+- MCP domain servers use scoped HMAC auth tokens. Each agent only has access to its declared tool scope in the agent registry.
+- Grounding rules in `agentic-ai/src/prompts/grounding.ts` enforce that agents cite tool outputs and cannot fabricate data. Violations trigger re-prompting.
+- `.beads/` captures reasoning chains for audit and replay. Check `.beads/.status.json` before editing shared files in multi-agent scenarios.
 
 ## Validation Defaults
 
@@ -79,6 +96,7 @@ cd mcp && npm run client:call -- <tool> '<json>'
 
 # Agentic AI
 cd agentic-ai && npm run build
+cd agentic-ai && npm run test
 cd agentic-ai && npm run dev "your goal"
 
 # gRPC

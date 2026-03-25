@@ -546,6 +546,144 @@ flowchart LR
 - Graph tools depend on Neo4j being configured in the backend; otherwise the backend responds with `503`.
 - Returns use `{ type: 'text', text: '...' }` content blocks; parse JSON text in the client if needed.
 
+## Domain MCP Servers (New)
+
+In addition to the monolithic stdio MCP server, EstateWise now supports decomposed **domain MCP servers** for fine-grained scaling, scoped authentication, and agent-level access control. Each domain server exposes a focused set of tools and shares common infrastructure.
+
+### Server Overview
+
+| Server | Port | Tools | Description |
+|--------|------|-------|-------------|
+| `property-server` | 3100 | 8 | Property search, lookup, compare, enrich, sample, byIds, searchAdvanced, dedupe |
+| `market-server` | 3101 | 5 | Price trends, inventory analysis, affordability metrics, competitive positioning, market summary |
+| `finance-server` | 3102 | 4 | Mortgage calculator, ROI projections, affordability analysis, investment comparison |
+| `graph-server` | 3103 | 3 | Similarity search, relationship explanation, neighborhood graph analysis |
+| `commute-server` | 3104 | 2 | Commute time estimation, transit/walk score lookup |
+| `system-server` | 3105 | 2 | Cache management, health checks and monitoring stats |
+
+### Full Tool Inventory
+
+| Tool | Server | Description |
+|------|--------|-------------|
+| `properties.search` | property | Natural-language property search with topK results |
+| `properties.searchAdvanced` | property | Filter-based search (beds, baths, price, location) |
+| `properties.lookup` | property | Lookup property by address or ZPID |
+| `properties.byIds` | property | Batch fetch properties by ZPID array |
+| `properties.sample` | property | Random sample of N properties |
+| `properties.compare` | property | Side-by-side comparison of multiple properties |
+| `properties.enrich` | property | Enrich property with external data sources |
+| `properties.dedupe` | property | Deduplicate and rank property results |
+| `market.priceTrends` | market | Historical price trend data for an area |
+| `market.inventory` | market | Current inventory levels and days-on-market stats |
+| `market.affordability` | market | Affordability index for a location |
+| `market.competitive` | market | Competitive positioning analysis |
+| `market.summary` | market | Aggregated market summary report |
+| `finance.mortgage` | finance | Monthly payment, amortization, total cost |
+| `finance.roi` | finance | Rental ROI and appreciation projections |
+| `finance.affordability` | finance | Income-based affordability assessment |
+| `finance.compare` | finance | Compare financing scenarios side-by-side |
+| `graph.similar` | graph | Find similar properties via Neo4j graph |
+| `graph.explain` | graph | Explain relationship path between two properties |
+| `graph.neighborhood` | graph | Neighborhood-level graph analysis |
+| `commute.estimate` | commute | Commute time from property to destination |
+| `commute.score` | commute | Transit and walkability score for a location |
+| `system.cache.clear` | system | Clear tool result cache |
+| `system.health` | system | Health check and monitoring statistics |
+
+### Shared Infrastructure
+
+| Component | Location | Purpose |
+|-----------|----------|---------|
+| Scoped Auth | `mcp/shared/auth.ts` | HMAC-SHA256 token validation with per-server scope enforcement |
+| Structured Logging | `mcp/shared/logging.ts` | JSON logging with correlation IDs and request tracing |
+| Error Handling | `mcp/shared/errors.ts` | Zod validation errors, HTTP error mapping, retry signals |
+| Connection Pool | `mcp/shared/pool.ts` | HTTP keep-alive connection pooling to backend API |
+| Config Loader | `mcp/config/servers.json` | Port assignments, tool registries, and feature flags |
+
+### Unified Client
+
+The unified MCP client automatically routes tool calls to the correct domain server based on tool name prefixes:
+
+```typescript
+import { createUnifiedClient } from './client';
+
+const client = createUnifiedClient({
+  servers: {
+    property: 'http://localhost:3100',
+    market:   'http://localhost:3101',
+    finance:  'http://localhost:3102',
+    graph:    'http://localhost:3103',
+    commute:  'http://localhost:3104',
+    system:   'http://localhost:3105',
+  },
+});
+
+// Automatically routed to property-server:3100
+const results = await client.callTool('properties.search', {
+  q: 'Chapel Hill 3 bed',
+  topK: 5,
+});
+
+// Automatically routed to market-server:3101
+const trends = await client.callTool('market.priceTrends', {
+  q: 'Chapel Hill',
+  topK: 100,
+});
+```
+
+### Configuration
+
+Server configuration is defined in `mcp/config/servers.json`:
+
+```json
+{
+  "servers": {
+    "property": { "port": 3100, "tools": ["properties.*"], "maxConnections": 10 },
+    "market":   { "port": 3101, "tools": ["market.*", "analytics.*"], "maxConnections": 8 },
+    "finance":  { "port": 3102, "tools": ["finance.*"], "maxConnections": 6 },
+    "graph":    { "port": 3103, "tools": ["graph.*"], "maxConnections": 6 },
+    "commute":  { "port": 3104, "tools": ["commute.*", "map.*"], "maxConnections": 4 },
+    "system":   { "port": 3105, "tools": ["system.*", "monitoring.*"], "maxConnections": 4 }
+  },
+  "shared": {
+    "authRequired": true,
+    "logLevel": "info",
+    "connectionPoolSize": 10,
+    "requestTimeoutMs": 30000
+  }
+}
+```
+
+### Agent Access Control Matrix
+
+Each orchestration agent is granted access only to specific domain servers via scoped tokens:
+
+| Agent | property | market | finance | graph | commute | system |
+|-------|----------|--------|---------|-------|---------|--------|
+| PropertyAgent | **RW** | -- | -- | -- | -- | -- |
+| MarketAgent | R | **RW** | -- | -- | -- | -- |
+| FinanceAgent | R | R | **RW** | -- | -- | -- |
+| GraphAgent | R | -- | -- | **RW** | -- | -- |
+| MapAgent | -- | -- | -- | -- | **RW** | -- |
+| ReporterAgent | R | R | R | R | R | **RW** |
+| ZpidFinderAgent | **R** | -- | -- | -- | -- | -- |
+| AnalyticsAgent | R | **RW** | -- | -- | -- | -- |
+| ComplianceAgent | R | R | R | R | R | R |
+
+**RW** = read-write, **R** = read-only, **--** = no access
+
+### Docker Support
+
+Each domain server can be run independently in a container:
+
+```bash
+# Run all domain servers with the agentic profile
+docker compose -f docker/compose.prod.yml --env-file .env --profile agentic up --build -d
+
+# Run a single domain server
+docker compose -f docker/compose.prod.yml --env-file .env up mcp-property-server --build -d
+```
+
 ## Architecture
 
 The MCP server acts as a bridge between the client (IDE or assistant) and the EstateWise backend API and frontend. It listens for tool calls over stdio, validates inputs, makes HTTP requests to the backend, and returns results as MCP content blocks.
