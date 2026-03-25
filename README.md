@@ -1534,6 +1534,62 @@ flowchart TB
   Reporter --> SysMCP
 ```
 
+### Beads & Flywheel Methodology (New)
+
+The Flywheel methodology is a bead-based task decomposition and coordination system that enables multi-agent development with full audit trails, crash recovery, and graph-theory work prioritization. All state lives in `.beads/` so any agent can pick up where another left off.
+
+**Core concepts:**
+- **Bead**: The smallest unit of work that produces a verifiable artifact. Each bead carries self-contained context (title, domain, priority, dependencies, acceptance criteria, verification command) so agents never need external briefings
+- **Status machine**: `open → claimed → implementing → verifying → done` (with `blocked` side-state). Tracked in `.beads/.status.json` as the single source of truth
+- **Domain taxonomy**: 7 domains — ORCH (orchestration), CCFG (configuration), PRMT (prompts), MCP (tool servers), CTX (context engineering), CROSS (integration), TEST (testing)
+- **Dependency graph**: Beads declare `dependsOn` arrays forming a DAG. The `bv.mjs` tool applies PageRank, betweenness centrality, HITS, critical-path analysis, and topological sort to recommend optimal next work
+
+**Flywheel toolchain** (`tools/`):
+
+| Tool | Command | Purpose |
+|------|---------|---------|
+| **Beads Viewer** | `node tools/bv.mjs --robot-triage` | Graph-theory triage with PageRank, betweenness, critical path |
+| **Agent Mail** | `node tools/agent-mail.mjs send <to> <subj> <body>` | Multi-agent coordination: identities, messaging, file reservations |
+| **DCG** | `node tools/dcg.mjs <command>` | Destructive Command Guard — blocks `git reset --hard`, `rm -rf`, force pushes |
+| **Session Memory** | `node tools/session-memory.mjs log <agent> <type> <desc>` | 3-layer memory: episodic → working → procedural with confidence scoring |
+
+**Flywheel invariants** (the 9 rules):
+1. Global reasoning belongs in plan space — not scattered across code
+2. The markdown plan must be comprehensive before coding starts
+3. Plan-to-beads is a distinct translation problem; beads carry self-contained context
+4. Beads are the execution substrate — every change maps to a bead
+5. Convergence matters more than first drafts — polish beads 4–6 times minimum
+6. Swarm agents are fungible — no specialist bottlenecks
+7. Coordination survives crashes: AGENTS.md + Agent Mail + beads + bv
+8. Session history feeds back into infrastructure via session-memory
+9. Review, testing, and hardening are part of the core method
+
+**File reservations & conflict zones:**
+- Agents declare file reservations via Agent Mail before editing (advisory locks with configurable TTL)
+- **Conflict zones** (single-agent only): `package.json`, `docker-compose.yml`, shared type definitions, `.beads/.status.json`
+- **Safe parallel zones**: individual MCP servers, agent modules, test files, documentation
+
+```mermaid
+flowchart LR
+  subgraph "Flywheel Cycle"
+    Plan["📋 Plan<br/>Comprehensive markdown"] --> Beads["🔵 Beads<br/>Decompose to DAG"]
+    Beads --> Execute["⚡ Execute<br/>Claim → Implement → Verify"]
+    Execute --> Converge["🔄 Converge<br/>4-6 polish passes"]
+    Converge --> Learn["🧠 Learn<br/>Session memory distills rules"]
+    Learn --> Plan
+  end
+
+  subgraph "Coordination Layer"
+    BV["bv.mjs<br/>Graph triage"]
+    AM["agent-mail.mjs<br/>Reservations + messaging"]
+    DCG2["dcg.mjs<br/>Safety guard"]
+    SM["session-memory.mjs<br/>3-layer memory"]
+  end
+
+  Execute --> BV & AM & DCG2
+  Learn --> SM
+```
+
 ### Prompt Engineering System (New)
 
 - XML-structured prompt templates with `<system>`, `<context>`, `<tools>`, `<constraints>`, `<output-format>` sections

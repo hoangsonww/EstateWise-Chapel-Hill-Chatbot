@@ -1,0 +1,187 @@
+{
+  "sessionId": "ses-integration-tests",
+  "createdAt": "2026-03-25T14:00:00Z",
+  "lastActiveAt": "2026-03-25T17:30:00Z",
+  "agent": "claude-opus",
+  "agentIdentity": "Silver Sage",
+  "goal": "Write integration tests and cross-cutting wiring: orchestration-MCP, context-runtime, E2E smoke tests",
+  "context": {
+    "branch": "main",
+    "beads": ["CROSS-001", "CROSS-002", "TEST-001", "TEST-002", "TEST-003", "TEST-004", "TEST-005"],
+    "filesModified": [
+      "agentic-ai/src/mcp/ToolClient.ts",
+      "agentic-ai/src/orchestration/agent-loop.ts",
+      "agentic-ai/tests/orchestration.test.mjs",
+      "agentic-ai/tests/context.test.mjs",
+      "agentic-ai/tests/prompts.test.mjs",
+      "agentic-ai/tests/observability.test.mjs",
+      "agentic-ai/tests/runtime.test.mjs"
+    ],
+    "filesRead": [
+      "agentic-ai/src/orchestration/supervisor.ts",
+      "agentic-ai/src/orchestration/agent-registry.ts",
+      "agentic-ai/src/orchestration/error-recovery.ts",
+      "agentic-ai/src/context/token-budget.ts",
+      "agentic-ai/src/context/strategies.ts",
+      "agentic-ai/src/prompts/grounding.ts",
+      "agentic-ai/src/prompts/schemas/intent.ts",
+      "mcp/src/server.ts",
+      ".beads/.status.json"
+    ],
+    "reservations": ["agentic-ai/tests/**", "agentic-ai/src/mcp/**", "agentic-ai/src/orchestration/agent-loop.ts"],
+    "dependencies": {
+      "upstream": ["ORCH-008", "CTX-007", "PRMT-008", "MCP-003"],
+      "downstream": []
+    }
+  },
+  "decisions": [
+    {
+      "timestamp": "2026-03-25T14:15:00Z",
+      "decision": "Mock MCP tool calls at the stdio transport level rather than at the tool implementation level",
+      "rationale": "Mocking at transport level tests the full ToolClient round-trip including serialization. Implementation-level mocks skip too much of the stack.",
+      "beadId": "CROSS-001",
+      "reversible": true
+    },
+    {
+      "timestamp": "2026-03-25T15:00:00Z",
+      "decision": "Context assembly happens before LLM call, store update happens after — no interleaving",
+      "rationale": "Clean separation prevents partial context state. Context is assembled once, passed to LLM, then the response updates the conversation store. No mid-call mutations.",
+      "beadId": "CROSS-002",
+      "reversible": false
+    },
+    {
+      "timestamp": "2026-03-25T16:30:00Z",
+      "decision": "Smoke tests use no external dependencies — all APIs and databases are mocked",
+      "rationale": "CI must run without Pinecone, Neo4j, or LLM API keys. Mocked backends still validate the full pipeline flow: message → intent → plan → execution → synthesis.",
+      "beadId": "TEST-005",
+      "reversible": false
+    }
+  ],
+  "log": [
+    {
+      "timestamp": "2026-03-25T14:00:00Z",
+      "action": "read",
+      "detail": "Read all orchestration, context, and prompt modules for integration understanding",
+      "artifacts": [
+        "agentic-ai/src/orchestration/supervisor.ts",
+        "agentic-ai/src/context/strategies.ts",
+        "agentic-ai/src/prompts/grounding.ts",
+        "mcp/src/server.ts"
+      ]
+    },
+    {
+      "timestamp": "2026-03-25T14:10:00Z",
+      "action": "claim",
+      "detail": "Claimed CROSS-001, CROSS-002, TEST-001-005. Reserved test files and integration points.",
+      "artifacts": [],
+      "beadId": "CROSS-001"
+    },
+    {
+      "timestamp": "2026-03-25T14:45:00Z",
+      "action": "write",
+      "detail": "Implemented ToolClient: wires supervisor to MCP stdio, maps MCP failures to AgentErrorType.TOOL_FAILURE",
+      "artifacts": ["agentic-ai/src/mcp/ToolClient.ts"],
+      "beadId": "CROSS-001"
+    },
+    {
+      "timestamp": "2026-03-25T15:15:00Z",
+      "action": "write",
+      "detail": "Wired context engine into agent-loop.ts: assemble context via strategy before LLM, update store after",
+      "artifacts": ["agentic-ai/src/orchestration/agent-loop.ts"],
+      "beadId": "CROSS-002"
+    },
+    {
+      "timestamp": "2026-03-25T15:30:00Z",
+      "action": "test",
+      "detail": "cd agentic-ai && npm run build — integration code compiles",
+      "artifacts": [],
+      "beadId": "CROSS-002",
+      "result": "pass"
+    },
+    {
+      "timestamp": "2026-03-25T15:35:00Z",
+      "action": "commit",
+      "detail": "Wire orchestration-MCP integration and context engine into agent runtime loop",
+      "artifacts": ["agentic-ai/src/mcp/ToolClient.ts", "agentic-ai/src/orchestration/agent-loop.ts"],
+      "beadId": "CROSS-002",
+      "commitSha": "a1b2c3d"
+    },
+    {
+      "timestamp": "2026-03-25T16:00:00Z",
+      "action": "write",
+      "detail": "Wrote orchestration unit tests: registry CRUD, CB transitions, error recovery, cost budget, DLQ, routing, batch",
+      "artifacts": ["agentic-ai/tests/orchestration.test.mjs"],
+      "beadId": "TEST-001"
+    },
+    {
+      "timestamp": "2026-03-25T16:15:00Z",
+      "action": "write",
+      "detail": "Wrote context engine tests: token allocation, cache ops, sliding window, strategy budget compliance",
+      "artifacts": ["agentic-ai/tests/context.test.mjs"],
+      "beadId": "TEST-002"
+    },
+    {
+      "timestamp": "2026-03-25T16:30:00Z",
+      "action": "write",
+      "detail": "Wrote prompt system tests: Zod schema validation, cache layer building, grounding validator",
+      "artifacts": ["agentic-ai/tests/prompts.test.mjs"],
+      "beadId": "TEST-003"
+    },
+    {
+      "timestamp": "2026-03-25T16:45:00Z",
+      "action": "write",
+      "detail": "Wrote observability tests: span creation/nesting, metric recording, cost per model, health aggregation",
+      "artifacts": ["agentic-ai/tests/observability.test.mjs"],
+      "beadId": "TEST-004"
+    },
+    {
+      "timestamp": "2026-03-25T17:00:00Z",
+      "action": "write",
+      "detail": "Wrote E2E smoke tests: full pipeline (mocked), HTTP /health, A2A serialization round-trip",
+      "artifacts": ["agentic-ai/tests/runtime.test.mjs"],
+      "beadId": "TEST-005"
+    },
+    {
+      "timestamp": "2026-03-25T17:15:00Z",
+      "action": "test",
+      "detail": "cd agentic-ai && npm run build && npm run test — ALL 5 test suites passing",
+      "artifacts": [
+        "agentic-ai/tests/orchestration.test.mjs",
+        "agentic-ai/tests/context.test.mjs",
+        "agentic-ai/tests/prompts.test.mjs",
+        "agentic-ai/tests/observability.test.mjs",
+        "agentic-ai/tests/runtime.test.mjs"
+      ],
+      "beadId": "TEST-005",
+      "result": "pass"
+    },
+    {
+      "timestamp": "2026-03-25T17:20:00Z",
+      "action": "commit",
+      "detail": "Add comprehensive test suites: orchestration, context, prompts, observability, E2E smoke tests",
+      "artifacts": ["agentic-ai/tests/"],
+      "beadId": "TEST-005",
+      "commitSha": "f4e5d6c"
+    },
+    {
+      "timestamp": "2026-03-25T17:30:00Z",
+      "action": "claim",
+      "detail": "Completed all 7 beads (CROSS-001, CROSS-002, TEST-001-005). All tests passing. Released reservations.",
+      "artifacts": [],
+      "beadId": "TEST-005"
+    }
+  ],
+  "outcome": "success",
+  "summary": "Completed all integration wiring and test suites. CROSS-001 (orchestration-MCP wiring), CROSS-002 (context-runtime integration), TEST-001-005 (orchestration, context, prompts, observability, E2E smoke tests). All 5 test suites passing with zero external dependencies.",
+  "handoffNote": null,
+  "metrics": {
+    "beadsCompleted": 7,
+    "beadsClaimed": 7,
+    "filesModified": 7,
+    "commitsCreated": 3,
+    "testsRun": 2,
+    "testsPassed": 2,
+    "testsFailed": 0,
+    "durationMinutes": 210
+  }
+}

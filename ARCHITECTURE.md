@@ -97,6 +97,7 @@ This document describes the comprehensive end-to-end architecture for EstateWise
   - [Runtime Contracts](#runtime-contracts)
   - [HTTP + A2A Contract Surface](#http--a2a-contract-surface)
   - [Traceability and Observability](#traceability-and-observability)
+  - [Beads Architecture & Flywheel Methodology](#beads-architecture--flywheel-methodology)
 - [Context Engineering Architecture](#context-engineering-architecture)
   - [System Overview](#context-engineering-system-overview)
   - [Knowledge Graph Engine](#knowledge-graph-engine)
@@ -859,6 +860,168 @@ The RAG pipeline combines vector similarity from Pinecone with graph traversal f
 | L1 | In-memory LRU | 5 min | >80% | Hot tool results and frequent queries |
 | L2 | Redis | 1 hour | >60% | Cross-request sharing and session state |
 | L3 | Disk (`.beads/`) | 24 hours | >40% | Session replay and audit trails |
+
+### Beads Architecture & Flywheel Methodology
+
+The Flywheel methodology is the development coordination layer that powers multi-agent work across the EstateWise monorepo. It decomposes work into **beads** — self-contained task units with full context — tracked as a dependency DAG in `.beads/.status.json`.
+
+#### Bead Data Model
+
+```json
+{
+  "schema": { "version": "2.0.0", "flywheel": true },
+  "beads": {
+    "ORCH-001": {
+      "title": "Define agent registry schema and bootstrap",
+      "domain": "orchestration",
+      "status": "done",
+      "assignedAgent": "claude-opus",
+      "priority": "p0",
+      "dependsOn": [],
+      "description": "Full context for the task...",
+      "rationale": "Why this bead exists...",
+      "verification": "cd agentic-ai && npm run build && npm run test",
+      "artifact": "agentic-ai/src/orchestration/agent-registry.ts",
+      "testObligations": ["Agent CRUD", "Circuit breaker transitions"],
+      "acceptanceCriteria": ["9 default agents registered", "CB opens after 3 failures"]
+    }
+  }
+}
+```
+
+Each bead is fully self-describing: an agent can claim and execute any bead without external briefing. The schema (v2.0) includes `rationale`, `testObligations`, and `acceptanceCriteria` fields that were absent in v1.
+
+#### Domain Taxonomy
+
+| Domain | Code | Scope | Example Beads |
+|--------|------|-------|---------------|
+| Orchestration | `ORCH` | Supervisor, agent registry, routing, error recovery | ORCH-001 through ORCH-008 |
+| Configuration | `CCFG` | Claude Code config, skills, DCG, agent pipeline | CCFG-001 through CCFG-006 |
+| Prompts | `PRMT` | System prompts, grounding rules, schemas, caching | PRMT-001 through PRMT-008 |
+| MCP | `MCP` | Tool servers, auth, rate limiting, domain scaffolds | MCP-001 through MCP-007 |
+| Context | `CTX` | Context engineering, knowledge graph, RAG pipeline | CTX-001+ |
+| Cross-cutting | `CROSS` | Integration tests, contract alignment, E2E flows | CROSS-001+ |
+| Testing | `TEST` | Test infrastructure, coverage gates, CI integration | TEST-001+ |
+
+#### Bead State Machine
+
+```mermaid
+stateDiagram-v2
+    [*] --> open
+    open --> claimed: agent claims via bv.mjs
+    claimed --> implementing: work begins
+    implementing --> verifying: implementation complete
+    verifying --> done: verification passes
+    verifying --> implementing: verification fails (rework)
+    open --> blocked: unresolved dependency
+    blocked --> open: dependency resolved
+    claimed --> open: agent releases bead
+
+    note right of done
+      Bead cannot reach done until
+      all dependsOn beads are done
+    end note
+```
+
+#### Graph-Theory Triage (bv.mjs)
+
+The `bv.mjs` tool treats `.beads/.status.json` as a directed graph and applies six algorithms to rank beads by structural importance:
+
+| Algorithm | Purpose | Key Parameter |
+|-----------|---------|---------------|
+| **PageRank** | Identify beads that many others depend on | damping = 0.85, 100 iterations |
+| **Betweenness Centrality** | Find bottleneck beads on the most shortest paths | All-pairs shortest paths |
+| **HITS** | Separate hub beads (many outgoing deps) from authority beads (many incoming) | 100 iterations |
+| **Critical Path** | Longest dependency chain — determines minimum project duration | Topological traversal |
+| **Cycle Detection** | Find circular dependencies that would deadlock execution | DFS-based |
+| **Execution Levels** | Group beads into parallel waves for concurrent execution | BFS wavefront |
+
+**Robot flags** (machine-readable output for agent consumption):
+
+```bash
+node tools/bv.mjs --robot-triage      # Full graph metrics JSON
+node tools/bv.mjs --robot-next        # Single optimal next bead with claim command
+node tools/bv.mjs --robot-plan        # Parallel execution tracks (wave-based)
+node tools/bv.mjs --robot-insights    # Critical paths, bottlenecks, cycle warnings
+node tools/bv.mjs --robot-priority    # Priority-weighted ordering
+node tools/bv.mjs claim <bead-id>     # Atomically claim a bead
+node tools/bv.mjs complete <bead-id>  # Mark bead done
+```
+
+#### Agent Coordination Layer
+
+Multi-agent swarms coordinate through three mechanisms:
+
+```mermaid
+flowchart TD
+    subgraph "Agent Mail (tools/agent-mail.mjs)"
+        Identity["Identity Management<br/>register, whoami, list-agents"]
+        Messaging["Direct Messaging<br/>send, inbox, thread"]
+        Reservations["File Reservations<br/>reserve (TTL), release, check"]
+    end
+
+    subgraph "Conflict Zones (single-agent only)"
+        CZ1["package.json / package-lock.json"]
+        CZ2["docker-compose.yml"]
+        CZ3["Shared type definitions"]
+        CZ4[".beads/.status.json (use bv claim/complete)"]
+    end
+
+    subgraph "Safe Parallel Zones"
+        SZ1["Individual MCP servers: mcp/servers/<name>/"]
+        SZ2["Agent modules: agentic-ai/src/orchestration/"]
+        SZ3["Individual test files"]
+        SZ4["Documentation files"]
+    end
+
+    Identity --> Reservations
+    Messaging --> Reservations
+```
+
+- **Advisory file locks**: Agents call `agent-mail.mjs reserve <glob> --ttl 3600` before editing. Reservations are advisory (not enforced by filesystem) but checked by well-behaved agents.
+- **Crash survival**: All state persists in `.beads/agent-mail/` (agents.json, reservations.json, messages/, threads/). If an agent crashes, any other agent reads the state and resumes.
+- **Fungibility**: Every agent is a generalist. No role specialization. If one agent goes down, another picks up its bead via `bv.mjs --robot-next`.
+
+#### Session Memory & Learning
+
+The session memory system (`tools/session-memory.mjs`) closes the flywheel loop by converting session experience into reusable operational knowledge:
+
+| Layer | Storage | Content | Lifecycle |
+|-------|---------|---------|-----------|
+| **Episodic** | `.beads/session-memory/episodic/` (JSONL) | Raw events: task-start, task-complete, task-fail, decision, discovery, workaround, error, review, handoff | Append-only, immutable |
+| **Working** | `.beads/session-memory/working/` (JSON) | Structured session summaries with outcomes and key decisions | Updated per session |
+| **Procedural** | `.beads/session-memory/procedural/rules.json` | Distilled rules with confidence scores (candidate → established → proven) | Continuously refined |
+
+Confidence scoring: initial 0.50, +0.10 per helpful confirmation, −0.40 per harmful feedback (4× multiplier), 90-day half-life decay, clamped to [0.01, 0.99].
+
+#### Destructive Command Guard (DCG)
+
+The DCG (`tools/dcg.mjs`) mechanically blocks dangerous operations before they execute. Eleven patterns are blocked including `git reset --hard`, `git clean -fd`, `git push --force`, and `rm -rf /`. Each blocked pattern suggests a safe alternative. Integration: `dcg.mjs --install` adds a git pre-commit hook; `dcg.mjs --check-staged` scans staged files for secrets.
+
+#### Flywheel Invariants
+
+The methodology enforces 9 invariants that every agent must follow:
+
+1. **Plan-first**: Global reasoning belongs in plan space, not scattered across code
+2. **Comprehensive plans**: The markdown plan must be comprehensive before coding starts
+3. **Self-contained beads**: Plan-to-beads is a distinct translation problem — beads carry all context
+4. **Beads as substrate**: Every change maps to a bead; nothing happens outside the bead graph
+5. **Convergence over drafts**: Polish beads 4–6 times minimum; first drafts are never final
+6. **Fungible agents**: No specialist bottlenecks; any agent can work on any bead
+7. **Crash-proof coordination**: AGENTS.md + Agent Mail + beads + bv survive process death
+8. **Feedback loop**: Session history feeds back into infrastructure via session-memory
+9. **Review is core**: Testing, review, and hardening are part of the method, not afterthoughts
+
+#### Integration with Orchestration & Context
+
+The beads system integrates with three runtime layers:
+
+| Layer | Integration Point | Mechanism |
+|-------|-------------------|-----------|
+| **Orchestration Engine** | Error recovery | `Bead replay` strategy replays reasoning chains from `.beads/` snapshots for debugging |
+| **Context Management** | L3 disk cache | `.beads/` serves as the 24-hour persistent cache layer for session replay and audit |
+| **Observability** | Audit trails | Bead state transitions emit structured events consumed by the tracing pipeline |
+| **Agent Sessions** | Checkpoint sync | `.agent-sessions/` checkpoints reference active bead IDs for resume-after-crash |
 
 ### Observability Architecture
 
