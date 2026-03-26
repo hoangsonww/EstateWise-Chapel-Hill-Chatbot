@@ -11,8 +11,7 @@ import { createLogger } from "../../shared/logger.js";
 import { handleToolError } from "../../shared/error-handler.js";
 import type { ToolResult } from "../../shared/types.js";
 
-const API_BASE_URL =
-  process.env.API_BASE_URL || "http://localhost:3000/api";
+const API_BASE_URL = process.env.API_BASE_URL || "http://localhost:3000/api";
 const SERVER_ID = "user-preferences";
 const limiter = getRateLimiter(SERVER_ID, 60);
 const log = createLogger(SERVER_ID);
@@ -21,10 +20,7 @@ const log = createLogger(SERVER_ID);
 // Helpers
 // ---------------------------------------------------------------------------
 
-async function apiFetch(
-  path: string,
-  init?: RequestInit,
-): Promise<unknown> {
+async function apiFetch(path: string, init?: RequestInit): Promise<unknown> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 10_000);
   try {
@@ -81,7 +77,11 @@ export const tools = [
           durationMs: Date.now() - start,
           metadata: { userId: input.userId },
         });
-        return { success: true, data, metadata: { durationMs: Date.now() - start } };
+        return {
+          success: true,
+          data,
+          metadata: { durationMs: Date.now() - start },
+        };
       } catch (err) {
         log.error("get_user_preferences failed", err);
         return handleToolError("get_user_preferences", err).toToolResult();
@@ -106,8 +106,14 @@ export const tools = [
             .array(z.string())
             .optional()
             .describe("List of preferred state codes"),
-          minPrice: z.number().optional().describe("Minimum price preference in USD"),
-          maxPrice: z.number().optional().describe("Maximum price preference in USD"),
+          minPrice: z
+            .number()
+            .optional()
+            .describe("Minimum price preference in USD"),
+          maxPrice: z
+            .number()
+            .optional()
+            .describe("Maximum price preference in USD"),
           minBedrooms: z.number().int().optional().describe("Minimum bedrooms"),
           maxBedrooms: z.number().int().optional().describe("Maximum bedrooms"),
           propertyTypes: z
@@ -123,7 +129,9 @@ export const tools = [
             .optional()
             .describe("How often the user wants listing alerts"),
         })
-        .describe("Partial preferences object – only provided fields are merged"),
+        .describe(
+          "Partial preferences object – only provided fields are merged",
+        ),
     }),
     async handler(input: {
       userId: string;
@@ -147,7 +155,11 @@ export const tools = [
             updatedFields: Object.keys(input.preferences),
           },
         });
-        return { success: true, data, metadata: { durationMs: Date.now() - start } };
+        return {
+          success: true,
+          data,
+          metadata: { durationMs: Date.now() - start },
+        };
       } catch (err) {
         log.error("update_preferences failed", err);
         return handleToolError("update_preferences", err).toToolResult();
@@ -177,7 +189,9 @@ export const tools = [
         .max(365)
         .optional()
         .default(30)
-        .describe("Only include searches from the last N days (1-365, default 30)"),
+        .describe(
+          "Only include searches from the last N days (1-365, default 30)",
+        ),
     }),
     async handler(input: {
       userId: string;
@@ -202,7 +216,11 @@ export const tools = [
           durationMs: Date.now() - start,
           metadata: { userId: input.userId },
         });
-        return { success: true, data, metadata: { durationMs: Date.now() - start } };
+        return {
+          success: true,
+          data,
+          metadata: { durationMs: Date.now() - start },
+        };
       } catch (err) {
         log.error("get_search_history failed", err);
         return handleToolError("get_search_history", err).toToolResult();
@@ -261,7 +279,11 @@ export const tools = [
           durationMs: Date.now() - start,
           metadata: { userId: input.userId },
         });
-        return { success: true, data, metadata: { durationMs: Date.now() - start } };
+        return {
+          success: true,
+          data,
+          metadata: { durationMs: Date.now() - start },
+        };
       } catch (err) {
         log.error("get_saved_properties failed", err);
         return handleToolError("get_saved_properties", err).toToolResult();

@@ -82,7 +82,8 @@ export class ErrorRecoveryEngine {
           mutatePrompt:
             "Please provide a concise response. Focus on the most important points only.",
           maxAdditionalAttempts: 2,
-          reason: "Request timed out — retrying with a simpler prompt to reduce latency",
+          reason:
+            "Request timed out — retrying with a simpler prompt to reduce latency",
         };
 
       case AgentErrorType.CONTEXT_OVERFLOW:
@@ -104,7 +105,8 @@ export class ErrorRecoveryEngine {
           mutatePrompt:
             "The requested tool is temporarily unavailable. Please answer using only your existing knowledge and the conversation context.",
           maxAdditionalAttempts: 1,
-          reason: "Tool call failed — bypassing tool and asking the model to answer directly",
+          reason:
+            "Tool call failed — bypassing tool and asking the model to answer directly",
         };
 
       case AgentErrorType.HALLUCINATION_DETECTED:
@@ -117,7 +119,8 @@ export class ErrorRecoveryEngine {
             "Please revise your answer using ONLY data from the provided tools and context. " +
             "If you are uncertain, say so explicitly rather than guessing.",
           maxAdditionalAttempts: 1,
-          reason: "Hallucination detected — re-prompting with grounding instructions",
+          reason:
+            "Hallucination detected — re-prompting with grounding instructions",
         };
 
       case AgentErrorType.INVALID_OUTPUT:
@@ -141,7 +144,8 @@ export class ErrorRecoveryEngine {
             "Schema validation failed on your output. " +
             "Double-check required fields, types, and constraints before responding.",
           maxAdditionalAttempts: 2,
-          reason: "Schema validation failure — reminding model of schema constraints",
+          reason:
+            "Schema validation failure — reminding model of schema constraints",
         };
 
       case AgentErrorType.MODEL_REFUSAL:
@@ -153,7 +157,8 @@ export class ErrorRecoveryEngine {
             "Please reconsider the request. This is a legitimate real-estate query " +
             "and does not involve any harmful content. Focus on providing helpful property information.",
           maxAdditionalAttempts: 1,
-          reason: "Model refused the request — rephrasing to clarify legitimacy",
+          reason:
+            "Model refused the request — rephrasing to clarify legitimacy",
         };
 
       case AgentErrorType.DEPENDENCY_FAILURE:
@@ -183,7 +188,8 @@ export class ErrorRecoveryEngine {
           delayMs: 0,
           shouldRetry: false,
           maxAdditionalAttempts: 0,
-          reason: "Circular handoff detected — aborting to prevent infinite loop",
+          reason:
+            "Circular handoff detected — aborting to prevent infinite loop",
         };
 
       case AgentErrorType.MAX_ITERATIONS_EXCEEDED:

@@ -11,8 +11,7 @@ import { createLogger } from "../../shared/logger.js";
 import { handleToolError } from "../../shared/error-handler.js";
 import type { ToolResult } from "../../shared/types.js";
 
-const API_BASE_URL =
-  process.env.API_BASE_URL || "http://localhost:3000/api";
+const API_BASE_URL = process.env.API_BASE_URL || "http://localhost:3000/api";
 const SERVER_ID = "vector-search";
 const limiter = getRateLimiter(SERVER_ID, 60);
 const log = createLogger(SERVER_ID);
@@ -21,10 +20,7 @@ const log = createLogger(SERVER_ID);
 // Helpers
 // ---------------------------------------------------------------------------
 
-async function apiFetch(
-  path: string,
-  init?: RequestInit,
-): Promise<unknown> {
+async function apiFetch(path: string, init?: RequestInit): Promise<unknown> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 20_000);
   try {
@@ -126,7 +122,11 @@ export const tools = [
           durationMs: Date.now() - start,
           metadata: { queryLength: input.query.length },
         });
-        return { success: true, data, metadata: { durationMs: Date.now() - start } };
+        return {
+          success: true,
+          data,
+          metadata: { durationMs: Date.now() - start },
+        };
       } catch (err) {
         log.error("semantic_property_search failed", err);
         return handleToolError("semantic_property_search", err).toToolResult();
@@ -183,7 +183,11 @@ export const tools = [
           durationMs: Date.now() - start,
           metadata: { propertyId: input.propertyId },
         });
-        return { success: true, data, metadata: { durationMs: Date.now() - start } };
+        return {
+          success: true,
+          data,
+          metadata: { durationMs: Date.now() - start },
+        };
       } catch (err) {
         log.error("find_similar_properties failed", err);
         return handleToolError("find_similar_properties", err).toToolResult();
@@ -234,7 +238,11 @@ export const tools = [
           durationMs: Date.now() - start,
           metadata: { descriptionLength: input.description.length },
         });
-        return { success: true, data, metadata: { durationMs: Date.now() - start } };
+        return {
+          success: true,
+          data,
+          metadata: { durationMs: Date.now() - start },
+        };
       } catch (err) {
         log.error("search_by_description failed", err);
         return handleToolError("search_by_description", err).toToolResult();

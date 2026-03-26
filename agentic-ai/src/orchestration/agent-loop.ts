@@ -35,13 +35,27 @@ export interface AgentLoopConfig {
 export interface LLMClient {
   chat(params: {
     model: string;
-    messages: Array<{ role: string; content: string; name?: string; tool_call_id?: string }>;
-    tools?: Array<{ name: string; description: string; input_schema: Record<string, unknown> }>;
+    messages: Array<{
+      role: string;
+      content: string;
+      name?: string;
+      tool_call_id?: string;
+    }>;
+    tools?: Array<{
+      name: string;
+      description: string;
+      input_schema: Record<string, unknown>;
+    }>;
   }): Promise<{
     stop_reason: "end_turn" | "tool_use" | "max_tokens";
     content: Array<
       | { type: "text"; text: string }
-      | { type: "tool_use"; id: string; name: string; input: Record<string, unknown> }
+      | {
+          type: "tool_use";
+          id: string;
+          name: string;
+          input: Record<string, unknown>;
+        }
     >;
     usage: { input_tokens: number; output_tokens: number };
   }>;
@@ -69,13 +83,25 @@ function estimateTokens(text: string): number {
   return Math.ceil(text.length / 4);
 }
 
-function totalTokens(messages: Array<{ role: string; content: string }>): number {
+function totalTokens(
+  messages: Array<{ role: string; content: string }>,
+): number {
   return messages.reduce((sum, m) => sum + estimateTokens(m.content), 0);
 }
 
 function compactMessages(
-  messages: Array<{ role: string; content: string; name?: string; tool_call_id?: string }>,
-): Array<{ role: string; content: string; name?: string; tool_call_id?: string }> {
+  messages: Array<{
+    role: string;
+    content: string;
+    name?: string;
+    tool_call_id?: string;
+  }>,
+): Array<{
+  role: string;
+  content: string;
+  name?: string;
+  tool_call_id?: string;
+}> {
   if (messages.length <= 6) return messages;
 
   const first2 = messages.slice(0, 2);
@@ -85,7 +111,8 @@ function compactMessages(
   const summaryParts: string[] = [];
   for (const m of middle) {
     const prefix = m.name ? `${m.role}(${m.name})` : m.role;
-    const snippet = m.content.length > 200 ? m.content.slice(0, 200) + "..." : m.content;
+    const snippet =
+      m.content.length > 200 ? m.content.slice(0, 200) + "..." : m.content;
     summaryParts.push(`[${prefix}]: ${snippet}`);
   }
 
@@ -98,17 +125,33 @@ function compactMessages(
 }
 
 function classifyError(err: unknown): AgentErrorType {
-  const msg = err instanceof Error ? err.message.toLowerCase() : String(err).toLowerCase();
+  const msg =
+    err instanceof Error
+      ? err.message.toLowerCase()
+      : String(err).toLowerCase();
   if (msg.includes("rate") || msg.includes("429") || msg.includes("throttl")) {
     return AgentErrorType.RATE_LIMITED;
   }
-  if (msg.includes("timeout") || msg.includes("timed out") || msg.includes("deadline")) {
+  if (
+    msg.includes("timeout") ||
+    msg.includes("timed out") ||
+    msg.includes("deadline")
+  ) {
     return AgentErrorType.TIMEOUT;
   }
-  if (msg.includes("context") && (msg.includes("length") || msg.includes("overflow") || msg.includes("too long"))) {
+  if (
+    msg.includes("context") &&
+    (msg.includes("length") ||
+      msg.includes("overflow") ||
+      msg.includes("too long"))
+  ) {
     return AgentErrorType.CONTEXT_OVERFLOW;
   }
-  if (msg.includes("refus") || msg.includes("cannot") || msg.includes("i'm sorry")) {
+  if (
+    msg.includes("refus") ||
+    msg.includes("cannot") ||
+    msg.includes("i'm sorry")
+  ) {
     return AgentErrorType.MODEL_REFUSAL;
   }
   if (msg.includes("tool") || msg.includes("function")) {
@@ -157,7 +200,12 @@ export async function runAgentLoop(
   );
 
   // Build message array from conversation history
-  let messages: Array<{ role: string; content: string; name?: string; tool_call_id?: string }> = [
+  let messages: Array<{
+    role: string;
+    content: string;
+    name?: string;
+    tool_call_id?: string;
+  }> = [
     { role: "system", content: config.systemPrompt },
     ...initialMessages.map((m) => ({
       role: m.role,
@@ -214,7 +262,10 @@ export async function runAgentLoop(
     }
 
     // Safety: cost check
-    if (config.budgetLimitUsd !== undefined && totalCostUsd > config.budgetLimitUsd) {
+    if (
+      config.budgetLimitUsd !== undefined &&
+      totalCostUsd > config.budgetLimitUsd
+    ) {
       return makeResult({
         success: false,
         error: new AgentError({
@@ -273,8 +324,14 @@ export async function runAgentLoop(
       (b): b is { type: "text"; text: string } => b.type === "text",
     );
     const toolUseBlocks = response.content.filter(
-      (b): b is { type: "tool_use"; id: string; name: string; input: Record<string, unknown> } =>
-        b.type === "tool_use",
+      (
+        b,
+      ): b is {
+        type: "tool_use";
+        id: string;
+        name: string;
+        input: Record<string, unknown>;
+      } => b.type === "tool_use",
     );
 
     // If no tool use, we have our final answer
@@ -308,9 +365,10 @@ export async function runAgentLoop(
           id: block.id,
           name: block.name,
           success: true,
-          output: typeof result.output === "string"
-            ? result.output
-            : JSON.stringify(result.output),
+          output:
+            typeof result.output === "string"
+              ? result.output
+              : JSON.stringify(result.output),
         };
       } catch (err) {
         const errMsg = err instanceof Error ? err.message : String(err);
@@ -322,7 +380,12 @@ export async function runAgentLoop(
           timestamp: callStart,
         };
         toolCalls.push(record);
-        return { id: block.id, name: block.name, success: false, output: `Error: ${errMsg}` };
+        return {
+          id: block.id,
+          name: block.name,
+          success: false,
+          output: `Error: ${errMsg}`,
+        };
       }
     });
 

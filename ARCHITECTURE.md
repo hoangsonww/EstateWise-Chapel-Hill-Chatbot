@@ -371,6 +371,8 @@ sequenceDiagram
 flowchart LR
   subgraph "Chat Processing"
     Input[User Message]
+    EditCheck{Edit?}
+    Truncate[Truncate History at editIndex]
     Decision[Decision Agent]
     RAG{Use RAG?}
     Pinecone[Query Pinecone]
@@ -381,7 +383,10 @@ flowchart LR
     AutoName[Auto-Name Conversation]
   end
 
-  Input --> Decision
+  Input --> EditCheck
+  EditCheck -->|Yes| Truncate
+  EditCheck -->|No| Decision
+  Truncate --> Decision
   Decision --> RAG
   RAG -->|Yes| Pinecone
   RAG -->|No| MoE
@@ -400,6 +405,38 @@ Expert models include:
 - **Cluster Analyst**: Property grouping, similarities
 
 **Auto-Generated Titles**: For authenticated users, the first message in a new conversation automatically triggers AI-powered title generation (3-6 words) via Gemini API, replacing "New Conversation" within seconds.
+
+#### Message Editing & Conversation Branching
+
+Users can edit any previously sent message to branch the conversation from that point. The system uses implicit linear branching via history truncation rather than maintaining an explicit tree data structure.
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant FE as Frontend (chat.tsx)
+    participant BE as Backend (chat.controller)
+    participant DB as MongoDB
+
+    U->>FE: Click pencil icon on message at index N
+    FE->>FE: Show inline edit textarea
+    U->>FE: Submit edited text
+    FE->>FE: Truncate local messages to [0..N-1]
+    FE->>FE: Append edited message at index N
+    FE->>FE: Clean up ratings for discarded messages
+    FE->>BE: POST /api/chat?stream=true {message, convoId, editIndex: N}
+    BE->>DB: Truncate conversation.messages to [0..N-1]
+    BE->>DB: Append new user message
+    BE->>BE: Run MoE pipeline with truncated history + new message
+    BE-->>FE: SSE stream (tokens, expertViews, done)
+    BE->>DB: Save final model response
+    FE->>FE: Render streamed response in new branch
+```
+
+**How it works:**
+- The `editIndex` body parameter tells the backend to slice `conversation.messages` at that index, discarding all subsequent messages.
+- The edited user message is appended, and the MoE pipeline generates a fresh response using the truncated history as context.
+- For guest users, the truncated history is sent directly in the request payload (no server-side persistence).
+- The original conversation path beyond the edit point is replaced — this is a destructive branch operation.
 
 ### Property Service
 

@@ -81,7 +81,9 @@ export class CostTracker {
   getDailyCost(dateStr?: string): number {
     const target = dateStr ?? new Date().toISOString().slice(0, 10);
     return this.entries
-      .filter((e) => new Date(e.timestamp).toISOString().slice(0, 10) === target)
+      .filter(
+        (e) => new Date(e.timestamp).toISOString().slice(0, 10) === target,
+      )
       .reduce((sum, e) => sum + e.costUsd, 0);
   }
 

@@ -11,15 +11,14 @@ export const RecommendationItemSchema = z.object({
   address: z
     .string()
     .describe("Full street address of the recommended property."),
-  price: z
-    .number()
-    .min(0)
-    .describe("Listing price in dollars."),
+  price: z.number().min(0).describe("Listing price in dollars."),
   matchScore: z
     .number()
     .min(0)
     .max(100)
-    .describe("How well this property matches the user's preference profile (0-100)."),
+    .describe(
+      "How well this property matches the user's preference profile (0-100).",
+    ),
   matchType: z
     .enum(["safe_match", "exploration"])
     .describe(
@@ -31,14 +30,18 @@ export const RecommendationItemSchema = z.object({
         .string()
         .describe("A specific positive reason this property was recommended."),
     )
-    .describe("Array of positive match factors explaining why this property is a good fit."),
+    .describe(
+      "Array of positive match factors explaining why this property is a good fit.",
+    ),
   concerns: z
     .array(
       z
         .string()
         .describe("A potential concern or deviation from stated preferences."),
     )
-    .describe("Array of potential concerns or ways this property deviates from preferences."),
+    .describe(
+      "Array of potential concerns or ways this property deviates from preferences.",
+    ),
 });
 
 export const RecommendationSchema = z

@@ -49,6 +49,7 @@ import {
   TooltipContent,
 } from "@/components/ui/tooltip";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
@@ -1852,6 +1853,10 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   /* per-message rating state */
   const [ratings, setRatings] = useState<Record<number, "up" | "down">>({});
 
+  /* message editing state */
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [editText, setEditText] = useState("");
+
   const marqueeRowOne = [
     "Find a 3 bedroom in Chapel Hill under $750k within 15 minutes of UNC campus.",
     "Compare Carrboro vs. Southern Village for walkability, trails, and coffee shops.",
@@ -1920,6 +1925,8 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
         skipGuestUpsertRef.current = true;
       }
       setRatings({}); // clear ratings when switching convo
+      setEditingIndex(null);
+      setEditText("");
       setTimeout(() => setConvLoading(false), 250);
     }
   }, [selectedConvoId, localConvos]);
@@ -2492,6 +2499,248 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   };
 
   /**
+   * Handle sending an edited message — truncates conversation and resends.
+   */
+  const handleEditSend = async (index: number, newText: string) => {
+    if (!newText.trim() || loading) return;
+    setEditingIndex(null);
+    setEditText("");
+    setLoading(true);
+    shouldAutoScroll.current = true;
+
+    // Truncate local messages to the edit point
+    const truncated = messages.slice(0, index);
+    setMessages([...truncated, { role: "user", text: newText }]);
+
+    // Clear ratings for removed messages
+    const newRatings: Record<number, "up" | "down"> = {};
+    Object.entries(ratings).forEach(([k, v]) => {
+      const ki = Number(k);
+      if (ki < index) newRatings[ki] = v;
+    });
+    setRatings(newRatings);
+
+    const currentConvoId = selectedConvoId || "pending";
+    setLoadingConversations((prev) => {
+      const next = new Set(prev);
+      next.add(currentConvoId);
+      return next;
+    });
+
+    // Add placeholder for streaming AI response
+    const streamingMessageIndex = index + 1;
+    setMessages((m) => [...m, { role: "model", text: "" }]);
+
+    let retryCount = 0;
+    const MAX_RETRIES = 3;
+    let streamedText = "";
+    let receivedExpertViews: Record<string, string> = {};
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let receivedWeights: any = null;
+    let receivedConvoId: string | null = null;
+    let hasTimedOut = false;
+
+    const attemptEditStream = async (): Promise<boolean> => {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const body: any = { message: newText };
+        if (isAuthed) {
+          body.convoId = selectedConvoId;
+          body.editIndex = index;
+        } else {
+          const MAX_PAYLOAD_SIZE = 102_400;
+          body.history = [...truncated, { role: "user", text: newText }];
+          body.expertWeights = guestWeights;
+
+          let serialized = JSON.stringify(body);
+          while (
+            serialized.length > MAX_PAYLOAD_SIZE &&
+            body.history.length > 1
+          ) {
+            body.history.shift();
+            serialized = JSON.stringify(body);
+          }
+        }
+
+        const res = await fetch(`${API_BASE_URL}/api/chat?stream=true`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(isAuthed
+              ? { Authorization: `Bearer ${Cookies.get("estatewise_token")}` }
+              : {}),
+          },
+          body: JSON.stringify(body),
+        });
+
+        if (!res.ok) throw new Error("Stream request failed");
+
+        const reader = res.body?.getReader();
+        if (!reader) throw new Error("No reader available");
+
+        const decoder = new TextDecoder();
+        let buffer = "";
+        let currentEventType = "";
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() || "";
+
+          for (const line of lines) {
+            if (!line.trim() || line.startsWith(":")) continue;
+
+            if (line.startsWith("event: ")) {
+              currentEventType = line.slice(7).trim();
+              continue;
+            }
+
+            if (line.startsWith("data: ")) {
+              const data = line.slice(6);
+              try {
+                const parsed = JSON.parse(data);
+
+                if (parsed.token) {
+                  streamedText += parsed.token;
+                  setMessages((m) => {
+                    const updated = [...m];
+                    updated[streamingMessageIndex] = {
+                      role: "model",
+                      text: streamedText,
+                      expertViews: receivedExpertViews,
+                    };
+                    return updated;
+                  });
+                } else if (parsed.expertViews) {
+                  receivedExpertViews = parsed.expertViews;
+                  setMessages((m) => {
+                    const updated = [...m];
+                    updated[streamingMessageIndex] = {
+                      role: "model",
+                      text: streamedText,
+                      expertViews: parsed.expertViews,
+                    };
+                    return updated;
+                  });
+                } else if (parsed.expertWeights) {
+                  receivedWeights = parsed.expertWeights;
+                } else if (parsed.convoId) {
+                  receivedConvoId = parsed.convoId;
+                } else if (
+                  currentEventType === "timeout" ||
+                  (parsed.message && parsed.message.includes("timeout"))
+                ) {
+                  hasTimedOut = true;
+                  if (!streamedText.includes("\u26A0\uFE0F")) {
+                    const timeoutNote =
+                      "\n\n---\n\n\u26A0\uFE0F **Note:** This response was cut off due to cloud infrastructure timeout limits (60 seconds). The partial response has been saved. Please try rephrasing or breaking down your request into smaller parts.";
+                    streamedText += timeoutNote;
+                    setMessages((m) => {
+                      const updated = [...m];
+                      updated[streamingMessageIndex] = {
+                        role: "model",
+                        text: streamedText,
+                        expertViews: receivedExpertViews,
+                      };
+                      return updated;
+                    });
+                  }
+                  toast.error(
+                    "Response timed out due to cloud infrastructure limits",
+                    { duration: 5000 },
+                  );
+                } else if (parsed.error) {
+                  throw new Error(parsed.error);
+                }
+                currentEventType = "";
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              } catch (e: any) {
+                if (
+                  e?.message &&
+                  e.message !== "Unexpected end of JSON input"
+                ) {
+                  throw e;
+                }
+              }
+            }
+          }
+        }
+
+        if (!isAuthed && receivedWeights) {
+          setGuestWeights(receivedWeights);
+          localStorage.setItem(
+            "estateWiseGuestWeights",
+            JSON.stringify(receivedWeights),
+          );
+        }
+
+        if (isAuthed && (receivedConvoId || selectedConvoId)) {
+          const r = await fetch(`${API_BASE_URL}/api/conversations`, {
+            headers: {
+              Authorization: `Bearer ${Cookies.get("estatewise_token")}`,
+            },
+          });
+          if (r.ok) setLocalConvos(await r.json());
+        }
+
+        return true;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } catch (error: any) {
+        console.error(`Edit stream attempt ${retryCount + 1} failed:`, error);
+        const errorMsg = error?.message || "";
+        const isRateLimit =
+          errorMsg.includes("rate limit") || errorMsg.includes("Rate limit");
+        const isApiError =
+          errorMsg.includes("Google AI") ||
+          errorMsg.includes("property database");
+
+        if (isRateLimit || isApiError) {
+          toast.error(errorMsg);
+          return false;
+        }
+
+        if (retryCount < MAX_RETRIES - 1) {
+          retryCount++;
+          toast.error(
+            `Connection lost. Retrying (${retryCount}/${MAX_RETRIES})...`,
+          );
+          await new Promise((resolve) =>
+            setTimeout(resolve, 1000 * retryCount),
+          );
+          return attemptEditStream();
+        }
+        return false;
+      }
+    };
+
+    try {
+      const success = await attemptEditStream();
+      if (!success) {
+        setMessages((m) => m.slice(0, -1));
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+      console.error("Error sending edited message:", error);
+      toast.error(
+        error?.message || "Error processing your message. Please try again.",
+      );
+      setMessages((m) => m.slice(0, -1));
+    } finally {
+      setLoading(false);
+      setLoadingConversations((prev) => {
+        const next = new Set(prev);
+        next.delete(currentConvoId);
+        if (receivedConvoId) next.delete(receivedConvoId);
+        next.delete("pending");
+        return next;
+      });
+    }
+  };
+
+  /**
    * Rate a specific model message.
    */
   const rateConversation = async (vote: "up" | "down", idx: number) => {
@@ -2569,6 +2818,18 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
     const [pickerOpen, setPickerOpen] = useState<boolean>(false);
     const pickerRef = useRef<HTMLDivElement>(null);
     const [copied, setCopied] = useState(false);
+    const editTextareaRef = useRef<HTMLTextAreaElement>(null);
+
+    const isEditing = editingIndex === idx;
+
+    // Auto-focus and auto-resize textarea when entering edit mode
+    useEffect(() => {
+      if (isEditing && editTextareaRef.current) {
+        editTextareaRef.current.focus();
+        editTextareaRef.current.style.height = "auto";
+        editTextareaRef.current.style.height = `${editTextareaRef.current.scrollHeight}px`;
+      }
+    }, [isEditing]);
 
     // scroll the dropdown into view when opened
     useEffect(() => {
@@ -2620,14 +2881,35 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
     // Determine if this is actively streaming (last message, is model, and loading)
     const isStreaming = isLast && msg.role === "model" && loading && !msg.text;
 
+    // Can this user message be edited?
+    const canEdit = msg.role === "user" && !loading && !isStreaming;
+
     return (
       <motion.div
         ref={isLast ? latestMessageRef : undefined}
         variants={bubbleVariants}
         animate="visible"
         exit={{ opacity: 0, y: -10 }}
-        className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"} mb-2`}
+        className={`group flex ${msg.role === "user" ? "justify-end" : "justify-start"} mb-2`}
       >
+        {/* Edit button — appears to the left of user bubbles on hover */}
+        {canEdit && !isEditing && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => {
+                  setEditingIndex(idx);
+                  setEditText(msg.text);
+                }}
+                className="self-center mr-1 p-1 rounded-md hover:bg-muted cursor-pointer text-muted-foreground hover:text-foreground"
+                aria-label="Edit message"
+              >
+                <Pencil className="w-3.5 h-3.5" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>Edit message</TooltipContent>
+          </Tooltip>
+        )}
         <div
           className={`rounded-lg p-2 pb-0 shadow-lg hover:shadow-xl transition-shadow duration-300 ${
             msg.role === "user"
@@ -2635,7 +2917,52 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
               : "bg-muted"
           } max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg`}
         >
-          {isStreaming ? (
+          {isEditing ? (
+            <div className="flex flex-col gap-2 pb-2">
+              <Textarea
+                ref={editTextareaRef}
+                value={editText}
+                onChange={(e) => {
+                  setEditText(e.target.value);
+                  e.target.style.height = "auto";
+                  e.target.style.height = `${e.target.scrollHeight}px`;
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    handleEditSend(idx, editText);
+                  }
+                  if (e.key === "Escape") {
+                    setEditingIndex(null);
+                    setEditText("");
+                  }
+                }}
+                className="min-h-[40px] resize-none bg-background text-foreground rounded-md text-sm"
+                rows={1}
+              />
+              <div className="flex justify-end gap-1.5">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setEditingIndex(null);
+                    setEditText("");
+                  }}
+                  className="h-7 px-2.5 text-xs cursor-pointer"
+                >
+                  <X className="w-3 h-3 mr-1" /> Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => handleEditSend(idx, editText)}
+                  disabled={!editText.trim()}
+                  className="h-7 px-2.5 text-xs cursor-pointer"
+                >
+                  <Send className="w-3 h-3 mr-1" /> Send
+                </Button>
+              </div>
+            </div>
+          ) : isStreaming ? (
             <div className="flex items-center gap-2 p-2 animate-pulse">
               {(() => {
                 const { Icon, spin } = loadingPhases[phaseIdx];

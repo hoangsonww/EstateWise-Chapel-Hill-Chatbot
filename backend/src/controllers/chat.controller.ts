@@ -33,6 +33,7 @@ export const chat = async (req: AuthRequest, res: Response) => {
       convoId,
       history,
       expertWeights: clientWeights = {},
+      editIndex,
     } = req.body;
 
     /* authenticated users */
@@ -62,6 +63,13 @@ export const chat = async (req: AuthRequest, res: Response) => {
             "Cluster Analyst": 1,
           },
         });
+        await conversation.save();
+      }
+
+      /* handle message edit: truncate conversation at editIndex */
+      if (typeof editIndex === "number" && editIndex >= 0) {
+        conversation.messages = conversation.messages.slice(0, editIndex);
+        conversation.markModified("messages");
         await conversation.save();
       }
 
@@ -365,6 +373,7 @@ export const chatStreaming = async (req: AuthRequest, res: Response) => {
       convoId,
       history,
       expertWeights: clientWeights = {},
+      editIndex,
     } = req.body;
 
     // Set up SSE headers
@@ -406,6 +415,13 @@ export const chatStreaming = async (req: AuthRequest, res: Response) => {
             "Cluster Analyst": 1,
           },
         });
+        await conversation.save();
+      }
+
+      /* handle message edit: truncate conversation at editIndex */
+      if (typeof editIndex === "number" && editIndex >= 0) {
+        conversation.messages = conversation.messages.slice(0, editIndex);
+        conversation.markModified("messages");
         await conversation.save();
       }
 

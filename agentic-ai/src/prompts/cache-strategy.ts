@@ -137,9 +137,7 @@ export function estimateCacheSavings(config: PromptLayerConfig): {
           .reduce((a, b) => a + b, 0) / CHARS_PER_TOKEN,
       )
     : 0;
-  const taskTokens = Math.ceil(
-    config.taskInstruction.length / CHARS_PER_TOKEN,
-  );
+  const taskTokens = Math.ceil(config.taskInstruction.length / CHARS_PER_TOKEN);
 
   const cachedTokensEstimate =
     systemTokens + staticTokens + ragTokens + historyTokens;

@@ -1,8 +1,4 @@
-export {
-  Tracer,
-  type TraceSpan,
-  type TraceEvent,
-} from "./tracer.js";
+export { Tracer, type TraceSpan, type TraceEvent } from "./tracer.js";
 
 export {
   MetricsRegistry,

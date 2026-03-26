@@ -12,8 +12,7 @@ import { createLogger } from "../../shared/logger.js";
 import { handleToolError } from "../../shared/error-handler.js";
 import type { ToolResult } from "../../shared/types.js";
 
-const API_BASE_URL =
-  process.env.API_BASE_URL || "http://localhost:3000/api";
+const API_BASE_URL = process.env.API_BASE_URL || "http://localhost:3000/api";
 const SERVER_ID = "graph-query";
 const limiter = getRateLimiter(SERVER_ID, 60);
 const log = createLogger(SERVER_ID);
@@ -22,10 +21,7 @@ const log = createLogger(SERVER_ID);
 // Helpers
 // ---------------------------------------------------------------------------
 
-async function apiFetch(
-  path: string,
-  init?: RequestInit,
-): Promise<unknown> {
+async function apiFetch(path: string, init?: RequestInit): Promise<unknown> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 20_000);
   try {
@@ -127,7 +123,11 @@ export const tools = [
           durationMs: Date.now() - start,
           metadata: { propertyId: input.propertyId },
         });
-        return { success: true, data, metadata: { durationMs: Date.now() - start } };
+        return {
+          success: true,
+          data,
+          metadata: { durationMs: Date.now() - start },
+        };
       } catch (err) {
         log.error("find_related_properties failed", err);
         return handleToolError("find_related_properties", err).toToolResult();
@@ -185,7 +185,11 @@ export const tools = [
           durationMs: Date.now() - start,
           metadata: { neighborhood: input.neighborhood },
         });
-        return { success: true, data, metadata: { durationMs: Date.now() - start } };
+        return {
+          success: true,
+          data,
+          metadata: { durationMs: Date.now() - start },
+        };
       } catch (err) {
         log.error("neighborhood_profile failed", err);
         return handleToolError("neighborhood_profile", err).toToolResult();
@@ -225,7 +229,8 @@ export const tools = [
         const params = new URLSearchParams();
         if (input.zipCode) params.set("zipCode", input.zipCode);
         if (input.propertyId) params.set("propertyId", input.propertyId);
-        if (input.includeRatings !== false) params.set("includeRatings", "true");
+        if (input.includeRatings !== false)
+          params.set("includeRatings", "true");
         const data = await apiFetch(`/graph/schools?${params.toString()}`);
         log.audit({
           action: "school_district_info",
@@ -233,7 +238,11 @@ export const tools = [
           success: true,
           durationMs: Date.now() - start,
         });
-        return { success: true, data, metadata: { durationMs: Date.now() - start } };
+        return {
+          success: true,
+          data,
+          metadata: { durationMs: Date.now() - start },
+        };
       } catch (err) {
         log.error("school_district_info failed", err);
         return handleToolError("school_district_info", err).toToolResult();
@@ -266,9 +275,7 @@ export const tools = [
         )
         .min(1)
         .default(["driving", "transit"])
-        .describe(
-          "Transportation modes to calculate. At least one required.",
-        ),
+        .describe("Transportation modes to calculate. At least one required."),
       departureTime: z
         .string()
         .optional()
@@ -304,7 +311,11 @@ export const tools = [
           durationMs: Date.now() - start,
           metadata: { modes: input.modes },
         });
-        return { success: true, data, metadata: { durationMs: Date.now() - start } };
+        return {
+          success: true,
+          data,
+          metadata: { durationMs: Date.now() - start },
+        };
       } catch (err) {
         log.error("commute_analysis failed", err);
         return handleToolError("commute_analysis", err).toToolResult();

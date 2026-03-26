@@ -7,7 +7,15 @@
   "goal": "Write integration tests and cross-cutting wiring: orchestration-MCP, context-runtime, E2E smoke tests",
   "context": {
     "branch": "main",
-    "beads": ["CROSS-001", "CROSS-002", "TEST-001", "TEST-002", "TEST-003", "TEST-004", "TEST-005"],
+    "beads": [
+      "CROSS-001",
+      "CROSS-002",
+      "TEST-001",
+      "TEST-002",
+      "TEST-003",
+      "TEST-004",
+      "TEST-005"
+    ],
     "filesModified": [
       "agentic-ai/src/mcp/ToolClient.ts",
       "agentic-ai/src/orchestration/agent-loop.ts",
@@ -28,7 +36,11 @@
       "mcp/src/server.ts",
       ".beads/.status.json"
     ],
-    "reservations": ["agentic-ai/tests/**", "agentic-ai/src/mcp/**", "agentic-ai/src/orchestration/agent-loop.ts"],
+    "reservations": [
+      "agentic-ai/tests/**",
+      "agentic-ai/src/mcp/**",
+      "agentic-ai/src/orchestration/agent-loop.ts"
+    ],
     "dependencies": {
       "upstream": ["ORCH-008", "CTX-007", "PRMT-008", "MCP-003"],
       "downstream": []
@@ -102,7 +114,10 @@
       "timestamp": "2026-03-25T15:35:00Z",
       "action": "commit",
       "detail": "Wire orchestration-MCP integration and context engine into agent runtime loop",
-      "artifacts": ["agentic-ai/src/mcp/ToolClient.ts", "agentic-ai/src/orchestration/agent-loop.ts"],
+      "artifacts": [
+        "agentic-ai/src/mcp/ToolClient.ts",
+        "agentic-ai/src/orchestration/agent-loop.ts"
+      ],
       "beadId": "CROSS-002",
       "commitSha": "a1b2c3d"
     },

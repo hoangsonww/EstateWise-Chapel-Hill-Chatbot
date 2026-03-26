@@ -7,7 +7,15 @@
   "goal": "Build context management engine: token budget, cache, conversation store, strategies, RAG pipeline",
   "context": {
     "branch": "main",
-    "beads": ["CTX-001", "CTX-002", "CTX-003", "CTX-004", "CTX-005", "CTX-006", "CTX-007"],
+    "beads": [
+      "CTX-001",
+      "CTX-002",
+      "CTX-003",
+      "CTX-004",
+      "CTX-005",
+      "CTX-006",
+      "CTX-007"
+    ],
     "filesModified": [
       "agentic-ai/src/context/token-budget.ts",
       "agentic-ai/src/context/cache.ts",
@@ -63,7 +71,10 @@
       "timestamp": "2026-03-25T09:00:00Z",
       "action": "read",
       "detail": "Read orchestration types and agent registry to understand agent config shapes and tool budgets",
-      "artifacts": ["agentic-ai/src/orchestration/types.ts", "agentic-ai/src/orchestration/agent-registry.ts"]
+      "artifacts": [
+        "agentic-ai/src/orchestration/types.ts",
+        "agentic-ai/src/orchestration/agent-registry.ts"
+      ]
     },
     {
       "timestamp": "2026-03-25T09:05:00Z",
@@ -151,7 +162,11 @@
       "timestamp": "2026-03-25T12:05:00Z",
       "action": "commit",
       "detail": "Add conversation store, coherence manager, and 6 context strategies",
-      "artifacts": ["agentic-ai/src/context/conversation-store.ts", "agentic-ai/src/context/coherence-manager.ts", "agentic-ai/src/context/strategies.ts"],
+      "artifacts": [
+        "agentic-ai/src/context/conversation-store.ts",
+        "agentic-ai/src/context/coherence-manager.ts",
+        "agentic-ai/src/context/strategies.ts"
+      ],
       "beadId": "CTX-005",
       "commitSha": "b7c8d9e"
     },

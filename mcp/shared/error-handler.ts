@@ -75,8 +75,7 @@ export class McpToolError extends Error {
  * @param err       The caught error (unknown type).
  */
 export function handleToolError(toolName: string, err: unknown): McpToolError {
-  const message =
-    err instanceof Error ? err.message : String(err);
+  const message = err instanceof Error ? err.message : String(err);
 
   // Connection refused (backend down)
   if (message.includes("ECONNREFUSED") || message.includes("ENOTFOUND")) {
@@ -107,7 +106,10 @@ export function handleToolError(toolName: string, err: unknown): McpToolError {
   }
 
   // 401 Unauthorized
-  if (message.includes("401") || message.toLowerCase().includes("unauthorized")) {
+  if (
+    message.includes("401") ||
+    message.toLowerCase().includes("unauthorized")
+  ) {
     return new McpToolError({
       toolName,
       code: "UNAUTHORIZED",

@@ -13,8 +13,7 @@ import { createLogger } from "../../shared/logger.js";
 import { handleToolError } from "../../shared/error-handler.js";
 import type { ToolResult } from "../../shared/types.js";
 
-const API_BASE_URL =
-  process.env.API_BASE_URL || "http://localhost:3000/api";
+const API_BASE_URL = process.env.API_BASE_URL || "http://localhost:3000/api";
 const SERVER_ID = "property-db";
 const limiter = getRateLimiter(SERVER_ID, 120);
 const log = createLogger(SERVER_ID);
@@ -67,7 +66,9 @@ export const tools = [
     description:
       "Search the property database with structured filters. Returns matching listings sorted by the chosen field. At least one filter must be provided.",
     inputSchema: PropertyFilterSchema,
-    async handler(input: z.infer<typeof PropertyFilterSchema>): Promise<ToolResult> {
+    async handler(
+      input: z.infer<typeof PropertyFilterSchema>,
+    ): Promise<ToolResult> {
       const blocked = rateLimitGuard("search_properties");
       if (blocked) return blocked;
       const start = Date.now();
@@ -84,7 +85,11 @@ export const tools = [
           durationMs: Date.now() - start,
           metadata: { filterCount: Object.keys(input).length },
         });
-        return { success: true, data, metadata: { durationMs: Date.now() - start } };
+        return {
+          success: true,
+          data,
+          metadata: { durationMs: Date.now() - start },
+        };
       } catch (err) {
         log.error("search_properties failed", err);
         return handleToolError("search_properties", err).toToolResult();
@@ -103,12 +108,16 @@ export const tools = [
         .boolean()
         .optional()
         .default(false)
-        .describe("When true, include the price history timeline for this property"),
+        .describe(
+          "When true, include the price history timeline for this property",
+        ),
       includeNearby: z
         .boolean()
         .optional()
         .default(false)
-        .describe("When true, include nearby comparable properties within 1 mile"),
+        .describe(
+          "When true, include nearby comparable properties within 1 mile",
+        ),
     }),
     async handler(input: {
       propertyId: string;
@@ -133,7 +142,11 @@ export const tools = [
           durationMs: Date.now() - start,
           metadata: { propertyId: input.propertyId },
         });
-        return { success: true, data, metadata: { durationMs: Date.now() - start } };
+        return {
+          success: true,
+          data,
+          metadata: { durationMs: Date.now() - start },
+        };
       } catch (err) {
         log.error("get_property_details failed", err);
         return handleToolError("get_property_details", err).toToolResult();
@@ -169,7 +182,11 @@ export const tools = [
           durationMs: Date.now() - start,
           metadata: { count: input.propertyIds.length },
         });
-        return { success: true, data, metadata: { durationMs: Date.now() - start } };
+        return {
+          success: true,
+          data,
+          metadata: { durationMs: Date.now() - start },
+        };
       } catch (err) {
         log.error("compare_properties failed", err);
         return handleToolError("compare_properties", err).toToolResult();
@@ -227,7 +244,11 @@ export const tools = [
           success: true,
           durationMs: Date.now() - start,
         });
-        return { success: true, data, metadata: { durationMs: Date.now() - start } };
+        return {
+          success: true,
+          data,
+          metadata: { durationMs: Date.now() - start },
+        };
       } catch (err) {
         log.error("get_recent_listings failed", err);
         return handleToolError("get_recent_listings", err).toToolResult();
@@ -270,7 +291,11 @@ export const tools = [
           durationMs: Date.now() - start,
           metadata: { propertyId: input.propertyId },
         });
-        return { success: true, data, metadata: { durationMs: Date.now() - start } };
+        return {
+          success: true,
+          data,
+          metadata: { durationMs: Date.now() - start },
+        };
       } catch (err) {
         log.error("get_price_history failed", err);
         return handleToolError("get_price_history", err).toToolResult();

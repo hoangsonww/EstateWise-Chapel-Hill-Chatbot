@@ -3,13 +3,49 @@
   "version": "1.0.0",
   "description": "EstateWise agentic orchestration plugin",
   "mcpServers": {
-    "property-db": { "command": "npx", "args": ["tsx", "mcp/servers/property-db/index.ts"], "env": { "API_BASE_URL": "${API_BASE_URL:-http://localhost:3000}" } },
-    "vector-search": { "command": "npx", "args": ["tsx", "mcp/servers/vector-search/index.ts"], "env": { "API_BASE_URL": "${API_BASE_URL:-http://localhost:3000}", "PINECONE_API_KEY": "${PINECONE_API_KEY}" } },
-    "graph-query": { "command": "npx", "args": ["tsx", "mcp/servers/graph-query/index.ts"], "env": { "API_BASE_URL": "${API_BASE_URL:-http://localhost:3000}", "NEO4J_URI": "${NEO4J_URI}" } },
-    "geocoding": { "command": "npx", "args": ["tsx", "mcp/servers/geocoding/index.ts"], "env": { "API_BASE_URL": "${API_BASE_URL:-http://localhost:3000}" } },
-    "market-data": { "command": "npx", "args": ["tsx", "mcp/servers/market-data/index.ts"], "env": { "API_BASE_URL": "${API_BASE_URL:-http://localhost:3000}" } },
-    "user-preferences": { "command": "npx", "args": ["tsx", "mcp/servers/user-preferences/index.ts"], "env": { "API_BASE_URL": "${API_BASE_URL:-http://localhost:3000}" } }
+    "property-db": {
+      "command": "npx",
+      "args": ["tsx", "mcp/servers/property-db/index.ts"],
+      "env": { "API_BASE_URL": "${API_BASE_URL:-http://localhost:3000}" }
+    },
+    "vector-search": {
+      "command": "npx",
+      "args": ["tsx", "mcp/servers/vector-search/index.ts"],
+      "env": {
+        "API_BASE_URL": "${API_BASE_URL:-http://localhost:3000}",
+        "PINECONE_API_KEY": "${PINECONE_API_KEY}"
+      }
+    },
+    "graph-query": {
+      "command": "npx",
+      "args": ["tsx", "mcp/servers/graph-query/index.ts"],
+      "env": {
+        "API_BASE_URL": "${API_BASE_URL:-http://localhost:3000}",
+        "NEO4J_URI": "${NEO4J_URI}"
+      }
+    },
+    "geocoding": {
+      "command": "npx",
+      "args": ["tsx", "mcp/servers/geocoding/index.ts"],
+      "env": { "API_BASE_URL": "${API_BASE_URL:-http://localhost:3000}" }
+    },
+    "market-data": {
+      "command": "npx",
+      "args": ["tsx", "mcp/servers/market-data/index.ts"],
+      "env": { "API_BASE_URL": "${API_BASE_URL:-http://localhost:3000}" }
+    },
+    "user-preferences": {
+      "command": "npx",
+      "args": ["tsx", "mcp/servers/user-preferences/index.ts"],
+      "env": { "API_BASE_URL": "${API_BASE_URL:-http://localhost:3000}" }
+    }
   },
-  "skills": ["run-agent-pipeline", "create-mcp-server", "debug-agent-issue", "add-agent", "compound-review"],
+  "skills": [
+    "run-agent-pipeline",
+    "create-mcp-server",
+    "debug-agent-issue",
+    "add-agent",
+    "compound-review"
+  ],
   "hooks": { "pre-command": ".claude/hooks/pre-command.sh" }
 }

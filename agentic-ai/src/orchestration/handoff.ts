@@ -180,7 +180,9 @@ export class HandoffManager {
 
     const constraintsList =
       payload.constraints.length > 0
-        ? payload.constraints.map((c) => `  <constraint>${c}</constraint>`).join("\n")
+        ? payload.constraints
+            .map((c) => `  <constraint>${c}</constraint>`)
+            .join("\n")
         : "  <constraint>none</constraint>";
 
     const contextEntries = Object.entries(payload.context)
@@ -195,13 +197,13 @@ export class HandoffManager {
   <to>${payload.toAgentId}</to>
   <task>${payload.taskDescription}</task>
   <context>
-${contextEntries || "  <entry key=\"none\">empty</entry>"}
+${contextEntries || '  <entry key="none">empty</entry>'}
   </context>
   <constraints>
 ${constraintsList}
   </constraints>
   <history>
-${historyXml || "  <message role=\"system\">No prior history</message>"}
+${historyXml || '  <message role="system">No prior history</message>'}
   </history>
 </handoff>`;
   }

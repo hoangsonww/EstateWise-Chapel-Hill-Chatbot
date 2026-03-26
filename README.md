@@ -184,6 +184,13 @@ EstateWise is packed with both UI and AI features to enhance your home-finding e
   - **Auto-Generated Conversation Titles**: New conversations automatically receive AI-generated titles (3-6 words) based on the first message, replacing the default "New Conversation" title within seconds.
   - **Guest users** still have their conversation history saved locally in the browser.
 
+- **Message Editing & Conversation Branching:**
+  - Edit any previously sent message by clicking the pencil icon next to it.
+  - Editing a message creates a new conversation branch: the history is truncated at the edit point, the edited message replaces the original, and a fresh AI response is generated from the updated context.
+  - Works for both authenticated users (persisted server-side in MongoDB) and guest users (applied to the local history payload).
+  - Keyboard shortcuts: `Enter` to send the edit, `Escape` to cancel, `Shift+Enter` for a new line.
+  - Ratings for discarded messages are automatically cleaned up when a branch is created.
+
 - **Full‑Text Search:** Quickly search your conversation history for keywords, topics, or specific properties.
 
 - **Rating System & Feedback Loop:** Rate each AI response (thumbs up/down) to adjust expert weights and continuously improve recommendations.
@@ -243,6 +250,7 @@ EstateWise is packed with both UI and AI features to enhance your home-finding e
   - **Streaming AI Responses:** Words appear in real-time as the AI generates them, providing an engaging and responsive user experience.
   - **Automatic Retries:** Built-in retry logic with exponential backoff ensures reliable message delivery even with unstable connections.
   - **Visual Feedback:** Loading indicators, animated cursors, and connection status updates keep users informed throughout the conversation.
+  - **Inline Message Editing:** Click the pencil icon on any sent message to edit it in-place with an auto-resizing textarea, then send to branch the conversation from that point.
 
 - **Responsive, Themeable UI:**
   - Optimized for desktop, tablet, and mobile.
@@ -937,7 +945,7 @@ Infrastructure and deployment scripts for Microsoft Azure live in the [`azure/`]
 ## Usage
 
 - **Authentication:** Create an account, log in, and manage your user profile securely using JWT authentication.
-- **Chat Interface:** Interact with the AI assistant in real time. Authenticated users can save, rename, and delete conversations.
+- **Chat Interface:** Interact with the AI assistant in real time. Authenticated users can save, rename, and delete conversations. Edit any sent message to branch the conversation from that point and get a fresh AI response.
 - **Theme Toggle:** Switch between dark and light modes with smooth background transitions.
 - **Search & Management:** Easily search through your conversation history and manage your saved conversations from the sidebar.
 - **Insights & Tools Page:** Access graph-based tools and mortgage calculators to assist in your property search.
@@ -1091,6 +1099,7 @@ Graph endpoints are available when Neo4j is configured; otherwise they respond w
 
 - **POST** `/api/chat` – Send a chat message and receive an AI-generated response.
   - **Query Parameter:** `?stream=true` – Enable real-time streaming of AI responses using Server-Sent Events (SSE).
+  - **Body Parameter:** `editIndex` (optional) – When provided, truncates the conversation at the given message index before appending the new message, enabling conversation branching from any prior user message.
   - **Streaming Features:**
     - Real-time text generation as the AI model produces tokens
     - Automatic retry mechanism with exponential backoff (up to 3 retries)

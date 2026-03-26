@@ -22,10 +22,7 @@ export const PropertyFilterSchema = z
       .string()
       .optional()
       .describe("Two-letter US state code (e.g. 'NC')"),
-    zipCode: z
-      .string()
-      .optional()
-      .describe("5-digit ZIP code (e.g. '27601')"),
+    zipCode: z.string().optional().describe("5-digit ZIP code (e.g. '27601')"),
     minPrice: z
       .number()
       .min(0)
@@ -79,16 +76,8 @@ export const PropertyFilterSchema = z
       ])
       .optional()
       .describe("Property type category"),
-    yearBuiltMin: z
-      .number()
-      .int()
-      .optional()
-      .describe("Earliest year built"),
-    yearBuiltMax: z
-      .number()
-      .int()
-      .optional()
-      .describe("Latest year built"),
+    yearBuiltMin: z.number().int().optional().describe("Earliest year built"),
+    yearBuiltMax: z.number().int().optional().describe("Latest year built"),
     status: z
       .enum(["active", "pending", "sold", "off-market"])
       .optional()
@@ -137,7 +126,9 @@ export const PropertySchema = z.object({
   zipCode: z.string().describe("5-digit ZIP code"),
   price: z.number().describe("Current listing or last-sale price in USD"),
   bedrooms: z.number().int().describe("Number of bedrooms"),
-  bathrooms: z.number().describe("Number of bathrooms (may include half-baths as .5)"),
+  bathrooms: z
+    .number()
+    .describe("Number of bathrooms (may include half-baths as .5)"),
   squareFeet: z.number().describe("Total interior square footage"),
   lotSize: z.number().optional().describe("Lot size in acres"),
   yearBuilt: z.number().int().describe("Year the structure was built"),
@@ -180,10 +171,15 @@ export const MarketStatsSchema = z.object({
   medianPrice: z.number().describe("Median sale price in USD"),
   averagePrice: z.number().describe("Average sale price in USD"),
   medianPricePerSqFt: z.number().describe("Median price per square foot"),
-  totalListings: z.number().int().describe("Total active listings in the period"),
+  totalListings: z
+    .number()
+    .int()
+    .describe("Total active listings in the period"),
   newListings: z.number().int().describe("New listings added in the period"),
   soldListings: z.number().int().describe("Number of properties sold"),
-  averageDaysOnMarket: z.number().describe("Average days on market before sale"),
+  averageDaysOnMarket: z
+    .number()
+    .describe("Average days on market before sale"),
   inventoryMonths: z
     .number()
     .describe("Months of inventory at current absorption rate"),

@@ -65,61 +65,146 @@ interface IntentPattern {
 const INTENT_PATTERNS: IntentPattern[] = [
   {
     intent: "property-search",
-    keywords: ["find", "search", "look for", "show me", "listing", "available", "homes for sale", "houses"],
+    keywords: [
+      "find",
+      "search",
+      "look for",
+      "show me",
+      "listing",
+      "available",
+      "homes for sale",
+      "houses",
+    ],
     agents: ["property-search"],
     multiStep: false,
   },
   {
     intent: "market-analysis",
-    keywords: ["market", "trend", "forecast", "analysis", "appreciation", "depreciation", "median", "average price"],
+    keywords: [
+      "market",
+      "trend",
+      "forecast",
+      "analysis",
+      "appreciation",
+      "depreciation",
+      "median",
+      "average price",
+    ],
     agents: ["market-analyst", "data-enrichment"],
     multiStep: true,
   },
   {
     intent: "property-comparison",
-    keywords: ["compare", "versus", "vs", "difference", "better", "which one", "side by side"],
+    keywords: [
+      "compare",
+      "versus",
+      "vs",
+      "difference",
+      "better",
+      "which one",
+      "side by side",
+    ],
     agents: ["property-search", "market-analyst"],
     multiStep: true,
   },
   {
     intent: "recommendation",
-    keywords: ["recommend", "suggest", "best", "top", "ideal", "perfect", "should i", "what would you"],
+    keywords: [
+      "recommend",
+      "suggest",
+      "best",
+      "top",
+      "ideal",
+      "perfect",
+      "should i",
+      "what would you",
+    ],
     agents: ["recommendation", "property-search"],
     multiStep: true,
   },
   {
     intent: "financial-analysis",
-    keywords: ["mortgage", "affordability", "afford", "monthly payment", "interest rate", "down payment", "loan", "finance"],
+    keywords: [
+      "mortgage",
+      "affordability",
+      "afford",
+      "monthly payment",
+      "interest rate",
+      "down payment",
+      "loan",
+      "finance",
+    ],
     agents: ["market-analyst", "data-enrichment"],
     multiStep: true,
   },
   {
     intent: "neighborhood-info",
-    keywords: ["neighborhood", "area", "school", "commute", "crime", "walkability", "nearby", "amenities"],
+    keywords: [
+      "neighborhood",
+      "area",
+      "school",
+      "commute",
+      "crime",
+      "walkability",
+      "nearby",
+      "amenities",
+    ],
     agents: ["data-enrichment", "property-search"],
     multiStep: true,
   },
   {
     intent: "property-detail",
-    keywords: ["detail", "about this", "tell me more", "specifics", "features of", "zpid", "property id"],
+    keywords: [
+      "detail",
+      "about this",
+      "tell me more",
+      "specifics",
+      "features of",
+      "zpid",
+      "property id",
+    ],
     agents: ["property-search", "data-enrichment"],
     multiStep: false,
   },
   {
     intent: "greeting",
-    keywords: ["hello", "hi", "hey", "good morning", "good afternoon", "help", "what can you"],
+    keywords: [
+      "hello",
+      "hi",
+      "hey",
+      "good morning",
+      "good afternoon",
+      "help",
+      "what can you",
+    ],
     agents: ["conversation-mgr"],
     multiStep: false,
   },
   {
     intent: "clarification",
-    keywords: ["what do you mean", "clarify", "can you explain", "i don't understand", "huh", "not sure"],
+    keywords: [
+      "what do you mean",
+      "clarify",
+      "can you explain",
+      "i don't understand",
+      "huh",
+      "not sure",
+    ],
     agents: ["conversation-mgr"],
     multiStep: false,
   },
   {
     intent: "follow-up",
-    keywords: ["also", "and", "what about", "how about", "another", "more", "else", "additionally"],
+    keywords: [
+      "also",
+      "and",
+      "what about",
+      "how about",
+      "another",
+      "more",
+      "else",
+      "additionally",
+    ],
     agents: ["conversation-mgr", "property-search"],
     multiStep: false,
   },
@@ -140,7 +225,11 @@ function extractLocations(text: string): string[] {
     let match;
     while ((match = pattern.exec(text)) !== null) {
       const loc = match[1]?.trim();
-      if (loc && loc.length > 1 && !["I", "The", "A", "An", "My", "And", "Or", "But"].includes(loc)) {
+      if (
+        loc &&
+        loc.length > 1 &&
+        !["I", "The", "A", "An", "My", "And", "Or", "But"].includes(loc)
+      ) {
         locations.push(match[2] ? `${loc}, ${match[2]}` : loc);
       }
     }
@@ -152,7 +241,8 @@ function extractLocations(text: string): string[] {
 function extractPrices(text: string): Array<{ min?: number; max?: number }> {
   const prices: Array<{ min?: number; max?: number }> = [];
   // Range: "$X - $Y" or "$X to $Y"
-  const rangePattern = /\$\s?([\d,]+(?:\.\d+)?)\s*(?:[-–]|to)\s*\$\s?([\d,]+(?:\.\d+)?)/gi;
+  const rangePattern =
+    /\$\s?([\d,]+(?:\.\d+)?)\s*(?:[-–]|to)\s*\$\s?([\d,]+(?:\.\d+)?)/gi;
   let match;
   while ((match = rangePattern.exec(text)) !== null) {
     const min = parseFloat(match[1].replace(/,/g, ""));
@@ -162,13 +252,15 @@ function extractPrices(text: string): Array<{ min?: number; max?: number }> {
     }
   }
   // Single: "under $X" / "below $X"
-  const underPattern = /(?:under|below|less than|max|up to)\s*\$\s?([\d,]+(?:\.\d+)?)/gi;
+  const underPattern =
+    /(?:under|below|less than|max|up to)\s*\$\s?([\d,]+(?:\.\d+)?)/gi;
   while ((match = underPattern.exec(text)) !== null) {
     const max = parseFloat(match[1].replace(/,/g, ""));
     if (Number.isFinite(max)) prices.push({ max });
   }
   // Single: "over $X" / "above $X"
-  const overPattern = /(?:over|above|more than|at least|min|minimum)\s*\$\s?([\d,]+(?:\.\d+)?)/gi;
+  const overPattern =
+    /(?:over|above|more than|at least|min|minimum)\s*\$\s?([\d,]+(?:\.\d+)?)/gi;
   while ((match = overPattern.exec(text)) !== null) {
     const min = parseFloat(match[1].replace(/,/g, ""));
     if (Number.isFinite(min)) prices.push({ min });
@@ -208,11 +300,30 @@ function extractFeatures(text: string): string[] {
   const features: string[] = [];
   const lower = text.toLowerCase();
   const featureKeywords = [
-    "pool", "garage", "garden", "basement", "attic", "fireplace",
-    "balcony", "patio", "deck", "waterfront", "view", "renovated",
-    "new construction", "open floor plan", "hardwood", "granite",
-    "stainless", "smart home", "solar", "ev charger", "fence",
-    "walk-in closet", "en suite", "master suite",
+    "pool",
+    "garage",
+    "garden",
+    "basement",
+    "attic",
+    "fireplace",
+    "balcony",
+    "patio",
+    "deck",
+    "waterfront",
+    "view",
+    "renovated",
+    "new construction",
+    "open floor plan",
+    "hardwood",
+    "granite",
+    "stainless",
+    "smart home",
+    "solar",
+    "ev charger",
+    "fence",
+    "walk-in closet",
+    "en suite",
+    "master suite",
   ];
   // Bed/bath patterns
   const bedMatch = lower.match(/(\d+)\s*(?:bed|br|bedroom)/);
@@ -314,8 +425,14 @@ export class Supervisor {
     }
 
     // Confidence: ratio of matched keyword chars to total text length, capped at 0.99
-    const maxPossibleScore = bestIntent.keywords.reduce((s, kw) => s + kw.length, 0);
-    const confidence = Math.min(0.99, maxPossibleScore > 0 ? bestScore / maxPossibleScore : 0.5);
+    const maxPossibleScore = bestIntent.keywords.reduce(
+      (s, kw) => s + kw.length,
+      0,
+    );
+    const confidence = Math.min(
+      0.99,
+      maxPossibleScore > 0 ? bestScore / maxPossibleScore : 0.5,
+    );
 
     return {
       intent: bestIntent.intent,
@@ -335,7 +452,10 @@ export class Supervisor {
   // Planning
   // -----------------------------------------------------------------------
 
-  buildExecutionPlan(intent: ClassifiedIntent, userMessage: string): ExecutionPlan {
+  buildExecutionPlan(
+    intent: ClassifiedIntent,
+    userMessage: string,
+  ): ExecutionPlan {
     const planId = randomUUID();
     const steps: ExecutionStep[] = [];
     const agentIds = intent.suggestedAgents.slice(0, this.config.maxPlanSteps);
@@ -353,8 +473,13 @@ export class Supervisor {
       steps.push({
         stepId,
         agentId,
-        taskDescription: this.buildTaskDescription(agentId, intent, userMessage),
-        dependencies: prevStepId && intent.requiresMultiStep ? [prevStepId] : [],
+        taskDescription: this.buildTaskDescription(
+          agentId,
+          intent,
+          userMessage,
+        ),
+        dependencies:
+          prevStepId && intent.requiresMultiStep ? [prevStepId] : [],
         estimatedCostUsd: estimatedCost,
         estimatedDurationMs: agent.timeoutMs / 2,
         priority: agentIds.length - i, // First agent = highest priority
@@ -384,8 +509,14 @@ export class Supervisor {
       }
     }
 
-    const totalEstimatedCostUsd = steps.reduce((s, step) => s + step.estimatedCostUsd, 0);
-    const totalEstimatedDurationMs = steps.reduce((s, step) => s + step.estimatedDurationMs, 0);
+    const totalEstimatedCostUsd = steps.reduce(
+      (s, step) => s + step.estimatedCostUsd,
+      0,
+    );
+    const totalEstimatedDurationMs = steps.reduce(
+      (s, step) => s + step.estimatedDurationMs,
+      0,
+    );
 
     return {
       planId,
@@ -531,7 +662,9 @@ export class Supervisor {
     for (const [stepId, result] of results) {
       if (result.success && result.data) {
         successes.push(
-          typeof result.data === "string" ? result.data : JSON.stringify(result.data),
+          typeof result.data === "string"
+            ? result.data
+            : JSON.stringify(result.data),
         );
       } else if (result.error) {
         failures.push(`[${result.metadata.agentId}]: ${result.error.message}`);
@@ -569,7 +702,7 @@ export class Supervisor {
   private estimateAgentCost(modelId: ModelId): number {
     const cfg = MODEL_CONFIGS[modelId];
     // Assume average 2000 input + 1000 output tokens per call
-    return ((2000 * cfg.inputCostPer1M + 1000 * cfg.outputCostPer1M) / 1_000_000);
+    return (2000 * cfg.inputCostPer1M + 1000 * cfg.outputCostPer1M) / 1_000_000;
   }
 
   private buildTaskDescription(
@@ -582,23 +715,29 @@ export class Supervisor {
       entitySummary.push(`Locations: ${intent.entities.locations.join(", ")}`);
     }
     if (intent.entities.prices.length > 0) {
-      const priceStrs = intent.entities.prices.map((p) => {
-        if (p.min && p.max) return `$${p.min.toLocaleString()} - $${p.max.toLocaleString()}`;
-        if (p.max) return `up to $${p.max.toLocaleString()}`;
-        if (p.min) return `from $${p.min.toLocaleString()}`;
-        return "";
-      }).filter(Boolean);
+      const priceStrs = intent.entities.prices
+        .map((p) => {
+          if (p.min && p.max)
+            return `$${p.min.toLocaleString()} - $${p.max.toLocaleString()}`;
+          if (p.max) return `up to $${p.max.toLocaleString()}`;
+          if (p.min) return `from $${p.min.toLocaleString()}`;
+          return "";
+        })
+        .filter(Boolean);
       entitySummary.push(`Prices: ${priceStrs.join(", ")}`);
     }
     if (intent.entities.propertyTypes.length > 0) {
-      entitySummary.push(`Property types: ${intent.entities.propertyTypes.join(", ")}`);
+      entitySummary.push(
+        `Property types: ${intent.entities.propertyTypes.join(", ")}`,
+      );
     }
     if (intent.entities.features.length > 0) {
       entitySummary.push(`Features: ${intent.entities.features.join(", ")}`);
     }
-    const entityBlock = entitySummary.length > 0
-      ? `\nExtracted entities:\n${entitySummary.join("\n")}`
-      : "";
+    const entityBlock =
+      entitySummary.length > 0
+        ? `\nExtracted entities:\n${entitySummary.join("\n")}`
+        : "";
 
     switch (agentId) {
       case "property-search":
