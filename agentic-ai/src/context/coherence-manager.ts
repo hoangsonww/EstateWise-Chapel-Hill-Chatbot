@@ -123,7 +123,9 @@ export class CoherenceManager {
       parts.push("  </recent-messages>");
     }
 
-    parts.push(`  <meta turns="${ctx.totalTurns}" estimated-tokens="${ctx.estimatedTokens}" />`);
+    parts.push(
+      `  <meta turns="${ctx.totalTurns}" estimated-tokens="${ctx.estimatedTokens}" />`,
+    );
     parts.push("</coherence-context>");
 
     return parts.join("\n");

@@ -3,7 +3,12 @@
  * optimizations to keep agent runs within budget.
  */
 
-import { BudgetAlertLevel, CostBudget, MODEL_CONFIGS, type ModelId } from "./types.js";
+import {
+  BudgetAlertLevel,
+  CostBudget,
+  MODEL_CONFIGS,
+  type ModelId,
+} from "./types.js";
 
 /** Manages cost budgets across daily and session windows. */
 export class CostBudgetManager {
@@ -85,7 +90,11 @@ export class CostBudgetManager {
   }
 
   /** Return a snapshot of the current budget state. */
-  getBudgetStatus(): CostBudget & { alertLevel: BudgetAlertLevel; dailyRemainingUsd: number; sessionRemainingUsd: number } {
+  getBudgetStatus(): CostBudget & {
+    alertLevel: BudgetAlertLevel;
+    dailyRemainingUsd: number;
+    sessionRemainingUsd: number;
+  } {
     return {
       ...this.budget,
       alertLevel: this.getAlertLevel(),
@@ -106,18 +115,27 @@ export class CostBudgetManager {
     const alert = this.getAlertLevel();
 
     if (alert === "exceeded" || alert === "critical") {
-      suggestions.push("Switch all agents to haiku to minimize remaining spend");
+      suggestions.push(
+        "Switch all agents to haiku to minimize remaining spend",
+      );
       suggestions.push("Reduce max iterations per agent loop to 5");
       suggestions.push("Disable optional quality-review steps");
     } else if (alert === "warning") {
       suggestions.push(
         "Consider downgrading premium agents (opus) to sonnet for non-critical tasks",
       );
-      suggestions.push("Enable aggressive context compaction to reduce input tokens");
+      suggestions.push(
+        "Enable aggressive context compaction to reduce input tokens",
+      );
     }
 
-    if (this.budget.currentSessionSpendUsd > this.budget.sessionLimitUsd * 0.5) {
-      suggestions.push("Session is over 50% spent — batch remaining queries if possible");
+    if (
+      this.budget.currentSessionSpendUsd >
+      this.budget.sessionLimitUsd * 0.5
+    ) {
+      suggestions.push(
+        "Session is over 50% spent — batch remaining queries if possible",
+      );
     }
 
     return suggestions;

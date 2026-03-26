@@ -23,7 +23,14 @@
     "reservations": ["agentic-ai/src/orchestration/*.ts"],
     "dependencies": {
       "upstream": [],
-      "downstream": ["ORCH-004", "ORCH-005", "ORCH-006", "ORCH-007", "CROSS-001", "CROSS-002"]
+      "downstream": [
+        "ORCH-004",
+        "ORCH-005",
+        "ORCH-006",
+        "ORCH-007",
+        "CROSS-001",
+        "CROSS-002"
+      ]
     }
   },
   "decisions": [
@@ -54,7 +61,11 @@
       "timestamp": "2026-03-24T09:00:00Z",
       "action": "read",
       "detail": "Read AGENTS.md, .beads/.status.json, agentic-ai package structure for orientation",
-      "artifacts": ["AGENTS.md", ".beads/.status.json", "agentic-ai/package.json"]
+      "artifacts": [
+        "AGENTS.md",
+        ".beads/.status.json",
+        "agentic-ai/package.json"
+      ]
     },
     {
       "timestamp": "2026-03-24T09:10:00Z",
@@ -89,7 +100,10 @@
       "timestamp": "2026-03-24T10:50:00Z",
       "action": "commit",
       "detail": "Add agent registry with circuit breakers and 9 default agents",
-      "artifacts": ["agentic-ai/src/orchestration/agent-registry.ts", "agentic-ai/src/orchestration/types.ts"],
+      "artifacts": [
+        "agentic-ai/src/orchestration/agent-registry.ts",
+        "agentic-ai/src/orchestration/types.ts"
+      ],
       "beadId": "ORCH-001",
       "commitSha": "a1b2c3d"
     },

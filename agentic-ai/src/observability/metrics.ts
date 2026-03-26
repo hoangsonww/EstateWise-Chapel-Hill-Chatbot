@@ -34,7 +34,12 @@ class Counter {
   }
 
   toJSON(): MetricValue {
-    return { type: this.type, name: this.name, description: this.description, value: this.count };
+    return {
+      type: this.type,
+      name: this.name,
+      description: this.description,
+      value: this.count,
+    };
   }
 }
 
@@ -47,7 +52,9 @@ class Histogram {
   constructor(
     readonly name: string,
     readonly description: string,
-    readonly buckets: number[] = [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10],
+    readonly buckets: number[] = [
+      0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10,
+    ],
   ) {}
 
   observe(value: number): void {
@@ -124,7 +131,12 @@ class Gauge {
   }
 
   toJSON(): MetricValue {
-    return { type: this.type, name: this.name, description: this.description, value: this.current };
+    return {
+      type: this.type,
+      name: this.name,
+      description: this.description,
+      value: this.current,
+    };
   }
 }
 
@@ -199,10 +211,7 @@ export function createStandardMetrics(registry: MetricsRegistry) {
       "tool_calls_total",
       "Total number of tool invocations",
     ),
-    costUsdTotal: registry.counter(
-      "cost_usd_total",
-      "Cumulative cost in USD",
-    ),
+    costUsdTotal: registry.counter("cost_usd_total", "Cumulative cost in USD"),
     cacheHitRatio: registry.gauge(
       "cache_hit_ratio",
       "Current cache hit ratio (0-1)",

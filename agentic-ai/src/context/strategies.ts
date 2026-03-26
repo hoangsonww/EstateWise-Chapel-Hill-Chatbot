@@ -120,7 +120,9 @@ export const entityAnchoredStrategy: ContextStrategy = {
     const older = input.messages.slice(0, -3);
 
     // If we have a summary, entity references are there; include summary and recent
-    const summaryPart = input.summary ? `[Entity Context] ${input.summary}\n` : "";
+    const summaryPart = input.summary
+      ? `[Entity Context] ${input.summary}\n`
+      : "";
     const recentText = recent.map((m) => `[${m.role}] ${m.content}`).join("\n");
     const olderRelevant = older
       .filter((m) => input.summary && m.content.length > 50)
@@ -175,7 +177,8 @@ export const ragFirstStrategy: ContextStrategy = {
  */
 export const hierarchicalStrategy: ContextStrategy = {
   name: "hierarchical",
-  description: "Topics for old context, summary for mid-range, full text for recent",
+  description:
+    "Topics for old context, summary for mid-range, full text for recent",
   compose(input: StrategyInput): ContextWindow {
     const systemBudget = Math.floor(input.tokenBudget * 0.15);
     const staticBudget = Math.floor(input.tokenBudget * 0.05);
@@ -188,9 +191,10 @@ export const hierarchicalStrategy: ContextStrategy = {
     const old = msgs.slice(0, -15);
 
     // Old: just topic markers
-    const oldTopics = old.length > 0
-      ? `[Topics from ${old.length} earlier messages] ${input.summary ?? "(no summary)"}\n`
-      : "";
+    const oldTopics =
+      old.length > 0
+        ? `[Topics from ${old.length} earlier messages] ${input.summary ?? "(no summary)"}\n`
+        : "";
 
     // Mid: condensed one-liners
     const midText = mid
@@ -199,11 +203,11 @@ export const hierarchicalStrategy: ContextStrategy = {
     const midSection = midText ? `[Mid-range context]\n${midText}\n` : "";
 
     // Recent: full text
-    const recentText = recent
-      .map((m) => `[${m.role}] ${m.content}`)
-      .join("\n");
+    const recentText = recent.map((m) => `[${m.role}] ${m.content}`).join("\n");
 
-    const fullConv = [oldTopics, midSection, recentText].filter(Boolean).join("\n");
+    const fullConv = [oldTopics, midSection, recentText]
+      .filter(Boolean)
+      .join("\n");
 
     return {
       systemPrompt: trimText(input.systemPrompt, systemBudget),

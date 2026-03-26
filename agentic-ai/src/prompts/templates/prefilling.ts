@@ -113,9 +113,7 @@ export function buildSystemMessage(components: {
 
   // System late: output format
   if (components.outputFormat) {
-    parts.push(
-      `<output_format>\n${components.outputFormat}\n</output_format>`,
-    );
+    parts.push(`<output_format>\n${components.outputFormat}\n</output_format>`);
   }
 
   // System end: critical reminder (recency effect)

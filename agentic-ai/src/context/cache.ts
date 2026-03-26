@@ -144,11 +144,11 @@ export class MultiLevelCache {
   // ── Static TTL presets (milliseconds) ─────────────────────────
 
   static readonly TTL = {
-    PROPERTY_DATA: 60 * 60 * 1_000,          // 1 hour
-    MARKET_DATA: 6 * 60 * 60 * 1_000,        // 6 hours
-    EMBEDDINGS: 60 * 60 * 1_000,             // 1 hour
-    USER_PREFERENCES: 24 * 60 * 60 * 1_000,  // 24 hours
-    RAG_RESULTS: 5 * 60 * 1_000,             // 5 minutes
-    SEARCH_RESULTS: 5 * 60 * 1_000,          // 5 minutes
+    PROPERTY_DATA: 60 * 60 * 1_000, // 1 hour
+    MARKET_DATA: 6 * 60 * 60 * 1_000, // 6 hours
+    EMBEDDINGS: 60 * 60 * 1_000, // 1 hour
+    USER_PREFERENCES: 24 * 60 * 60 * 1_000, // 24 hours
+    RAG_RESULTS: 5 * 60 * 1_000, // 5 minutes
+    SEARCH_RESULTS: 5 * 60 * 1_000, // 5 minutes
   } as const;
 }

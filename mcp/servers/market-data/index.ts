@@ -11,8 +11,7 @@ import { createLogger } from "../../shared/logger.js";
 import { handleToolError } from "../../shared/error-handler.js";
 import type { ToolResult } from "../../shared/types.js";
 
-const API_BASE_URL =
-  process.env.API_BASE_URL || "http://localhost:3000/api";
+const API_BASE_URL = process.env.API_BASE_URL || "http://localhost:3000/api";
 const SERVER_ID = "market-data";
 const limiter = getRateLimiter(SERVER_ID, 60);
 const log = createLogger(SERVER_ID);
@@ -21,10 +20,7 @@ const log = createLogger(SERVER_ID);
 // Helpers
 // ---------------------------------------------------------------------------
 
-async function apiFetch(
-  path: string,
-  init?: RequestInit,
-): Promise<unknown> {
+async function apiFetch(path: string, init?: RequestInit): Promise<unknown> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 20_000);
   try {
@@ -100,7 +96,11 @@ export const tools = [
           durationMs: Date.now() - start,
           metadata: { region: input.city || input.zipCode || input.state },
         });
-        return { success: true, data, metadata: { durationMs: Date.now() - start } };
+        return {
+          success: true,
+          data,
+          metadata: { durationMs: Date.now() - start },
+        };
       } catch (err) {
         log.error("get_market_stats failed", err);
         return handleToolError("get_market_stats", err).toToolResult();
@@ -118,13 +118,7 @@ export const tools = [
       state: z.string().optional().describe("Two-letter state code"),
       zipCode: z.string().optional().describe("5-digit ZIP code"),
       propertyType: z
-        .enum([
-          "single-family",
-          "condo",
-          "townhouse",
-          "multi-family",
-          "all",
-        ])
+        .enum(["single-family", "condo", "townhouse", "multi-family", "all"])
         .optional()
         .default("all")
         .describe("Property type to filter trends by"),
@@ -135,7 +129,9 @@ export const tools = [
         .max(120)
         .optional()
         .default(12)
-        .describe("Number of months of trend data to return (3-120, default 12)"),
+        .describe(
+          "Number of months of trend data to return (3-120, default 12)",
+        ),
       granularity: z
         .enum(["monthly", "quarterly"])
         .optional()
@@ -168,7 +164,11 @@ export const tools = [
           success: true,
           durationMs: Date.now() - start,
         });
-        return { success: true, data, metadata: { durationMs: Date.now() - start } };
+        return {
+          success: true,
+          data,
+          metadata: { durationMs: Date.now() - start },
+        };
       } catch (err) {
         log.error("get_price_trends failed", err);
         return handleToolError("get_price_trends", err).toToolResult();
@@ -204,7 +204,9 @@ export const tools = [
         .max(365)
         .optional()
         .default(180)
-        .describe("Only include sales within this many days (30-365, default 180)"),
+        .describe(
+          "Only include sales within this many days (30-365, default 180)",
+        ),
       limit: z
         .number()
         .int()
@@ -241,7 +243,11 @@ export const tools = [
           success: true,
           durationMs: Date.now() - start,
         });
-        return { success: true, data, metadata: { durationMs: Date.now() - start } };
+        return {
+          success: true,
+          data,
+          metadata: { durationMs: Date.now() - start },
+        };
       } catch (err) {
         log.error("get_comparable_sales failed", err);
         return handleToolError("get_comparable_sales", err).toToolResult();
@@ -259,13 +265,7 @@ export const tools = [
       state: z.string().optional().describe("Two-letter state code"),
       zipCode: z.string().optional().describe("5-digit ZIP code"),
       propertyType: z
-        .enum([
-          "single-family",
-          "condo",
-          "townhouse",
-          "multi-family",
-          "all",
-        ])
+        .enum(["single-family", "condo", "townhouse", "multi-family", "all"])
         .optional()
         .default("all")
         .describe("Property type filter"),
@@ -302,7 +302,11 @@ export const tools = [
           success: true,
           durationMs: Date.now() - start,
         });
-        return { success: true, data, metadata: { durationMs: Date.now() - start } };
+        return {
+          success: true,
+          data,
+          metadata: { durationMs: Date.now() - start },
+        };
       } catch (err) {
         log.error("get_inventory_levels failed", err);
         return handleToolError("get_inventory_levels", err).toToolResult();

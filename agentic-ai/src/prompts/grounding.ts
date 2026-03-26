@@ -48,7 +48,8 @@ function extractPrices(text: string): string[] {
  * Extracts street-address-like patterns from a text string.
  */
 function extractAddresses(text: string): string[] {
-  const addressPattern = /\d{1,6}\s+[A-Z][a-zA-Z]+(?:\s+[A-Z][a-zA-Z]+)*\s+(?:St|Ave|Blvd|Dr|Ln|Rd|Ct|Way|Pl|Cir|Ter)/g;
+  const addressPattern =
+    /\d{1,6}\s+[A-Z][a-zA-Z]+(?:\s+[A-Z][a-zA-Z]+)*\s+(?:St|Ave|Blvd|Dr|Ln|Rd|Ct|Way|Pl|Cir|Ter)/g;
   return Array.from(text.matchAll(addressPattern)).map((m) => m[0]);
 }
 
@@ -176,7 +177,11 @@ export class GroundingValidator {
     );
     for (const match of largeNumbers) {
       const raw = match[1].replace(/,/g, "");
-      if (raw.length >= 4 && /0{3,}$/.test(raw) && !toolCorpus.includes(match[0])) {
+      if (
+        raw.length >= 4 &&
+        /0{3,}$/.test(raw) &&
+        !toolCorpus.includes(match[0])
+      ) {
         violations.push({
           ruleIndex: 9,
           ruleText: GROUNDING_RULES[9],

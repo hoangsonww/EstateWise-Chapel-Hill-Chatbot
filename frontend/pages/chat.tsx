@@ -2901,7 +2901,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
                   setEditingIndex(idx);
                   setEditText(msg.text);
                 }}
-                className="self-center mr-1 p-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-muted cursor-pointer text-muted-foreground hover:text-foreground"
+                className="self-center mr-1 p-1 rounded-md hover:bg-muted cursor-pointer text-muted-foreground hover:text-foreground"
                 aria-label="Edit message"
               >
                 <Pencil className="w-3.5 h-3.5" />

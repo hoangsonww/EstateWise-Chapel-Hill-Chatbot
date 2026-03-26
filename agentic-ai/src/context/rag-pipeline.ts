@@ -72,9 +72,12 @@ export class HybridRAGPipeline {
     if (cached) return cached;
 
     const searches: Promise<RAGSource[]>[] = [];
-    if (this.vectorSearch) searches.push(this.vectorSearch(query).catch(() => []));
-    if (this.graphSearch) searches.push(this.graphSearch(query).catch(() => []));
-    if (this.keywordSearch) searches.push(this.keywordSearch(query).catch(() => []));
+    if (this.vectorSearch)
+      searches.push(this.vectorSearch(query).catch(() => []));
+    if (this.graphSearch)
+      searches.push(this.graphSearch(query).catch(() => []));
+    if (this.keywordSearch)
+      searches.push(this.keywordSearch(query).catch(() => []));
 
     if (searches.length === 0) return [];
 

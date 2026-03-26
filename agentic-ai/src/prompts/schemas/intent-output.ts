@@ -35,7 +35,9 @@ export const ExtractedEntitiesSchema = z
     features: z
       .array(z.string().describe("A specific feature or amenity requested."))
       .optional()
-      .describe("Subjective or specific features mentioned (e.g., 'pool', 'modern kitchen')."),
+      .describe(
+        "Subjective or specific features mentioned (e.g., 'pool', 'modern kitchen').",
+      ),
     bedrooms: z
       .number()
       .int()
@@ -46,13 +48,19 @@ export const ExtractedEntitiesSchema = z
       .number()
       .min(0)
       .optional()
-      .describe("Number of bathrooms requested (may be fractional, e.g., 2.5)."),
+      .describe(
+        "Number of bathrooms requested (may be fractional, e.g., 2.5).",
+      ),
     timeframe: z
       .string()
       .optional()
-      .describe("Buying timeline if mentioned (e.g., 'within 3 months', 'next year')."),
+      .describe(
+        "Buying timeline if mentioned (e.g., 'within 3 months', 'next year').",
+      ),
   })
-  .describe("Structured entities extracted from the user query for this intent.");
+  .describe(
+    "Structured entities extracted from the user query for this intent.",
+  );
 
 export const SingleIntentSchema = z.object({
   type: IntentType,
@@ -69,27 +77,47 @@ export const IntentClassificationSchema = z
     intents: z
       .array(SingleIntentSchema)
       .min(1)
-      .describe("Array of classified intents. A single user message may contain multiple intents."),
+      .describe(
+        "Array of classified intents. A single user message may contain multiple intents.",
+      ),
     requiredAgents: z
-      .array(z.string().describe("Agent identifier (e.g., 'property-search', 'market-analyst')."))
-      .describe("List of all agents that must be invoked to fulfill this request."),
+      .array(
+        z
+          .string()
+          .describe(
+            "Agent identifier (e.g., 'property-search', 'market-analyst').",
+          ),
+      )
+      .describe(
+        "List of all agents that must be invoked to fulfill this request.",
+      ),
     executionOrder: z
       .array(z.string().describe("Agent identifier in execution sequence."))
-      .describe("Ordered list of agents reflecting execution sequence (respects dependencies)."),
+      .describe(
+        "Ordered list of agents reflecting execution sequence (respects dependencies).",
+      ),
     dependencyGraph: z
       .record(
         z.string().describe("Agent identifier."),
         z
           .array(z.string().describe("Upstream agent identifier."))
-          .describe("List of agents this agent depends on (empty array if none)."),
+          .describe(
+            "List of agents this agent depends on (empty array if none).",
+          ),
       )
-      .describe("Maps each agent to its upstream dependencies. Empty array means no dependencies."),
+      .describe(
+        "Maps each agent to its upstream dependencies. Empty array means no dependencies.",
+      ),
     isFollowUp: z
       .boolean()
-      .describe("True if this query references prior conversation context (e.g., 'that property')."),
+      .describe(
+        "True if this query references prior conversation context (e.g., 'that property').",
+      ),
     reasoning: z
       .string()
-      .describe("Brief explanation of why these intents were classified and this routing was chosen."),
+      .describe(
+        "Brief explanation of why these intents were classified and this routing was chosen.",
+      ),
   })
   .describe("Complete intent classification output from the Supervisor agent.");
 

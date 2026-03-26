@@ -61,7 +61,10 @@
       "timestamp": "2026-03-24T15:00:00Z",
       "action": "read",
       "detail": "Read orchestration types and agent registry to understand agent capabilities for prompts",
-      "artifacts": ["agentic-ai/src/orchestration/types.ts", "agentic-ai/src/orchestration/agent-registry.ts"]
+      "artifacts": [
+        "agentic-ai/src/orchestration/types.ts",
+        "agentic-ai/src/orchestration/agent-registry.ts"
+      ]
     },
     {
       "timestamp": "2026-03-24T15:05:00Z",
@@ -134,7 +137,12 @@
       "timestamp": "2026-03-24T18:00:00Z",
       "action": "write",
       "detail": "Created 4 Zod schemas: IntentClassification, PropertySearch, MarketAnalysis, Recommendation",
-      "artifacts": ["agentic-ai/src/prompts/schemas/intent.ts", "agentic-ai/src/prompts/schemas/property.ts", "agentic-ai/src/prompts/schemas/market.ts", "agentic-ai/src/prompts/schemas/recommendation.ts"],
+      "artifacts": [
+        "agentic-ai/src/prompts/schemas/intent.ts",
+        "agentic-ai/src/prompts/schemas/property.ts",
+        "agentic-ai/src/prompts/schemas/market.ts",
+        "agentic-ai/src/prompts/schemas/recommendation.ts"
+      ],
       "beadId": "PRMT-004"
     },
     {

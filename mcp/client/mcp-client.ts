@@ -181,7 +181,8 @@ export class McpClientManager {
         toolName,
         code: "NOT_FOUND",
         message: `Tool '${toolName}' not found on server '${serverId}'.`,
-        recoveryHint: "The tool registration is inconsistent. This is a server bug.",
+        recoveryHint:
+          "The tool registration is inconsistent. This is a server bug.",
         retryable: false,
       });
       return err.toToolResult();

@@ -60,9 +60,18 @@ export class TokenBudgetManager {
     const conversationBonus = Math.floor(conversationLength / 10) * 500;
     const conversation = this.config.baseConversationTokens + conversationBonus;
 
-    const total = system + staticContext + rag + conversation + toolBuffer + generation;
+    const total =
+      system + staticContext + rag + conversation + toolBuffer + generation;
 
-    return { system, staticContext, rag, conversation, toolBuffer, generation, total };
+    return {
+      system,
+      staticContext,
+      rag,
+      conversation,
+      toolBuffer,
+      generation,
+      total,
+    };
   }
 
   /**

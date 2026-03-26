@@ -7,7 +7,16 @@
   "goal": "Scaffold MCP domain servers: auth, rate limiting, property, market, graph, commute, finance, system",
   "context": {
     "branch": "main",
-    "beads": ["MCP-001", "MCP-002", "MCP-003", "MCP-004", "MCP-005", "MCP-006", "MCP-007", "MCP-008"],
+    "beads": [
+      "MCP-001",
+      "MCP-002",
+      "MCP-003",
+      "MCP-004",
+      "MCP-005",
+      "MCP-006",
+      "MCP-007",
+      "MCP-008"
+    ],
     "filesModified": [
       "mcp/shared/auth.ts",
       "mcp/src/core/rate-limit.ts",
@@ -103,7 +112,11 @@
       "timestamp": "2026-03-25T09:35:00Z",
       "action": "commit",
       "detail": "Add MCP infrastructure: HMAC auth, sliding window rate limiter, typed config loader",
-      "artifacts": ["mcp/shared/auth.ts", "mcp/src/core/rate-limit.ts", "mcp/src/core/config.ts"],
+      "artifacts": [
+        "mcp/shared/auth.ts",
+        "mcp/src/core/rate-limit.ts",
+        "mcp/src/core/config.ts"
+      ],
       "beadId": "MCP-003",
       "commitSha": "f1a2b3c"
     },
@@ -111,14 +124,20 @@
       "timestamp": "2026-03-25T10:30:00Z",
       "action": "write",
       "detail": "Scaffolded property server: search, detail, ZPID resolution, comparison tools with Zod validation",
-      "artifacts": ["mcp/servers/property/index.ts", "mcp/servers/property/tools.ts"],
+      "artifacts": [
+        "mcp/servers/property/index.ts",
+        "mcp/servers/property/tools.ts"
+      ],
       "beadId": "MCP-004"
     },
     {
       "timestamp": "2026-03-25T11:00:00Z",
       "action": "write",
       "detail": "Scaffolded market server: trends, price history, inventory, competitive analysis",
-      "artifacts": ["mcp/servers/market/index.ts", "mcp/servers/market/tools.ts"],
+      "artifacts": [
+        "mcp/servers/market/index.ts",
+        "mcp/servers/market/tools.ts"
+      ],
       "beadId": "MCP-005"
     },
     {

@@ -43,14 +43,16 @@ export class ConversationStore {
   /**
    * Get a conversation by ID. Returns undefined for missing or archived.
    */
-  get(id: string): {
-    id: string;
-    messages: ConversationMessage[];
-    summary: string | null;
-    entities: Record<string, string[]>;
-    createdAt: number;
-    updatedAt: number;
-  } | undefined {
+  get(id: string):
+    | {
+        id: string;
+        messages: ConversationMessage[];
+        summary: string | null;
+        entities: Record<string, string[]>;
+        createdAt: number;
+        updatedAt: number;
+      }
+    | undefined {
     const record = this.conversations.get(id);
     if (!record || record.archived) return undefined;
     return {
@@ -66,7 +68,10 @@ export class ConversationStore {
   /**
    * Append a message to a conversation.
    */
-  appendMessage(id: string, message: Omit<ConversationMessage, "timestamp">): void {
+  appendMessage(
+    id: string,
+    message: Omit<ConversationMessage, "timestamp">,
+  ): void {
     const record = this.conversations.get(id);
     if (!record || record.archived) return;
     record.messages.push({ ...message, timestamp: Date.now() });
@@ -140,7 +145,9 @@ export class ConversationStore {
     return removed;
   }
 
-  private serializeEntities(entities: Map<string, Set<string>>): Record<string, string[]> {
+  private serializeEntities(
+    entities: Map<string, Set<string>>,
+  ): Record<string, string[]> {
     const result: Record<string, string[]> = {};
     for (const [type, values] of entities) {
       result[type] = [...values];

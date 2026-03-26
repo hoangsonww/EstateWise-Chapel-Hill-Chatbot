@@ -29,9 +29,9 @@ interface RoutingWeights {
 }
 
 const DEFAULT_WEIGHTS: RoutingWeights = {
-  toolCount: 0.30,
-  intentConfidence: -0.20,
-  conversationDepth: 0.10,
+  toolCount: 0.3,
+  intentConfidence: -0.2,
+  conversationDepth: 0.1,
   dataDependencies: 0.25,
   ambiguityLevel: 0.15,
 };
@@ -52,10 +52,7 @@ export class RoutingStrategy {
   private weights: RoutingWeights;
   private threshold: number;
 
-  constructor(
-    weights?: Partial<RoutingWeights>,
-    threshold?: number,
-  ) {
+  constructor(weights?: Partial<RoutingWeights>, threshold?: number) {
     this.weights = { ...DEFAULT_WEIGHTS, ...weights };
     this.threshold = threshold ?? AGENTIC_THRESHOLD;
   }
@@ -75,7 +72,9 @@ export class RoutingStrategy {
     const breakdown: Record<string, number> = {};
     let score = 0;
 
-    for (const key of Object.keys(this.weights) as Array<keyof RoutingWeights>) {
+    for (const key of Object.keys(this.weights) as Array<
+      keyof RoutingWeights
+    >) {
       const contribution = normalized[key] * this.weights[key];
       breakdown[key] = contribution;
       score += contribution;

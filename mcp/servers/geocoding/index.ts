@@ -11,8 +11,7 @@ import { createLogger } from "../../shared/logger.js";
 import { handleToolError } from "../../shared/error-handler.js";
 import type { ToolResult } from "../../shared/types.js";
 
-const API_BASE_URL =
-  process.env.API_BASE_URL || "http://localhost:3000/api";
+const API_BASE_URL = process.env.API_BASE_URL || "http://localhost:3000/api";
 const SERVER_ID = "geocoding";
 const limiter = getRateLimiter(SERVER_ID, 90);
 const log = createLogger(SERVER_ID);
@@ -21,10 +20,7 @@ const log = createLogger(SERVER_ID);
 // Helpers
 // ---------------------------------------------------------------------------
 
-async function apiFetch(
-  path: string,
-  init?: RequestInit,
-): Promise<unknown> {
+async function apiFetch(path: string, init?: RequestInit): Promise<unknown> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 15_000);
   try {
@@ -69,9 +65,14 @@ export const tools = [
       address: z
         .string()
         .min(3)
-        .describe("Full or partial street address to geocode (e.g. '123 Main St, Raleigh, NC')"),
+        .describe(
+          "Full or partial street address to geocode (e.g. '123 Main St, Raleigh, NC')",
+        ),
       city: z.string().optional().describe("City name to improve accuracy"),
-      state: z.string().optional().describe("Two-letter state code to improve accuracy"),
+      state: z
+        .string()
+        .optional()
+        .describe("Two-letter state code to improve accuracy"),
       zipCode: z.string().optional().describe("ZIP code to improve accuracy"),
     }),
     async handler(input: {
@@ -95,7 +96,11 @@ export const tools = [
           success: true,
           durationMs: Date.now() - start,
         });
-        return { success: true, data, metadata: { durationMs: Date.now() - start } };
+        return {
+          success: true,
+          data,
+          metadata: { durationMs: Date.now() - start },
+        };
       } catch (err) {
         log.error("geocode_address failed", err);
         return handleToolError("geocode_address", err).toToolResult();
@@ -139,7 +144,11 @@ export const tools = [
           success: true,
           durationMs: Date.now() - start,
         });
-        return { success: true, data, metadata: { durationMs: Date.now() - start } };
+        return {
+          success: true,
+          data,
+          metadata: { durationMs: Date.now() - start },
+        };
       } catch (err) {
         log.error("reverse_geocode failed", err);
         return handleToolError("reverse_geocode", err).toToolResult();
@@ -202,7 +211,11 @@ export const tools = [
           success: true,
           durationMs: Date.now() - start,
         });
-        return { success: true, data, metadata: { durationMs: Date.now() - start } };
+        return {
+          success: true,
+          data,
+          metadata: { durationMs: Date.now() - start },
+        };
       } catch (err) {
         log.error("calculate_distance failed", err);
         return handleToolError("calculate_distance", err).toToolResult();
@@ -297,7 +310,11 @@ export const tools = [
           durationMs: Date.now() - start,
           metadata: { categories: input.categories },
         });
-        return { success: true, data, metadata: { durationMs: Date.now() - start } };
+        return {
+          success: true,
+          data,
+          metadata: { durationMs: Date.now() - start },
+        };
       } catch (err) {
         log.error("find_nearby_amenities failed", err);
         return handleToolError("find_nearby_amenities", err).toToolResult();

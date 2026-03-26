@@ -86,9 +86,7 @@ export class BatchProcessor {
 
     job.completedAt = Date.now();
     job.status =
-      job.progress.failed === job.progress.total
-        ? "failed"
-        : "completed";
+      job.progress.failed === job.progress.total ? "failed" : "completed";
 
     return job;
   }

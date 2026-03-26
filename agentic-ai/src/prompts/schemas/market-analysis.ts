@@ -5,18 +5,22 @@
 import { z } from "zod";
 
 export const MetricPointSchema = z.object({
-  value: z
-    .number()
-    .describe("The current numeric value of this metric."),
+  value: z.number().describe("The current numeric value of this metric."),
   changeYoY: z
     .number()
-    .describe("Year-over-year change as a decimal (e.g., 0.05 = +5%, -0.03 = -3%)."),
+    .describe(
+      "Year-over-year change as a decimal (e.g., 0.05 = +5%, -0.03 = -3%).",
+    ),
   source: z
     .string()
-    .describe("Name of the data source for this metric (e.g., 'Zillow ZHVI', 'Redfin Data Center')."),
+    .describe(
+      "Name of the data source for this metric (e.g., 'Zillow ZHVI', 'Redfin Data Center').",
+    ),
   period: z
     .string()
-    .describe("Time period this metric covers (e.g., 'Q4 2025', 'Last 30 days', 'December 2025')."),
+    .describe(
+      "Time period this metric covers (e.g., 'Q4 2025', 'Last 30 days', 'December 2025').",
+    ),
 });
 
 export const MarketMetricsSchema = z.object({
@@ -38,7 +42,9 @@ export const MarketAnalysisSchema = z
   .object({
     area: z
       .string()
-      .describe("Geographic scope of this analysis (city, zip code, neighborhood, or metro area)."),
+      .describe(
+        "Geographic scope of this analysis (city, zip code, neighborhood, or metro area).",
+      ),
     metrics: MarketMetricsSchema.describe(
       "Core market metrics with values, YoY changes, sources, and periods.",
     ),
@@ -59,17 +65,13 @@ export const MarketAnalysisSchema = z
       ),
     dataSources: z
       .array(
-        z
-          .string()
-          .describe("Name of a data source used in this analysis."),
+        z.string().describe("Name of a data source used in this analysis."),
       )
-      .describe("Complete list of all data sources referenced in this analysis."),
+      .describe(
+        "Complete list of all data sources referenced in this analysis.",
+      ),
     caveats: z
-      .array(
-        z
-          .string()
-          .describe("A data limitation or methodological note."),
-      )
+      .array(z.string().describe("A data limitation or methodological note."))
       .describe(
         "Array of caveats about data limitations, coverage gaps, or methodological notes.",
       ),

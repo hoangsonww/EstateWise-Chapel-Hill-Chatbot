@@ -154,9 +154,8 @@ export class AgentRegistry {
 
   findAgentsByCapability(capability: string): AgentDefinition[] {
     return this.listAll().filter((a) =>
-      a.capabilities.some(
-        (c) =>
-          c.toLowerCase().includes(capability.toLowerCase()),
+      a.capabilities.some((c) =>
+        c.toLowerCase().includes(capability.toLowerCase()),
       ),
     );
   }
@@ -216,7 +215,11 @@ export class AgentRegistry {
       m.totalRequests++;
       m.successCount++;
       m.lastRequestAt = Date.now();
-      m.averageCostUsd = this.runningAvg(m.averageCostUsd, costUsd, m.totalRequests);
+      m.averageCostUsd = this.runningAvg(
+        m.averageCostUsd,
+        costUsd,
+        m.totalRequests,
+      );
 
       const lats = this.latencies.get(agentId) ?? [];
       lats.push(latencyMs);
@@ -332,14 +335,25 @@ export class AgentRegistry {
 // Default Registry Factory
 // ---------------------------------------------------------------------------
 
-function makeAgent(overrides: Partial<AgentDefinition> & { id: string; name: string; modelId: ModelId }): AgentDefinition {
+function makeAgent(
+  overrides: Partial<AgentDefinition> & {
+    id: string;
+    name: string;
+    modelId: ModelId;
+  },
+): AgentDefinition {
   const model = MODEL_CONFIGS[overrides.modelId];
   return {
     description: "",
     systemPrompt: "",
     capabilities: [],
     tools: [],
-    costTier: overrides.modelId === "haiku" ? "low" : overrides.modelId === "sonnet" ? "medium" : "premium",
+    costTier:
+      overrides.modelId === "haiku"
+        ? "low"
+        : overrides.modelId === "sonnet"
+          ? "medium"
+          : "premium",
     maxTokenBudget: model.contextWindow,
     retryPolicy: { ...DEFAULT_RETRY_POLICY },
     timeoutMs: 120_000,
@@ -366,7 +380,12 @@ export function createDefaultRegistry(): AgentRegistry {
       name: "Supervisor",
       modelId: "sonnet",
       description: "Top-level request classifier and execution planner",
-      capabilities: ["classification", "planning", "orchestration", "synthesis"],
+      capabilities: [
+        "classification",
+        "planning",
+        "orchestration",
+        "synthesis",
+      ],
       tools: [],
       costTier: "medium",
       timeoutMs: 60_000,
@@ -374,13 +393,27 @@ export function createDefaultRegistry(): AgentRegistry {
       intentParameters: {
         priorities: ["accuracy", "latency", "cost-efficiency"],
         tradeoffRules: [
-          { name: "speed-vs-depth", prefer: "speed", over: "exhaustive-analysis", rationale: "Users expect sub-3s classification" },
+          {
+            name: "speed-vs-depth",
+            prefer: "speed",
+            over: "exhaustive-analysis",
+            rationale: "Users expect sub-3s classification",
+          },
         ],
         escalationThresholds: [
-          { condition: "ambiguous-intent", metric: "confidence", threshold: 0.4, escalateTo: "conversation-mgr" },
+          {
+            condition: "ambiguous-intent",
+            metric: "confidence",
+            threshold: 0.4,
+            escalateTo: "conversation-mgr",
+          },
         ],
         qualityGates: [
-          { name: "intent-confidence", check: "confidence >= 0.5", failAction: "retry" },
+          {
+            name: "intent-confidence",
+            check: "confidence >= 0.5",
+            failAction: "retry",
+          },
         ],
       },
     }),
@@ -391,7 +424,8 @@ export function createDefaultRegistry(): AgentRegistry {
       id: "property-search",
       name: "Property Search",
       modelId: "sonnet",
-      description: "Searches and filters property listings based on user criteria",
+      description:
+        "Searches and filters property listings based on user criteria",
       capabilities: ["property-search", "filtering", "listing-retrieval"],
       tools: ["properties.search", "properties.lookup", "properties.filter"],
       costTier: "medium",
@@ -400,13 +434,27 @@ export function createDefaultRegistry(): AgentRegistry {
       intentParameters: {
         priorities: ["recall", "relevance", "freshness"],
         tradeoffRules: [
-          { name: "recall-vs-precision", prefer: "recall", over: "precision", rationale: "Better to show more results than miss relevant ones" },
+          {
+            name: "recall-vs-precision",
+            prefer: "recall",
+            over: "precision",
+            rationale: "Better to show more results than miss relevant ones",
+          },
         ],
         escalationThresholds: [
-          { condition: "no-results", metric: "resultCount", threshold: 0, escalateTo: "supervisor" },
+          {
+            condition: "no-results",
+            metric: "resultCount",
+            threshold: 0,
+            escalateTo: "supervisor",
+          },
         ],
         qualityGates: [
-          { name: "result-relevance", check: "top-3 relevance >= 0.6", failAction: "warn" },
+          {
+            name: "result-relevance",
+            check: "top-3 relevance >= 0.6",
+            failAction: "warn",
+          },
         ],
       },
     }),
@@ -417,7 +465,8 @@ export function createDefaultRegistry(): AgentRegistry {
       id: "property-search-lite",
       name: "Property Search Lite",
       modelId: "haiku",
-      description: "Lightweight property search fallback for cost-sensitive or high-volume queries",
+      description:
+        "Lightweight property search fallback for cost-sensitive or high-volume queries",
       capabilities: ["property-search", "filtering"],
       tools: ["properties.search", "properties.lookup"],
       costTier: "low",
@@ -436,9 +485,20 @@ export function createDefaultRegistry(): AgentRegistry {
       id: "market-analyst",
       name: "Market Analyst",
       modelId: "opus",
-      description: "Deep market analysis with trend detection, comparisons, and forecasting",
-      capabilities: ["market-analysis", "trend-detection", "forecasting", "comparison"],
-      tools: ["analytics.summarizeSearch", "analytics.groupByZip", "web.search", "web.fetch"],
+      description:
+        "Deep market analysis with trend detection, comparisons, and forecasting",
+      capabilities: [
+        "market-analysis",
+        "trend-detection",
+        "forecasting",
+        "comparison",
+      ],
+      tools: [
+        "analytics.summarizeSearch",
+        "analytics.groupByZip",
+        "web.search",
+        "web.fetch",
+      ],
       costTier: "premium",
       fallbackAgentId: "market-analyst-lite",
       timeoutMs: 180_000,
@@ -446,14 +506,33 @@ export function createDefaultRegistry(): AgentRegistry {
       intentParameters: {
         priorities: ["analytical-depth", "data-grounding", "accuracy"],
         tradeoffRules: [
-          { name: "depth-vs-cost", prefer: "analytical-depth", over: "cost-efficiency", rationale: "Users requesting market analysis expect thorough answers" },
+          {
+            name: "depth-vs-cost",
+            prefer: "analytical-depth",
+            over: "cost-efficiency",
+            rationale:
+              "Users requesting market analysis expect thorough answers",
+          },
         ],
         escalationThresholds: [
-          { condition: "stale-data", metric: "dataAgeHours", threshold: 72, escalateTo: "data-enrichment" },
+          {
+            condition: "stale-data",
+            metric: "dataAgeHours",
+            threshold: 72,
+            escalateTo: "data-enrichment",
+          },
         ],
         qualityGates: [
-          { name: "citation-check", check: "all claims have data backing", failAction: "retry" },
-          { name: "hallucination-guard", check: "no fabricated statistics", failAction: "block" },
+          {
+            name: "citation-check",
+            check: "all claims have data backing",
+            failAction: "retry",
+          },
+          {
+            name: "hallucination-guard",
+            check: "no fabricated statistics",
+            failAction: "block",
+          },
         ],
       },
     }),
@@ -474,7 +553,11 @@ export function createDefaultRegistry(): AgentRegistry {
         tradeoffRules: [],
         escalationThresholds: [],
         qualityGates: [
-          { name: "basic-accuracy", check: "no fabricated statistics", failAction: "warn" },
+          {
+            name: "basic-accuracy",
+            check: "no fabricated statistics",
+            failAction: "warn",
+          },
         ],
       },
     }),
@@ -485,7 +568,8 @@ export function createDefaultRegistry(): AgentRegistry {
       id: "conversation-mgr",
       name: "Conversation Manager",
       modelId: "haiku",
-      description: "Handles clarifications, greetings, follow-ups, and multi-turn state",
+      description:
+        "Handles clarifications, greetings, follow-ups, and multi-turn state",
       capabilities: ["conversation", "clarification", "greeting", "follow-up"],
       tools: [],
       costTier: "low",
@@ -494,7 +578,12 @@ export function createDefaultRegistry(): AgentRegistry {
       intentParameters: {
         priorities: ["responsiveness", "naturalness", "context-preservation"],
         tradeoffRules: [
-          { name: "speed-vs-depth", prefer: "speed", over: "depth", rationale: "Conversational turns should feel instant" },
+          {
+            name: "speed-vs-depth",
+            prefer: "speed",
+            over: "depth",
+            rationale: "Conversational turns should feel instant",
+          },
         ],
         escalationThresholds: [],
         qualityGates: [],
@@ -507,19 +596,35 @@ export function createDefaultRegistry(): AgentRegistry {
       id: "data-enrichment",
       name: "Data Enrichment",
       modelId: "sonnet",
-      description: "Enriches property data with external sources, web lookups, and graph relationships",
+      description:
+        "Enriches property data with external sources, web lookups, and graph relationships",
       capabilities: ["data-enrichment", "web-lookup", "graph-query"],
-      tools: ["web.search", "web.fetch", "graph.explain", "graph.similar", "context.search"],
+      tools: [
+        "web.search",
+        "web.fetch",
+        "graph.explain",
+        "graph.similar",
+        "context.search",
+      ],
       costTier: "medium",
       tags: ["enrichment"],
       intentParameters: {
         priorities: ["data-completeness", "freshness", "accuracy"],
         tradeoffRules: [
-          { name: "freshness-vs-cost", prefer: "freshness", over: "cost", rationale: "Stale enrichment data misleads users" },
+          {
+            name: "freshness-vs-cost",
+            prefer: "freshness",
+            over: "cost",
+            rationale: "Stale enrichment data misleads users",
+          },
         ],
         escalationThresholds: [],
         qualityGates: [
-          { name: "source-verification", check: "all enrichment has source attribution", failAction: "warn" },
+          {
+            name: "source-verification",
+            check: "all enrichment has source attribution",
+            failAction: "warn",
+          },
         ],
       },
     }),
@@ -530,19 +635,33 @@ export function createDefaultRegistry(): AgentRegistry {
       id: "recommendation",
       name: "Recommendation Engine",
       modelId: "sonnet",
-      description: "Generates personalized property recommendations based on preferences and history",
+      description:
+        "Generates personalized property recommendations based on preferences and history",
       capabilities: ["recommendation", "personalization", "ranking"],
-      tools: ["properties.search", "graph.similar", "analytics.summarizeSearch"],
+      tools: [
+        "properties.search",
+        "graph.similar",
+        "analytics.summarizeSearch",
+      ],
       costTier: "medium",
       tags: ["recommendation"],
       intentParameters: {
         priorities: ["personalization", "relevance", "diversity"],
         tradeoffRules: [
-          { name: "relevance-vs-diversity", prefer: "relevance", over: "diversity", rationale: "Top recommendations should be highly relevant" },
+          {
+            name: "relevance-vs-diversity",
+            prefer: "relevance",
+            over: "diversity",
+            rationale: "Top recommendations should be highly relevant",
+          },
         ],
         escalationThresholds: [],
         qualityGates: [
-          { name: "diversity-check", check: "recommendations span >= 2 neighborhoods", failAction: "warn" },
+          {
+            name: "diversity-check",
+            check: "recommendations span >= 2 neighborhoods",
+            failAction: "warn",
+          },
         ],
       },
     }),
@@ -553,8 +672,13 @@ export function createDefaultRegistry(): AgentRegistry {
       id: "quality-reviewer",
       name: "Quality Reviewer",
       modelId: "haiku",
-      description: "Reviews agent outputs for accuracy, hallucinations, and compliance before delivery",
-      capabilities: ["quality-review", "hallucination-detection", "compliance-check"],
+      description:
+        "Reviews agent outputs for accuracy, hallucinations, and compliance before delivery",
+      capabilities: [
+        "quality-review",
+        "hallucination-detection",
+        "compliance-check",
+      ],
       tools: [],
       costTier: "low",
       timeoutMs: 30_000,
@@ -562,14 +686,32 @@ export function createDefaultRegistry(): AgentRegistry {
       intentParameters: {
         priorities: ["accuracy", "safety", "compliance"],
         tradeoffRules: [
-          { name: "thoroughness-vs-latency", prefer: "thoroughness", over: "latency", rationale: "Quality gates must not be rushed" },
+          {
+            name: "thoroughness-vs-latency",
+            prefer: "thoroughness",
+            over: "latency",
+            rationale: "Quality gates must not be rushed",
+          },
         ],
         escalationThresholds: [
-          { condition: "hallucination-detected", metric: "hallucinationScore", threshold: 0.3, escalateTo: "supervisor" },
+          {
+            condition: "hallucination-detected",
+            metric: "hallucinationScore",
+            threshold: 0.3,
+            escalateTo: "supervisor",
+          },
         ],
         qualityGates: [
-          { name: "factual-accuracy", check: "no unsupported claims", failAction: "block" },
-          { name: "fair-housing", check: "no discriminatory language", failAction: "block" },
+          {
+            name: "factual-accuracy",
+            check: "no unsupported claims",
+            failAction: "block",
+          },
+          {
+            name: "fair-housing",
+            check: "no discriminatory language",
+            failAction: "block",
+          },
         ],
       },
     }),
