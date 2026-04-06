@@ -1,28 +1,192 @@
 version: 0.2
 
+env:
+  variables:
+    DD_ENV: "production"
+    NODE_ENV: "production"
+  parameter-store:
+    DD_API_KEY: "/estatewise/datadog/api-key"
+  secrets-manager:
+    DOCKER_HUB_TOKEN: "estatewise/dockerhub:token"
+
 phases:
   install:
     runtime-versions:
-      nodejs: 18
+      nodejs: 20
       docker: 20
     commands:
-      - echo Logging in to Amazon ECR...
-      - $(aws ecr get-login --no-include-email --region $AWS_DEFAULT_REGION)
+      - echo "=== Installing dependencies ==="
+      - npm install -g datadog-ci
+      - curl -sSL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
+
   pre_build:
     commands:
+      - echo "=== Authenticating ==="
+      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
+
+      - echo "=== Setting build metadata ==="
       - COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
       - IMAGE_TAG=${COMMIT_HASH:=latest}
-      - REPOSITORY_URI=123456789012.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/estatewise-backend
+      - BUILD_TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+      - ECR_BASE=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
+
+      # Per-service ECR repositories
+      - BACKEND_URI=$ECR_BASE/estatewise-backend
+      - FRONTEND_URI=$ECR_BASE/estatewise-frontend
+      - GRPC_URI=$ECR_BASE/estatewise-grpc
+      - MCP_URI=$ECR_BASE/estatewise-mcp
+      - AGENTIC_URI=$ECR_BASE/estatewise-agentic-ai
+
+      # Datadog CI Visibility — tag the pipeline
+      - |
+        if [ -n "$DD_API_KEY" ]; then
+          export DD_SERVICE="estatewise-ci"
+          export DD_TAGS="team:estatewise,build_id:$CODEBUILD_BUILD_ID,commit:$COMMIT_HASH"
+          echo "Datadog CI Visibility enabled"
+        fi
+
+      - echo "=== Running tests ==="
+      - cd backend && npm ci --ignore-scripts && npm run build && npm test && cd ..
+
   build:
     commands:
-      - echo Build started at `date`
-      - docker build -t $REPOSITORY_URI:$IMAGE_TAG -f backend/Dockerfile .
+      - echo "=== Build started at $BUILD_TIMESTAMP ==="
+
+      # Backend
+      - |
+        docker build \
+          --build-arg DD_SERVICE=estatewise-backend \
+          --build-arg DD_ENV=$DD_ENV \
+          --build-arg DD_VERSION=$IMAGE_TAG \
+          --label com.datadoghq.tags.service=estatewise-backend \
+          --label com.datadoghq.tags.env=$DD_ENV \
+          --label com.datadoghq.tags.version=$IMAGE_TAG \
+          --label org.opencontainers.image.revision=$CODEBUILD_RESOLVED_SOURCE_VERSION \
+          --label org.opencontainers.image.created=$BUILD_TIMESTAMP \
+          -t $BACKEND_URI:$IMAGE_TAG \
+          -t $BACKEND_URI:latest \
+          -f backend/Dockerfile .
+
+      # Frontend
+      - |
+        docker build \
+          --build-arg DD_SERVICE=estatewise-frontend \
+          --build-arg DD_ENV=$DD_ENV \
+          --build-arg DD_VERSION=$IMAGE_TAG \
+          --label com.datadoghq.tags.service=estatewise-frontend \
+          --label com.datadoghq.tags.env=$DD_ENV \
+          --label com.datadoghq.tags.version=$IMAGE_TAG \
+          -t $FRONTEND_URI:$IMAGE_TAG \
+          -t $FRONTEND_URI:latest \
+          -f frontend/Dockerfile .
+
+      # gRPC
+      - |
+        docker build \
+          --build-arg DD_SERVICE=estatewise-grpc \
+          --build-arg DD_ENV=$DD_ENV \
+          --build-arg DD_VERSION=$IMAGE_TAG \
+          --label com.datadoghq.tags.service=estatewise-grpc \
+          --label com.datadoghq.tags.env=$DD_ENV \
+          --label com.datadoghq.tags.version=$IMAGE_TAG \
+          -t $GRPC_URI:$IMAGE_TAG \
+          -t $GRPC_URI:latest \
+          -f grpc/Dockerfile .
+
+      # MCP Server
+      - |
+        docker build \
+          --build-arg DD_SERVICE=estatewise-mcp \
+          --build-arg DD_ENV=$DD_ENV \
+          --build-arg DD_VERSION=$IMAGE_TAG \
+          --label com.datadoghq.tags.service=estatewise-mcp \
+          --label com.datadoghq.tags.env=$DD_ENV \
+          --label com.datadoghq.tags.version=$IMAGE_TAG \
+          -t $MCP_URI:$IMAGE_TAG \
+          -t $MCP_URI:latest \
+          -f mcp/Dockerfile .
+
+      # Agentic AI
+      - |
+        docker build \
+          --build-arg DD_SERVICE=estatewise-agentic-ai \
+          --build-arg DD_ENV=$DD_ENV \
+          --build-arg DD_VERSION=$IMAGE_TAG \
+          --label com.datadoghq.tags.service=estatewise-agentic-ai \
+          --label com.datadoghq.tags.env=$DD_ENV \
+          --label com.datadoghq.tags.version=$IMAGE_TAG \
+          -t $AGENTIC_URI:$IMAGE_TAG \
+          -t $AGENTIC_URI:latest \
+          -f agentic-ai/Dockerfile .
+
+      - echo "=== Security scanning ==="
+      - trivy image --exit-code 0 --severity HIGH,CRITICAL --format table $BACKEND_URI:$IMAGE_TAG
+      - trivy image --exit-code 0 --severity HIGH,CRITICAL --format table $FRONTEND_URI:$IMAGE_TAG
+
+      # Upload scan results to Datadog
+      - |
+        if [ -n "$DD_API_KEY" ]; then
+          trivy image --format json -o trivy-backend.json $BACKEND_URI:$IMAGE_TAG
+          trivy image --format json -o trivy-frontend.json $FRONTEND_URI:$IMAGE_TAG
+          datadog-ci sarif upload trivy-backend.json --service estatewise-backend --env $DD_ENV || true
+          datadog-ci sarif upload trivy-frontend.json --service estatewise-frontend --env $DD_ENV || true
+        fi
+
   post_build:
     commands:
-      - echo Build completed at `date`
-      - docker push $REPOSITORY_URI:$IMAGE_TAG
-      - printf '[{"name":"backend","imageUri":"%s"}]' $REPOSITORY_URI:$IMAGE_TAG > imagedefinitions.json
+      - echo "=== Pushing images ==="
+      - docker push $BACKEND_URI:$IMAGE_TAG
+      - docker push $BACKEND_URI:latest
+      - docker push $FRONTEND_URI:$IMAGE_TAG
+      - docker push $FRONTEND_URI:latest
+      - docker push $GRPC_URI:$IMAGE_TAG
+      - docker push $GRPC_URI:latest
+      - docker push $MCP_URI:$IMAGE_TAG
+      - docker push $MCP_URI:latest
+      - docker push $AGENTIC_URI:$IMAGE_TAG
+      - docker push $AGENTIC_URI:latest
+
+      # ECS image definitions for CodeDeploy
+      - |
+        printf '[
+          {"name":"backend","imageUri":"%s"},
+          {"name":"frontend","imageUri":"%s"},
+          {"name":"grpc","imageUri":"%s"},
+          {"name":"mcp","imageUri":"%s"},
+          {"name":"agentic-ai","imageUri":"%s"}
+        ]' \
+          $BACKEND_URI:$IMAGE_TAG \
+          $FRONTEND_URI:$IMAGE_TAG \
+          $GRPC_URI:$IMAGE_TAG \
+          $MCP_URI:$IMAGE_TAG \
+          $AGENTIC_URI:$IMAGE_TAG \
+          > imagedefinitions.json
+
+      # Datadog deployment event
+      - |
+        if [ -n "$DD_API_KEY" ]; then
+          datadog-ci deployment mark \
+            --service estatewise-backend \
+            --env $DD_ENV \
+            --revision $CODEBUILD_RESOLVED_SOURCE_VERSION \
+            --is-rollback false || true
+
+          datadog-ci tag --level pipeline \
+            --tags "image_tag:$IMAGE_TAG,commit:$COMMIT_HASH" || true
+
+          echo "Datadog deployment marker sent"
+        fi
+
+      - echo "=== Build completed at $(date -u +"%Y-%m-%dT%H:%M:%SZ") ==="
 
 artifacts:
   files:
     - imagedefinitions.json
+    - trivy-backend.json
+    - trivy-frontend.json
+  discard-paths: yes
+
+cache:
+  paths:
+    - /root/.npm/**/*
+    - /root/.cache/trivy/**/*
