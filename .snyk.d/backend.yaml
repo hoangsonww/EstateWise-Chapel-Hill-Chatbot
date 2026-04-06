@@ -1,0 +1,5 @@
+# Snyk target configuration for backend service
+# Scans: npm dependencies + TypeScript source (SAST)
+version: v1.25.0
+ignore: {}
+patch: {}

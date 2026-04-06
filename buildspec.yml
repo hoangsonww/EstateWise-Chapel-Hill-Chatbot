@@ -6,6 +6,8 @@ env:
     NODE_ENV: "production"
   parameter-store:
     DD_API_KEY: "/estatewise/datadog/api-key"
+    SONAR_TOKEN: "/estatewise/sonarqube/token"
+    SNYK_TOKEN: "/estatewise/snyk/token"
   secrets-manager:
     DOCKER_HUB_TOKEN: "estatewise/dockerhub:token"
 
@@ -16,8 +18,17 @@ phases:
       docker: 20
     commands:
       - echo "=== Installing dependencies ==="
-      - npm install -g datadog-ci
+      - npm install -g datadog-ci snyk
       - curl -sSL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
+      - |
+        # Install sonar-scanner if not cached
+        if ! command -v sonar-scanner &> /dev/null; then
+          SONAR_SCANNER_VERSION=5.0.1.3006
+          curl -sSLo sonar-scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-${SONAR_SCANNER_VERSION}-linux.zip
+          unzip -qo sonar-scanner.zip -d /opt
+          ln -sf /opt/sonar-scanner-${SONAR_SCANNER_VERSION}-linux/bin/sonar-scanner /usr/local/bin/sonar-scanner
+          rm -f sonar-scanner.zip
+        fi
 
   pre_build:
     commands:
@@ -47,6 +58,36 @@ phases:
 
       - echo "=== Running tests ==="
       - cd backend && npm ci --ignore-scripts && npm run build && npm test && cd ..
+
+      # Snyk SCA — dependency vulnerability scan
+      - echo "=== Snyk Open Source Scan ==="
+      - |
+        if [ -n "$SNYK_TOKEN" ]; then
+          snyk test --file=backend/package.json --severity-threshold=high \
+            --json --json-file-output=snyk-backend-oss.json --org=${SNYK_ORG:-estatewise} || true
+          snyk test --file=frontend/package.json --severity-threshold=high \
+            --json --json-file-output=snyk-frontend-oss.json --org=${SNYK_ORG:-estatewise} || true
+          snyk code test --severity-threshold=high \
+            --json --json-file-output=snyk-code-sast.json --org=${SNYK_ORG:-estatewise} || true
+          snyk monitor --file=backend/package.json --project-name=estatewise-backend --org=${SNYK_ORG:-estatewise} || true
+          snyk monitor --file=frontend/package.json --project-name=estatewise-frontend --org=${SNYK_ORG:-estatewise} || true
+        else
+          echo "SNYK_TOKEN not set — skipping Snyk scans"
+        fi
+
+      # SonarQube analysis
+      - echo "=== SonarQube Analysis ==="
+      - |
+        if [ -n "$SONAR_TOKEN" ]; then
+          sonar-scanner \
+            -Dsonar.host.url=${SONAR_HOST_URL:-https://sonarcloud.io} \
+            -Dsonar.token=$SONAR_TOKEN \
+            -Dsonar.projectVersion=$IMAGE_TAG \
+            -Dsonar.qualitygate.wait=true \
+            -Dsonar.qualitygate.timeout=300 || true
+        else
+          echo "SONAR_TOKEN not set — skipping SonarQube analysis"
+        fi
 
   build:
     commands:
@@ -123,6 +164,18 @@ phases:
       - trivy image --exit-code 0 --severity HIGH,CRITICAL --format table $BACKEND_URI:$IMAGE_TAG
       - trivy image --exit-code 0 --severity HIGH,CRITICAL --format table $FRONTEND_URI:$IMAGE_TAG
 
+      # Snyk container image scan
+      - |
+        if [ -n "$SNYK_TOKEN" ]; then
+          echo "=== Snyk Container Scan ==="
+          snyk container test $BACKEND_URI:$IMAGE_TAG --severity-threshold=high \
+            --json --json-file-output=snyk-container-backend.json --org=${SNYK_ORG:-estatewise} || true
+          snyk container test $FRONTEND_URI:$IMAGE_TAG --severity-threshold=high \
+            --json --json-file-output=snyk-container-frontend.json --org=${SNYK_ORG:-estatewise} || true
+          snyk container monitor $BACKEND_URI:$IMAGE_TAG --project-name=estatewise-backend-image --org=${SNYK_ORG:-estatewise} || true
+          snyk container monitor $FRONTEND_URI:$IMAGE_TAG --project-name=estatewise-frontend-image --org=${SNYK_ORG:-estatewise} || true
+        fi
+
       # Upload scan results to Datadog
       - |
         if [ -n "$DD_API_KEY" ]; then
@@ -184,9 +237,12 @@ artifacts:
     - imagedefinitions.json
     - trivy-backend.json
     - trivy-frontend.json
+    - snyk-*.json
+    - sonar-report-task.txt
   discard-paths: yes
 
 cache:
   paths:
     - /root/.npm/**/*
     - /root/.cache/trivy/**/*
+    - /opt/sonar-scanner-*/**/*

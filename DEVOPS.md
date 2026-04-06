@@ -15,6 +15,8 @@
   <img src="https://img.shields.io/badge/Grafana-Observability-F46800?logo=grafana&logoColor=white" alt="Grafana"/>
   <img src="https://img.shields.io/badge/Datadog-APM_%7C_Monitors_%7C_SLOs-632CA6?logo=datadog&logoColor=white" alt="Datadog"/>
   <img src="https://img.shields.io/badge/Trivy-Security-blue?logo=aquasecurity&logoColor=white" alt="Trivy"/>
+  <img src="https://img.shields.io/badge/SonarQube-Quality_Gate-4E9BCD?logo=sonarqube&logoColor=white" alt="SonarQube"/>
+  <img src="https://img.shields.io/badge/Snyk-Security-4C4A73?logo=snyk&logoColor=white" alt="Snyk"/>
   <img src="https://img.shields.io/badge/Artillery-Load_Testing-F05A28?logo=artillery&logoColor=white" alt="Artillery"/>
   <img src="https://img.shields.io/badge/GitHub-Actions-CF222E?logo=github-actions&logoColor=white" alt="GitHub Actions"/>
   <img src="https://img.shields.io/badge/GitLab-CI/CD-FCA121?logo=gitlab&logoColor=white" alt="GitLab CI/CD"/>
@@ -48,6 +50,12 @@ This guide provides comprehensive documentation for EstateWise's DevOps practice
   - [Health Checks](#health-checks)
 - [Disaster Recovery](#disaster-recovery)
 - [Security Best Practices](#security-best-practices)
+  - [SonarQube — Code Quality & Security](#sonarqube--code-quality--security)
+  - [Snyk — Dependency, Code, Container & IaC Scanning](#snyk--dependency-code-container--iac-scanning)
+  - [Container Security](#container-security)
+  - [Secrets Management](#secrets-management)
+  - [Network Security](#network-security)
+  - [Access Control](#access-control)
 - [Troubleshooting](#troubleshooting)
 - [Additional Resources](#additional-resources)
 - [Support and Contribution](#support-and-contribution)
@@ -1042,12 +1050,99 @@ curl https://api.estatewise.com/health
 
 ## Security Best Practices
 
+EstateWise employs a **defense-in-depth** security strategy combining static analysis (SonarQube), dependency/container/IaC scanning (Snyk), image vulnerability scanning (Trivy), and runtime network policies.
+
+```mermaid
+flowchart LR
+  subgraph SAST["Static Analysis"]
+    Sonar["SonarQube<br/>Code Quality + Security Hotspots"]
+    SnykCode["Snyk Code<br/>SAST"]
+    Semgrep["Semgrep<br/>Pattern Matching"]
+  end
+
+  subgraph SCA["Supply Chain"]
+    SnykOSS["Snyk Open Source<br/>Dependency SCA"]
+    NpmAudit["npm audit"]
+  end
+
+  subgraph Container["Container Security"]
+    Trivy["Trivy<br/>Image CVEs"]
+    SnykContainer["Snyk Container<br/>Image + Base OS"]
+  end
+
+  subgraph IaC["Infrastructure as Code"]
+    SnykIaC["Snyk IaC<br/>Terraform · K8s · Docker"]
+  end
+
+  subgraph Runtime["Runtime"]
+    NetPol["Network Policies"]
+    RBAC["K8s RBAC"]
+    Secrets["Secret Managers"]
+  end
+
+  SAST --> SCA --> Container --> IaC --> Runtime
+```
+
+### SonarQube — Code Quality & Security
+
+SonarQube provides continuous code quality inspection with security hotspot detection, code smell identification, and quality gate enforcement.
+
+**Configuration:** `sonar-project.properties` defines a multi-module monorepo layout with 7 modules (backend, frontend, gRPC, MCP, agentic-ai, deployment-control, context-engineering).
+
+**Quality gate enforces:**
+- New code coverage ≥ 80%
+- Duplicated lines on new code < 3%
+- Maintainability / Reliability / Security rating: A
+- Zero new blocker or critical issues
+
+```bash
+# Local SonarQube server
+make sonar-up                  # start SonarQube + Postgres on :9000
+make sonar-status              # check health
+
+# Run analysis
+export SONAR_TOKEN=your-token
+make sonar                     # scan all modules, wait for quality gate
+
+# Or with SonarCloud
+SONAR_HOST_URL=https://sonarcloud.io make sonar
+```
+
+### Snyk — Dependency, Code, Container & IaC Scanning
+
+Snyk provides comprehensive security scanning across the entire software supply chain:
+
+| Scan Type | What It Checks | Command |
+|-----------|---------------|---------|
+| **Open Source (SCA)** | npm dependency vulnerabilities across all services | `make snyk` |
+| **Code (SAST)** | Source code security issues (injection, XSS, etc.) | `make snyk` |
+| **Container** | Docker image OS + app layer vulnerabilities | `make snyk-container` |
+| **IaC** | Terraform, Kubernetes, Helm, Docker Compose misconfigs | `make snyk-iac` |
+| **Monitor** | Upload dependency snapshot to Snyk dashboard for alerts | `make snyk-monitor` |
+
+```bash
+# Authenticate
+snyk auth
+
+# Run all Snyk scans
+export SNYK_TOKEN=your-token
+make snyk                      # SCA + SAST across all services
+make snyk-container            # scan all Docker images
+make snyk-iac                  # scan Terraform, K8s, Helm, Docker configs
+make snyk-monitor              # upload snapshots for continuous monitoring
+
+# Full security suite (Snyk + SonarQube + Trivy)
+make security
+```
+
+**Policy file:** `.snyk` at the repo root defines ignore/patch rules. Per-service overrides live in `.snyk.d/`.
+
 ### Container Security
 
-1. **Image Scanning**
-   - Trivy scans run on every build
+1. **Image Scanning** — Triple-layer: Trivy (CVE DB), Snyk Container (OS + app), SonarQube (code quality)
+   - Scans run on every build in Jenkins and CodeBuild
    - Block deployment if critical vulnerabilities found
-   - Regular rescanning of existing images
+   - Regular rescanning of existing images via `snyk container monitor`
 
 2. **Base Images**
    - Use official Node.js Alpine images
@@ -1066,10 +1161,11 @@ curl https://api.estatewise.com/health
 3. **Encrypt secrets at rest** (encryption provider)
 4. **Rotate secrets regularly** (90-day cycle)
 5. **Use external secret managers** (AWS Secrets Manager, Azure Key Vault)
+6. **CI tokens** stored in Jenkins credentials (`sonar-token`, `snyk-token`) and AWS Parameter Store
 
 ### Network Security
 
-1. **Network Policies**: Restrict pod-to-pod communication
+1. **Network Policies**: Restrict pod-to-pod communication (including Datadog agent traffic)
 2. **TLS Everywhere**: Enforce HTTPS for all external traffic
 3. **Service Mesh**: Use Consul for mTLS between services
 4. **Ingress Security**: WAF, rate limiting, DDoS protection
@@ -1181,6 +1277,9 @@ kubectl run debug --image=nicolaka/netshoot -it --rm -n estatewise
 - [Datadog APM](https://docs.datadoghq.com/tracing/)
 - [Datadog Monitors](https://docs.datadoghq.com/monitors/)
 - [Datadog Unified Service Tagging](https://docs.datadoghq.com/getting_started/tagging/unified_service_tagging/)
+- [SonarQube Documentation](https://docs.sonarqube.org/latest/)
+- [Snyk Documentation](https://docs.snyk.io/)
+- [Snyk CLI Reference](https://docs.snyk.io/snyk-cli)
 - [EstateWise Datadog Integration Guide](docs/datadog-integration.md)
 
 ---

@@ -1,0 +1,5 @@
+# Snyk target configuration for frontend service
+# Scans: npm dependencies + TypeScript/React source (SAST)
+version: v1.25.0
+ignore: {}
+patch: {}

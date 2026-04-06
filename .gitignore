@@ -20,3 +20,15 @@ docs-frontend
 /agentic-ai/dist/
 /deployment-control/node_modules/
 /deployment-control/dist/
+
+# SonarQube
+.scannerwork/
+sonar-report-task.txt
+
+# Snyk
+snyk-*.json
+
+# Security reports
+security-reports/
+coverage-reports/
+trivy-*.json
