@@ -221,3 +221,37 @@ variable "target_group_deregistration_delay" {
   type        = number
   default     = 30
 }
+
+# --- Datadog Integration ---
+
+variable "datadog_api_key" {
+  description = "Datadog API key"
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
+variable "datadog_app_key" {
+  description = "Datadog application key"
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
+variable "datadog_api_url" {
+  description = "Datadog API URL"
+  type        = string
+  default     = "https://api.datadoghq.com/"
+}
+
+variable "enable_datadog" {
+  description = "Enable Datadog monitoring integration"
+  type        = bool
+  default     = false
+}
+
+variable "datadog_notification_channels" {
+  description = "Notification channels for Datadog monitors"
+  type        = list(string)
+  default     = ["@slack-estatewise-alerts"]
+}

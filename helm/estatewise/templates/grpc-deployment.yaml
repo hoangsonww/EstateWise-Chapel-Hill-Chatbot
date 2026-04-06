@@ -21,13 +21,17 @@ spec:
         {{- with .Values.grpc.podLabels }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
-      {{- if or .Values.grpc.podAnnotations .Values.global.annotations }}
+      {{- if or .Values.grpc.podAnnotations .Values.global.annotations .Values.datadog.enabled }}
       annotations:
         {{- if .Values.global.annotations }}
         {{- toYaml .Values.global.annotations | nindent 8 }}
         {{- end }}
         {{- if .Values.grpc.podAnnotations }}
         {{- toYaml .Values.grpc.podAnnotations | nindent 8 }}
+        {{- end }}
+        {{- if .Values.datadog.enabled }}
+        ad.datadoghq.com/grpc.logs: '[{"source":"nodejs","service":"estatewise-grpc"}]'
+        ad.datadoghq.com/grpc.tags: '{"team":"estatewise","component":"grpc"}'
         {{- end }}
       {{- end }}
     spec:
@@ -47,9 +51,27 @@ spec:
           ports:
             - name: grpc
               containerPort: {{ .Values.grpc.containerPort }}
-          {{- with .Values.grpc.env }}
+          {{- if or .Values.grpc.env .Values.datadog.enabled }}
           env:
+            {{- with .Values.grpc.env }}
             {{- toYaml . | nindent 12 }}
+            {{- end }}
+            {{- if .Values.datadog.enabled }}
+            - name: DD_AGENT_HOST
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIP
+            - name: DD_TRACE_AGENT_PORT
+              value: {{ .Values.datadog.agent.apm.port | quote }}
+            - name: DD_SERVICE
+              value: "estatewise-grpc"
+            - name: DD_ENV
+              value: "production"
+            - name: DD_VERSION
+              value: {{ .Values.grpc.image.tag | quote }}
+            - name: DD_LOGS_INJECTION
+              value: "true"
+            {{- end }}
           {{- end }}
           {{- if and .Values.grpc.probes.readiness .Values.grpc.probes.readiness.enabled }}
           readinessProbe:

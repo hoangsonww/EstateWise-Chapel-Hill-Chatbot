@@ -354,11 +354,13 @@ The `deployment-control/` directory contains a full-featured dashboard for manag
 
 - **Web UI** – Vue 3 + Nuxt 3 frontend with Pinia state management.
 - **API Server** – Express + TypeScript backend handling deployment requests and job tracking.
+- **Datadog Integration** – Deploy events (start/finish) are sent to the Datadog Events API. DogStatsD custom metrics (`deploy.started`, `deploy.finished`, `deploy.success`, `deploy.failure`, `deploy.duration_seconds`) power dashboard widgets and alerting.
 - **Features**:
   - Real-time deployment status and logs
   - Blue-Green and Canary deployment workflows
   - Cluster snapshot and health metrics
   - User notifications and alerts
+  - Datadog deploy event + DogStatsD metric emission
   - TypeScript type safety and accessibility support
   - Hot Module Replacement for rapid development
   - Extensible architecture for future enhancements
@@ -699,6 +701,78 @@ See 📘 [DEVOPS.md](DEVOPS.md) for multi-cloud CI/CD guidance and deployment st
 | Hybrid cloud / service mesh / batch jobs | HashiCorp Terraform + Consul + Nomad |
 | Static-first UI with edge caching | Vercel |
 | Need Kubernetes primitives (HPA, custom CRDs) | HashiCorp + Kubernetes stack |
+| Full-stack observability (APM, logs, monitors, SLOs) | Enable Datadog (any target) |
+
+---
+
+## Datadog Observability
+
+EstateWise ships a production-ready **Datadog** integration that can be enabled across every deployment target.
+
+```mermaid
+flowchart LR
+  subgraph Targets["Deployment Targets"]
+    TF["Terraform<br/>(AWS ECS)"]
+    Helm["Helm<br/>(Kubernetes)"]
+    Docker["Docker Compose<br/>(Local / Staging)"]
+    K8s["Raw K8s<br/>(Manifests)"]
+  end
+
+  subgraph DDStack["Datadog Resources"]
+    Agent["DD Agent<br/>DaemonSet / Sidecar"]
+    Monitors["17 Monitors"]
+    Dashboard["Production Dashboard"]
+    SLOs["Availability + Latency SLOs"]
+    Synthetics["Synthetic Health Checks"]
+    Downtimes["Maintenance Windows"]
+  end
+
+  subgraph Apps["App Services"]
+    BE["Backend"]
+    FE["Frontend"]
+    GRPC["gRPC"]
+    MCP["MCP"]
+    AI["Agentic AI"]
+    DC["Deployment Control"]
+  end
+
+  TF --> Monitors & Dashboard & SLOs & Synthetics & Downtimes
+  Helm --> Agent
+  Docker --> Agent
+  K8s --> Agent
+  Apps -->|"traces + metrics + logs"| Agent
+  DC -->|"DogStatsD deploy metrics"| Agent
+  Agent -->|"HTTPS"| DDStack
+```
+
+### What's Included
+
+| Layer | Config | Highlights |
+|-------|--------|------------|
+| **Terraform** | `terraform/datadog.tf` | 17 monitors (error rate, P95/P99 latency, pod crashes, memory, CPU, ALB 5xx, ECS task failures, deploy frequency/duration), production dashboard (5 widget groups), 30-day SLOs (availability + latency), synthetic multi-location health checks, maintenance downtime schedules |
+| **Helm** | `helm/estatewise/templates/datadog-*.yaml` | Agent DaemonSet, Cluster Agent, monitors ConfigMap, NetworkPolicies (DogStatsD UDP/8125, APM TCP/8126, cluster TCP/5005) |
+| **Docker Compose** | `docker/compose.prod.yml` | `datadog-agent` service with APM + logs + DogStatsD enabled; all app services tagged with DD_SERVICE, DD_ENV, DD_VERSION |
+| **Kubernetes** | `kubernetes/monitoring/datadog-*.yaml` | Standalone agent + monitor manifests for non-Helm clusters |
+| **Deployment Control** | `deployment-control/src/datadog.ts` | Events API (deploy start/finish) + DogStatsD UDP client emitting counters and histograms |
+
+### Quick Enable
+
+```bash
+# Docker Compose (local/staging)
+export DD_API_KEY="your-key"
+docker compose -f docker/compose.prod.yml --profile monitoring up -d
+
+# Helm (Kubernetes)
+helm upgrade --install estatewise ./helm/estatewise \
+  --set datadog.enabled=true \
+  --set datadog.monitors.enabled=true
+
+# Terraform (AWS ECS)
+terraform apply -var='enable_datadog=true' -var='datadog_api_key=YOUR_KEY' \
+  -var='datadog_app_key=YOUR_APP_KEY'
+```
+
+For architecture details, monitor reference, and operational runbooks, see 📘 [docs/datadog-integration.md](docs/datadog-integration.md).
 
 ---
 

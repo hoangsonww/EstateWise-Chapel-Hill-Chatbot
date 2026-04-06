@@ -1,0 +1,323 @@
+{{- if .Values.datadog.enabled }}
+# ---------------------------------------------------------------------------
+# Datadog Node Agent — DaemonSet, ServiceAccount, ClusterRole, ClusterRoleBinding, Service
+# ---------------------------------------------------------------------------
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ include "estatewise.fullname" . }}-datadog-agent
+  namespace: {{ include "estatewise.namespace" . }}
+  labels:
+    {{- include "estatewise.labels" . | nindent 4 }}
+    app.kubernetes.io/component: datadog-agent
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "estatewise.fullname" . }}-datadog-agent
+  labels:
+    {{- include "estatewise.labels" . | nindent 4 }}
+    app.kubernetes.io/component: datadog-agent
+rules:
+  - apiGroups: [""]
+    resources:
+      - nodes
+      - nodes/metrics
+      - nodes/spec
+      - nodes/proxy
+      - nodes/stats
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources:
+      - pods
+      - pods/log
+      - services
+      - endpoints
+      - events
+      - namespaces
+      - componentstatuses
+      - replicationcontrollers
+      - persistentvolumes
+      - persistentvolumeclaims
+      - resourcequotas
+      - serviceaccounts
+      - limitranges
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources:
+      - deployments
+      - replicasets
+      - statefulsets
+      - daemonsets
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["batch"]
+    resources:
+      - jobs
+      - cronjobs
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["autoscaling"]
+    resources:
+      - horizontalpodautoscalers
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["policy"]
+    resources:
+      - poddisruptionbudgets
+    verbs: ["get", "list", "watch"]
+  - nonResourceURLs:
+      - "/metrics"
+      - "/metrics/cadvisor"
+      - "/version"
+      - "/healthz"
+    verbs: ["get"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "estatewise.fullname" . }}-datadog-agent
+  labels:
+    {{- include "estatewise.labels" . | nindent 4 }}
+    app.kubernetes.io/component: datadog-agent
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "estatewise.fullname" . }}-datadog-agent
+    namespace: {{ include "estatewise.namespace" . }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "estatewise.fullname" . }}-datadog-agent
+
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ include "estatewise.fullname" . }}-datadog-agent
+  namespace: {{ include "estatewise.namespace" . }}
+  labels:
+    {{- include "estatewise.labels" . | nindent 4 }}
+    app.kubernetes.io/component: datadog-agent
+spec:
+  selector:
+    matchLabels:
+      app: {{ include "estatewise.fullname" . }}-datadog-agent
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        app: {{ include "estatewise.fullname" . }}-datadog-agent
+        {{- include "estatewise.labels" . | nindent 8 }}
+        app.kubernetes.io/component: datadog-agent
+      annotations:
+        # Force pod restart when secret content changes
+        checksum/secret: {{ include "estatewise.fullname" . | sha256sum }}
+    spec:
+      serviceAccountName: {{ include "estatewise.fullname" . }}-datadog-agent
+      hostPID: true
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      # Tolerate NoSchedule on all nodes so every node is monitored
+      tolerations:
+        - operator: Exists
+          effect: NoSchedule
+        - operator: Exists
+          effect: NoExecute
+        {{- with .Values.datadog.agent.tolerations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.datadog.agent.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      # Graceful shutdown — allow in-flight payloads to flush
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: datadog-agent
+          image: "{{ .Values.datadog.agent.image.repository }}:{{ .Values.datadog.agent.image.tag }}"
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          ports:
+            - name: dogstatsd
+              containerPort: {{ .Values.datadog.agent.dogstatsd.port }}
+              hostPort: {{ .Values.datadog.agent.dogstatsd.port }}
+              protocol: UDP
+            - name: apm
+              containerPort: {{ .Values.datadog.agent.apm.port }}
+              hostPort: {{ .Values.datadog.agent.apm.port }}
+              protocol: TCP
+          env:
+            # ---- Core credentials ----
+            - name: DD_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.datadog.apiKeySecret }}
+                  key: api-key
+            - name: DD_APP_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.datadog.appKeySecret }}
+                  key: app-key
+            # ---- Site / cluster identity ----
+            - name: DD_SITE
+              value: {{ .Values.datadog.site | quote }}
+            - name: DD_CLUSTER_NAME
+              value: {{ .Values.datadog.clusterName | quote }}
+            - name: DD_KUBERNETES_KUBELET_NODENAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            # ---- Global tags ----
+            - name: DD_TAGS
+              value: {{ join " " .Values.datadog.tags | quote }}
+            # ---- APM ----
+            - name: DD_APM_ENABLED
+              value: {{ .Values.datadog.agent.apm.enabled | quote }}
+            - name: DD_APM_NON_LOCAL_TRAFFIC
+              value: "true"
+            - name: DD_APM_RECEIVER_PORT
+              value: {{ .Values.datadog.agent.apm.port | quote }}
+            # ---- Log collection ----
+            - name: DD_LOGS_ENABLED
+              value: {{ .Values.datadog.agent.logs.enabled | quote }}
+            - name: DD_LOGS_CONFIG_CONTAINER_COLLECT_ALL
+              value: {{ .Values.datadog.agent.logs.containerCollectAll | quote }}
+            - name: DD_LOGS_CONFIG_K8S_CONTAINER_USE_FILE
+              value: "true"
+            # ---- Process agent ----
+            - name: DD_PROCESS_AGENT_ENABLED
+              value: {{ .Values.datadog.agent.process.enabled | quote }}
+            # ---- DogStatsD ----
+            - name: DD_DOGSTATSD_PORT
+              value: {{ .Values.datadog.agent.dogstatsd.port | quote }}
+            - name: DD_DOGSTATSD_NON_LOCAL_TRAFFIC
+              value: {{ .Values.datadog.agent.dogstatsd.nonLocalTraffic | quote }}
+            - name: DD_DOGSTATSD_ORIGIN_DETECTION
+              value: "true"
+            # ---- Kubernetes integration ----
+            - name: KUBERNETES
+              value: "yes"
+            - name: DD_KUBERNETES_POD_LABELS_AS_TAGS
+              value: '{"app.kubernetes.io/name":"kube_app_name","app.kubernetes.io/component":"kube_component","app.kubernetes.io/version":"kube_app_version"}'
+            - name: DD_KUBERNETES_POD_ANNOTATIONS_AS_TAGS
+              value: '{"git.commit.sha":"git_commit_sha"}'
+            # ---- Cluster agent communication ----
+            {{- if .Values.datadog.clusterAgent.enabled }}
+            - name: DD_CLUSTER_AGENT_ENABLED
+              value: "true"
+            - name: DD_CLUSTER_AGENT_KUBERNETES_SERVICE_NAME
+              value: {{ include "estatewise.fullname" . }}-datadog-cluster-agent
+            - name: DD_CLUSTER_AGENT_AUTH_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.datadog.apiKeySecret }}
+                  key: cluster-agent-token
+            {{- end }}
+            # ---- Collect all container logs from /var/log/pods ----
+            - name: DD_CONTAINER_EXCLUDE_LOGS
+              value: "name:datadog-agent"
+            # ---- Health port (used by liveness probe below) ----
+            - name: DD_HEALTH_PORT
+              value: "5555"
+          livenessProbe:
+            httpGet:
+              path: /live
+              port: 5555
+            initialDelaySeconds: 15
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 6
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 5555
+            initialDelaySeconds: 15
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 6
+          resources:
+            {{- toYaml .Values.datadog.agent.resources | nindent 12 }}
+          volumeMounts:
+            - name: dockersocket
+              mountPath: /var/run/docker.sock
+              readOnly: true
+            - name: procdir
+              mountPath: /host/proc
+              readOnly: true
+            - name: cgroups
+              mountPath: /host/sys/fs/cgroup
+              readOnly: true
+            - name: pointerdir
+              mountPath: /opt/datadog-agent/run
+            - name: logpodpath
+              mountPath: /var/log/pods
+              readOnly: true
+            - name: logcontainerpath
+              mountPath: /var/lib/docker/containers
+              readOnly: true
+            - name: dsdsocket
+              mountPath: /var/run/datadog
+          securityContext:
+            runAsUser: 0
+            privileged: false
+            capabilities:
+              add:
+                - SYS_ADMIN
+                - SYS_RESOURCE
+                - SYS_PTRACE
+                - NET_ADMIN
+                - IPC_LOCK
+      volumes:
+        - name: dockersocket
+          hostPath:
+            path: /var/run/docker.sock
+        - name: procdir
+          hostPath:
+            path: /proc
+        - name: cgroups
+          hostPath:
+            path: /sys/fs/cgroup
+        - name: pointerdir
+          hostPath:
+            path: /opt/datadog-agent/run
+            type: DirectoryOrCreate
+        - name: logpodpath
+          hostPath:
+            path: /var/log/pods
+        - name: logcontainerpath
+          hostPath:
+            path: /var/lib/docker/containers
+        - name: dsdsocket
+          hostPath:
+            path: /var/run/datadog
+            type: DirectoryOrCreate
+
+---
+# Service exposes DogStatsD (UDP) and APM (TCP) so application pods can
+# reach the agent via a stable ClusterIP rather than relying on hostIP.
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "estatewise.fullname" . }}-datadog-agent
+  namespace: {{ include "estatewise.namespace" . }}
+  labels:
+    {{- include "estatewise.labels" . | nindent 4 }}
+    app.kubernetes.io/component: datadog-agent
+spec:
+  selector:
+    app: {{ include "estatewise.fullname" . }}-datadog-agent
+  # ClusterIP lets application pods send metrics/traces without needing
+  # status.hostIP. The DaemonSet still opens hostPorts for node-local perf.
+  type: ClusterIP
+  ports:
+    - name: dogstatsd
+      port: {{ .Values.datadog.agent.dogstatsd.port }}
+      targetPort: dogstatsd
+      protocol: UDP
+    - name: apm
+      port: {{ .Values.datadog.agent.apm.port }}
+      targetPort: apm
+      protocol: TCP
+{{- end }}

@@ -13,6 +13,7 @@
   <img src="https://img.shields.io/badge/Terraform-IaC-844FBA?logo=terraform&logoColor=white" alt="Terraform"/>
   <img src="https://img.shields.io/badge/Prometheus-Monitoring-E6522C?logo=prometheus&logoColor=white" alt="Prometheus"/>
   <img src="https://img.shields.io/badge/Grafana-Observability-F46800?logo=grafana&logoColor=white" alt="Grafana"/>
+  <img src="https://img.shields.io/badge/Datadog-APM_%7C_Monitors_%7C_SLOs-632CA6?logo=datadog&logoColor=white" alt="Datadog"/>
   <img src="https://img.shields.io/badge/Trivy-Security-blue?logo=aquasecurity&logoColor=white" alt="Trivy"/>
   <img src="https://img.shields.io/badge/Artillery-Load_Testing-F05A28?logo=artillery&logoColor=white" alt="Artillery"/>
   <img src="https://img.shields.io/badge/GitHub-Actions-CF222E?logo=github-actions&logoColor=white" alt="GitHub Actions"/>
@@ -41,6 +42,10 @@ This guide provides comprehensive documentation for EstateWise's DevOps practice
 - [Kubernetes Operations](#kubernetes-operations)
 - [Deployment Control UI](#deployment-control-ui)
 - [Monitoring and Observability](#monitoring-and-observability)
+  - [Prometheus Metrics](#metrics-collection)
+  - [Datadog Observability](#datadog-observability)
+  - [Logging Strategy](#logging-strategy)
+  - [Health Checks](#health-checks)
 - [Disaster Recovery](#disaster-recovery)
 - [Security Best Practices](#security-best-practices)
 - [Troubleshooting](#troubleshooting)
@@ -61,8 +66,9 @@ EstateWise employs enterprise-grade DevOps practices with multiple deployment st
 - **Multi-Cloud Support**: AWS, Azure, GCP, OCI, and Kubernetes deployments
 - **Container-First**: Docker/Podman-based builds with vulnerability scanning
 - **Infrastructure as Code**: Terraform, CloudFormation, Bicep support
+- **Dual Observability Stack**: Prometheus + Grafana for infrastructure metrics; Datadog for APM, centralized logs, monitors, SLOs, synthetic checks, and deploy tracking
 
-It also supports Jenkins, GitHub Actions, and GitLab CI/CD for flexible pipeline management, with Jenkins being the primary orchestrator for production deployments. For monitoring, Prometheus and Grafana provide observability into application health and performance.
+It also supports Jenkins, GitHub Actions, and GitLab CI/CD for flexible pipeline management, with Jenkins being the primary orchestrator for production deployments. Prometheus and Grafana provide Kubernetes-level metric scraping, while Datadog supplies full-stack APM tracing, centralized log management, 17 production monitors, SLO tracking, and synthetic health checks across all deployment targets.
 
 ---
 
@@ -108,15 +114,20 @@ flowchart TB
         OCI[OCI Compute + LB]
     end
 
-    subgraph Monitoring
-        Prometheus[Prometheus Metrics]
-        Logs[Centralized Logging]
+    subgraph Monitoring["Observability"]
+        Prometheus[Prometheus + Grafana]
+        DD[Datadog Agent]
+        DDCloud[Datadog Cloud<br/>APM · Monitors · SLOs]
         Alerts[Alert Manager]
     end
 
     GH -->|Webhook| Jenkins
     MultiCloud --> Targets
-    Targets --> Monitoring
+    Targets -->|metrics scrape| Prometheus
+    Targets -->|traces + logs + metrics| DD
+    DD -->|HTTPS| DDCloud
+    Prometheus --> Alerts
+    DDCloud --> Alerts
 ```
 
 ### Pipeline Stages
@@ -715,14 +726,24 @@ The `deployment-control/` directory contains a full-featured dashboard for manag
 
 - **Web UI** – Vue 3 + Nuxt 3 frontend with Pinia state management.
 - **API Server** – Express + TypeScript backend handling deployment requests and job tracking.
+- **Datadog Integration** – Every deploy emits Datadog Events (start/finish) and DogStatsD custom metrics for deploy counters and duration histograms.
 - **Features**:
   - Real-time deployment status and logs
   - Blue-Green and Canary deployment workflows
   - Cluster snapshot and health metrics
   - User notifications and alerts
+  - Datadog deploy event + DogStatsD metric emission
   - TypeScript type safety and accessibility support
   - Hot Module Replacement for rapid development
   - Extensible architecture for future enhancements
+
+```mermaid
+flowchart LR
+  UI["Nuxt 3 UI<br/>:3000"] -->|REST| API["Express API<br/>:4100"]
+  API -->|"Events API"| DD["Datadog Events"]
+  API -->|"DogStatsD UDP/8125"| DSD["Datadog Agent"]
+  DSD -->|HTTPS| Cloud["Datadog Cloud<br/>Dashboard · Monitors"]
+```
 
 To get started, see [deployment-control/README.md](deployment-control/README.md).
 
@@ -734,9 +755,54 @@ To get started, see [deployment-control/README.md](deployment-control/README.md)
 
 ## Monitoring and Observability
 
+EstateWise operates a **dual observability stack**: Prometheus + Grafana for Kubernetes infrastructure scraping and **Datadog** for full-stack APM, centralized log management, production monitors, SLOs, dashboards, and synthetic health checks.
+
+```mermaid
+flowchart TB
+  subgraph App["Application Services"]
+    BE["Backend"]
+    FE["Frontend"]
+    GRPC["gRPC"]
+    MCP["MCP Server"]
+    AI["Agentic AI"]
+    DC["Deployment Control"]
+  end
+
+  subgraph PromStack["Prometheus Stack"]
+    Prom["Prometheus<br/>Metric Scrape"]
+    Grafana["Grafana<br/>Dashboards"]
+    AM["AlertManager"]
+  end
+
+  subgraph DDStack["Datadog Stack"]
+    Agent["DD Agent<br/>(DaemonSet)"]
+    Cluster["DD Cluster Agent"]
+    DDCloud["Datadog Cloud"]
+  end
+
+  subgraph DDCloud["Datadog Cloud Features"]
+    APM["APM Service Map"]
+    LogMgmt["Log Management"]
+    Monitors["17 Monitors"]
+    SLOs["SLOs"]
+    Dashboard["Dashboard"]
+    Synthetics["Synthetic Checks"]
+  end
+
+  App -->|"/metrics endpoint"| Prom
+  App -->|"traces (TCP/8126)"| Agent
+  App -->|"logs (stdout)"| Agent
+  DC -->|"DogStatsD (UDP/8125)"| Agent
+  Agent --> Cluster
+  Agent -->|"HTTPS/443"| DDCloud
+  Prom --> Grafana
+  Prom --> AM
+  DDCloud --> Monitors
+```
+
 ### Metrics Collection
 
-EstateWise deployments expose Prometheus metrics via annotations:
+EstateWise deployments expose Prometheus metrics via pod annotations:
 
 ```yaml
 annotations:
@@ -745,7 +811,7 @@ annotations:
   prometheus.io/path: "/metrics"
 ```
 
-### Key Metrics to Monitor
+#### Key Prometheus Metrics
 
 | Metric | Type | Alert Threshold | Description |
 |--------|------|-----------------|-------------|
@@ -756,10 +822,109 @@ annotations:
 | `nodejs_heap_size_used_bytes` | Gauge | > 800MB | Heap usage |
 | `up` | Gauge | 0 | Service availability |
 
+### Datadog Observability
+
+Datadog provides end-to-end production observability with APM distributed tracing, centralized log management, monitors, SLOs, dashboards, and synthetic checks. The integration is managed via **Terraform** (AWS ECS), **Helm** (Kubernetes), **Docker Compose**, and **deployment-control**.
+
+#### Unified Service Tagging
+
+Every service injects Datadog's [Unified Service Tagging](https://docs.datadoghq.com/getting_started/tagging/unified_service_tagging/) environment variables for correlated observability:
+
+```yaml
+env:
+  - name: DD_SERVICE
+    value: "estatewise-backend"    # per-service identity
+  - name: DD_ENV
+    valueFrom:
+      fieldRef:
+        fieldPath: metadata.labels['tags.datadoghq.com/env']
+  - name: DD_VERSION
+    value: "1.0.0"                 # tracks deployed version
+  - name: DD_AGENT_HOST
+    valueFrom:
+      fieldRef:
+        fieldPath: status.hostIP
+  - name: DD_LOGS_INJECTION
+    value: "true"                  # correlate logs ↔ traces
+```
+
+#### Datadog Monitors
+
+17 production monitors are managed in Terraform (`terraform/datadog.tf`) and Helm (`helm/estatewise/templates/datadog-monitors.yaml`):
+
+| Monitor | Type | Condition | Severity |
+|---------|------|-----------|----------|
+| Backend Error Rate | Metric | > 5% over 5 min | Critical |
+| Backend Latency P95 | Metric | > 2s over 5 min | Warning |
+| Backend Latency P99 | Metric | > 5s over 5 min | Critical |
+| Frontend Error Rate | Metric | > 5% over 5 min | Critical |
+| Pod Crash Loops | Metric | > 0 restarts in 10 min | Critical |
+| High Memory Usage | Metric | > 85% for 10 min | Warning |
+| High CPU Usage | Metric | > 80% for 10 min | Warning |
+| ALB 5xx Errors | Metric | > 10/min for 5 min | Critical |
+| ALB Unhealthy Hosts | Metric | > 0 for 5 min | Critical |
+| ECS Task Failures | Metric | > 0 in 10 min | Warning |
+| Deploy Frequency | Metric | > 10 deploys in 1 hr | Warning |
+| Deploy Duration | Metric | > 30 min per deploy | Warning |
+| MongoDB Connection | Metric | > 80% pool used | Warning |
+| MongoDB Query Latency | Metric | P95 > 500ms | Warning |
+| Disk Usage | Metric | > 85% | Warning |
+| Network Errors | Metric | > 100/min | Warning |
+| Synthetic Health | Synthetic | Failure from any region | Critical |
+
+#### SLOs
+
+| SLO | Target | Window | Metric |
+|-----|--------|--------|--------|
+| API Availability | 99.9% | 30 days | `1 - (5xx / total)` |
+| API Latency | 95% requests < 500ms | 30 days | `P(latency < 500ms)` |
+
+#### Custom DogStatsD Metrics (Deployment Control)
+
+| Metric | Type | Tags | Description |
+|--------|------|------|-------------|
+| `estatewise.deploy.started` | Counter | service, env, version | Deployment initiated |
+| `estatewise.deploy.finished` | Counter | service, env, version | Deployment completed |
+| `estatewise.deploy.success` | Counter | service, env, version | Successful deployments |
+| `estatewise.deploy.failure` | Counter | service, env, version, reason | Failed deployments |
+| `estatewise.deploy.duration_seconds` | Histogram | service, env, version | Deploy wall-clock time |
+
+#### Enabling Datadog
+
+```bash
+# Docker Compose (local/staging) — add DD agent alongside app services
+export DD_API_KEY="your-key"
+docker compose -f docker/compose.prod.yml --profile monitoring up -d
+
+# Helm (Kubernetes) — enable agent DaemonSet + monitors + network policies
+helm upgrade --install estatewise ./helm/estatewise \
+  --set datadog.enabled=true \
+  --set datadog.monitors.enabled=true
+
+# Terraform (AWS ECS) — provisions monitors, dashboard, SLOs, synthetics
+terraform apply -var='enable_datadog=true' \
+  -var='datadog_api_key=YOUR_KEY' \
+  -var='datadog_app_key=YOUR_APP_KEY'
+```
+
+#### Network Policies
+
+Helm-managed NetworkPolicies (`helm/estatewise/templates/datadog-networkpolicy.yaml`) restrict agent communication:
+
+```mermaid
+flowchart LR
+  AppPods["App Pods"] -->|"UDP/8125 (DogStatsD)"| Agent["DD Agent"]
+  AppPods -->|"TCP/8126 (APM)"| Agent
+  Agent -->|"TCP/5005"| ClusterAgent["DD Cluster Agent"]
+  Agent -->|"HTTPS/443"| Intake["Datadog Intake"]
+```
+
+For full architecture details, operational runbooks, and troubleshooting, see 📘 [docs/datadog-integration.md](docs/datadog-integration.md).
+
 ### Logging Strategy
 
 ```bash
-# View deployment logs
+# View deployment logs (kubectl)
 kubectl logs -l app=estatewise-backend -n estatewise --tail=100
 
 # Follow logs
@@ -772,6 +937,9 @@ kubectl logs -l app=estatewise-backend,version=canary -n estatewise
 # Export logs for analysis
 kubectl logs deployment/estatewise-backend -n estatewise \
   --since=1h > backend-logs.txt
+
+# Datadog log search (via CLI, requires datadog-ci)
+datadog-ci logs search "service:estatewise-backend status:error" --from 1h
 ```
 
 ### Health Checks
@@ -795,6 +963,8 @@ livenessProbe:
   periodSeconds: 10
   failureThreshold: 3
 ```
+
+Datadog synthetic checks additionally verify `/health` from **3 AWS regions** (us-east-1, eu-west-1, ap-southeast-1) every 60 seconds, alerting on consecutive failures.
 
 ---
 
@@ -1008,6 +1178,10 @@ kubectl run debug --image=nicolaka/netshoot -it --rm -n estatewise
 - [Jenkins Pipeline Syntax](https://www.jenkins.io/doc/book/pipeline/syntax/)
 - [Docker Best Practices](https://docs.docker.com/develop/dev-best-practices/)
 - [Prometheus Monitoring](https://prometheus.io/docs/introduction/overview/)
+- [Datadog APM](https://docs.datadoghq.com/tracing/)
+- [Datadog Monitors](https://docs.datadoghq.com/monitors/)
+- [Datadog Unified Service Tagging](https://docs.datadoghq.com/getting_started/tagging/unified_service_tagging/)
+- [EstateWise Datadog Integration Guide](docs/datadog-integration.md)
 
 ---
 

@@ -28,6 +28,7 @@ This document describes the comprehensive end-to-end architecture for EstateWise
 ![Podman](https://img.shields.io/badge/Podman-000000?style=for-the-badge&logo=podman&logoColor=white)
 ![Prometheus](https://img.shields.io/badge/Prometheus-E6512D?style=for-the-badge&logo=prometheus&logoColor=white)
 ![Grafana](https://img.shields.io/badge/Grafana-F46800?style=for-the-badge&logo=grafana&logoColor=white)
+![Datadog](https://img.shields.io/badge/Datadog-632CA6?style=for-the-badge&logo=datadog&logoColor=white)
 ![Swagger](https://img.shields.io/badge/Swagger-85EA2D?style=for-the-badge&logo=swagger&logoColor=white)
 ![Postman](https://img.shields.io/badge/Postman-FF6C37?style=for-the-badge&logo=postman&logoColor=white)
 ![Husky](https://img.shields.io/badge/Husky-6C6C6C?style=for-the-badge&logo=apachekylin&logoColor=white)
@@ -125,6 +126,7 @@ This document describes the comprehensive end-to-end architecture for EstateWise
   - [Secret Management](#secret-management)
 - [Monitoring \& Observability](#monitoring--observability)
   - [Metrics Collection](#metrics-collection)
+  - [Datadog Observability Stack](#datadog-observability-stack)
   - [Distributed Tracing](#distributed-tracing)
 - [Performance Optimization](#performance-optimization)
   - [Caching Strategy](#caching-strategy)
@@ -1883,6 +1885,8 @@ flowchart LR
 
 ## Monitoring & Observability
 
+EstateWise operates a dual observability stack: **Prometheus + Grafana** for Kubernetes infrastructure metrics and **Datadog** for full-stack APM, centralized logs, monitors, SLOs, dashboards, and synthetic checks.
+
 ### Metrics Collection
 
 ```mermaid
@@ -1903,12 +1907,13 @@ flowchart LR
   subgraph "Collectors"
     Prometheus[Prometheus]
     CloudWatch[CloudWatch]
-    AppInsights[Application Insights]
+    Datadog[Datadog Agent]
   end
 
-  subgraph "Visualization"
+  subgraph "Visualization & Alerting"
     Grafana[Grafana]
-    Dashboards[Custom Dashboards]
+    DDDash[Datadog Dashboard]
+    DDMonitors[Datadog Monitors]
     Alerts[Alert Manager]
   end
 
@@ -1916,15 +1921,80 @@ flowchart LR
   Custom --> Prometheus
   Business --> Prometheus
 
+  Express --> Datadog
+  Custom --> Datadog
+
   CPU --> CloudWatch
   Memory --> CloudWatch
-  Disk --> AppInsights
-  Network --> AppInsights
+  Disk --> Datadog
+  Network --> Datadog
 
   Prometheus --> Grafana
-  CloudWatch --> Dashboards
-  AppInsights --> Alerts
+  CloudWatch --> Grafana
+  Datadog --> DDDash
+  Datadog --> DDMonitors
+  DDMonitors --> Alerts
 ```
+
+### Datadog Observability Stack
+
+Datadog provides end-to-end production observability across all EstateWise services. The integration spans Terraform (AWS ECS), Helm (Kubernetes), Docker Compose, and deployment-control.
+
+```mermaid
+flowchart TB
+  subgraph App["Application Layer"]
+    BE["Backend<br/>estatewise-backend"]
+    FE["Frontend<br/>estatewise-frontend"]
+    GRPC["gRPC<br/>estatewise-grpc"]
+    MCP["MCP Server<br/>estatewise-mcp"]
+    AI["Agentic AI<br/>estatewise-agentic-ai"]
+    DC["Deployment Control<br/>DogStatsD Metrics"]
+  end
+
+  subgraph Agent["Datadog Agent Layer"]
+    direction LR
+    NodeAgent["Node Agent<br/>(DaemonSet)"]
+    ClusterAgent["Cluster Agent<br/>(Deployment)"]
+  end
+
+  subgraph Intake["Datadog Cloud"]
+    APM["APM Service Map"]
+    LogMgmt["Log Management"]
+    Monitors["17 Monitors<br/>Error Rate / Latency / Crash Loop<br/>Memory / CPU / ALB / Deploy"]
+    SLOs["SLOs<br/>99.9% Availability<br/>95% Latency < 500ms"]
+    Dashboard["Production Dashboard<br/>Infra / App / ALB / Logs / DB"]
+    Synthetics["Synthetic Checks<br/>3 AWS Regions"]
+  end
+
+  BE & FE & GRPC & MCP & AI -->|"APM traces (TCP/8126)"| NodeAgent
+  BE & FE & GRPC & MCP & AI -->|"logs (stdout)"| NodeAgent
+  DC -->|"DogStatsD (UDP/8125)"| NodeAgent
+  NodeAgent -->|metadata| ClusterAgent
+  ClusterAgent -->|HPA external metrics| App
+  NodeAgent -->|"HTTPS/443"| Intake
+```
+
+**Deployment Targets:**
+
+| Target | Config Location | Resources Managed |
+|--------|----------------|-------------------|
+| Terraform | `terraform/datadog.tf` | ECS/ALB monitors, dashboard, SLOs, synthetic checks, downtime schedules |
+| Helm | `helm/estatewise/templates/datadog-*.yaml` | Agent DaemonSet, Cluster Agent, monitors ConfigMap, NetworkPolicies |
+| Kubernetes | `kubernetes/monitoring/datadog-*.yaml` | Standalone agent + monitor manifests (non-Helm) |
+| Docker Compose | `docker/compose.prod.yml` | `datadog-agent` service, DD env on all app services |
+| Deployment Control | `deployment-control/src/datadog.ts` | Deploy events + DogStatsD custom metrics |
+
+**Custom DogStatsD Metrics (Deployment Control):**
+
+| Metric | Type | Description |
+|--------|------|-------------|
+| `estatewise.deploy.started` | Counter | Deployment initiated |
+| `estatewise.deploy.finished` | Counter | Deployment completed |
+| `estatewise.deploy.success` | Counter | Successful deployments |
+| `estatewise.deploy.failure` | Counter | Failed deployments |
+| `estatewise.deploy.duration_seconds` | Histogram | Deploy wall-clock time |
+
+For full setup, architecture diagrams, and operational runbooks, see 📘 [docs/datadog-integration.md](docs/datadog-integration.md).
 
 ### Distributed Tracing
 

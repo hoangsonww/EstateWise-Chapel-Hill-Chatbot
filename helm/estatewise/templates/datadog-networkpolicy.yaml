@@ -1,0 +1,105 @@
+{{- if and .Values.datadog.enabled .Values.security.networkPolicies.enabled }}
+# ---------------------------------------------------------------------------
+# NetworkPolicy — Allow application pods to reach Datadog agent
+# (DogStatsD UDP/8125, APM TCP/8126)
+# ---------------------------------------------------------------------------
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "estatewise.fullname" . }}-allow-datadog-agent
+  namespace: {{ include "estatewise.namespace" . }}
+  labels:
+    {{- include "estatewise.labels" . | nindent 4 }}
+    app.kubernetes.io/component: datadog-networkpolicy
+spec:
+  podSelector:
+    matchLabels:
+      app: {{ include "estatewise.fullname" . }}-datadog-agent
+  policyTypes:
+    - Ingress
+  ingress:
+    # Allow DogStatsD (UDP) and APM (TCP) from any pod in the namespace
+    - from:
+        - podSelector: {}
+      ports:
+        - protocol: UDP
+          port: {{ .Values.datadog.agent.dogstatsd.port }}
+        - protocol: TCP
+          port: {{ .Values.datadog.agent.apm.port }}
+
+---
+# ---------------------------------------------------------------------------
+# NetworkPolicy — Allow Datadog node agents to reach cluster agent
+# (TCP/5005 for metadata, TCP/8443 for external metrics)
+# ---------------------------------------------------------------------------
+{{- if .Values.datadog.clusterAgent.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "estatewise.fullname" . }}-allow-datadog-cluster-agent
+  namespace: {{ include "estatewise.namespace" . }}
+  labels:
+    {{- include "estatewise.labels" . | nindent 4 }}
+    app.kubernetes.io/component: datadog-networkpolicy
+spec:
+  podSelector:
+    matchLabels:
+      app: {{ include "estatewise.fullname" . }}-datadog-cluster-agent
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: {{ include "estatewise.fullname" . }}-datadog-agent
+      ports:
+        - protocol: TCP
+          port: 5005
+        {{- if .Values.datadog.clusterAgent.externalMetrics.enabled }}
+        - protocol: TCP
+          port: 8443
+        {{- end }}
+{{- end }}
+
+---
+# ---------------------------------------------------------------------------
+# NetworkPolicy — Allow Datadog agent egress to Datadog intake endpoints
+# ---------------------------------------------------------------------------
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "estatewise.fullname" . }}-datadog-agent-egress
+  namespace: {{ include "estatewise.namespace" . }}
+  labels:
+    {{- include "estatewise.labels" . | nindent 4 }}
+    app.kubernetes.io/component: datadog-networkpolicy
+spec:
+  podSelector:
+    matchLabels:
+      app: {{ include "estatewise.fullname" . }}-datadog-agent
+  policyTypes:
+    - Egress
+  egress:
+    # Allow HTTPS to Datadog intake
+    - ports:
+        - protocol: TCP
+          port: 443
+    # Allow DNS
+    - ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # Allow communication to cluster agent
+    - to:
+        - podSelector:
+            matchLabels:
+              app: {{ include "estatewise.fullname" . }}-datadog-cluster-agent
+      ports:
+        - protocol: TCP
+          port: 5005
+    # Allow kubelet metrics
+    - ports:
+        - protocol: TCP
+          port: 10250
+{{- end }}

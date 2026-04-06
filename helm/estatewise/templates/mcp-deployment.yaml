@@ -21,13 +21,17 @@ spec:
         {{- with .Values.mcp.podLabels }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
-      {{- if or .Values.mcp.podAnnotations .Values.global.annotations }}
+      {{- if or .Values.mcp.podAnnotations .Values.global.annotations .Values.datadog.enabled }}
       annotations:
         {{- if .Values.global.annotations }}
         {{- toYaml .Values.global.annotations | nindent 8 }}
         {{- end }}
         {{- if .Values.mcp.podAnnotations }}
         {{- toYaml .Values.mcp.podAnnotations | nindent 8 }}
+        {{- end }}
+        {{- if .Values.datadog.enabled }}
+        ad.datadoghq.com/mcp.logs: '[{"source":"nodejs","service":"estatewise-mcp"}]'
+        ad.datadoghq.com/mcp.tags: '{"team":"estatewise","component":"mcp"}'
         {{- end }}
       {{- end }}
     spec:
@@ -47,9 +51,27 @@ spec:
           ports:
             - name: http
               containerPort: {{ .Values.mcp.containerPort }}
-          {{- with .Values.mcp.env }}
+          {{- if or .Values.mcp.env .Values.datadog.enabled }}
           env:
+            {{- with .Values.mcp.env }}
             {{- toYaml . | nindent 12 }}
+            {{- end }}
+            {{- if .Values.datadog.enabled }}
+            - name: DD_AGENT_HOST
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIP
+            - name: DD_TRACE_AGENT_PORT
+              value: {{ .Values.datadog.agent.apm.port | quote }}
+            - name: DD_SERVICE
+              value: "estatewise-mcp"
+            - name: DD_ENV
+              value: "production"
+            - name: DD_VERSION
+              value: {{ .Values.mcp.image.tag | quote }}
+            - name: DD_LOGS_INJECTION
+              value: "true"
+            {{- end }}
           {{- end }}
           {{- if and .Values.mcp.probes.readiness .Values.mcp.probes.readiness.enabled }}
           readinessProbe:

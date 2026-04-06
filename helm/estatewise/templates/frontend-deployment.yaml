@@ -21,13 +21,17 @@ spec:
         {{- with .Values.frontend.podLabels }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
-      {{- if or .Values.frontend.podAnnotations .Values.global.annotations }}
+      {{- if or .Values.frontend.podAnnotations .Values.global.annotations .Values.datadog.enabled }}
       annotations:
         {{- if .Values.global.annotations }}
         {{- toYaml .Values.global.annotations | nindent 8 }}
         {{- end }}
         {{- if .Values.frontend.podAnnotations }}
         {{- toYaml .Values.frontend.podAnnotations | nindent 8 }}
+        {{- end }}
+        {{- if .Values.datadog.enabled }}
+        ad.datadoghq.com/frontend.logs: '[{"source":"nextjs","service":"estatewise-frontend"}]'
+        ad.datadoghq.com/frontend.tags: '{"team":"estatewise","component":"frontend"}'
         {{- end }}
       {{- end }}
     spec:
@@ -47,13 +51,29 @@ spec:
           ports:
             - name: http
               containerPort: {{ .Values.frontend.containerPort }}
-          {{- if or .Values.frontend.env .Values.frontend.extraEnv }}
+          {{- if or .Values.frontend.env .Values.frontend.extraEnv .Values.datadog.enabled }}
           env:
             {{- with .Values.frontend.env }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
             {{- with .Values.frontend.extraEnv }}
             {{- toYaml . | nindent 12 }}
+            {{- end }}
+            {{- if .Values.datadog.enabled }}
+            - name: DD_AGENT_HOST
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIP
+            - name: DD_TRACE_AGENT_PORT
+              value: {{ .Values.datadog.agent.apm.port | quote }}
+            - name: DD_SERVICE
+              value: "estatewise-frontend"
+            - name: DD_ENV
+              value: "production"
+            - name: DD_VERSION
+              value: {{ .Values.frontend.image.tag | quote }}
+            - name: DD_LOGS_INJECTION
+              value: "true"
             {{- end }}
           {{- end }}
           {{- if and .Values.frontend.probes.readiness .Values.frontend.probes.readiness.enabled }}

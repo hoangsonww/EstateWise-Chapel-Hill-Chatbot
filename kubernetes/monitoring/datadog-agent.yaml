@@ -1,0 +1,708 @@
+# =============================================================================
+# EstateWise — Datadog Observability Stack
+# Namespace: estatewise
+#
+# Resources in this file (in order):
+#   1.  Secret                  datadog-credentials
+#   2.  ServiceAccount          datadog-agent
+#   3.  ClusterRole             datadog-agent
+#   4.  ClusterRoleBinding      datadog-agent
+#   5.  DaemonSet               datadog-agent
+#   6.  Service                 datadog-agent   (dogstatsd + APM)
+#   7.  ServiceAccount          datadog-cluster-agent
+#   8.  ClusterRole             datadog-cluster-agent
+#   9.  ClusterRoleBinding      datadog-cluster-agent
+#   10. Deployment              datadog-cluster-agent
+#   11. Service                 datadog-cluster-agent
+#
+# Prerequisites:
+#   - Replace DD_API_KEY and DD_APP_KEY placeholders before apply.
+#   - The cluster-agent auth token must be identical in both the
+#     datadog-agent DaemonSet and the datadog-cluster-agent Deployment.
+#     Generate with: openssl rand -hex 32
+#
+# Apply:
+#   kubectl apply -f datadog-agent.yaml
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# 1. Secret — Datadog credentials
+#    stringData is base64-encoded automatically by Kubernetes on admission.
+#    Replace each <PLACEHOLDER> before committing to a secrets store (Vault,
+#    AWS Secrets Manager, or Sealed Secrets). Never commit real values.
+# -----------------------------------------------------------------------------
+apiVersion: v1
+kind: Secret
+metadata:
+  name: datadog-credentials
+  namespace: estatewise
+  labels:
+    app: datadog-agent
+    app.kubernetes.io/part-of: estatewise
+    app.kubernetes.io/component: observability
+type: Opaque
+stringData:
+  # Datadog API key — create or retrieve at https://app.datadoghq.com/organization-settings/api-keys
+  DD_API_KEY: "<DD_API_KEY_PLACEHOLDER>"
+  # Datadog application key — create at https://app.datadoghq.com/organization-settings/application-keys
+  DD_APP_KEY: "<DD_APP_KEY_PLACEHOLDER>"
+  # Shared auth token between the node agent and the cluster agent.
+  # Must be 32+ hex characters and kept consistent across both workloads.
+  DD_CLUSTER_AGENT_AUTH_TOKEN: "<DD_CLUSTER_AGENT_AUTH_TOKEN_PLACEHOLDER>"
+
+---
+# -----------------------------------------------------------------------------
+# 2. ServiceAccount — Datadog node agent
+# -----------------------------------------------------------------------------
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: datadog-agent
+  namespace: estatewise
+  labels:
+    app: datadog-agent
+    app.kubernetes.io/part-of: estatewise
+    app.kubernetes.io/component: observability
+
+---
+# -----------------------------------------------------------------------------
+# 3. ClusterRole — Datadog node agent
+#    Grants read access to the resources the agent needs for autodiscovery,
+#    kubelet metrics scraping, and pod/node metadata enrichment.
+# -----------------------------------------------------------------------------
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: datadog-agent
+  labels:
+    app: datadog-agent
+    app.kubernetes.io/part-of: estatewise
+    app.kubernetes.io/component: observability
+rules:
+  # Core API group — cluster topology and workload metadata
+  - apiGroups: [""]
+    resources:
+      - nodes
+      - nodes/metrics
+      - nodes/proxy
+      - nodes/stats
+      - pods
+      - pods/log
+      - services
+      - endpoints
+      - events
+      - namespaces
+      - componentstatuses
+      - persistentvolumes
+      - persistentvolumeclaims
+      - configmaps
+      - resourcequotas
+      - serviceaccounts
+    verbs: ["get", "list", "watch"]
+  # Apps group — workload controllers
+  - apiGroups: ["apps"]
+    resources:
+      - deployments
+      - replicasets
+      - daemonsets
+      - statefulsets
+    verbs: ["get", "list", "watch"]
+  # Autoscaling — HPA awareness for scaling metrics
+  - apiGroups: ["autoscaling"]
+    resources:
+      - horizontalpodautoscalers
+    verbs: ["get", "list", "watch"]
+  # Batch — Job/CronJob completion tracking
+  - apiGroups: ["batch"]
+    resources:
+      - jobs
+      - cronjobs
+    verbs: ["get", "list", "watch"]
+  # Non-resource URLs — raw metrics endpoints
+  - nonResourceURLs:
+      - "/metrics"
+      - "/metrics/cadvisor"
+      - "/healthz"
+      - "/readyz"
+    verbs: ["get"]
+
+---
+# -----------------------------------------------------------------------------
+# 4. ClusterRoleBinding — Datadog node agent
+# -----------------------------------------------------------------------------
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: datadog-agent
+  labels:
+    app: datadog-agent
+    app.kubernetes.io/part-of: estatewise
+    app.kubernetes.io/component: observability
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: datadog-agent
+subjects:
+  - kind: ServiceAccount
+    name: datadog-agent
+    namespace: estatewise
+
+---
+# -----------------------------------------------------------------------------
+# 5. DaemonSet — Datadog node agent
+#    One agent pod per node. Collects host metrics, container metrics,
+#    logs, traces (APM), and DogStatsD custom metrics.
+# -----------------------------------------------------------------------------
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: datadog-agent
+  namespace: estatewise
+  labels:
+    app: datadog-agent
+    app.kubernetes.io/part-of: estatewise
+    app.kubernetes.io/component: observability
+  annotations:
+    # Prometheus scraping for cross-tool observability — allows the existing
+    # Prometheus stack to also scrape Datadog internal agent metrics.
+    prometheus.io/scrape: "false"
+spec:
+  selector:
+    matchLabels:
+      app: datadog-agent
+  updateStrategy:
+    # RollingUpdate ensures zero-downtime agent upgrades. maxUnavailable=1
+    # limits blast radius to one node at a time.
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        app: datadog-agent
+        app.kubernetes.io/part-of: estatewise
+        app.kubernetes.io/component: observability
+      annotations:
+        # Opt out of Datadog admission controller self-mutation to avoid
+        # circular injection on the agent pod itself.
+        admission.datadoghq.com/enabled: "false"
+    spec:
+      serviceAccountName: datadog-agent
+      # Do NOT use hostNetwork — keeps agent traffic on the pod network,
+      # reducing the attack surface while still reaching the kubelet via
+      # the downward API node IP.
+      hostNetwork: false
+      dnsPolicy: ClusterFirst
+      # Allow the agent to run on tainted nodes (e.g., GPU or spot nodes)
+      # so that all pods on those nodes are still observable.
+      tolerations:
+        - operator: Exists
+          effect: NoSchedule
+        - operator: Exists
+          effect: NoExecute
+      containers:
+        - name: datadog-agent
+          image: gcr.io/datadoghq/agent:7
+          imagePullPolicy: IfNotPresent
+          ports:
+            # DogStatsD — custom application metrics (UDP)
+            - name: dogstatsd
+              containerPort: 8125
+              protocol: UDP
+            # APM trace receiver (TCP)
+            - name: apm
+              containerPort: 8126
+              protocol: TCP
+          env:
+            # ---- Core credentials ----
+            - name: DD_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: datadog-credentials
+                  key: DD_API_KEY
+            # ---- Datadog site — use datadoghq.eu for EU customers ----
+            - name: DD_SITE
+              value: "datadoghq.com"
+            # ---- Kubelet node name — injected from the node's spec ----
+            - name: DD_KUBERNETES_KUBELET_NODENAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            # ---- Host IP used by the agent to reach the kubelet ----
+            - name: DD_KUBERNETES_KUBELET_HOST
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIP
+            # ---- APM ----
+            - name: DD_APM_ENABLED
+              value: "true"
+            # Accept traces from any pod in the cluster, not just localhost.
+            - name: DD_APM_NON_LOCAL_TRAFFIC
+              value: "true"
+            # ---- Log collection ----
+            - name: DD_LOGS_ENABLED
+              value: "true"
+            # Collect logs from every container automatically. Per-container
+            # exclusions can be applied via pod annotations.
+            - name: DD_LOGS_CONFIG_CONTAINER_COLLECT_ALL
+              value: "true"
+            # Use the socket-based log collection path (faster than journald).
+            - name: DD_LOGS_CONFIG_USE_HTTP
+              value: "true"
+            # ---- Process monitoring ----
+            - name: DD_PROCESS_AGENT_ENABLED
+              value: "true"
+            # ---- DogStatsD ----
+            # Accept custom metrics from any pod, not just localhost.
+            - name: DD_DOGSTATSD_NON_LOCAL_TRAFFIC
+              value: "true"
+            # Tag DogStatsD metrics with the originating pod/namespace.
+            - name: DD_DOGSTATSD_ORIGIN_DETECTION
+              value: "true"
+            - name: DD_DOGSTATSD_SOCKET
+              value: "/var/run/datadog/dsd.socket"
+            # ---- Cluster Agent integration ----
+            - name: DD_CLUSTER_AGENT_ENABLED
+              value: "true"
+            - name: DD_CLUSTER_AGENT_AUTH_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: datadog-credentials
+                  key: DD_CLUSTER_AGENT_AUTH_TOKEN
+            - name: DD_CLUSTER_AGENT_KUBERNETES_SERVICE_NAME
+              value: "datadog-cluster-agent"
+            # ---- Global tags applied to all metrics/traces/logs ----
+            - name: DD_TAGS
+              value: "env:production team:estatewise"
+            - name: DD_ENV
+              value: "production"
+            - name: DD_SERVICE
+              value: "estatewise"
+            # ---- Kubernetes metadata collection ----
+            - name: DD_KUBERNETES_COLLECT_METADATA_TAGS
+              value: "true"
+            - name: KUBERNETES
+              value: "yes"
+          resources:
+            requests:
+              cpu: 200m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          # Health check against the agent's built-in health endpoint.
+          # The agent exposes /agent/status on port 5555 (internal IPC port),
+          # but the HTTP health check endpoint is on 5002.
+          livenessProbe:
+            exec:
+              command:
+                - agent
+                - health
+            initialDelaySeconds: 60
+            timeoutSeconds: 10
+            periodSeconds: 30
+            successThreshold: 1
+            failureThreshold: 6
+          readinessProbe:
+            exec:
+              command:
+                - agent
+                - health
+            initialDelaySeconds: 30
+            timeoutSeconds: 10
+            periodSeconds: 15
+            successThreshold: 1
+            failureThreshold: 3
+          volumeMounts:
+            # Docker socket — required for container-level metadata if using
+            # Docker runtime. Remove if using containerd-only nodes.
+            - name: dockersocket
+              mountPath: /var/run/docker.sock
+            # Host /proc — needed for host-level process and network metrics.
+            - name: procdir
+              mountPath: /host/proc
+              readOnly: true
+            # cgroup filesystem — required for accurate CPU/memory accounting.
+            - name: cgroups
+              mountPath: /host/sys/fs/cgroup
+              readOnly: true
+            # Datadog run directory — DogStatsD Unix socket lives here.
+            - name: datadog-run
+              mountPath: /var/run/datadog
+            # Agent internal state (check state, flare staging, etc.)
+            - name: datadog-agent-run
+              mountPath: /opt/datadog-agent/run
+      volumes:
+        - name: dockersocket
+          hostPath:
+            path: /var/run/docker.sock
+        - name: procdir
+          hostPath:
+            path: /proc
+        - name: cgroups
+          hostPath:
+            path: /sys/fs/cgroup
+        # EmptyDir for the DogStatsD socket — shared between agent and app
+        # containers when the socket path is projected via a volume.
+        - name: datadog-run
+          emptyDir: {}
+        - name: datadog-agent-run
+          emptyDir: {}
+
+---
+# -----------------------------------------------------------------------------
+# 6. Service — Datadog node agent
+#    Exposes DogStatsD and APM endpoints as a stable ClusterIP so that
+#    application pods can send metrics and traces without relying on host IPs.
+#    Use this service address in DD_DOGSTATSD_URL and DD_TRACE_AGENT_URL
+#    within application container env vars.
+# -----------------------------------------------------------------------------
+apiVersion: v1
+kind: Service
+metadata:
+  name: datadog-agent
+  namespace: estatewise
+  labels:
+    app: datadog-agent
+    app.kubernetes.io/part-of: estatewise
+    app.kubernetes.io/component: observability
+  annotations:
+    # Document intent for other operators.
+    description: "Exposes Datadog DogStatsD (UDP/8125) and APM (TCP/8126) endpoints cluster-wide."
+spec:
+  type: ClusterIP
+  selector:
+    app: datadog-agent
+  ports:
+    # DogStatsD — custom metrics ingestion via UDP.
+    - name: dogstatsd
+      port: 8125
+      targetPort: 8125
+      protocol: UDP
+    # APM trace receiver — distributed tracing via TCP.
+    - name: apm
+      port: 8126
+      targetPort: 8126
+      protocol: TCP
+
+---
+# =============================================================================
+# Cluster Agent — centralises Kubernetes API queries to reduce load on the
+# API server. A single Deployment (not DaemonSet) handles metadata collection,
+# external metrics for HPA, and the admission controller (auto-injection).
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# 7. ServiceAccount — Datadog cluster agent
+# -----------------------------------------------------------------------------
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: datadog-cluster-agent
+  namespace: estatewise
+  labels:
+    app: datadog-cluster-agent
+    app.kubernetes.io/part-of: estatewise
+    app.kubernetes.io/component: observability
+
+---
+# -----------------------------------------------------------------------------
+# 8. ClusterRole — Datadog cluster agent
+#    Extended permissions beyond the node agent: HPA patching for external
+#    metrics, admission webhook management, and APIService registration.
+# -----------------------------------------------------------------------------
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: datadog-cluster-agent
+  labels:
+    app: datadog-cluster-agent
+    app.kubernetes.io/part-of: estatewise
+    app.kubernetes.io/component: observability
+rules:
+  # Core resources — broad read access for full cluster visibility
+  - apiGroups: [""]
+    resources:
+      - nodes
+      - pods
+      - services
+      - endpoints
+      - namespaces
+      - componentstatuses
+      - events
+      - configmaps
+      - serviceaccounts
+      - persistentvolumes
+      - persistentvolumeclaims
+      - resourcequotas
+      - limitranges
+    verbs: ["get", "list", "watch"]
+  # ConfigMap write — cluster agent uses configmaps for leader election and
+  # distributed check state.
+  - apiGroups: [""]
+    resources:
+      - configmaps
+    verbs: ["create", "update", "patch", "delete"]
+  # Apps
+  - apiGroups: ["apps"]
+    resources:
+      - deployments
+      - replicasets
+      - daemonsets
+      - statefulsets
+    verbs: ["get", "list", "watch"]
+  # Autoscaling — required to patch HPA with external metric values
+  - apiGroups: ["autoscaling"]
+    resources:
+      - horizontalpodautoscalers
+    verbs: ["get", "list", "watch", "update", "patch"]
+  # Batch
+  - apiGroups: ["batch"]
+    resources:
+      - jobs
+      - cronjobs
+    verbs: ["get", "list", "watch"]
+  # CRD introspection — for detecting custom resources in the cluster
+  - apiGroups: ["apiextensions.k8s.io"]
+    resources:
+      - customresourcedefinitions
+    verbs: ["get", "list", "watch"]
+  # API aggregation layer — needed to register the external metrics APIService
+  - apiGroups: ["apiregistration.k8s.io"]
+    resources:
+      - apiservices
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+  # Coordination — leader election for multi-replica cluster agent HA
+  - apiGroups: ["coordination.k8s.io"]
+    resources:
+      - leases
+    verbs: ["get", "list", "watch", "create", "update", "delete"]
+  # Admission webhook — the cluster agent admission controller mutates pods
+  # to inject DD_AGENT_HOST, DD_ENTITY_ID, and unified service tagging.
+  - apiGroups: ["admissionregistration.k8s.io"]
+    resources:
+      - mutatingwebhookconfigurations
+      - validatingwebhookconfigurations
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  # RBAC introspection — for permission auditing (read only)
+  - apiGroups: ["rbac.authorization.k8s.io"]
+    resources:
+      - roles
+      - rolebindings
+      - clusterroles
+      - clusterrolebindings
+    verbs: ["get", "list", "watch"]
+  # Policy
+  - apiGroups: ["policy"]
+    resources:
+      - poddisruptionbudgets
+    verbs: ["get", "list", "watch"]
+  # Storage
+  - apiGroups: ["storage.k8s.io"]
+    resources:
+      - storageclasses
+    verbs: ["get", "list", "watch"]
+  # Networking
+  - apiGroups: ["networking.k8s.io"]
+    resources:
+      - ingresses
+      - networkpolicies
+    verbs: ["get", "list", "watch"]
+
+---
+# -----------------------------------------------------------------------------
+# 9. ClusterRoleBinding — Datadog cluster agent
+# -----------------------------------------------------------------------------
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: datadog-cluster-agent
+  labels:
+    app: datadog-cluster-agent
+    app.kubernetes.io/part-of: estatewise
+    app.kubernetes.io/component: observability
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: datadog-cluster-agent
+subjects:
+  - kind: ServiceAccount
+    name: datadog-cluster-agent
+    namespace: estatewise
+
+---
+# -----------------------------------------------------------------------------
+# 10. Deployment — Datadog cluster agent
+#     Single replica is sufficient for most clusters. Scale to 2 for HA with
+#     leader election enabled (DD_CLUSTER_AGENT_LEADER_ELECTION=true).
+# -----------------------------------------------------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: datadog-cluster-agent
+  namespace: estatewise
+  labels:
+    app: datadog-cluster-agent
+    app.kubernetes.io/part-of: estatewise
+    app.kubernetes.io/component: observability
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: datadog-cluster-agent
+  strategy:
+    # Recreate avoids split-brain if leader election is disabled.
+    # Switch to RollingUpdate when scaling to 2+ replicas with HA mode.
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: datadog-cluster-agent
+        app.kubernetes.io/part-of: estatewise
+        app.kubernetes.io/component: observability
+      annotations:
+        # Prevent the cluster agent from injecting env vars into itself.
+        admission.datadoghq.com/enabled: "false"
+    spec:
+      serviceAccountName: datadog-cluster-agent
+      # Prefer scheduling on a different node from the regular monitoring
+      # workloads (Prometheus, Grafana) to spread single points of failure.
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 50
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - prometheus
+                        - grafana
+                topologyKey: kubernetes.io/hostname
+      containers:
+        - name: datadog-cluster-agent
+          image: gcr.io/datadoghq/cluster-agent:7
+          imagePullPolicy: IfNotPresent
+          ports:
+            # Cluster agent API — node agents query this for metadata.
+            - name: cluster-agent
+              containerPort: 5005
+              protocol: TCP
+            # External metrics API — registered as a Kubernetes APIService
+            # so that HPA objects can reference Datadog metrics.
+            - name: ext-metrics
+              containerPort: 8443
+              protocol: TCP
+          env:
+            # ---- Core credentials ----
+            - name: DD_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: datadog-credentials
+                  key: DD_API_KEY
+            - name: DD_APP_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: datadog-credentials
+                  key: DD_APP_KEY
+            # ---- Datadog site ----
+            - name: DD_SITE
+              value: "datadoghq.com"
+            # ---- Cluster agent auth — must match the node agent secret ----
+            - name: DD_CLUSTER_AGENT_AUTH_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: datadog-credentials
+                  key: DD_CLUSTER_AGENT_AUTH_TOKEN
+            # Service name used by node agents to locate the cluster agent.
+            - name: DD_CLUSTER_AGENT_KUBERNETES_SERVICE_NAME
+              value: "datadog-cluster-agent"
+            # ---- Cluster checks — offloads endpoint/service checks from
+            #      node agents to the cluster agent runner ----
+            - name: DD_CLUSTER_CHECKS_ENABLED
+              value: "true"
+            # ---- External metrics provider — enables custom Datadog metrics
+            #      as HPA scaling targets ----
+            - name: DD_EXTERNAL_METRICS_PROVIDER_ENABLED
+              value: "true"
+            # ---- Admission controller — mutates new pods to inject the
+            #      DD_AGENT_HOST and DD_ENTITY_ID env vars automatically ----
+            - name: DD_ADMISSION_CONTROLLER_ENABLED
+              value: "true"
+            # Also mutate pods that do NOT carry the
+            # admission.datadoghq.com/enabled annotation.
+            - name: DD_ADMISSION_CONTROLLER_MUTATE_UNLABELLED
+              value: "true"
+            # ---- Tagging ----
+            - name: DD_TAGS
+              value: "env:production team:estatewise"
+            - name: DD_ENV
+              value: "production"
+            # ---- Leader election — safe to enable even with 1 replica ----
+            - name: DD_LEADER_ELECTION
+              value: "true"
+            # Collect Kubernetes events and forward them to Datadog.
+            - name: DD_COLLECT_KUBERNETES_EVENTS
+              value: "true"
+          resources:
+            requests:
+              cpu: 200m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          livenessProbe:
+            httpGet:
+              path: /live
+              port: 5005
+              scheme: HTTP
+            initialDelaySeconds: 60
+            timeoutSeconds: 10
+            periodSeconds: 30
+            successThreshold: 1
+            failureThreshold: 6
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 5005
+              scheme: HTTP
+            initialDelaySeconds: 30
+            timeoutSeconds: 10
+            periodSeconds: 15
+            successThreshold: 1
+            failureThreshold: 3
+
+---
+# -----------------------------------------------------------------------------
+# 11. Service — Datadog cluster agent
+#     Node agents connect to this ClusterIP to retrieve pod metadata and
+#     distribute cluster-level check results. The external metrics API is also
+#     served here when DD_EXTERNAL_METRICS_PROVIDER_ENABLED=true.
+# -----------------------------------------------------------------------------
+apiVersion: v1
+kind: Service
+metadata:
+  name: datadog-cluster-agent
+  namespace: estatewise
+  labels:
+    app: datadog-cluster-agent
+    app.kubernetes.io/part-of: estatewise
+    app.kubernetes.io/component: observability
+  annotations:
+    description: "Datadog cluster agent API consumed by node agents and HPA external metrics."
+spec:
+  type: ClusterIP
+  selector:
+    app: datadog-cluster-agent
+  ports:
+    # Node agent ↔ cluster agent communication channel.
+    - name: cluster-agent
+      port: 5005
+      targetPort: 5005
+      protocol: TCP
+    # External metrics API registered as a Kubernetes APIService.
+    - name: ext-metrics
+      port: 8443
+      targetPort: 8443
+      protocol: TCP

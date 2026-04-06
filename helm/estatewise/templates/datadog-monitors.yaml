@@ -1,0 +1,183 @@
+{{- if and .Values.datadog.enabled .Values.datadog.monitors.enabled }}
+# ---------------------------------------------------------------------------
+# Datadog Monitor Definitions — ConfigMap
+# Consumed by a sync job or the Datadog Operator to materialise monitors.
+# ---------------------------------------------------------------------------
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "estatewise.fullname" . }}-datadog-monitors
+  namespace: {{ include "estatewise.namespace" . }}
+  labels:
+    {{- include "estatewise.labels" . | nindent 4 }}
+    app.kubernetes.io/component: datadog-monitors
+data:
+  monitors.yaml: |
+    # ── API Error Rate ────────────────────────────────────────────────────────
+    - name: "[EstateWise] API High Error Rate"
+      type: metric alert
+      query: >
+        sum(last_5m):
+          sum:trace.express.request.errors{service:estatewise-backend,env:production}.as_rate()
+          /
+          sum:trace.express.request.hits{service:estatewise-backend,env:production}.as_rate()
+          * 100
+        > 5
+      message: |
+        API error rate is {{`{{value}}`}}% — SLO threshold 5%.
+        {{`{{#is_alert}}`}}@slack-estatewise-alerts{{`{{/is_alert}}`}}
+      tags:
+        - "env:production"
+        - "team:estatewise"
+        - "service:estatewise-backend"
+        - "slo:availability"
+      options:
+        thresholds:
+          critical: 5
+          warning: 2
+        notify_no_data: true
+        no_data_timeframe: 10
+        renotify_interval: 60
+      priority: 1
+
+    # ── API Latency P95 ───────────────────────────────────────────────────────
+    - name: "[EstateWise] API High Latency P95"
+      type: metric alert
+      query: >
+        avg(last_5m):
+          p95:trace.express.request{service:estatewise-backend,env:production}
+        > 1000000000
+      message: |
+        P95 latency is {{`{{value}}`}}ns — SLO target <500ms.
+        {{`{{#is_alert}}`}}@slack-estatewise-alerts{{`{{/is_alert}}`}}
+      tags:
+        - "env:production"
+        - "team:estatewise"
+        - "service:estatewise-backend"
+        - "slo:latency"
+      options:
+        thresholds:
+          critical: 1000000000
+          warning: 500000000
+        notify_no_data: true
+        no_data_timeframe: 10
+        renotify_interval: 30
+      priority: 2
+
+    # ── Pod Crash Loop ────────────────────────────────────────────────────────
+    - name: "[EstateWise] Pod Crash Looping"
+      type: metric alert
+      query: >
+        sum(last_5m):
+          sum:kubernetes.containers.restarts{kube_namespace:{{ include "estatewise.namespace" . }}}
+          .rollup(max, 300)
+        > 0
+      message: |
+        Pod {{`{{pod_name.name}}`}} is crash looping in namespace {{ include "estatewise.namespace" . }}.
+        {{`{{#is_alert}}`}}@slack-estatewise-alerts{{`{{/is_alert}}`}}
+      tags:
+        - "env:production"
+        - "team:estatewise"
+        - "component:kubernetes"
+      options:
+        thresholds:
+          critical: 0
+        notify_no_data: false
+        renotify_interval: 15
+      priority: 1
+
+    # ── High Memory Usage ─────────────────────────────────────────────────────
+    - name: "[EstateWise] High Memory Usage"
+      type: metric alert
+      query: >
+        avg(last_5m):
+          sum:kubernetes.memory.usage{kube_namespace:{{ include "estatewise.namespace" . }}}
+          by {pod_name,kube_container_name}
+          /
+          sum:kubernetes.memory.limits{kube_namespace:{{ include "estatewise.namespace" . }}}
+          by {pod_name,kube_container_name}
+          * 100
+        > 90
+      message: |
+        Container {{`{{kube_container_name.name}}`}} in {{`{{pod_name.name}}`}} is at {{`{{value}}`}}% memory.
+        {{`{{#is_alert}}`}}@slack-estatewise-alerts{{`{{/is_alert}}`}}
+      tags:
+        - "env:production"
+        - "team:estatewise"
+        - "component:resources"
+      options:
+        thresholds:
+          critical: 90
+          warning: 80
+        notify_no_data: false
+        renotify_interval: 60
+      priority: 3
+
+    # ── High CPU Usage ────────────────────────────────────────────────────────
+    - name: "[EstateWise] High CPU Usage"
+      type: metric alert
+      query: >
+        avg(last_10m):
+          sum:kubernetes.cpu.usage.total{kube_namespace:{{ include "estatewise.namespace" . }}}
+          by {pod_name,kube_container_name}
+          /
+          sum:kubernetes.cpu.limits{kube_namespace:{{ include "estatewise.namespace" . }}}
+          by {pod_name,kube_container_name}
+          * 100
+        > 80
+      message: |
+        Container {{`{{kube_container_name.name}}`}} in {{`{{pod_name.name}}`}} is at {{`{{value}}`}}% CPU.
+        {{`{{#is_alert}}`}}@slack-estatewise-alerts{{`{{/is_alert}}`}}
+      tags:
+        - "env:production"
+        - "team:estatewise"
+        - "component:resources"
+      options:
+        thresholds:
+          critical: 80
+          warning: 65
+        notify_no_data: false
+        renotify_interval: 60
+      priority: 3
+
+    # ── Deploy Frequency ──────────────────────────────────────────────────────
+    - name: "[EstateWise] Deployment Frequency"
+      type: event alert
+      query: >
+        events('sources:deployment tags:team:estatewise,source:deployment-control').rollup('count').last('1h') > 10
+      message: |
+        More than 10 deployments in the last hour — possible deploy storm.
+        {{ .Values.datadog.monitors.notifyChannel }}
+      tags:
+        - "env:production"
+        - "team:estatewise"
+        - "component:deployments"
+      options:
+        thresholds:
+          critical: 10
+        notify_no_data: false
+        renotify_interval: 60
+      priority: 3
+
+    # ── Deploy Duration ───────────────────────────────────────────────────────
+    - name: "[EstateWise] Deploy Duration High"
+      type: metric alert
+      query: >
+        avg(last_5m):
+          avg:estatewise.deploy.duration_seconds{env:production,source:deployment-control}
+        > 600
+      message: |
+        Average deploy duration exceeds 10 minutes ({{`{{value}}`}}s).
+        {{ .Values.datadog.monitors.notifyChannel }}
+      tags:
+        - "env:production"
+        - "team:estatewise"
+        - "component:deployments"
+      options:
+        thresholds:
+          critical: 600
+          warning: 300
+        notify_no_data: false
+        renotify_interval: 60
+      priority: 3
+{{- end }}
