@@ -29,6 +29,8 @@ This document describes the comprehensive end-to-end architecture for EstateWise
 ![Prometheus](https://img.shields.io/badge/Prometheus-E6512D?style=for-the-badge&logo=prometheus&logoColor=white)
 ![Grafana](https://img.shields.io/badge/Grafana-F46800?style=for-the-badge&logo=grafana&logoColor=white)
 ![Datadog](https://img.shields.io/badge/Datadog-632CA6?style=for-the-badge&logo=datadog&logoColor=white)
+![SonarQube](https://img.shields.io/badge/SonarQube-4E9BCD?style=for-the-badge&logo=sonarqube&logoColor=white)
+![Snyk](https://img.shields.io/badge/Snyk-4C4A73?style=for-the-badge&logo=snyk&logoColor=white)
 ![Swagger](https://img.shields.io/badge/Swagger-85EA2D?style=for-the-badge&logo=swagger&logoColor=white)
 ![Postman](https://img.shields.io/badge/Postman-FF6C37?style=for-the-badge&logo=postman&logoColor=white)
 ![Husky](https://img.shields.io/badge/Husky-6C6C6C?style=for-the-badge&logo=apachekylin&logoColor=white)
@@ -38,7 +40,7 @@ This document describes the comprehensive end-to-end architecture for EstateWise
 ![Jest](https://img.shields.io/badge/Jest-C21325?style=for-the-badge&logo=jest&logoColor=white)
 ![Selenium WebDriver](https://img.shields.io/badge/Selenium%20WebDriver-43B02A?style=for-the-badge&logo=selenium&logoColor=white)
 ![Cypress](https://img.shields.io/badge/Cypress-17202C?style=for-the-badge&logo=cypress&logoColor=white)
-![VS Code Extension](https://img.shields.io/badge/VS%20Code%20Extension-007ACC?style=for-the-badge&logo=gitextensions&logoColor=white) 
+![VS Code Extension](https://img.shields.io/badge/VS%20Code%20Extension-007ACC?style=for-the-badge&logo=gitextensions&logoColor=white)
 ![Neo4j](https://img.shields.io/badge/Neo4j-008CC1?style=for-the-badge&logo=neo4j&logoColor=white)
 ![Leaflet](https://img.shields.io/badge/Leaflet-199900?style=for-the-badge&logo=leaflet&logoColor=white)
 ![MCP](https://img.shields.io/badge/MCP-Model%20Context%20Protocol-6E56CF?style=for-the-badge&logo=modelcontextprotocol&logoColor=white)
@@ -124,6 +126,7 @@ This document describes the comprehensive end-to-end architecture for EstateWise
 - [Security Architecture](#security-architecture)
   - [Defense in Depth](#defense-in-depth)
   - [Secret Management](#secret-management)
+  - [Code Quality \& Security Scanning](#code-quality--security-scanning)
 - [Monitoring \& Observability](#monitoring--observability)
   - [Metrics Collection](#metrics-collection)
   - [Datadog Observability Stack](#datadog-observability-stack)
@@ -1882,6 +1885,50 @@ flowchart LR
   GHSecrets --> Azure_KV
   GHSecrets --> GCP_SM
 ```
+
+### Code Quality & Security Scanning
+
+EstateWise enforces continuous code quality via **SonarQube** and multi-layer vulnerability scanning via **Snyk** across the entire CI/CD pipeline.
+
+```mermaid
+flowchart TB
+  subgraph "Static Analysis"
+    SQ[SonarQube Scanner]
+    QG[Quality Gate<br/>Bugs · Smells · Debt · Coverage]
+  end
+
+  subgraph "Snyk Security Layers"
+    SCA[SCA<br/>Dependency Vulns]
+    SAST[Code SAST<br/>Source Analysis]
+    IMG[Container Scan<br/>Image CVEs]
+    IAC[IaC Scan<br/>Terraform · K8s · Helm]
+  end
+
+  Code[Source Code] --> SQ --> QG
+  Code --> SCA
+  Code --> SAST
+  Images[Docker Images] --> IMG
+  Infra[IaC Files] --> IAC
+
+  QG -->|Pass| CI[CI Pipeline Continues]
+  SCA -->|No High/Critical| CI
+  SAST -->|No High/Critical| CI
+  IMG -->|No High/Critical| CI
+  IAC -->|No High/Critical| CI
+```
+
+**SonarQube** is configured as a multi-module project (`sonar-project.properties`) scanning all 7 services with per-module source/test/exclusion paths. A local SonarQube 10 Community server is available via `docker compose -f docker/compose.sonarqube.yml up -d`.
+
+**Snyk** provides four scanning dimensions:
+
+| Layer | Target | Trigger |
+|-------|--------|---------|
+| SCA | `package.json` dependency trees | Every CI build |
+| Code SAST | TypeScript/JavaScript source | Every CI build |
+| Container | Built Docker images (OS + app layers) | Post-build stage |
+| IaC | Terraform, Kubernetes, Helm, Docker Compose | Every CI build |
+
+Per-service policies in `.snyk.d/` allow granular ignore/patch rules. Both tools gate Jenkins and CodeBuild pipelines — builds fail on quality gate violations or critical vulnerabilities.
 
 ## Monitoring & Observability
 

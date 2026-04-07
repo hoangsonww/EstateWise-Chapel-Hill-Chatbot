@@ -27,6 +27,9 @@ Large Language Models (LLMs), a Mixture‑of‑Experts ensemble, blue/green & ca
 - [Project Structure](#project-structure)
 - [Dockerization](#dockerization)
 - [Monitoring \& Visualizations](#monitoring--visualizations)
+  - [Prometheus](#prometheus)
+  - [Datadog Observability](#datadog-observability)
+  - [Security Scanning (SonarQube \& Snyk)](#security-scanning-sonarqube--snyk)
 - [CI/CD Pipelines](#cicd-pipelines)
 - [MCP Server](#mcp-server)
 - [Agentic AI Pipeline](#agentic-ai-pipeline)
@@ -84,6 +87,8 @@ _Feel free to use the app as a guest or sign up for an account to save your conv
 ![Prometheus](https://img.shields.io/badge/Prometheus-E6512D?style=for-the-badge&logo=prometheus&logoColor=white)
 ![Grafana](https://img.shields.io/badge/Grafana-F46800?style=for-the-badge&logo=grafana&logoColor=white)
 ![Datadog](https://img.shields.io/badge/Datadog-632CA6?style=for-the-badge&logo=datadog&logoColor=white)
+![SonarQube](https://img.shields.io/badge/SonarQube-4E9BCD?style=for-the-badge&logo=sonarqube&logoColor=white)
+![Snyk](https://img.shields.io/badge/Snyk-4C4A73?style=for-the-badge&logo=snyk&logoColor=white)
 ![Swagger](https://img.shields.io/badge/Swagger-85EA2D?style=for-the-badge&logo=swagger&logoColor=white)
 ![Postman](https://img.shields.io/badge/Postman-FF6C37?style=for-the-badge&logo=postman&logoColor=white)
 ![Husky](https://img.shields.io/badge/Husky-6C6C6C?style=for-the-badge&logo=apachekylin&logoColor=white)
@@ -1324,6 +1329,68 @@ helm upgrade --install estatewise ./helm/estatewise \
 ```
 
 For full setup instructions, architecture details, and runbooks, see 📘 [docs/datadog-integration.md](docs/datadog-integration.md).
+
+### Security Scanning (SonarQube & Snyk)
+
+EstateWise integrates **SonarQube** for continuous code quality analysis and **Snyk** for dependency, container, code (SAST), and infrastructure-as-code (IaC) vulnerability scanning.
+
+```mermaid
+flowchart LR
+  subgraph Quality["Code Quality"]
+    SQ[SonarQube]
+    QG[Quality Gate]
+  end
+
+  subgraph Security["Vulnerability Scanning"]
+    SCA[Snyk SCA<br/>Dependencies]
+    SAST[Snyk Code<br/>SAST]
+    Container[Snyk Container<br/>Docker Images]
+    IaC[Snyk IaC<br/>Terraform / K8s / Helm]
+  end
+
+  Code["Source Code"] --> SQ --> QG
+  Code --> SCA
+  Code --> SAST
+  Docker["Docker Images"] --> Container
+  Infra["IaC Files"] --> IaC
+
+  QG -->|Pass| Deploy["Deploy"]
+  SCA -->|No Critical| Deploy
+  SAST -->|No Critical| Deploy
+  Container -->|No Critical| Deploy
+  IaC -->|No Critical| Deploy
+```
+
+**SonarQube** — multi-module analysis across all 7 services (`sonar-project.properties`):
+
+| Feature | Detail |
+|---------|--------|
+| Modules | `backend`, `frontend`, `grpc`, `mcp`, `agentic-ai`, `deployment-control`, `context-engineering` |
+| Quality Gate | Enforced — build breaks on new code quality violations |
+| Coverage | TypeScript LCOV reports per module |
+| Local Server | `docker compose -f docker/compose.sonarqube.yml up -d` |
+
+**Snyk** — four scan layers with configurable severity threshold:
+
+| Scan Type | Command | Scope |
+|-----------|---------|-------|
+| SCA (Dependencies) | `make snyk` | All `package.json` files |
+| Code SAST | `snyk code test` | Source-level vulnerability patterns |
+| Container | `make snyk-container` | Docker image OS + app layer CVEs |
+| IaC | `make snyk-iac` | Terraform, Kubernetes, Helm, Docker Compose misconfigs |
+
+```bash
+# Run all security scans
+make security
+
+# Individual scans
+make sonar          # SonarQube analysis + quality gate
+make snyk           # Snyk SCA across all packages
+make snyk-container # Container image scanning
+make snyk-iac       # Infrastructure-as-code scanning
+```
+
+Both tools are integrated into **Jenkins** (`jenkins/workflow.Jenkinsfile`) and **AWS CodeBuild** (`buildspec.yml`). Per-service Snyk policies live in `.snyk` (root) and `.snyk.d/` (overrides).
 
 ## CI/CD Pipelines
 

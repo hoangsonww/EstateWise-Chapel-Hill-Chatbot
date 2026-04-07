@@ -15,7 +15,7 @@
   <img src="https://img.shields.io/badge/Grafana-Observability-F46800?logo=grafana&logoColor=white" alt="Grafana"/>
   <img src="https://img.shields.io/badge/Datadog-APM_%7C_Monitors_%7C_SLOs-632CA6?logo=datadog&logoColor=white" alt="Datadog"/>
   <img src="https://img.shields.io/badge/Trivy-Security-blue?logo=aquasecurity&logoColor=white" alt="Trivy"/>
-  <img src="https://img.shields.io/badge/SonarQube-Quality_Gate-4E9BCD?logo=sonarqube&logoColor=white" alt="SonarQube"/>
+  <img src="https://img.shields.io/badge/SonarQube-Quality_Gate-4E9BCD?logo=sonarqubecloud&logoColor=white" alt="SonarQube"/>
   <img src="https://img.shields.io/badge/Snyk-Security-4C4A73?logo=snyk&logoColor=white" alt="Snyk"/>
   <img src="https://img.shields.io/badge/Artillery-Load_Testing-F05A28?logo=artillery&logoColor=white" alt="Artillery"/>
   <img src="https://img.shields.io/badge/GitHub-Actions-CF222E?logo=github-actions&logoColor=white" alt="GitHub Actions"/>

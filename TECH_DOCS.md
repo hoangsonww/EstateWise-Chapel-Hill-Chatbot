@@ -31,6 +31,8 @@ Below, we outline the architecture, key components, and challenges faced during 
 ![Prometheus](https://img.shields.io/badge/Prometheus-E6512D?style=for-the-badge&logo=prometheus&logoColor=white)
 ![Grafana](https://img.shields.io/badge/Grafana-F46800?style=for-the-badge&logo=grafana&logoColor=white)
 ![Datadog](https://img.shields.io/badge/Datadog-632CA6?style=for-the-badge&logo=datadog&logoColor=white)
+![SonarQube](https://img.shields.io/badge/SonarQube-4E9BCD?style=for-the-badge&logo=sonarqube&logoColor=white)
+![Snyk](https://img.shields.io/badge/Snyk-4C4A73?style=for-the-badge&logo=snyk&logoColor=white)
 ![Swagger](https://img.shields.io/badge/Swagger-85EA2D?style=for-the-badge&logo=swagger&logoColor=white)
 ![Postman](https://img.shields.io/badge/Postman-FF6C37?style=for-the-badge&logo=postman&logoColor=white)
 ![Husky](https://img.shields.io/badge/Husky-6C6C6C?style=for-the-badge&logo=apachekylin&logoColor=white)
@@ -40,7 +42,7 @@ Below, we outline the architecture, key components, and challenges faced during 
 ![Jest](https://img.shields.io/badge/Jest-C21325?style=for-the-badge&logo=jest&logoColor=white)
 ![Selenium WebDriver](https://img.shields.io/badge/Selenium%20WebDriver-43B02A?style=for-the-badge&logo=selenium&logoColor=white)
 ![Cypress](https://img.shields.io/badge/Cypress-17202C?style=for-the-badge&logo=cypress&logoColor=white)
-![VS Code Extension](https://img.shields.io/badge/VS%20Code%20Extension-007ACC?style=for-the-badge&logo=gitextensions&logoColor=white) 
+![VS Code Extension](https://img.shields.io/badge/VS%20Code%20Extension-007ACC?style=for-the-badge&logo=gitextensions&logoColor=white)
 ![Neo4j](https://img.shields.io/badge/Neo4j-008CC1?style=for-the-badge&logo=neo4j&logoColor=white)
 ![Leaflet](https://img.shields.io/badge/Leaflet-199900?style=for-the-badge&logo=leaflet&logoColor=white)
 ![MCP](https://img.shields.io/badge/MCP-Model%20Context%20Protocol-6E56CF?style=for-the-badge&logo=modelcontextprotocol&logoColor=white)
@@ -134,6 +136,8 @@ Below, we outline the architecture, key components, and challenges faced during 
   - [10.2 Production Kubernetes Manifests](#102-production-kubernetes-manifests)
   - [10.3 Multi-Cloud Deployment Options](#103-multi-cloud-deployment-options)
   - [10.4 CI/CD Pipeline (Enhanced Jenkins)](#104-cicd-pipeline-enhanced-jenkins)
+    - [SonarQube Code Quality](#sonarqube-code-quality)
+    - [Snyk Vulnerability Scanning](#snyk-vulnerability-scanning)
   - [10.5 Monitoring \& Observability](#105-monitoring--observability)
     - [Prometheus Metrics](#prometheus-metrics)
     - [Grafana Dashboards](#grafana-dashboards)
@@ -158,6 +162,7 @@ Below, we outline the architecture, key components, and challenges faced during 
   - [12.2 Monitoring](#122-monitoring)
   - [12.3 Visualization](#123-visualization)
   - [12.4 Datadog APM \& Monitors](#124-datadog-apm--monitors)
+  - [12.5 SonarQube \& Snyk Integration](#125-sonarqube--snyk-integration)
 - [13. GitHub Actions CI/CD Pipeline](#13-github-actions-cicd-pipeline)
   - [13.1 Workflow Configuration](#131-workflow-configuration)
   - [13.2 Configuring Secrets](#132-configuring-secrets)
@@ -1096,6 +1101,58 @@ pipeline {
 3. **Trufflehog** – Secret scanning
 4. **Trivy** – Container image vulnerabilities
 5. **Dockle** – Container best practices
+6. **SonarQube** – Continuous code quality analysis (bugs, code smells, technical debt, coverage)
+7. **Snyk SCA** – Open-source dependency vulnerability scanning
+8. **Snyk Code** – Static application security testing (SAST)
+9. **Snyk Container** – Docker image OS + application layer CVE scanning
+10. **Snyk IaC** – Infrastructure-as-code misconfiguration detection (Terraform, K8s, Helm, Docker Compose)
+
+#### SonarQube Code Quality
+
+SonarQube is configured as a multi-module project via `sonar-project.properties`, scanning all 7 services:
+
+| Module | Sources | Tests |
+|--------|---------|-------|
+| `backend` | `src/` | `tests/` |
+| `frontend` | `pages/`, `components/`, `lib/`, `server/` | `__tests__/` |
+| `grpc` | `src/` | `src/**/*.test.ts` |
+| `mcp` | `src/` | – |
+| `agentic-ai` | `src/` | `src/**/*.test.ts` |
+| `deployment-control` | `src/` | – |
+| `context-engineering` | `src/` | – |
+
+Quality gate enforcement breaks CI on new code violations. A local SonarQube server is available:
+
+```bash
+docker compose -f docker/compose.sonarqube.yml up -d   # SonarQube 10 + Postgres 16
+make sonar                                               # Run analysis + wait for gate
+```
+
+#### Snyk Vulnerability Scanning
+
+Snyk provides four scanning layers with configurable severity threshold (`--severity-threshold=high`):
+
+```mermaid
+flowchart LR
+  subgraph Snyk["Snyk Scanning Layers"]
+    SCA["SCA<br/>Dependencies"]
+    Code["Code SAST<br/>Source Patterns"]
+    Container["Container<br/>Docker Images"]
+    IaC["IaC<br/>Terraform · K8s · Helm"]
+  end
+
+  PkgJSON["package.json"] --> SCA
+  Source["TypeScript Source"] --> Code
+  Images["Docker Images"] --> Container
+  Infra["IaC Files"] --> IaC
+
+  SCA --> Report["Security Reports"]
+  Code --> Report
+  Container --> Report
+  IaC --> Report
+```
+
+Per-service Snyk policies live in `.snyk` (root) and `.snyk.d/` (per-service overrides). Both tools are integrated into Jenkins and AWS CodeBuild pipelines.
 
 ### 10.5 Monitoring & Observability
 
@@ -1386,6 +1443,48 @@ We use Winston for logging in the backend. The logging system is configured to l
   - Embedding generation times
   - Database query times
   - And more…
+
+### 12.4 Datadog APM & Monitors
+
+Datadog augments the Prometheus + Grafana stack with full-stack APM, centralized log management, and proactive monitoring:
+
+- **APM Distributed Tracing** – Automatic trace propagation across all services (backend, gRPC, MCP, agentic-ai) via `dd-trace`
+- **Log Management** – Centralized logs with automatic trace ↔ log correlation (`DD_LOGS_INJECTION=true`)
+- **17 Production Monitors** – Error rate, P95/P99 latency, pod crash loops, memory/CPU thresholds, ALB 5xx, ECS task failures, deploy frequency/duration
+- **SLOs** – 30-day availability (99.9%) and latency (P95 < 500ms) objectives with burn-rate alerts
+- **Synthetic Checks** – Multi-location HTTP health probes against `/api/health` every 5 minutes
+- **DogStatsD Custom Metrics** – Deploy events, counters, and histograms from `deployment-control`
+
+See 📘 [docs/datadog-integration.md](docs/datadog-integration.md) for architecture, setup, and runbooks.
+
+### 12.5 SonarQube & Snyk Integration
+
+**SonarQube** provides continuous inspection of code quality across all 7 monorepo modules:
+
+- Multi-module config in `sonar-project.properties` with per-module source, test, and exclusion paths
+- Quality gate enforcement — CI builds break on new bugs, code smells, or coverage regressions
+- Local development server via `docker compose -f docker/compose.sonarqube.yml up -d`
+
+**Snyk** provides four layers of security scanning:
+
+```mermaid
+flowchart LR
+  SCA["SCA<br/>Dependency Vulns"] --> Gate{Severity Gate}
+  SAST["Code SAST<br/>Source Patterns"] --> Gate
+  Container["Container Scan<br/>Docker Image CVEs"] --> Gate
+  IaC["IaC Scan<br/>Terraform · K8s · Helm"] --> Gate
+  Gate -->|Pass| Deploy["Deploy"]
+  Gate -->|Fail| Block["Block Pipeline"]
+```
+
+| Scan Type | Tool | Scope |
+|-----------|------|-------|
+| Dependency SCA | `snyk test` | All `package.json` dependency trees |
+| Code SAST | `snyk code test` | TypeScript/JavaScript source patterns |
+| Container | `snyk container test` | Docker image OS + app layer CVEs |
+| IaC | `snyk iac test` | Terraform, Kubernetes, Helm, Docker Compose |
+
+Per-service policies in `.snyk` (root) and `.snyk.d/` (overrides) control ignore/patch rules. Both tools gate Jenkins and AWS CodeBuild pipelines.
 
 ---
 
@@ -1916,6 +2015,12 @@ The following environment variables are required for the application to function
 | `DD_ENV` | Environment tag (e.g. `production`, `staging`) |
 | `DD_VERSION` | Deployed version for trace/log correlation |
 | `DD_LOGS_INJECTION` | Enable automatic log ↔ trace correlation (`true`) |
+| `SONAR_HOST_URL` | SonarQube server URL (default: `http://localhost:9000`) |
+| `SONAR_TOKEN` | SonarQube authentication token for CI analysis |
+| `SONAR_PROJECT_KEY` | SonarQube project key (default: `estatewise`) |
+| `SNYK_TOKEN` | Snyk API token for CLI and CI scanning |
+| `SNYK_ORG` | Snyk organization ID for `snyk monitor` reports |
+| `SNYK_SEVERITY_THRESHOLD` | Minimum severity to fail builds (`low`, `medium`, `high`, `critical`) |
 
 ### B. AI/ML Flow Chart
 
