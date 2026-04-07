@@ -1,0 +1,298 @@
+{{- if and .Values.datadog.enabled .Values.datadog.clusterAgent.enabled }}
+# ---------------------------------------------------------------------------
+# Datadog Cluster Agent — Deployment, ClusterRole, ClusterRoleBinding, Service
+# ---------------------------------------------------------------------------
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ include "estatewise.fullname" . }}-datadog-cluster-agent
+  namespace: {{ include "estatewise.namespace" . }}
+  labels:
+    {{- include "estatewise.labels" . | nindent 4 }}
+    app.kubernetes.io/component: datadog-cluster-agent
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "estatewise.fullname" . }}-datadog-cluster-agent
+  labels:
+    {{- include "estatewise.labels" . | nindent 4 }}
+    app.kubernetes.io/component: datadog-cluster-agent
+rules:
+  # Core API group — read-only cluster-wide view
+  - apiGroups: [""]
+    resources:
+      - pods
+      - pods/log
+      - services
+      - endpoints
+      - nodes
+      - nodes/metrics
+      - nodes/spec
+      - namespaces
+      - events
+      - componentstatuses
+      - replicationcontrollers
+      - persistentvolumes
+      - persistentvolumeclaims
+      - resourcequotas
+      - serviceaccounts
+      - limitranges
+      - configmaps
+    verbs: ["get", "list", "watch"]
+  # Apps — workload topology
+  - apiGroups: ["apps"]
+    resources:
+      - deployments
+      - replicasets
+      - statefulsets
+      - daemonsets
+    verbs: ["get", "list", "watch"]
+  # Batch — job / cronjob tracking
+  - apiGroups: ["batch"]
+    resources:
+      - jobs
+      - cronjobs
+    verbs: ["get", "list", "watch"]
+  # Autoscaling — HPA metrics server integration
+  - apiGroups: ["autoscaling"]
+    resources:
+      - horizontalpodautoscalers
+    verbs: ["get", "list", "watch", "update", "patch"]
+  # External metrics — required for cluster-checks and HPA custom metrics
+  - apiGroups: ["external.metrics.k8s.io"]
+    resources: ["*"]
+    verbs: ["get", "list"]
+  # Custom metrics API
+  - apiGroups: ["custom.metrics.k8s.io"]
+    resources: ["*"]
+    verbs: ["get", "list"]
+  # Admission controller — mutate pods to inject DD env vars / APM lib
+  {{- if .Values.datadog.clusterAgent.admissionController.enabled }}
+  - apiGroups: ["admissionregistration.k8s.io"]
+    resources:
+      - mutatingwebhookconfigurations
+      - validatingwebhookconfigurations
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  {{- end }}
+  # Policy resources
+  - apiGroups: ["policy"]
+    resources:
+      - poddisruptionbudgets
+    verbs: ["get", "list", "watch"]
+  # Storage
+  - apiGroups: ["storage.k8s.io"]
+    resources:
+      - storageclasses
+      - volumeattachments
+    verbs: ["get", "list", "watch"]
+  # Networking
+  - apiGroups: ["networking.k8s.io"]
+    resources:
+      - ingresses
+      - networkpolicies
+    verbs: ["get", "list", "watch"]
+  # RBAC introspection
+  - apiGroups: ["rbac.authorization.k8s.io"]
+    resources:
+      - roles
+      - rolebindings
+      - clusterroles
+      - clusterrolebindings
+    verbs: ["get", "list", "watch"]
+  # Metrics server
+  - nonResourceURLs:
+      - "/metrics"
+      - "/version"
+      - "/healthz"
+      - "/livez"
+      - "/readyz"
+    verbs: ["get"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "estatewise.fullname" . }}-datadog-cluster-agent
+  labels:
+    {{- include "estatewise.labels" . | nindent 4 }}
+    app.kubernetes.io/component: datadog-cluster-agent
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "estatewise.fullname" . }}-datadog-cluster-agent
+    namespace: {{ include "estatewise.namespace" . }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "estatewise.fullname" . }}-datadog-cluster-agent
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "estatewise.fullname" . }}-datadog-cluster-agent
+  namespace: {{ include "estatewise.namespace" . }}
+  labels:
+    {{- include "estatewise.labels" . | nindent 4 }}
+    app.kubernetes.io/component: datadog-cluster-agent
+spec:
+  replicas: {{ .Values.datadog.clusterAgent.replicas }}
+  selector:
+    matchLabels:
+      app: {{ include "estatewise.fullname" . }}-datadog-cluster-agent
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        app: {{ include "estatewise.fullname" . }}-datadog-cluster-agent
+        {{- include "estatewise.labels" . | nindent 8 }}
+        app.kubernetes.io/component: datadog-cluster-agent
+      annotations:
+        checksum/secret: {{ include "estatewise.fullname" . | sha256sum }}
+    spec:
+      serviceAccountName: {{ include "estatewise.fullname" . }}-datadog-cluster-agent
+      # The cluster agent does not require elevated host privileges
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: datadog-cluster-agent
+          image: "{{ .Values.datadog.clusterAgent.image.repository }}:{{ .Values.datadog.clusterAgent.image.tag }}"
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          ports:
+            - name: cluster-agent
+              containerPort: 5005
+              protocol: TCP
+            {{- if .Values.datadog.clusterAgent.externalMetrics.enabled }}
+            - name: ext-metrics
+              containerPort: 8443
+              protocol: TCP
+            {{- end }}
+          env:
+            # ---- Credentials ----
+            - name: DD_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.datadog.apiKeySecret }}
+                  key: api-key
+            - name: DD_APP_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.datadog.appKeySecret }}
+                  key: app-key
+            # ---- Shared token used by node agents to authenticate ----
+            - name: DD_CLUSTER_AGENT_AUTH_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.datadog.apiKeySecret }}
+                  key: cluster-agent-token
+            # ---- Cluster identity ----
+            - name: DD_CLUSTER_NAME
+              value: {{ .Values.datadog.clusterName | quote }}
+            - name: DD_SITE
+              value: {{ .Values.datadog.site | quote }}
+            # ---- Global tags ----
+            - name: DD_TAGS
+              value: {{ join " " .Values.datadog.tags | quote }}
+            # ---- Feature flags ----
+            - name: DD_CLUSTER_CHECKS_ENABLED
+              value: {{ .Values.datadog.clusterAgent.clusterChecks.enabled | quote }}
+            {{- if .Values.datadog.clusterAgent.admissionController.enabled }}
+            - name: DD_ADMISSION_CONTROLLER_ENABLED
+              value: "true"
+            - name: DD_ADMISSION_CONTROLLER_MUTATE_UNLABELLED
+              value: {{ .Values.datadog.clusterAgent.admissionController.mutateUnlabelled | quote }}
+            - name: DD_ADMISSION_CONTROLLER_SERVICE_NAME
+              value: {{ include "estatewise.fullname" . }}-datadog-cluster-agent-admission
+            {{- end }}
+            {{- if .Values.datadog.clusterAgent.externalMetrics.enabled }}
+            - name: DD_EXTERNAL_METRICS_PROVIDER_ENABLED
+              value: "true"
+            - name: DD_EXTERNAL_METRICS_PROVIDER_PORT
+              value: "8443"
+            {{- end }}
+            # ---- Health probe port ----
+            - name: DD_HEALTH_PORT
+              value: "5556"
+            # ---- Log level ----
+            - name: DD_LOG_LEVEL
+              value: "INFO"
+            # ---- Kubernetes labels → DD tags ----
+            - name: DD_KUBERNETES_POD_LABELS_AS_TAGS
+              value: '{"app.kubernetes.io/name":"kube_app_name","app.kubernetes.io/component":"kube_component","app.kubernetes.io/version":"kube_app_version"}'
+          livenessProbe:
+            httpGet:
+              path: /live
+              port: 5556
+            initialDelaySeconds: 15
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 6
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 5556
+            initialDelaySeconds: 15
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 6
+          resources:
+            {{- toYaml .Values.datadog.clusterAgent.resources | nindent 12 }}
+
+---
+# Main service — node agents connect on port 5005
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "estatewise.fullname" . }}-datadog-cluster-agent
+  namespace: {{ include "estatewise.namespace" . }}
+  labels:
+    {{- include "estatewise.labels" . | nindent 4 }}
+    app.kubernetes.io/component: datadog-cluster-agent
+spec:
+  selector:
+    app: {{ include "estatewise.fullname" . }}-datadog-cluster-agent
+  type: ClusterIP
+  ports:
+    - name: cluster-agent
+      port: 5005
+      targetPort: cluster-agent
+      protocol: TCP
+    {{- if .Values.datadog.clusterAgent.externalMetrics.enabled }}
+    - name: ext-metrics
+      port: 8443
+      targetPort: ext-metrics
+      protocol: TCP
+    {{- end }}
+
+{{- if .Values.datadog.clusterAgent.admissionController.enabled }}
+---
+# Dedicated service for the admission controller webhook endpoint.
+# cert-manager or the cluster agent itself manages the TLS cert.
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "estatewise.fullname" . }}-datadog-cluster-agent-admission
+  namespace: {{ include "estatewise.namespace" . }}
+  labels:
+    {{- include "estatewise.labels" . | nindent 4 }}
+    app.kubernetes.io/component: datadog-cluster-agent-admission
+spec:
+  selector:
+    app: {{ include "estatewise.fullname" . }}-datadog-cluster-agent
+  type: ClusterIP
+  ports:
+    - name: admission
+      port: 443
+      targetPort: 8000
+      protocol: TCP
+{{- end }}
+{{- end }}

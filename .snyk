@@ -1,0 +1,13 @@
+# Snyk Policy File — EstateWise Monorepo
+# https://snyk.io/docs/using-snyk-policy-files/
+#
+# This file defines vulnerability ignore rules and patch policies for Snyk.
+# Only ignore vulnerabilities that have been reviewed and accepted.
+version: v1.25.0
+
+# Ignore rules for known acceptable vulnerabilities.
+# Each entry must include a reason and an expiry date for periodic re-review.
+ignore: {}
+
+# Patch rules for vulnerabilities that have available patches.
+patch: {}

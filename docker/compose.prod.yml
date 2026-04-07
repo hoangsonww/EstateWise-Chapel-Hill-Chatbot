@@ -28,12 +28,23 @@ services:
       PORT: 3001
       MONGO_URI: ${MONGO_URI:-mongodb://mongo:27017/estatewise}
       NEO4J_ENABLE: ${NEO4J_ENABLE:-false}
+      DD_AGENT_HOST: datadog-agent
+      DD_TRACE_AGENT_PORT: "8126"
+      DD_SERVICE: estatewise-backend
+      DD_ENV: production
+      DD_VERSION: ${BACKEND_VERSION:-latest}
+      DD_LOGS_INJECTION: "true"
     depends_on:
       mongo:
         condition: service_healthy
     expose:
       - "3001"
     restart: unless-stopped
+    labels:
+      com.datadoghq.ad.check_names: '["http_check"]'
+      com.datadoghq.ad.init_configs: "[{}]"
+      com.datadoghq.ad.instances: '[{"name":"backend-health","url":"http://%%host%%:3001/health","timeout":5}]'
+      com.datadoghq.ad.logs: '[{"source":"nodejs","service":"estatewise-backend"}]'
     networks:
       - estatewise
 
@@ -48,12 +59,20 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3000
+      DD_AGENT_HOST: datadog-agent
+      DD_TRACE_AGENT_PORT: "8126"
+      DD_SERVICE: estatewise-frontend
+      DD_ENV: production
+      DD_VERSION: ${FRONTEND_VERSION:-latest}
+      DD_LOGS_INJECTION: "true"
     depends_on:
       backend:
         condition: service_healthy
     expose:
       - "3000"
     restart: unless-stopped
+    labels:
+      com.datadoghq.ad.logs: '[{"source":"nextjs","service":"estatewise-frontend"}]'
     networks:
       - estatewise
 
@@ -94,12 +113,20 @@ services:
       MAX_AGENT_ITERATIONS: ${MAX_AGENT_ITERATIONS:-10}
       MAX_CONCURRENT_AGENTS: ${MAX_CONCURRENT_AGENTS:-3}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      DD_AGENT_HOST: datadog-agent
+      DD_TRACE_AGENT_PORT: "8126"
+      DD_SERVICE: estatewise-agentic-ai
+      DD_ENV: production
+      DD_VERSION: ${AGENTIC_VERSION:-latest}
+      DD_LOGS_INJECTION: "true"
     depends_on:
       backend:
         condition: service_healthy
     ports:
       - "${AGENTIC_PORT:-4318}:4318"
     restart: unless-stopped
+    labels:
+      com.datadoghq.ad.logs: '[{"source":"nodejs","service":"estatewise-agentic-ai"}]'
     networks:
       - estatewise
 
@@ -118,6 +145,44 @@ services:
       - "6379"
     volumes:
       - redis-data:/data
+    networks:
+      - estatewise
+
+  datadog-agent:
+    image: gcr.io/datadoghq/agent:7
+    profiles: ["monitoring"]
+    restart: unless-stopped
+    environment:
+      DD_API_KEY: ${DD_API_KEY:-}
+      DD_SITE: ${DD_SITE:-datadoghq.com}
+      DD_APM_ENABLED: "true"
+      DD_APM_NON_LOCAL_TRAFFIC: "true"
+      DD_LOGS_ENABLED: "true"
+      DD_LOGS_CONFIG_CONTAINER_COLLECT_ALL: "true"
+      DD_PROCESS_AGENT_ENABLED: "true"
+      DD_DOGSTATSD_NON_LOCAL_TRAFFIC: "true"
+      DD_CONTAINER_EXCLUDE: "name:datadog-agent"
+      DD_TAGS: "env:production team:estatewise service:estatewise"
+      DD_AC_EXCLUDE: "name:datadog-agent"
+      DD_DOCKER_LABELS_AS_TAGS: '{"com.docker.compose.service":"compose_service"}'
+      DD_DOCKER_ENV_AS_TAGS: '{"NODE_ENV":"node_env"}'
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /proc/:/host/proc/:ro
+      - /sys/fs/cgroup/:/host/sys/fs/cgroup:ro
+      - /opt/datadog-agent/run:/opt/datadog-agent/run:rw
+      - datadog-data:/var/lib/datadog-agent
+    ports:
+      - "${DD_DOGSTATSD_PORT:-8125}:8125/udp"
+      - "${DD_APM_PORT:-8126}:8126/tcp"
+    healthcheck:
+      test: ["CMD-SHELL", "agent health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    labels:
+      com.datadoghq.ad.logs: '[{"source":"datadog-agent","service":"datadog"}]'
     networks:
       - estatewise
 
@@ -149,3 +214,4 @@ volumes:
   neo4j-data:
   neo4j-logs:
   redis-data:
+  datadog-data:

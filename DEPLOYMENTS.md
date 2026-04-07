@@ -1,5 +1,18 @@
 # EstateWise Deployment Reference
 
+![Datadog](https://img.shields.io/badge/Datadog-632CA6?style=for-the-badge&logo=datadog&logoColor=white)
+![SonarQube](https://img.shields.io/badge/SonarQube-4E9BCD?style=for-the-badge&logo=sonarqubecloud&logoColor=white)
+![Snyk](https://img.shields.io/badge/Snyk-4C4A73?style=for-the-badge&logo=snyk&logoColor=white)
+![Terraform](https://img.shields.io/badge/Terraform-623CE4?style=for-the-badge&logo=terraform&logoColor=white)
+![Helm](https://img.shields.io/badge/Helm-0F1689?style=for-the-badge&logo=helm&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
+![Kubernetes](https://img.shields.io/badge/Kubernetes-326CE5?style=for-the-badge&logo=kubernetes&logoColor=white)
+![Jenkins](https://img.shields.io/badge/Jenkins-D24939?style=for-the-badge&logo=jenkins&logoColor=white)
+![AWS](https://img.shields.io/badge/AWS-232F3E?style=for-the-badge&logo=task&logoColor=white)
+![Azure](https://img.shields.io/badge/Azure-0078D4?style=for-the-badge&logo=microsoftazure&logoColor=white)
+![GCP](https://img.shields.io/badge/GCP-4285F4?style=for-the-badge&logo=googlecloud&logoColor=white)
+![OCI](https://img.shields.io/badge/Oracle_Cloud-000000?style=for-the-badge&logo=oracle&logoColor=white)
+
 EstateWise ships with five production-grade deployment tracks so you can choose the cloud that best fits your stack:
 
 1. **AWS** – ECS on Fargate behind an ALB with CodePipeline / CodeBuild CI/CD.
@@ -61,6 +74,10 @@ For more information on EstateWise DevOps, CI/CD pipelines, monitoring, and trou
     - [GitLab CI](#gitlab-ci)
     - [Azure DevOps (Optional)](#azure-devops-optional)
   - [Choosing the Right Path](#choosing-the-right-path)
+  - [Datadog Observability](#datadog-observability)
+  - [Security Scanning (SonarQube \& Snyk)](#security-scanning-sonarqube--snyk)
+    - [SonarQube](#sonarqube)
+    - [Snyk](#snyk)
   - [Reference Commands](#reference-commands)
 
 ---
@@ -354,11 +371,13 @@ The `deployment-control/` directory contains a full-featured dashboard for manag
 
 - **Web UI** – Vue 3 + Nuxt 3 frontend with Pinia state management.
 - **API Server** – Express + TypeScript backend handling deployment requests and job tracking.
+- **Datadog Integration** – Deploy events (start/finish) are sent to the Datadog Events API. DogStatsD custom metrics (`deploy.started`, `deploy.finished`, `deploy.success`, `deploy.failure`, `deploy.duration_seconds`) power dashboard widgets and alerting.
 - **Features**:
   - Real-time deployment status and logs
   - Blue-Green and Canary deployment workflows
   - Cluster snapshot and health metrics
   - User notifications and alerts
+  - Datadog deploy event + DogStatsD metric emission
   - TypeScript type safety and accessibility support
   - Hot Module Replacement for rapid development
   - Extensible architecture for future enhancements
@@ -699,6 +718,137 @@ See 📘 [DEVOPS.md](DEVOPS.md) for multi-cloud CI/CD guidance and deployment st
 | Hybrid cloud / service mesh / batch jobs | HashiCorp Terraform + Consul + Nomad |
 | Static-first UI with edge caching | Vercel |
 | Need Kubernetes primitives (HPA, custom CRDs) | HashiCorp + Kubernetes stack |
+| Full-stack observability (APM, logs, monitors, SLOs) | Enable Datadog (any target) |
+| Continuous code quality analysis | SonarQube (Jenkins / CodeBuild) |
+| Dependency, container, IaC vulnerability scanning | Snyk (Jenkins / CodeBuild) |
+
+---
+
+## Datadog Observability
+
+EstateWise ships a production-ready **Datadog** integration that can be enabled across every deployment target.
+
+```mermaid
+flowchart LR
+  subgraph Targets["Deployment Targets"]
+    TF["Terraform<br/>(AWS ECS)"]
+    Helm["Helm<br/>(Kubernetes)"]
+    Docker["Docker Compose<br/>(Local / Staging)"]
+    K8s["Raw K8s<br/>(Manifests)"]
+  end
+
+  subgraph DDStack["Datadog Resources"]
+    Agent["DD Agent<br/>DaemonSet / Sidecar"]
+    Monitors["17 Monitors"]
+    Dashboard["Production Dashboard"]
+    SLOs["Availability + Latency SLOs"]
+    Synthetics["Synthetic Health Checks"]
+    Downtimes["Maintenance Windows"]
+  end
+
+  subgraph Apps["App Services"]
+    BE["Backend"]
+    FE["Frontend"]
+    GRPC["gRPC"]
+    MCP["MCP"]
+    AI["Agentic AI"]
+    DC["Deployment Control"]
+  end
+
+  TF --> Monitors & Dashboard & SLOs & Synthetics & Downtimes
+  Helm --> Agent
+  Docker --> Agent
+  K8s --> Agent
+  Apps -->|"traces + metrics + logs"| Agent
+  DC -->|"DogStatsD deploy metrics"| Agent
+  Agent -->|"HTTPS"| DDStack
+```
+
+### What's Included
+
+| Layer | Config | Highlights |
+|-------|--------|------------|
+| **Terraform** | `terraform/datadog.tf` | 17 monitors (error rate, P95/P99 latency, pod crashes, memory, CPU, ALB 5xx, ECS task failures, deploy frequency/duration), production dashboard (5 widget groups), 30-day SLOs (availability + latency), synthetic multi-location health checks, maintenance downtime schedules |
+| **Helm** | `helm/estatewise/templates/datadog-*.yaml` | Agent DaemonSet, Cluster Agent, monitors ConfigMap, NetworkPolicies (DogStatsD UDP/8125, APM TCP/8126, cluster TCP/5005) |
+| **Docker Compose** | `docker/compose.prod.yml` | `datadog-agent` service with APM + logs + DogStatsD enabled; all app services tagged with DD_SERVICE, DD_ENV, DD_VERSION |
+| **Kubernetes** | `kubernetes/monitoring/datadog-*.yaml` | Standalone agent + monitor manifests for non-Helm clusters |
+| **Deployment Control** | `deployment-control/src/datadog.ts` | Events API (deploy start/finish) + DogStatsD UDP client emitting counters and histograms |
+
+### Quick Enable
+
+```bash
+# Docker Compose (local/staging)
+export DD_API_KEY="your-key"
+docker compose -f docker/compose.prod.yml --profile monitoring up -d
+
+# Helm (Kubernetes)
+helm upgrade --install estatewise ./helm/estatewise \
+  --set datadog.enabled=true \
+  --set datadog.monitors.enabled=true
+
+# Terraform (AWS ECS)
+terraform apply -var='enable_datadog=true' -var='datadog_api_key=YOUR_KEY' \
+  -var='datadog_app_key=YOUR_APP_KEY'
+```
+
+For architecture details, monitor reference, and operational runbooks, see 📘 [docs/datadog-integration.md](docs/datadog-integration.md).
+
+---
+
+## Security Scanning (SonarQube & Snyk)
+
+EstateWise enforces code quality and vulnerability scanning across the entire deployment pipeline using **SonarQube** and **Snyk**.
+
+```mermaid
+flowchart TB
+  subgraph CI["CI/CD Pipeline"]
+    direction LR
+    Lint["Lint & Test"] --> SQ["SonarQube<br/>Quality Gate"]
+    SQ --> SnykSCA["Snyk SCA<br/>Dependencies"]
+    SnykSCA --> SnykSAST["Snyk Code<br/>SAST"]
+    SnykSAST --> Build["Docker Build"]
+    Build --> SnykImg["Snyk Container<br/>Image Scan"]
+    SnykImg --> SnykIaC["Snyk IaC<br/>Terraform · K8s"]
+    SnykIaC --> Deploy["Deploy"]
+  end
+```
+
+### SonarQube
+
+Multi-module project (`sonar-project.properties`) scanning all 7 services with per-module source, test, and exclusion paths. Quality gate is enforced — CI breaks on new bugs, code smells, or coverage regressions.
+
+```bash
+# Start local SonarQube server
+docker compose -f docker/compose.sonarqube.yml up -d
+
+# Run analysis
+make sonar
+```
+
+### Snyk
+
+Four scanning layers with configurable severity threshold:
+
+| Scan Type | Command | What It Scans |
+|-----------|---------|---------------|
+| SCA (Dependencies) | `make snyk` | All `package.json` dependency trees |
+| Code SAST | `snyk code test` | TypeScript/JavaScript source vulnerability patterns |
+| Container | `make snyk-container` | Docker image OS + application layer CVEs |
+| IaC | `make snyk-iac` | Terraform, Kubernetes, Helm, Docker Compose misconfigs |
+
+Per-service policies in `.snyk` (root) and `.snyk.d/` (per-service overrides) control ignore/patch rules.
+
+```bash
+# Run all security scans
+make security
+
+# Individual scans
+make snyk            # SCA across all packages
+make snyk-container  # Container image scanning
+make snyk-iac        # Infrastructure-as-code scanning
+```
+
+Both tools are integrated into **Jenkins** (`jenkins/workflow.Jenkinsfile`) and **AWS CodeBuild** (`buildspec.yml`). See 📘 [DEVOPS.md](DEVOPS.md) for full CI/CD security pipeline details.
 
 ---
 

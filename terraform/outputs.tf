@@ -42,3 +42,8 @@ output "ecr_repository_url" {
   description = "ECR repository URL (if created)"
   value       = try(aws_ecr_repository.backend[0].repository_url, null)
 }
+
+output "datadog_dashboard_url" {
+  description = "URL of the Datadog production dashboard"
+  value       = local.dd_enabled ? datadog_dashboard.main[0].url : ""
+}

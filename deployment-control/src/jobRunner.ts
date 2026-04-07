@@ -1,6 +1,7 @@
 import { spawn } from "child_process";
 import { randomUUID } from "crypto";
 import path from "path";
+import { notifyDeployFinish, notifyDeployStart } from "./datadog";
 import { JobRecord, JobResponse, JobType } from "./types";
 
 const jobs = new Map<string, JobRecord>();
@@ -58,6 +59,7 @@ export const runJob = (options: RunJobOptions): JobResponse => {
   };
 
   jobs.set(id, job);
+  notifyDeployStart(job);
 
   const child = spawn(options.command, args, {
     cwd: path.resolve(options.cwd),
@@ -92,6 +94,7 @@ export const runJob = (options: RunJobOptions): JobResponse => {
     current.status = "failed";
     current.exitCode = null;
     current.finishedAt = new Date();
+    notifyDeployFinish(current);
   });
 
   child.on("close", (code: number | null) => {
@@ -103,6 +106,7 @@ export const runJob = (options: RunJobOptions): JobResponse => {
     current.exitCode = code;
     current.finishedAt = new Date();
     current.status = code === 0 ? "succeeded" : "failed";
+    notifyDeployFinish(current);
   });
 
   return toResponse(job);

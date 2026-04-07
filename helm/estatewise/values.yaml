@@ -353,3 +353,60 @@ persistence:
     enabled: false
     storageClass: standard
     size: 50Gi
+
+datadog:
+  enabled: false
+  apiKeySecret: datadog-secret
+  appKeySecret: datadog-secret
+  site: datadoghq.com
+  clusterName: estatewise-production
+  tags:
+    - "env:production"
+    - "team:estatewise"
+  agent:
+    image:
+      repository: gcr.io/datadoghq/agent
+      tag: "7"
+    resources:
+      requests:
+        cpu: 200m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+    apm:
+      enabled: true
+      port: 8126
+    logs:
+      enabled: true
+      containerCollectAll: true
+    process:
+      enabled: true
+    dogstatsd:
+      port: 8125
+      nonLocalTraffic: true
+    tolerations: []
+    nodeSelector: {}
+  clusterAgent:
+    enabled: true
+    image:
+      repository: gcr.io/datadoghq/cluster-agent
+      tag: "7"
+    replicas: 1
+    resources:
+      requests:
+        cpu: 200m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+    admissionController:
+      enabled: true
+      mutateUnlabelled: true
+    externalMetrics:
+      enabled: true
+    clusterChecks:
+      enabled: true
+  monitors:
+    enabled: true
+    notifyChannel: "@slack-estatewise-alerts"

@@ -1,6 +1,7 @@
 import cors from "cors";
 import express, { Request, Response } from "express";
 import path from "path";
+import { isEnabled as isDatadogEnabled } from "./datadog";
 import { findJob, listJobs, runJob } from "./jobRunner";
 import { getClusterSummary, repoRoot, scriptsDir } from "./kubectl";
 
@@ -15,6 +16,18 @@ app.use(express.json({ limit: "1mb" }));
 
 app.get("/api/health", (_req: Request, res: Response) => {
   res.json({ status: "ok", uptime: process.uptime() });
+});
+
+app.get("/api/integrations/datadog", (_req: Request, res: Response) => {
+  res.json({
+    enabled: isDatadogEnabled(),
+    site: process.env.DD_SITE || "datadoghq.com",
+    features: {
+      deployEvents: isDatadogEnabled(),
+      description:
+        "Deploy start/finish events are sent to Datadog when DD_API_KEY is set",
+    },
+  });
 });
 
 app.get("/api/jobs", (req: Request, res: Response) => {

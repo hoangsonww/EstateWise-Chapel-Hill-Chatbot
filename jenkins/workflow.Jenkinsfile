@@ -26,6 +26,13 @@ def run() {
       AUTO_PROMOTE_CANARY = "${env.AUTO_PROMOTE_CANARY ?: 'false'}"
       AUTO_SWITCH_BLUE_GREEN = "${env.AUTO_SWITCH_BLUE_GREEN ?: 'false'}"
       SCALE_DOWN_OLD_DEPLOYMENT = "${env.SCALE_DOWN_OLD_DEPLOYMENT ?: 'false'}"
+
+      // SonarQube
+      SONAR_HOST_URL = "${env.SONAR_HOST_URL ?: 'http://localhost:9000'}"
+      SONAR_SCANNER_OPTS = '-Xmx512m'
+
+      // Snyk
+      SNYK_SEVERITY_THRESHOLD = "${env.SNYK_SEVERITY_THRESHOLD ?: 'high'}"
     }
 
     options {
@@ -150,6 +157,135 @@ def run() {
               sh 'mkdir -p coverage-reports || true'
               sh 'cp -r backend/coverage coverage-reports/backend || true'
               sh 'cp -r frontend/coverage coverage-reports/frontend || true'
+            }
+          }
+        }
+      }
+
+      stage('SonarQube Analysis') {
+        steps {
+          script {
+            echo "Running SonarQube analysis..."
+            withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
+              sh '''
+                if command -v sonar-scanner &> /dev/null; then
+                  echo "=== SonarQube Scanner ==="
+                  sonar-scanner \
+                    -Dsonar.host.url=${SONAR_HOST_URL} \
+                    -Dsonar.token=${SONAR_TOKEN} \
+                    -Dsonar.projectVersion=${BUILD_NUMBER} \
+                    -Dsonar.qualitygate.wait=true \
+                    -Dsonar.qualitygate.timeout=300
+                else
+                  echo "sonar-scanner not installed — install via: npm install -g sonarqube-scanner"
+                  echo "Skipping SonarQube analysis"
+                fi
+              '''
+            }
+          }
+        }
+        post {
+          always {
+            script {
+              // Capture quality gate result for pipeline status
+              sh '''
+                if [ -f .scannerwork/report-task.txt ]; then
+                  cp .scannerwork/report-task.txt sonar-report-task.txt || true
+                fi
+              '''
+            }
+          }
+        }
+      }
+
+      stage('Snyk Security Scan') {
+        steps {
+          script {
+            echo "Running Snyk vulnerability and code scans..."
+            withCredentials([string(credentialsId: 'snyk-token', variable: 'SNYK_TOKEN')]) {
+              sh '''
+                if command -v snyk &> /dev/null; then
+                  echo "=== Snyk Open Source (SCA) — Backend ==="
+                  snyk test --file=backend/package.json \
+                    --severity-threshold=${SNYK_SEVERITY_THRESHOLD} \
+                    --json --json-file-output=snyk-backend-oss.json \
+                    --org=${SNYK_ORG:-estatewise} || true
+
+                  echo "=== Snyk Open Source (SCA) — Frontend ==="
+                  snyk test --file=frontend/package.json \
+                    --severity-threshold=${SNYK_SEVERITY_THRESHOLD} \
+                    --json --json-file-output=snyk-frontend-oss.json \
+                    --org=${SNYK_ORG:-estatewise} || true
+
+                  echo "=== Snyk Code (SAST) ==="
+                  snyk code test \
+                    --severity-threshold=${SNYK_SEVERITY_THRESHOLD} \
+                    --json --json-file-output=snyk-code-sast.json \
+                    --org=${SNYK_ORG:-estatewise} || true
+
+                  echo "=== Snyk Monitor (continuous monitoring) ==="
+                  snyk monitor --file=backend/package.json \
+                    --project-name=estatewise-backend \
+                    --org=${SNYK_ORG:-estatewise} || true
+                  snyk monitor --file=frontend/package.json \
+                    --project-name=estatewise-frontend \
+                    --org=${SNYK_ORG:-estatewise} || true
+                else
+                  echo "Snyk CLI not installed — install via: npm install -g snyk"
+                  echo "Skipping Snyk scans"
+                fi
+              '''
+            }
+          }
+        }
+        post {
+          always {
+            script {
+              sh 'mkdir -p security-reports || true'
+              sh 'cp snyk-*.json security-reports/ 2>/dev/null || true'
+              sh 'cp sonar-report-task.txt security-reports/ 2>/dev/null || true'
+              archiveArtifacts artifacts: 'security-reports/**', allowEmptyArchive: true
+            }
+          }
+        }
+      }
+
+      stage('Snyk Container Scan') {
+        when { expression { return env.SKIP_DOCKER_BUILD != 'true' } }
+        steps {
+          script {
+            echo "Running Snyk container image scans..."
+            withCredentials([string(credentialsId: 'snyk-token', variable: 'SNYK_TOKEN')]) {
+              sh '''
+                if command -v snyk &> /dev/null; then
+                  echo "=== Snyk Container — Backend Image ==="
+                  snyk container test ${BACKEND_IMAGE}:${GIT_COMMIT:0:7} \
+                    --severity-threshold=${SNYK_SEVERITY_THRESHOLD} \
+                    --json --json-file-output=snyk-container-backend.json \
+                    --org=${SNYK_ORG:-estatewise} || true
+
+                  echo "=== Snyk Container — Frontend Image ==="
+                  snyk container test ${FRONTEND_IMAGE}:${GIT_COMMIT:0:7} \
+                    --severity-threshold=${SNYK_SEVERITY_THRESHOLD} \
+                    --json --json-file-output=snyk-container-frontend.json \
+                    --org=${SNYK_ORG:-estatewise} || true
+
+                  snyk container monitor ${BACKEND_IMAGE}:${GIT_COMMIT:0:7} \
+                    --project-name=estatewise-backend-image \
+                    --org=${SNYK_ORG:-estatewise} || true
+                  snyk container monitor ${FRONTEND_IMAGE}:${GIT_COMMIT:0:7} \
+                    --project-name=estatewise-frontend-image \
+                    --org=${SNYK_ORG:-estatewise} || true
+                fi
+              '''
+            }
+          }
+          post {
+            always {
+              script {
+                sh 'cp snyk-container-*.json security-reports/ 2>/dev/null || true'
+                archiveArtifacts artifacts: 'security-reports/**', allowEmptyArchive: true
+              }
             }
           }
         }

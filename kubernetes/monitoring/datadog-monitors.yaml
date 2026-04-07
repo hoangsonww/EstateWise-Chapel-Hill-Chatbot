@@ -1,0 +1,779 @@
+# =============================================================================
+# EstateWise — Datadog Monitor Definitions
+# Namespace: estatewise
+#
+# This ConfigMap is consumed by the Datadog Operator or by an init/sync Job
+# that calls the Datadog Monitors API (POST /api/v1/monitor).
+#
+# SLO targets (from slo-config.yaml):
+#   Availability : 99.9%  (30-day window)
+#   P95 Latency  : < 500ms
+#   P99 Latency  : < 1000ms
+#
+# Notification channel: @slack-estatewise-alerts
+#   Replace with your real Slack integration handle or PagerDuty handle.
+#   Multiple channels can be space-separated, e.g.:
+#     "@slack-estatewise-alerts @pagerduty-estatewise"
+#
+# Priority values (Datadog): 1=highest … 5=lowest
+#
+# Apply:
+#   kubectl apply -f datadog-monitors.yaml
+#
+# Sync monitors to Datadog via the terraform-datadog provider, the
+# Datadog Operator CRD (DatadogMonitor), or the monitors API directly.
+# =============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: datadog-monitor-definitions
+  namespace: estatewise
+  labels:
+    app: datadog-monitors
+    app.kubernetes.io/part-of: estatewise
+    app.kubernetes.io/component: observability
+  annotations:
+    description: >
+      Canonical Datadog monitor definitions for the EstateWise production
+      cluster.  Each entry under monitors[] maps directly to the Datadog
+      Monitor API payload.  Use the datadog-terraform provider or the
+      DatadogMonitor CRD to materialise these in Datadog.
+data:
+  # ---------------------------------------------------------------------------
+  # monitors.yaml
+  # Full monitor specification in YAML.  Consumed by sync tooling.
+  # ---------------------------------------------------------------------------
+  monitors.yaml: |
+
+    # ==========================================================================
+    # 1. API High Error Rate
+    #    Fires when more than 5% of API requests return 5xx within a 5-minute
+    #    window.  Exceeding this threshold is a direct SLO burn signal.
+    # ==========================================================================
+    - name: "[EstateWise] API High Error Rate"
+      type: metric alert
+      # Datadog APM metric: percentage of traced requests that ended in error.
+      # Adjust the service name if the APM service tag differs.
+      query: >
+        sum(last_5m):
+          sum:trace.express.request.errors{service:estatewise-backend,env:production}.as_rate()
+          /
+          sum:trace.express.request.hits{service:estatewise-backend,env:production}.as_rate()
+          * 100
+        > 5
+      message: |
+        ## API Error Rate Critical
+
+        The EstateWise backend is returning **{{value}}%** errors over the last 5 minutes.
+        SLO threshold: 5%.
+
+        **Service:** {{service.name}}
+        **Environment:** {{env}}
+        **Runbook:** https://wiki.internal/estatewise/runbooks/high-error-rate
+
+        {{#is_alert}}
+        Page on-call — error budget is burning rapidly.
+        @slack-estatewise-alerts
+        {{/is_alert}}
+
+        {{#is_recovery}}
+        Error rate has recovered below threshold.
+        @slack-estatewise-alerts
+        {{/is_recovery}}
+      tags:
+        - "env:production"
+        - "team:estatewise"
+        - "service:estatewise-backend"
+        - "slo:availability"
+        - "component:api"
+      options:
+        thresholds:
+          critical: 5
+          warning: 2
+        notify_no_data: true
+        no_data_timeframe: 10
+        # Re-alert every 60 minutes if the condition persists.
+        renotify_interval: 60
+        escalation_message: |
+          ESCALATION: EstateWise API error rate has been elevated for 60+ minutes.
+          Immediate action required to protect the 99.9% availability SLO.
+          @slack-estatewise-alerts
+        include_tags: true
+        require_full_window: false
+        evaluation_delay: 60
+      priority: 1
+
+    # ==========================================================================
+    # 2. API High Latency — P95
+    #    Warning at 500ms (SLO boundary).  Critical at 1s (double SLO).
+    #    Uses APM duration percentile metrics from the express integration.
+    # ==========================================================================
+    - name: "[EstateWise] API High Latency P95"
+      type: metric alert
+      query: >
+        avg(last_5m):
+          p95:trace.express.request{service:estatewise-backend,env:production}
+        > 1000000000
+      # Datadog APM duration is in nanoseconds.  500ms = 500_000_000 ns.
+      # warning: 500ms, critical: 1s.
+      message: |
+        ## API P95 Latency Degradation
+
+        P95 latency for the EstateWise backend is **{{value}}ns** ({{#is_warning}}above 500ms warning threshold{{/is_warning}}{{#is_alert}}above 1s critical threshold{{/is_alert}}).
+
+        SLO target: P95 < 500ms.
+
+        **Service:** {{service.name}}
+        **Environment:** {{env}}
+        **Runbook:** https://wiki.internal/estatewise/runbooks/high-latency
+
+        {{#is_alert}}
+        Critical — latency has doubled the SLO target. Investigate upstream dependencies.
+        @slack-estatewise-alerts
+        {{/is_alert}}
+
+        {{#is_warning}}
+        Warning — latency is at the SLO boundary.
+        @slack-estatewise-alerts
+        {{/is_warning}}
+
+        {{#is_recovery}}
+        Latency has recovered within SLO target.
+        @slack-estatewise-alerts
+        {{/is_recovery}}
+      tags:
+        - "env:production"
+        - "team:estatewise"
+        - "service:estatewise-backend"
+        - "slo:latency"
+        - "component:api"
+      options:
+        thresholds:
+          # 1 second in nanoseconds
+          critical: 1000000000
+          # 500 milliseconds in nanoseconds (SLO boundary)
+          warning: 500000000
+        notify_no_data: true
+        no_data_timeframe: 10
+        renotify_interval: 30
+        escalation_message: |
+          ESCALATION: EstateWise API P95 latency remains elevated after 30 minutes.
+          SLO breach window is widening. Immediate triage required.
+          @slack-estatewise-alerts
+        include_tags: true
+        require_full_window: false
+        evaluation_delay: 60
+      priority: 2
+
+    # ==========================================================================
+    # 3. Pod Crash Looping
+    #    A non-zero restart rate sustained for 5 minutes indicates a container
+    #    is crash-looping.  Any pod in the estatewise namespace is covered.
+    # ==========================================================================
+    - name: "[EstateWise] Pod Crash Looping"
+      type: metric alert
+      query: >
+        sum(last_5m):
+          sum:kubernetes.containers.restarts{kube_namespace:estatewise}
+          .rollup(max, 300)
+        > 0
+      message: |
+        ## Pod Crash Loop Detected
+
+        One or more pods in the **estatewise** namespace have restarted in the last 5 minutes.
+
+        **Pod:** {{pod_name.name}}
+        **Namespace:** estatewise
+        **Restart Count (5m):** {{value}}
+        **Runbook:** https://wiki.internal/estatewise/runbooks/crash-loop
+
+        {{#is_alert}}
+        Investigate pod logs immediately:
+        ```
+        kubectl logs -n estatewise {{pod_name.name}} --previous
+        kubectl describe pod -n estatewise {{pod_name.name}}
+        ```
+        @slack-estatewise-alerts
+        {{/is_alert}}
+
+        {{#is_recovery}}
+        Crash loop has stopped — pods are stable.
+        @slack-estatewise-alerts
+        {{/is_recovery}}
+      tags:
+        - "env:production"
+        - "team:estatewise"
+        - "component:kubernetes"
+        - "kube_namespace:estatewise"
+      options:
+        thresholds:
+          critical: 0
+        notify_no_data: false
+        renotify_interval: 15
+        escalation_message: |
+          ESCALATION: Pods in the estatewise namespace are still crash-looping after 15 minutes.
+          Service availability is at risk.
+          @slack-estatewise-alerts
+        include_tags: true
+        require_full_window: false
+      priority: 1
+
+    # ==========================================================================
+    # 4. High Memory Usage
+    #    Warns when any container in the namespace consumes > 90% of its
+    #    configured memory limit.  Prevents OOMKill surprises.
+    # ==========================================================================
+    - name: "[EstateWise] High Memory Usage"
+      type: metric alert
+      query: >
+        avg(last_5m):
+          sum:kubernetes.memory.usage{kube_namespace:estatewise}
+          by {pod_name,kube_container_name}
+          /
+          sum:kubernetes.memory.limits{kube_namespace:estatewise}
+          by {pod_name,kube_container_name}
+          * 100
+        > 90
+      message: |
+        ## High Memory Usage Warning
+
+        Container **{{kube_container_name.name}}** in pod **{{pod_name.name}}** is using
+        **{{value}}%** of its memory limit.
+
+        Sustained high memory can trigger OOMKill and crash loops.
+
+        **Namespace:** estatewise
+        **Runbook:** https://wiki.internal/estatewise/runbooks/high-memory
+
+        {{#is_alert}}
+        Consider triggering a rolling restart or increasing the memory limit if usage is legitimate.
+        @slack-estatewise-alerts
+        {{/is_alert}}
+
+        {{#is_recovery}}
+        Memory usage has dropped back below threshold.
+        @slack-estatewise-alerts
+        {{/is_recovery}}
+      tags:
+        - "env:production"
+        - "team:estatewise"
+        - "component:resources"
+        - "kube_namespace:estatewise"
+      options:
+        thresholds:
+          critical: 90
+          warning: 80
+        notify_no_data: false
+        renotify_interval: 60
+        escalation_message: |
+          ESCALATION: Memory usage in estatewise namespace has been above 90% for 60 minutes.
+          OOMKill risk is high. Investigate and right-size resource limits.
+          @slack-estatewise-alerts
+        include_tags: true
+        require_full_window: false
+        evaluation_delay: 60
+      priority: 3
+
+    # ==========================================================================
+    # 5. High CPU Usage
+    #    Warns when CPU usage exceeds 80% of the container's CPU limit for
+    #    10 minutes.  Longer window reduces false positives from burst traffic.
+    # ==========================================================================
+    - name: "[EstateWise] High CPU Usage"
+      type: metric alert
+      query: >
+        avg(last_10m):
+          sum:kubernetes.cpu.usage.total{kube_namespace:estatewise}
+          by {pod_name,kube_container_name}
+          /
+          sum:kubernetes.cpu.limits{kube_namespace:estatewise}
+          by {pod_name,kube_container_name}
+          * 100
+        > 80
+      message: |
+        ## High CPU Usage Warning
+
+        Container **{{kube_container_name.name}}** in pod **{{pod_name.name}}** has consumed
+        **{{value}}%** of its CPU limit over the last 10 minutes.
+
+        Throttling may be occurring, which can degrade API response times.
+
+        **Namespace:** estatewise
+        **Runbook:** https://wiki.internal/estatewise/runbooks/high-cpu
+
+        {{#is_alert}}
+        Check whether this is a traffic spike (expected) or a runaway process.
+        Review HPA settings — scale-out may be warranted.
+        @slack-estatewise-alerts
+        {{/is_alert}}
+
+        {{#is_recovery}}
+        CPU usage has dropped back below threshold.
+        @slack-estatewise-alerts
+        {{/is_recovery}}
+      tags:
+        - "env:production"
+        - "team:estatewise"
+        - "component:resources"
+        - "kube_namespace:estatewise"
+      options:
+        thresholds:
+          critical: 80
+          warning: 65
+        notify_no_data: false
+        renotify_interval: 60
+        escalation_message: |
+          ESCALATION: CPU usage in estatewise namespace has been above 80% for 60 minutes.
+          Throttling is likely.  Review HPA and right-size CPU limits.
+          @slack-estatewise-alerts
+        include_tags: true
+        require_full_window: false
+        evaluation_delay: 60
+      priority: 3
+
+    # ==========================================================================
+    # 6. Database Connection Pool Saturation
+    #    Fires when the MongoDB connection pool is > 80% utilised.
+    #    Metric emitted by the custom DogStatsD instrumentation in backend/src.
+    #    The gauge name must match what is sent by the application code.
+    # ==========================================================================
+    - name: "[EstateWise] Database Connection Pool High Utilization"
+      type: metric alert
+      query: >
+        avg(last_5m):
+          avg:estatewise.db.connection_pool.utilization{env:production,service:estatewise-backend}
+        > 80
+      message: |
+        ## Database Connection Pool Warning
+
+        The MongoDB connection pool utilization for **estatewise-backend** is
+        **{{value}}%** (threshold: 80%).
+
+        Connection exhaustion can cause request queuing and latency spikes.
+
+        **Service:** estatewise-backend
+        **Runbook:** https://wiki.internal/estatewise/runbooks/db-connection-pool
+
+        {{#is_alert}}
+        Actions:
+        1. Check active connection count vs pool max size.
+        2. Look for connection leaks in recent backend deployments.
+        3. Consider increasing `maxPoolSize` in the MongoDB client config.
+        @slack-estatewise-alerts
+        {{/is_alert}}
+
+        {{#is_recovery}}
+        Connection pool utilization has dropped below threshold.
+        @slack-estatewise-alerts
+        {{/is_recovery}}
+      tags:
+        - "env:production"
+        - "team:estatewise"
+        - "service:estatewise-backend"
+        - "component:database"
+      options:
+        thresholds:
+          critical: 80
+          warning: 65
+        notify_no_data: true
+        no_data_timeframe: 15
+        renotify_interval: 30
+        escalation_message: |
+          ESCALATION: Database connection pool has been >80% utilized for 30 minutes.
+          Connection exhaustion is imminent.  Immediate investigation required.
+          @slack-estatewise-alerts
+        include_tags: true
+        require_full_window: false
+      priority: 2
+
+    # ==========================================================================
+    # 7. Disk Space Low
+    #    Watches persistent volume usage across all PVCs in the namespace.
+    #    Fires when available disk drops below 10% — relevant for Prometheus
+    #    storage, Loki chunks, and application log volumes.
+    # ==========================================================================
+    - name: "[EstateWise] Disk Space Low"
+      type: metric alert
+      query: >
+        avg(last_5m):
+          (1 -
+            sum:kubernetes.kubelet.volume.stats.available_bytes{kube_namespace:estatewise}
+            by {persistentvolumeclaim}
+            /
+            sum:kubernetes.kubelet.volume.stats.capacity_bytes{kube_namespace:estatewise}
+            by {persistentvolumeclaim}
+          ) * 100
+        > 90
+      message: |
+        ## Disk Space Warning
+
+        Persistent volume **{{persistentvolumeclaim.name}}** in namespace **estatewise**
+        is **{{value}}%** full (less than 10% free).
+
+        **Runbook:** https://wiki.internal/estatewise/runbooks/disk-space
+
+        {{#is_alert}}
+        Actions:
+        1. Identify the largest consumers in the PVC.
+        2. Expand the PVC (if StorageClass supports dynamic resize).
+        3. For Prometheus: reduce retention or increase storage allocation.
+        4. For Loki: adjust `compactor.retention_enabled` or add storage.
+        @slack-estatewise-alerts
+        {{/is_alert}}
+
+        {{#is_recovery}}
+        Disk space has recovered above 10% free.
+        @slack-estatewise-alerts
+        {{/is_recovery}}
+      tags:
+        - "env:production"
+        - "team:estatewise"
+        - "component:storage"
+        - "kube_namespace:estatewise"
+      options:
+        thresholds:
+          # 90% used = 10% free
+          critical: 90
+          # 85% used = 15% free
+          warning: 85
+        notify_no_data: false
+        renotify_interval: 60
+        escalation_message: |
+          ESCALATION: A PVC in the estatewise namespace has been above 90% full for 60 minutes.
+          Disk exhaustion will cause data loss.  Expand storage immediately.
+          @slack-estatewise-alerts
+        include_tags: true
+        require_full_window: false
+      priority: 2
+
+    # ==========================================================================
+    # 8. SLO Availability Breach
+    #    Monitors the Datadog SLO object that tracks the 99.9% availability
+    #    target.  Fires when the 30-day error budget burn rate indicates the
+    #    monthly target will be missed if the current rate continues.
+    #    Falls back to APM success rate < 99.5% over 5 minutes as a proxy.
+    # ==========================================================================
+    - name: "[EstateWise] SLO Availability Breach"
+      type: metric alert
+      query: >
+        sum(last_5m):
+          sum:trace.express.request.hits{service:estatewise-backend,env:production,http.status_class:2xx}.as_rate()
+          /
+          sum:trace.express.request.hits{service:estatewise-backend,env:production}.as_rate()
+          * 100
+        < 99.5
+      message: |
+        ## SLO Availability Breach — CRITICAL
+
+        The EstateWise API availability has dropped to **{{value}}%** over the last
+        5 minutes.  The monthly SLO target is **99.9%**.
+
+        The error budget is burning at an unsustainable rate.
+
+        **Service:** estatewise-backend
+        **Runbook:** https://wiki.internal/estatewise/runbooks/slo-availability
+
+        {{#is_alert}}
+        Immediate actions:
+        1. Check `HighErrorRate` and `PodCrashLoop` monitors.
+        2. Review recent deployments — consider rollback.
+        3. Check downstream dependencies (MongoDB, Pinecone, Google AI API).
+        4. Escalate to on-call if not resolved within 15 minutes.
+        @slack-estatewise-alerts
+        {{/is_alert}}
+
+        {{#is_recovery}}
+        Availability has recovered above 99.5%.  Continue monitoring for stability.
+        @slack-estatewise-alerts
+        {{/is_recovery}}
+      tags:
+        - "env:production"
+        - "team:estatewise"
+        - "service:estatewise-backend"
+        - "slo:availability"
+        - "priority:p1"
+      options:
+        thresholds:
+          critical: 99.5
+          # Warning threshold between the SLO target and critical
+          warning: 99.7
+        notify_no_data: true
+        no_data_timeframe: 10
+        renotify_interval: 15
+        escalation_message: |
+          ESCALATION: EstateWise availability SLO breach has not been resolved after 15 minutes.
+          Monthly SLO compliance is at risk.  All hands on deck.
+          @slack-estatewise-alerts
+        include_tags: true
+        require_full_window: false
+        evaluation_delay: 60
+      priority: 1
+
+    # ==========================================================================
+    # 9. SLO Latency Breach
+    #    P95 latency crossing 500ms is a direct SLO violation.  This monitor
+    #    complements monitor #2 with SLO-specific framing and tagging so it
+    #    feeds correctly into Datadog SLO tracking widgets.
+    # ==========================================================================
+    - name: "[EstateWise] SLO Latency P95 Breach"
+      type: metric alert
+      query: >
+        avg(last_5m):
+          p95:trace.express.request{service:estatewise-backend,env:production}
+        > 500000000
+      message: |
+        ## SLO Latency P95 Breach — CRITICAL
+
+        The EstateWise backend P95 response time is **{{value}}ns** (~{{value | divide:1000000}}ms).
+        The SLO target is P95 < **500ms**.
+
+        **Service:** estatewise-backend
+        **Runbook:** https://wiki.internal/estatewise/runbooks/slo-latency
+
+        {{#is_alert}}
+        Immediate actions:
+        1. Check the APM trace flame graph for slow spans.
+        2. Look for database query regressions or N+1 patterns.
+        3. Check external dependency latency (Pinecone, Google AI).
+        4. Review recent code changes — consider feature flag rollback.
+        @slack-estatewise-alerts
+        {{/is_alert}}
+
+        {{#is_recovery}}
+        P95 latency has recovered within the 500ms SLO target.
+        @slack-estatewise-alerts
+        {{/is_recovery}}
+      tags:
+        - "env:production"
+        - "team:estatewise"
+        - "service:estatewise-backend"
+        - "slo:latency"
+        - "priority:p1"
+      options:
+        thresholds:
+          # 500ms in nanoseconds
+          critical: 500000000
+          # 400ms in nanoseconds (early warning before SLO breach)
+          warning: 400000000
+        notify_no_data: true
+        no_data_timeframe: 10
+        renotify_interval: 15
+        escalation_message: |
+          ESCALATION: EstateWise P95 latency has been above the 500ms SLO target for 15 minutes.
+          Monthly SLO compliance is degrading.  Immediate triage required.
+          @slack-estatewise-alerts
+        include_tags: true
+        require_full_window: false
+        evaluation_delay: 60
+      priority: 1
+
+    # ==========================================================================
+    # 10. APM Error Rate (Trace-level)
+    #     Complements the infrastructure-level error rate monitor (#1) with
+    #     APM span-level visibility.  Fires on a lower threshold (1%) to give
+    #     earlier warning of error trends before they hit 5%.
+    # ==========================================================================
+    - name: "[EstateWise] APM Trace Error Rate Elevated"
+      type: metric alert
+      query: >
+        sum(last_5m):
+          sum:trace.express.request.errors{service:estatewise-backend,env:production}.as_rate()
+          /
+          sum:trace.express.request.hits{service:estatewise-backend,env:production}.as_rate()
+          * 100
+        > 1
+      message: |
+        ## APM Trace Error Rate Elevated
+
+        The distributed trace error rate for **estatewise-backend** is **{{value}}%**
+        (threshold: 1%).
+
+        This is an early warning monitor.  Review APM traces to identify which
+        routes or operations are generating errors before the rate escalates
+        to the SLO breach threshold (5%).
+
+        **Service:** estatewise-backend
+        **APM Dashboard:** https://app.datadoghq.com/apm/services/estatewise-backend
+        **Runbook:** https://wiki.internal/estatewise/runbooks/apm-errors
+
+        {{#is_alert}}
+        Review the APM Service Map and Error Tracking for root cause.
+        @slack-estatewise-alerts
+        {{/is_alert}}
+
+        {{#is_recovery}}
+        APM error rate has dropped below 1%.
+        @slack-estatewise-alerts
+        {{/is_recovery}}
+      tags:
+        - "env:production"
+        - "team:estatewise"
+        - "service:estatewise-backend"
+        - "component:apm"
+      options:
+        thresholds:
+          critical: 1
+          warning: 0.5
+        notify_no_data: true
+        no_data_timeframe: 10
+        renotify_interval: 60
+        escalation_message: |
+          ESCALATION: APM error rate for estatewise-backend has been above 1% for 60 minutes.
+          Risk of SLO availability breach if not addressed.
+          @slack-estatewise-alerts
+        include_tags: true
+        require_full_window: false
+        evaluation_delay: 60
+      priority: 2
+
+    # ==========================================================================
+    # 11. Log Anomaly Detection — Error Volume
+    #     Detects statistically significant spikes in error-level log events
+    #     in the estatewise namespace using Datadog's anomaly detection.
+    #     Anomaly detection adapts to normal daily/weekly traffic patterns,
+    #     reducing alert fatigue from predictable traffic surges.
+    # ==========================================================================
+    - name: "[EstateWise] Log Anomaly — Error Volume Spike"
+      type: log alert
+      # Log query: count of error/critical log lines from the estatewise namespace.
+      # Adjust the index name if using a non-default log index.
+      query: >
+        logs("source:nodejs status:error kube_namespace:estatewise").index("*").rollup("count").last("5m") > 100
+      message: |
+        ## Log Anomaly — Error Volume Spike
+
+        An anomalous spike in error-level log events has been detected in the
+        **estatewise** namespace.
+
+        **Log Count (5m):** {{value}}
+        **Baseline (normal):** Refer to the Datadog Log Explorer anomaly view.
+
+        This may indicate a silent failure mode not yet surfaced by APM traces
+        (e.g., background job failures, async error handlers, uncaught promise
+        rejections).
+
+        **Log Explorer:** https://app.datadoghq.com/logs?query=kube_namespace%3Aestatewise+status%3Aerror
+        **Runbook:** https://wiki.internal/estatewise/runbooks/log-anomaly
+
+        {{#is_alert}}
+        Review recent logs for patterns:
+        - Uncaught exceptions in background workers
+        - Third-party API call failures (Pinecone, Google AI, MongoDB)
+        - Auth/JWT validation failures at scale
+        @slack-estatewise-alerts
+        {{/is_alert}}
+
+        {{#is_recovery}}
+        Log error volume has returned to normal levels.
+        @slack-estatewise-alerts
+        {{/is_recovery}}
+      tags:
+        - "env:production"
+        - "team:estatewise"
+        - "component:logs"
+        - "kube_namespace:estatewise"
+      options:
+        thresholds:
+          critical: 100
+          warning: 50
+        notify_no_data: false
+        renotify_interval: 60
+        escalation_message: |
+          ESCALATION: Error log volume in the estatewise namespace has been anomalously high
+          for 60 minutes.  Silent failures may be accumulating.
+          @slack-estatewise-alerts
+        include_tags: true
+        # Enable grouping by source to distinguish backend vs frontend vs mcp log spikes.
+        groupby_simple_monitor: false
+      priority: 3
+
+  # ---------------------------------------------------------------------------
+  # sync-instructions.md
+  # Human-readable notes on how to apply these monitor definitions.
+  # ---------------------------------------------------------------------------
+  sync-instructions.md: |
+    # Datadog Monitor Sync Instructions
+
+    ## Option A — Terraform (recommended for IaC)
+
+    ```hcl
+    # terraform/datadog-monitors.tf
+    locals {
+      monitors = yamldecode(file("${path.module}/monitors.yaml"))
+    }
+
+    resource "datadog_monitor" "estatewise" {
+      for_each = { for m in local.monitors : m.name => m }
+
+      name     = each.value.name
+      type     = each.value.type
+      query    = each.value.query
+      message  = each.value.message
+      tags     = each.value.tags
+      priority = each.value.priority
+
+      # Threshold options
+      monitor_thresholds {
+        critical = lookup(each.value.options.thresholds, "critical", null)
+        warning  = lookup(each.value.options.thresholds, "warning", null)
+      }
+
+      notify_no_data    = each.value.options.notify_no_data
+      renotify_interval = each.value.options.renotify_interval
+      include_tags      = each.value.options.include_tags
+    }
+    ```
+
+    ## Option B — Datadog Operator CRD
+
+    Convert each monitor entry to a `DatadogMonitor` custom resource and
+    apply with `kubectl apply -f`.
+
+    ```yaml
+    apiVersion: datadoghq.com/v1alpha1
+    kind: DatadogMonitor
+    metadata:
+      name: api-high-error-rate
+      namespace: estatewise
+    spec:
+      name: "[EstateWise] API High Error Rate"
+      type: "metric alert"
+      query: "..."
+      message: "..."
+      tags:
+        - "env:production"
+    ```
+
+    ## Option C — Datadog API (CI/CD)
+
+    POST each monitor payload to the Datadog Monitors API:
+    ```
+    POST https://api.datadoghq.com/api/v1/monitor
+    DD-API-KEY: <DD_API_KEY>
+    DD-APPLICATION-KEY: <DD_APP_KEY>
+    Content-Type: application/json
+    ```
+
+    ## Notification Channel
+
+    The placeholder `@slack-estatewise-alerts` must be replaced with your
+    actual Datadog-Slack integration handle.  To configure:
+    1. Install the Datadog Slack app.
+    2. Invite the bot to the `#estatewise-alerts` channel.
+    3. The handle `@slack-estatewise-alerts` becomes valid automatically.
+
+    ## SLO Cross-Reference
+
+    | Monitor                          | SLO Target          |
+    |----------------------------------|---------------------|
+    | API High Error Rate              | < 5% errors         |
+    | API High Latency P95             | P95 < 500ms         |
+    | SLO Availability Breach          | 99.9% availability  |
+    | SLO Latency P95 Breach           | P95 < 500ms         |
+    | APM Trace Error Rate Elevated    | < 1% trace errors   |
+    | Pod Crash Looping                | 0 restarts          |
+    | High Memory Usage                | < 90% of limit      |
+    | High CPU Usage                   | < 80% of limit      |
+    | Database Connection Pool         | < 80% utilized      |
+    | Disk Space Low                   | > 10% free          |
+    | Log Anomaly Detection            | normal error volume |

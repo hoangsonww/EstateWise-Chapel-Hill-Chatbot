@@ -26,7 +26,10 @@ Large Language Models (LLMs), a Mixture‑of‑Experts ensemble, blue/green & ca
 - [API Endpoints](#api-endpoints)
 - [Project Structure](#project-structure)
 - [Dockerization](#dockerization)
-- [Prometheus Monitoring \& Visualizations](#prometheus-monitoring--visualizations)
+- [Monitoring \& Visualizations](#monitoring--visualizations)
+  - [Prometheus](#prometheus)
+  - [Datadog Observability](#datadog-observability)
+  - [Security Scanning (SonarQube \& Snyk)](#security-scanning-sonarqube--snyk)
 - [CI/CD Pipelines](#cicd-pipelines)
 - [MCP Server](#mcp-server)
 - [Agentic AI Pipeline](#agentic-ai-pipeline)
@@ -83,6 +86,9 @@ _Feel free to use the app as a guest or sign up for an account to save your conv
 ![Podman](https://img.shields.io/badge/Podman-000000?style=for-the-badge&logo=podman&logoColor=white)
 ![Prometheus](https://img.shields.io/badge/Prometheus-E6512D?style=for-the-badge&logo=prometheus&logoColor=white)
 ![Grafana](https://img.shields.io/badge/Grafana-F46800?style=for-the-badge&logo=grafana&logoColor=white)
+![Datadog](https://img.shields.io/badge/Datadog-632CA6?style=for-the-badge&logo=datadog&logoColor=white)
+![SonarQube](https://img.shields.io/badge/SonarQube-4E9BCD?style=for-the-badge&logo=sonarqube&logoColor=white)
+![Snyk](https://img.shields.io/badge/Snyk-4C4A73?style=for-the-badge&logo=snyk&logoColor=white)
 ![Swagger](https://img.shields.io/badge/Swagger-85EA2D?style=for-the-badge&logo=swagger&logoColor=white)
 ![Postman](https://img.shields.io/badge/Postman-FF6C37?style=for-the-badge&logo=postman&logoColor=white)
 ![Husky](https://img.shields.io/badge/Husky-6C6C6C?style=for-the-badge&logo=apachekylin&logoColor=white)
@@ -473,6 +479,10 @@ Below is a high-level diagram that illustrates the flow of the application, incl
          │ - MongoDB & Pinecone        │
          │ - Swagger API Docs          │
          │ - Dockerized for deployment │
+         │ - Prometheus monitoring     │
+         │ - DataDog logging & tracing │
+         │ - GitHub Actions CI/CD      │
+         │ - and more...               │
          └─────────────┬───────────────┘
                        │
                        │
@@ -1226,7 +1236,11 @@ See [`docker/README.md`](docker/README.md) for full details on ports, profiles, 
 
 However, you don't need to run the app using Docker or Podman. You can run the backend and frontend separately as described in the **Setup & Installation** section.
 
-## Prometheus Monitoring & Visualizations
+## Monitoring & Visualizations
+
+EstateWise uses a dual observability stack: **Prometheus + Grafana** for infrastructure metrics and **Datadog** for full-stack APM, logs, monitors, SLOs, and synthetic checks.
+
+### Prometheus
 
 Prometheus is used for monitoring the backend server. It collects metrics from the server and provides a web interface to visualize them.
 
@@ -1248,6 +1262,135 @@ To view our live server data, go to [this URL](https://estatewise-backend.vercel
 <p align="center">
   <img src="img/prometheus.png" alt="Prometheus Monitoring" width="100%" style="border-radius: 8px" />
 </p>
+
+### Datadog Observability
+
+Datadog provides **APM distributed tracing, centralized log management, custom monitors, SLOs, dashboards, and synthetic checks** across the entire EstateWise stack.
+
+```mermaid
+flowchart TB
+  subgraph Services["Application Services"]
+    BE[Backend<br/>DD_SERVICE: estatewise-backend]
+    FE[Frontend<br/>DD_SERVICE: estatewise-frontend]
+    GRPC[gRPC<br/>DD_SERVICE: estatewise-grpc]
+    MCP[MCP<br/>DD_SERVICE: estatewise-mcp]
+    AG[Agentic AI<br/>DD_SERVICE: estatewise-agentic-ai]
+  end
+
+  subgraph DDAgent["Datadog Agent (DaemonSet)"]
+    APM[APM Traces<br/>TCP/8126]
+    DSD[DogStatsD Metrics<br/>UDP/8125]
+    Logs[Log Collection<br/>Container Logs]
+  end
+
+  subgraph DDCluster["Datadog Cluster Agent"]
+    Meta[K8s Metadata]
+    ExtMetrics[External Metrics API]
+    Admission[Admission Controller]
+  end
+
+  subgraph DDCloud["Datadog Cloud"]
+    Monitors[17 Monitors]
+    Dashboard[Production Dashboard]
+    SLOs[Availability & Latency SLOs]
+    Synthetics[Synthetic Health Checks]
+  end
+
+  BE & FE & GRPC & MCP & AG -->|traces| APM
+  BE & FE & GRPC & MCP & AG -->|custom metrics| DSD
+  BE & FE & GRPC & MCP & AG -->|stdout/stderr| Logs
+  DDAgent -->|HTTPS/443| DDCloud
+  DDCluster -->|metadata enrichment| DDAgent
+  DDCluster -->|HPA scaling| ExtMetrics
+```
+
+**Key Capabilities:**
+
+| Feature | Description |
+|---------|-------------|
+| **APM Traces** | Distributed tracing across all services with unified service tagging (DD_SERVICE, DD_ENV, DD_VERSION) |
+| **Log Management** | Centralized logs from all containers with automatic correlation to traces |
+| **17 Monitors** | Error rate, latency P95/P99, pod crash loops, memory/CPU, ALB health, deploy tracking |
+| **SLOs** | 99.9% API availability and 95% latency-under-500ms over 30-day windows |
+| **Synthetic Checks** | Proactive health check from 3 AWS regions every 60 seconds |
+| **DogStatsD Metrics** | Custom deploy counters and duration histograms from deployment-control |
+| **Network Policies** | Helm-managed NetworkPolicies for agent ↔ app and agent ↔ cluster-agent traffic |
+
+**Setup:**
+
+```bash
+# Docker Compose (local/staging)
+export DD_API_KEY="your-key"
+docker compose -f docker/compose.prod.yml --profile monitoring up -d
+
+# Kubernetes (Helm)
+helm upgrade --install estatewise ./helm/estatewise \
+  --set datadog.enabled=true --set datadog.monitors.enabled=true
+```
+
+For full setup instructions, architecture details, and runbooks, see 📘 [docs/datadog-integration.md](docs/datadog-integration.md).
+
+### Security Scanning (SonarQube & Snyk)
+
+EstateWise integrates **SonarQube** for continuous code quality analysis and **Snyk** for dependency, container, code (SAST), and infrastructure-as-code (IaC) vulnerability scanning.
+
+```mermaid
+flowchart LR
+  subgraph Quality["Code Quality"]
+    SQ[SonarQube]
+    QG[Quality Gate]
+  end
+
+  subgraph Security["Vulnerability Scanning"]
+    SCA[Snyk SCA<br/>Dependencies]
+    SAST[Snyk Code<br/>SAST]
+    Container[Snyk Container<br/>Docker Images]
+    IaC[Snyk IaC<br/>Terraform / K8s / Helm]
+  end
+
+  Code["Source Code"] --> SQ --> QG
+  Code --> SCA
+  Code --> SAST
+  Docker["Docker Images"] --> Container
+  Infra["IaC Files"] --> IaC
+
+  QG -->|Pass| Deploy["Deploy"]
+  SCA -->|No Critical| Deploy
+  SAST -->|No Critical| Deploy
+  Container -->|No Critical| Deploy
+  IaC -->|No Critical| Deploy
+```
+
+**SonarQube** — multi-module analysis across all 7 services (`sonar-project.properties`):
+
+| Feature | Detail |
+|---------|--------|
+| Modules | `backend`, `frontend`, `grpc`, `mcp`, `agentic-ai`, `deployment-control`, `context-engineering` |
+| Quality Gate | Enforced — build breaks on new code quality violations |
+| Coverage | TypeScript LCOV reports per module |
+| Local Server | `docker compose -f docker/compose.sonarqube.yml up -d` |
+
+**Snyk** — four scan layers with configurable severity threshold:
+
+| Scan Type | Command | Scope |
+|-----------|---------|-------|
+| SCA (Dependencies) | `make snyk` | All `package.json` files |
+| Code SAST | `snyk code test` | Source-level vulnerability patterns |
+| Container | `make snyk-container` | Docker image OS + app layer CVEs |
+| IaC | `make snyk-iac` | Terraform, Kubernetes, Helm, Docker Compose misconfigs |
+
+```bash
+# Run all security scans
+make security
+
+# Individual scans
+make sonar          # SonarQube analysis + quality gate
+make snyk           # Snyk SCA across all packages
+make snyk-container # Container image scanning
+make snyk-iac       # Infrastructure-as-code scanning
+```
+
+Both tools are integrated into **Jenkins** (`jenkins/workflow.Jenkinsfile`) and **AWS CodeBuild** (`buildspec.yml`). Per-service Snyk policies live in `.snyk` (root) and `.snyk.d/` (overrides).
 
 ## CI/CD Pipelines
 
