@@ -1,3 +1,4 @@
 .next/
 */dist/
 deployment-control/ui/.nuxt/
+deployment-control/ui/.output/

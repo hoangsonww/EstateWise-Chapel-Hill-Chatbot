@@ -32,7 +32,13 @@ const getStatsdSocket = (): dgram.Socket => {
 const sendStatsd = (metric: string): void => {
   try {
     const buf = Buffer.from(metric);
-    getStatsdSocket().send(buf, 0, buf.length, DD_DOGSTATSD_PORT, DD_AGENT_HOST);
+    getStatsdSocket().send(
+      buf,
+      0,
+      buf.length,
+      DD_DOGSTATSD_PORT,
+      DD_AGENT_HOST,
+    );
   } catch {
     // DogStatsD is fire-and-forget; swallow send errors
   }
@@ -41,15 +47,27 @@ const sendStatsd = (metric: string): void => {
 const formatTags = (tags: string[]): string =>
   tags.length > 0 ? `|#${tags.join(",")}` : "";
 
-export const incrementCounter = (name: string, tags: string[] = [], value = 1): void => {
+export const incrementCounter = (
+  name: string,
+  tags: string[] = [],
+  value = 1,
+): void => {
   sendStatsd(`${name}:${value}|c${formatTags(tags)}`);
 };
 
-export const gauge = (name: string, value: number, tags: string[] = []): void => {
+export const gauge = (
+  name: string,
+  value: number,
+  tags: string[] = [],
+): void => {
   sendStatsd(`${name}:${value}|g${formatTags(tags)}`);
 };
 
-export const histogram = (name: string, value: number, tags: string[] = []): void => {
+export const histogram = (
+  name: string,
+  value: number,
+  tags: string[] = [],
+): void => {
   sendStatsd(`${name}:${value}|h${formatTags(tags)}`);
 };
 
