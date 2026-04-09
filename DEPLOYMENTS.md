@@ -75,6 +75,7 @@ For more information on EstateWise DevOps, CI/CD pipelines, monitoring, and trou
     - [Azure DevOps (Optional)](#azure-devops-optional)
   - [Choosing the Right Path](#choosing-the-right-path)
   - [Datadog Observability](#datadog-observability)
+  - [SRE Dashboard](#sre-dashboard)
   - [Security Scanning (SonarQube \& Snyk)](#security-scanning-sonarqube--snyk)
     - [SonarQube](#sonarqube)
     - [Snyk](#snyk)
@@ -795,6 +796,31 @@ For architecture details, monitor reference, and operational runbooks, see 📘 
 
 ---
 
+## SRE Dashboard
+
+Real-time observability dashboard for monitoring deployments, SLO compliance, and infrastructure health.
+
+| Feature | Details |
+|---------|---------|
+| **Location** | [`sre-dashboard/`](sre-dashboard/) |
+| **Port** | 4200 |
+| **Deployment Panels** | Blue/green active color, canary step progress (10→25→50→100), recent deployments feed |
+| **SLO Gauges** | API availability (99.9%), P95 latency (<500ms), error budget remaining, burn rate |
+| **Infrastructure** | CPU/memory per service, pod status, HPA scaling |
+| **Refresh** | Every 1 second |
+
+```bash
+cd sre-dashboard && npm run dev
+```
+
+> Full SRE reference: [SRE.md](SRE.md) | SLO definitions: [docs/SLO.md](docs/SLO.md)
+
+<p align="center">
+  <img src="img/sre-dashboard.png" alt="SRE Dashboard" width="100%"/>
+</p>
+
+---
+
 ## Security Scanning (SonarQube & Snyk)
 
 EstateWise enforces code quality and vulnerability scanning across the entire deployment pipeline using **SonarQube** and **Snyk**.
@@ -897,3 +923,6 @@ For deeper dives, follow the platform-specific READMEs inside each directory.
 - [DEVOPS Guide](DEVOPS.md)
 - [MCP Server](mcp/README.md)
 - [Jenkins CI/CD](jenkins/README.md)
+- [SRE Documentation](SRE.md)
+- [SRE Dashboard](sre-dashboard/README.md)
+- [Service Level Objectives](docs/SLO.md)

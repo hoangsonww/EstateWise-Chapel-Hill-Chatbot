@@ -1,0 +1,1026 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="EstateWise SRE Observability Dashboard — real-time service reliability, deployment, and infrastructure metrics."
+    />
+    <title>EstateWise · SRE Dashboard</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    />
+
+    <!-- Chart.js 4 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+    <!-- chartjs-plugin-annotation -->
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+
+    <link rel="stylesheet" href="css/styles.css" />
+  </head>
+  <body>
+    <div
+      id="app"
+      class="app-shell"
+      role="application"
+      aria-label="EstateWise SRE Dashboard"
+    >
+      <!-- ================================================================
+           Header
+      ================================================================ -->
+      <header class="app-header" role="banner">
+        <div class="header-brand">
+          <div class="brand-logo" aria-hidden="true">
+            <svg
+              width="28"
+              height="28"
+              viewBox="0 0 28 28"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <rect
+                width="28"
+                height="28"
+                rx="6"
+                fill="#58a6ff"
+                fill-opacity="0.15"
+              />
+              <path
+                d="M14 4L24 9.5V18.5L14 24L4 18.5V9.5L14 4Z"
+                stroke="#58a6ff"
+                stroke-width="1.5"
+                fill="none"
+              />
+              <circle cx="14" cy="14" r="3" fill="#58a6ff" />
+              <line
+                x1="14"
+                y1="4"
+                x2="14"
+                y2="11"
+                stroke="#58a6ff"
+                stroke-width="1"
+                opacity="0.6"
+              />
+              <line
+                x1="14"
+                y1="17"
+                x2="14"
+                y2="24"
+                stroke="#58a6ff"
+                stroke-width="1"
+                opacity="0.6"
+              />
+              <line
+                x1="4"
+                y1="9.5"
+                x2="11"
+                y2="13"
+                stroke="#58a6ff"
+                stroke-width="1"
+                opacity="0.6"
+              />
+              <line
+                x1="24"
+                y1="9.5"
+                x2="17"
+                y2="13"
+                stroke="#58a6ff"
+                stroke-width="1"
+                opacity="0.6"
+              />
+              <line
+                x1="4"
+                y1="18.5"
+                x2="11"
+                y2="15"
+                stroke="#58a6ff"
+                stroke-width="1"
+                opacity="0.6"
+              />
+              <line
+                x1="24"
+                y1="18.5"
+                x2="17"
+                y2="15"
+                stroke="#58a6ff"
+                stroke-width="1"
+                opacity="0.6"
+              />
+            </svg>
+          </div>
+          <div class="brand-text">
+            <span class="brand-name">EstateWise</span>
+            <span class="brand-subtitle">SRE Dashboard</span>
+          </div>
+        </div>
+
+        <div class="header-center">
+          <div class="slo-summary" id="header-slo-summary">
+            <span class="slo-pill slo-ok" id="slo-availability-pill">
+              <span class="slo-pill-label">Availability</span>
+              <span class="slo-pill-value" id="hdr-availability">--</span>
+            </span>
+            <span class="slo-pill slo-ok" id="slo-latency-pill">
+              <span class="slo-pill-label">P95</span>
+              <span class="slo-pill-value" id="hdr-latency">--</span>
+            </span>
+            <span class="slo-pill slo-ok" id="slo-error-pill">
+              <span class="slo-pill-label">Errors</span>
+              <span class="slo-pill-value" id="hdr-errors">--</span>
+            </span>
+          </div>
+        </div>
+
+        <div class="header-controls">
+          <div class="live-clock" id="live-clock" aria-label="Current time">
+            --:--:--
+          </div>
+        </div>
+      </header>
+
+      <!-- ================================================================
+           Main Dashboard Content
+      ================================================================ -->
+      <main class="dashboard-main" role="main">
+        <div class="dashboard-content">
+          <!-- ============================================================
+               ROW 0: Service Health Banner
+          ============================================================ -->
+          <section class="dashboard-section" aria-labelledby="section-health">
+            <div class="section-header">
+              <h2 class="section-title" id="section-health">Service Health</h2>
+              <span class="section-badge" id="services-healthy-count"
+                >-- / 6 healthy</span
+              >
+            </div>
+            <div class="service-health-grid" id="service-health-grid">
+              <!-- Populated by app.js -->
+              <div class="service-card skeleton" data-service="backend">
+                <div class="service-card-header">
+                  <span class="service-status-dot"></span>
+                  <span class="service-name">backend</span>
+                  <span class="service-version">v--</span>
+                </div>
+                <div class="service-card-metrics">
+                  <div class="service-metric">
+                    <span class="metric-label">Uptime</span>
+                    <span class="metric-value mono" data-field="uptime"
+                      >--%</span
+                    >
+                  </div>
+                  <div class="service-metric">
+                    <span class="metric-label">Latency</span>
+                    <span class="metric-value mono" data-field="latency"
+                      >--ms</span
+                    >
+                  </div>
+                </div>
+              </div>
+              <div class="service-card skeleton" data-service="frontend">
+                <div class="service-card-header">
+                  <span class="service-status-dot"></span>
+                  <span class="service-name">frontend</span>
+                  <span class="service-version">v--</span>
+                </div>
+                <div class="service-card-metrics">
+                  <div class="service-metric">
+                    <span class="metric-label">Uptime</span>
+                    <span class="metric-value mono" data-field="uptime"
+                      >--%</span
+                    >
+                  </div>
+                  <div class="service-metric">
+                    <span class="metric-label">Latency</span>
+                    <span class="metric-value mono" data-field="latency"
+                      >--ms</span
+                    >
+                  </div>
+                </div>
+              </div>
+              <div class="service-card skeleton" data-service="mcp">
+                <div class="service-card-header">
+                  <span class="service-status-dot"></span>
+                  <span class="service-name">mcp</span>
+                  <span class="service-version">v--</span>
+                </div>
+                <div class="service-card-metrics">
+                  <div class="service-metric">
+                    <span class="metric-label">Uptime</span>
+                    <span class="metric-value mono" data-field="uptime"
+                      >--%</span
+                    >
+                  </div>
+                  <div class="service-metric">
+                    <span class="metric-label">Latency</span>
+                    <span class="metric-value mono" data-field="latency"
+                      >--ms</span
+                    >
+                  </div>
+                </div>
+              </div>
+              <div class="service-card skeleton" data-service="agentic-ai">
+                <div class="service-card-header">
+                  <span class="service-status-dot"></span>
+                  <span class="service-name">agentic-ai</span>
+                  <span class="service-version">v--</span>
+                </div>
+                <div class="service-card-metrics">
+                  <div class="service-metric">
+                    <span class="metric-label">Uptime</span>
+                    <span class="metric-value mono" data-field="uptime"
+                      >--%</span
+                    >
+                  </div>
+                  <div class="service-metric">
+                    <span class="metric-label">Latency</span>
+                    <span class="metric-value mono" data-field="latency"
+                      >--ms</span
+                    >
+                  </div>
+                </div>
+              </div>
+              <div class="service-card skeleton" data-service="grpc">
+                <div class="service-card-header">
+                  <span class="service-status-dot"></span>
+                  <span class="service-name">grpc</span>
+                  <span class="service-version">v--</span>
+                </div>
+                <div class="service-card-metrics">
+                  <div class="service-metric">
+                    <span class="metric-label">Uptime</span>
+                    <span class="metric-value mono" data-field="uptime"
+                      >--%</span
+                    >
+                  </div>
+                  <div class="service-metric">
+                    <span class="metric-label">Latency</span>
+                    <span class="metric-value mono" data-field="latency"
+                      >--ms</span
+                    >
+                  </div>
+                </div>
+              </div>
+              <div
+                class="service-card skeleton"
+                data-service="deployment-control"
+              >
+                <div class="service-card-header">
+                  <span class="service-status-dot"></span>
+                  <span class="service-name">deploy-ctrl</span>
+                  <span class="service-version">v--</span>
+                </div>
+                <div class="service-card-metrics">
+                  <div class="service-metric">
+                    <span class="metric-label">Uptime</span>
+                    <span class="metric-value mono" data-field="uptime"
+                      >--%</span
+                    >
+                  </div>
+                  <div class="service-metric">
+                    <span class="metric-label">Latency</span>
+                    <span class="metric-value mono" data-field="latency"
+                      >--ms</span
+                    >
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ============================================================
+               ROW 1: SLO Compliance
+          ============================================================ -->
+          <section class="dashboard-section" aria-labelledby="section-slo">
+            <div class="section-header">
+              <h2 class="section-title" id="section-slo">SLO Compliance</h2>
+              <span class="section-meta">30-day rolling window</span>
+            </div>
+            <div class="slo-grid">
+              <!-- API Availability -->
+              <div class="card slo-card">
+                <div class="card-header">
+                  <span class="card-title">API Availability</span>
+                  <span class="slo-target">Target: 99.9%</span>
+                </div>
+                <div class="gauge-container">
+                  <svg
+                    class="circular-gauge"
+                    viewBox="0 0 120 120"
+                    aria-label="API Availability gauge"
+                  >
+                    <circle class="gauge-bg" cx="60" cy="60" r="50" />
+                    <circle class="gauge-track" cx="60" cy="60" r="50" />
+                    <circle
+                      class="gauge-fill"
+                      id="gauge-availability-fill"
+                      cx="60"
+                      cy="60"
+                      r="50"
+                    />
+                    <text
+                      class="gauge-value"
+                      id="gauge-availability-value"
+                      x="60"
+                      y="56"
+                      text-anchor="middle"
+                    >
+                      --
+                    </text>
+                    <text
+                      class="gauge-sublabel"
+                      x="60"
+                      y="72"
+                      text-anchor="middle"
+                    >
+                      availability
+                    </text>
+                  </svg>
+                </div>
+                <div class="slo-status-row">
+                  <span class="slo-status-badge" id="slo-availability-badge"
+                    >--</span
+                  >
+                  <span class="slo-budget-text" id="slo-availability-budget"
+                    >Error budget: --</span
+                  >
+                </div>
+              </div>
+
+              <!-- P95 Latency -->
+              <div class="card slo-card">
+                <div class="card-header">
+                  <span class="card-title">P95 Latency</span>
+                  <span class="slo-target">Target: &lt;500ms</span>
+                </div>
+                <div class="gauge-container">
+                  <svg
+                    class="circular-gauge"
+                    viewBox="0 0 120 120"
+                    aria-label="P95 Latency gauge"
+                  >
+                    <circle class="gauge-bg" cx="60" cy="60" r="50" />
+                    <circle class="gauge-track" cx="60" cy="60" r="50" />
+                    <circle
+                      class="gauge-fill"
+                      id="gauge-latency-fill"
+                      cx="60"
+                      cy="60"
+                      r="50"
+                    />
+                    <text
+                      class="gauge-value"
+                      id="gauge-latency-value"
+                      x="60"
+                      y="56"
+                      text-anchor="middle"
+                    >
+                      --
+                    </text>
+                    <text
+                      class="gauge-sublabel"
+                      x="60"
+                      y="72"
+                      text-anchor="middle"
+                    >
+                      P95 ms
+                    </text>
+                  </svg>
+                </div>
+                <div class="slo-status-row">
+                  <span class="slo-status-badge" id="slo-latency-badge"
+                    >--</span
+                  >
+                  <span class="slo-budget-text" id="slo-latency-budget"
+                    >vs 500ms target</span
+                  >
+                </div>
+              </div>
+
+              <!-- Error Budget Remaining -->
+              <div class="card slo-card">
+                <div class="card-header">
+                  <span class="card-title">Error Budget</span>
+                  <span class="slo-target">30-day window</span>
+                </div>
+                <div class="error-budget-container">
+                  <div class="error-budget-label-row">
+                    <span class="error-budget-pct mono" id="error-budget-pct"
+                      >--%</span
+                    >
+                    <span
+                      class="error-budget-remaining"
+                      id="error-budget-remaining"
+                      >-- remaining</span
+                    >
+                  </div>
+                  <div class="error-budget-bar-wrap">
+                    <div class="error-budget-bar" id="error-budget-bar">
+                      <div
+                        class="error-budget-fill"
+                        id="error-budget-fill"
+                        style="width: 0%"
+                      ></div>
+                    </div>
+                  </div>
+                  <div class="error-budget-details">
+                    <div class="budget-detail-row">
+                      <span class="budget-detail-label">Total budget</span>
+                      <span class="budget-detail-value mono" id="budget-total"
+                        >-- min</span
+                      >
+                    </div>
+                    <div class="budget-detail-row">
+                      <span class="budget-detail-label">Consumed</span>
+                      <span
+                        class="budget-detail-value mono"
+                        id="budget-consumed"
+                        >-- min</span
+                      >
+                    </div>
+                    <div class="budget-detail-row">
+                      <span class="budget-detail-label">Projected</span>
+                      <span
+                        class="budget-detail-value mono"
+                        id="budget-projected"
+                        >-- min</span
+                      >
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Error Budget Burn Rate -->
+              <div class="card slo-card">
+                <div class="card-header">
+                  <span class="card-title">Burn Rate</span>
+                  <span class="slo-target">24h window</span>
+                </div>
+                <div class="burn-rate-header">
+                  <span class="burn-rate-value mono" id="burn-rate-value"
+                    >--x</span
+                  >
+                  <span class="burn-rate-label" id="burn-rate-label"
+                    >nominal</span
+                  >
+                </div>
+                <div class="chart-container chart-container--sm">
+                  <canvas
+                    id="chart-burn-rate"
+                    aria-label="Error budget burn rate sparkline"
+                  ></canvas>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ============================================================
+               ROW 2: Request Metrics
+          ============================================================ -->
+          <section class="dashboard-section" aria-labelledby="section-requests">
+            <div class="section-header">
+              <h2 class="section-title" id="section-requests">
+                Request Metrics
+              </h2>
+              <span class="section-meta">Last 60 seconds — live</span>
+            </div>
+            <div class="charts-row-3">
+              <div class="card chart-card">
+                <div class="card-header">
+                  <span class="card-title">Requests / sec</span>
+                  <span class="card-value mono" id="rps-total">-- rps</span>
+                </div>
+                <div class="chart-container">
+                  <canvas
+                    id="chart-rps"
+                    aria-label="Requests per second by service"
+                  ></canvas>
+                </div>
+              </div>
+              <div class="card chart-card">
+                <div class="card-header">
+                  <span class="card-title">Error Rate</span>
+                  <span class="card-value mono" id="error-rate-current"
+                    >--%</span
+                  >
+                </div>
+                <div class="chart-container">
+                  <canvas
+                    id="chart-error-rate"
+                    aria-label="Error rate over time"
+                  ></canvas>
+                </div>
+              </div>
+              <div class="card chart-card">
+                <div class="card-header">
+                  <span class="card-title">Latency Percentiles</span>
+                  <span class="card-value mono" id="latency-p95-current"
+                    >-- ms P95</span
+                  >
+                </div>
+                <div class="chart-container">
+                  <canvas
+                    id="chart-latency"
+                    aria-label="Latency percentiles over time"
+                  ></canvas>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ============================================================
+               ROW 3: Deployment Status
+          ============================================================ -->
+          <section
+            class="dashboard-section"
+            aria-labelledby="section-deployments"
+          >
+            <div class="section-header">
+              <h2 class="section-title" id="section-deployments">
+                Deployment Status
+              </h2>
+            </div>
+            <div class="charts-row-3">
+              <!-- Blue/Green Status -->
+              <div class="card deploy-card">
+                <div class="card-header">
+                  <span class="card-title">Blue / Green</span>
+                  <span class="card-badge" id="bg-active-badge">-- Active</span>
+                </div>
+                <div class="bg-panel" id="bg-panel">
+                  <div class="bg-column bg-column--blue" id="bg-col-blue">
+                    <div class="bg-col-header">
+                      <span class="bg-color-dot bg-color-dot--blue"></span>
+                      <span class="bg-col-label">Blue</span>
+                      <span class="bg-active-tag" id="bg-blue-tag"></span>
+                    </div>
+                    <div class="bg-services" id="bg-blue-services">
+                      <!-- Populated by app.js -->
+                    </div>
+                  </div>
+                  <div class="bg-divider">
+                    <div class="traffic-arrow" aria-hidden="true">
+                      <svg
+                        width="24"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                      >
+                        <path
+                          d="M5 12H19M19 12L13 6M19 12L13 18"
+                          stroke="currentColor"
+                          stroke-width="1.5"
+                          stroke-linecap="round"
+                        />
+                      </svg>
+                    </div>
+                  </div>
+                  <div class="bg-column bg-column--green" id="bg-col-green">
+                    <div class="bg-col-header">
+                      <span class="bg-color-dot bg-color-dot--green"></span>
+                      <span class="bg-col-label">Green</span>
+                      <span class="bg-active-tag" id="bg-green-tag"></span>
+                    </div>
+                    <div class="bg-services" id="bg-green-services">
+                      <!-- Populated by app.js -->
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Canary Rollout -->
+              <div class="card deploy-card">
+                <div class="card-header">
+                  <span class="card-title">Canary Rollout</span>
+                  <span class="card-value mono" id="canary-weight-display"
+                    >--%</span
+                  >
+                </div>
+                <div class="canary-panel">
+                  <div class="canary-steps" id="canary-steps">
+                    <!-- Populated by app.js -->
+                  </div>
+                  <div class="canary-traffic-row">
+                    <div class="canary-donut-wrap">
+                      <canvas
+                        id="chart-canary-donut"
+                        width="100"
+                        height="100"
+                        aria-label="Canary traffic split"
+                      ></canvas>
+                      <div class="canary-donut-center" id="canary-donut-center">
+                        --
+                      </div>
+                    </div>
+                    <div class="canary-metrics-table">
+                      <div class="canary-table-header">
+                        <span></span>
+                        <span>Stable</span>
+                        <span>Canary</span>
+                      </div>
+                      <div class="canary-table-row">
+                        <span class="canary-metric-label">Success Rate</span>
+                        <span
+                          class="canary-metric-value mono"
+                          id="canary-stable-sr"
+                          >--%</span
+                        >
+                        <span
+                          class="canary-metric-value mono"
+                          id="canary-canary-sr"
+                          >--%</span
+                        >
+                      </div>
+                      <div class="canary-table-row">
+                        <span class="canary-metric-label">P95 Latency</span>
+                        <span
+                          class="canary-metric-value mono"
+                          id="canary-stable-p95"
+                          >--ms</span
+                        >
+                        <span
+                          class="canary-metric-value mono"
+                          id="canary-canary-p95"
+                          >--ms</span
+                        >
+                      </div>
+                      <div class="canary-table-row">
+                        <span class="canary-metric-label">Error Rate</span>
+                        <span
+                          class="canary-metric-value mono"
+                          id="canary-stable-err"
+                          >--%</span
+                        >
+                        <span
+                          class="canary-metric-value mono"
+                          id="canary-canary-err"
+                          >--%</span
+                        >
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Recent Deployments Feed -->
+              <div class="card deploy-card">
+                <div class="card-header">
+                  <span class="card-title">Recent Deployments</span>
+                  <span class="card-meta" id="deploy-count">-- in 24h</span>
+                </div>
+                <div
+                  class="feed-scroll"
+                  id="deployments-feed"
+                  aria-label="Recent deployment events"
+                  aria-live="polite"
+                >
+                  <!-- Populated by app.js -->
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ============================================================
+               ROW 4: Infrastructure
+          ============================================================ -->
+          <section class="dashboard-section" aria-labelledby="section-infra">
+            <div class="section-header">
+              <h2 class="section-title" id="section-infra">Infrastructure</h2>
+              <span class="section-meta">Live resource utilization</span>
+            </div>
+            <div class="charts-row-4">
+              <div class="card chart-card">
+                <div class="card-header">
+                  <span class="card-title">CPU Usage</span>
+                  <span class="card-value mono" id="cpu-avg">-- avg%</span>
+                </div>
+                <div class="chart-container">
+                  <canvas
+                    id="chart-cpu"
+                    aria-label="CPU usage by service"
+                  ></canvas>
+                </div>
+              </div>
+              <div class="card chart-card">
+                <div class="card-header">
+                  <span class="card-title">Memory Usage</span>
+                  <span class="card-value mono" id="mem-avg">-- avg%</span>
+                </div>
+                <div class="chart-container">
+                  <canvas
+                    id="chart-memory"
+                    aria-label="Memory usage by service"
+                  ></canvas>
+                </div>
+              </div>
+              <div class="card chart-card">
+                <div class="card-header">
+                  <span class="card-title">Pod Status</span>
+                  <span class="card-value mono" id="pods-total">-- pods</span>
+                </div>
+                <div class="chart-container">
+                  <canvas
+                    id="chart-pods"
+                    aria-label="Pod status by service"
+                  ></canvas>
+                </div>
+              </div>
+              <div class="card chart-card">
+                <div class="card-header">
+                  <span class="card-title">HPA Replicas</span>
+                  <span class="card-value mono" id="hpa-total"
+                    >-- replicas</span
+                  >
+                </div>
+                <div class="chart-container">
+                  <canvas
+                    id="chart-hpa"
+                    aria-label="HPA scaling over time"
+                  ></canvas>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ============================================================
+               ROW 5: Multi-Region
+          ============================================================ -->
+          <section class="dashboard-section" aria-labelledby="section-regions">
+            <div class="section-header">
+              <h2 class="section-title" id="section-regions">Multi-Region</h2>
+              <span class="section-meta">4 active regions</span>
+            </div>
+            <div class="charts-row-3">
+              <div class="card chart-card">
+                <div class="card-header">
+                  <span class="card-title">Traffic Distribution</span>
+                </div>
+                <div class="chart-container chart-container--donut">
+                  <canvas
+                    id="chart-region-traffic"
+                    aria-label="Traffic distribution by region"
+                  ></canvas>
+                </div>
+              </div>
+              <div class="card chart-card">
+                <div class="card-header">
+                  <span class="card-title">Regional Latency</span>
+                </div>
+                <div class="chart-container">
+                  <canvas
+                    id="chart-region-latency"
+                    aria-label="Latency by region"
+                  ></canvas>
+                </div>
+              </div>
+              <div class="card">
+                <div class="card-header">
+                  <span class="card-title">Region Health</span>
+                </div>
+                <div class="region-health-grid" id="region-health-grid">
+                  <!-- Populated by app.js -->
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ============================================================
+               ROW 6: Agentic AI Observability
+          ============================================================ -->
+          <section class="dashboard-section" aria-labelledby="section-agentic">
+            <div class="section-header">
+              <h2 class="section-title" id="section-agentic">
+                Agentic AI Observability
+              </h2>
+              <span class="section-meta" id="agentic-tokens-total"
+                >-- tokens/min</span
+              >
+            </div>
+            <div class="charts-row-3">
+              <div class="card chart-card">
+                <div class="card-header">
+                  <span class="card-title">Token Consumption</span>
+                  <span class="card-value mono" id="token-total">--k/min</span>
+                </div>
+                <div class="chart-container">
+                  <canvas
+                    id="chart-tokens"
+                    aria-label="Token consumption over time"
+                  ></canvas>
+                </div>
+              </div>
+              <div class="card chart-card">
+                <div class="card-header">
+                  <span class="card-title">Agent Task Results</span>
+                  <span class="card-value mono" id="task-success-rate"
+                    >--% success</span
+                  >
+                </div>
+                <div class="chart-container">
+                  <canvas
+                    id="chart-agent-tasks"
+                    aria-label="Agent task success and failure"
+                  ></canvas>
+                </div>
+              </div>
+              <div class="card chart-card">
+                <div class="card-header">
+                  <span class="card-title">Tool Call Latency</span>
+                  <span class="card-value mono" id="tool-call-avg"
+                    >-- ms avg</span
+                  >
+                </div>
+                <div class="chart-container">
+                  <canvas
+                    id="chart-tool-latency"
+                    aria-label="Tool call latency by category"
+                  ></canvas>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ============================================================
+               ROW 7: DORA Metrics & Active Alerts
+          ============================================================ -->
+          <section class="dashboard-section" aria-labelledby="section-dora">
+            <div class="section-header">
+              <h2 class="section-title" id="section-dora">
+                DORA Metrics &amp; Alerts
+              </h2>
+            </div>
+            <div class="charts-row-2-wide">
+              <!-- DORA Metrics -->
+              <div class="card">
+                <div class="card-header">
+                  <span class="card-title">DORA Metrics</span>
+                  <span class="section-meta">Elite performance thresholds</span>
+                </div>
+                <div class="dora-grid">
+                  <div class="dora-card" id="dora-deploy-freq">
+                    <div class="dora-icon" aria-hidden="true">
+                      <svg
+                        width="20"
+                        height="20"
+                        viewBox="0 0 20 20"
+                        fill="none"
+                      >
+                        <path
+                          d="M10 2v6l3 3"
+                          stroke="#58a6ff"
+                          stroke-width="1.5"
+                          stroke-linecap="round"
+                        />
+                        <circle
+                          cx="10"
+                          cy="10"
+                          r="8"
+                          stroke="#58a6ff"
+                          stroke-width="1.5"
+                        />
+                      </svg>
+                    </div>
+                    <div class="dora-metric-body">
+                      <div class="dora-value mono" id="dora-deploy-freq-val">
+                        --
+                      </div>
+                      <div class="dora-label">Deploy Frequency</div>
+                      <div class="dora-sublabel">deploys / day</div>
+                    </div>
+                    <div class="dora-badge" id="dora-deploy-freq-badge">--</div>
+                  </div>
+                  <div class="dora-card" id="dora-lead-time">
+                    <div class="dora-icon" aria-hidden="true">
+                      <svg
+                        width="20"
+                        height="20"
+                        viewBox="0 0 20 20"
+                        fill="none"
+                      >
+                        <path
+                          d="M3 10h14M14 6l4 4-4 4"
+                          stroke="#3fb950"
+                          stroke-width="1.5"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        />
+                      </svg>
+                    </div>
+                    <div class="dora-metric-body">
+                      <div class="dora-value mono" id="dora-lead-time-val">
+                        --
+                      </div>
+                      <div class="dora-label">Lead Time</div>
+                      <div class="dora-sublabel">hours to production</div>
+                    </div>
+                    <div class="dora-badge" id="dora-lead-time-badge">--</div>
+                  </div>
+                  <div class="dora-card" id="dora-mttr">
+                    <div class="dora-icon" aria-hidden="true">
+                      <svg
+                        width="20"
+                        height="20"
+                        viewBox="0 0 20 20"
+                        fill="none"
+                      >
+                        <path
+                          d="M10 4v4l2.5 2.5"
+                          stroke="#d29922"
+                          stroke-width="1.5"
+                          stroke-linecap="round"
+                        />
+                        <circle
+                          cx="10"
+                          cy="10"
+                          r="8"
+                          stroke="#d29922"
+                          stroke-width="1.5"
+                        />
+                        <path
+                          d="M6 16l-2 2"
+                          stroke="#d29922"
+                          stroke-width="1.5"
+                          stroke-linecap="round"
+                        />
+                      </svg>
+                    </div>
+                    <div class="dora-metric-body">
+                      <div class="dora-value mono" id="dora-mttr-val">--</div>
+                      <div class="dora-label">MTTR</div>
+                      <div class="dora-sublabel">minutes to recover</div>
+                    </div>
+                    <div class="dora-badge" id="dora-mttr-badge">--</div>
+                  </div>
+                  <div class="dora-card" id="dora-cfr">
+                    <div class="dora-icon" aria-hidden="true">
+                      <svg
+                        width="20"
+                        height="20"
+                        viewBox="0 0 20 20"
+                        fill="none"
+                      >
+                        <path
+                          d="M10 3L17 17H3L10 3Z"
+                          stroke="#f85149"
+                          stroke-width="1.5"
+                          stroke-linejoin="round"
+                        />
+                        <line
+                          x1="10"
+                          y1="9"
+                          x2="10"
+                          y2="13"
+                          stroke="#f85149"
+                          stroke-width="1.5"
+                          stroke-linecap="round"
+                        />
+                        <circle cx="10" cy="15" r="0.75" fill="#f85149" />
+                      </svg>
+                    </div>
+                    <div class="dora-metric-body">
+                      <div class="dora-value mono" id="dora-cfr-val">--</div>
+                      <div class="dora-label">Change Failure Rate</div>
+                      <div class="dora-sublabel">
+                        % deploys causing incident
+                      </div>
+                    </div>
+                    <div class="dora-badge" id="dora-cfr-badge">--</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Active Alerts Feed -->
+              <div class="card">
+                <div class="card-header">
+                  <span class="card-title">Active Alerts</span>
+                  <span class="alerts-count-badge" id="alerts-count">0</span>
+                </div>
+                <div
+                  class="feed-scroll feed-scroll--alerts"
+                  id="alerts-feed"
+                  aria-label="Active alerts"
+                  aria-live="polite"
+                >
+                  <!-- Populated by app.js -->
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+        <!-- .dashboard-content -->
+      </main>
+    </div>
+    <!-- #app -->
+
+    <!-- Scripts — load in dependency order -->
+    <script src="js/config.js"></script>
+    <script src="js/data-provider.js"></script>
+    <script src="js/charts.js"></script>
+    <script src="js/app.js"></script>
+  </body>
+</html>

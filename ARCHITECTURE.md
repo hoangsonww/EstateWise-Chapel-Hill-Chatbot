@@ -2066,6 +2066,43 @@ sequenceDiagram
   API-->>Client: Response [trace-id: abc123]
 ```
 
+### SRE Dashboard
+
+Real-time observability dashboard providing a unified view of all SRE metrics:
+
+```mermaid
+graph LR
+    subgraph Sources["Data Sources"]
+        P["Prometheus :9090"]
+        DC["Deployment Control :4100"]
+        DD["Datadog API"]
+        BE["Backend /metrics"]
+    end
+
+    subgraph Dashboard["SRE Dashboard :4200"]
+        SH["Service Health"]
+        SLO["SLO Gauges"]
+        RM["Request Metrics"]
+        DS["Deploy Status"]
+        IM["Infra Metrics"]
+        MR["Multi-Region"]
+        AI["Agentic AI"]
+        DORA["DORA Metrics"]
+    end
+
+    Sources --> Dashboard
+```
+
+- **Location:** [`sre-dashboard/`](sre-dashboard/)
+- **Port:** 4200
+- **Charts:** 14 Chart.js instances updated every second
+- **Deployment panels:** Blue/green active color indicator, canary rollout step progress, recent deployments feed
+- **Documentation:** [SRE Dashboard README](sre-dashboard/README.md), [SRE.md](SRE.md)
+
+<p align="center">
+  <img src="img/sre-dashboard.png" alt="SRE Dashboard" width="100%"/>
+</p>
+
 ## Performance Optimization
 
 ### Caching Strategy
@@ -2279,6 +2316,8 @@ erDiagram
 
 ## Performance Targets & SLOs
 
+> **Canonical source:** [`docs/SLO.md`](docs/SLO.md) — all SLO definitions, error budgets, burn-rate alerting, and escalation procedures. See also [SRE.md](SRE.md) for full SRE documentation.
+
 ### Service Level Objectives
 
 | Metric | Target | Critical Threshold |
@@ -2292,6 +2331,20 @@ erDiagram
 | **Map Load Time** | < 2s | < 5s |
 | **Graph Query Time** | < 1.5s | < 3s |
 | **Vector Search Time** | < 500ms | < 1500ms |
+
+### Error Budgets & Burn-Rate Alerting
+
+Error budget for 99.9% availability: **43.2 minutes** of allowed downtime per 30-day window. Burn-rate alerts detect budget consumption speed:
+
+| Alert | Condition | Severity | Action |
+|-------|-----------|----------|--------|
+| SLOBurnRateCritical | 1h burn > 14.4x AND 6h burn > 6x | Critical | Page on-call |
+| SLOBurnRateWarning | 6h burn > 6x AND 3d burn > 3x | Warning | Create ticket |
+| SLOBurnRateTrend | 3d burn > 1x (30m sustained) | Info | Monitor trend |
+| SLOErrorBudgetLow | < 25% budget remaining | Warning | Review deployments |
+| SLOErrorBudgetExhausted | Budget consumed | Critical | Freeze non-critical deploys |
+
+Recording rules: `sli:burn_rate:1h`, `sli:burn_rate:6h`, `sli:burn_rate:3d`, `sli:error_budget:remaining_ratio` — defined in [`kubernetes/monitoring/prometheus-config.yaml`](kubernetes/monitoring/prometheus-config.yaml).
 
 ### Scalability Targets
 
@@ -2432,6 +2485,9 @@ gitGraph
 - [gRPC & tRPC Documentation](GRPC_TRPC.md)
 - [RAG Architecture Overview](RAG_SYSTEM.md)
 - [Context Engineering Documentation](context-engineering/README.md)
+- [SRE Documentation](SRE.md)
+- [Service Level Objectives](docs/SLO.md)
+- [SRE Dashboard](sre-dashboard/README.md)
 
 ---
 

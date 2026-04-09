@@ -29,6 +29,7 @@ Large Language Models (LLMs), a Mixture‑of‑Experts ensemble, blue/green & ca
 - [Monitoring \& Visualizations](#monitoring--visualizations)
   - [Prometheus](#prometheus)
   - [Datadog Observability](#datadog-observability)
+  - [SRE Dashboard](#sre-dashboard)
   - [Security Scanning (SonarQube \& Snyk)](#security-scanning-sonarqube--snyk)
 - [CI/CD Pipelines](#cicd-pipelines)
 - [MCP Server](#mcp-server)
@@ -1330,6 +1331,21 @@ helm upgrade --install estatewise ./helm/estatewise \
 
 For full setup instructions, architecture details, and runbooks, see 📘 [docs/datadog-integration.md](docs/datadog-integration.md).
 
+### SRE Dashboard
+
+Standalone real-time SRE observability dashboard at [`sre-dashboard/`](sre-dashboard/).
+
+- **14 Chart.js charts** — service health, SLO gauges, request metrics, deployment status (blue/green + canary), infrastructure (CPU/memory/pods/HPA), multi-region traffic, agentic AI observability, DORA metrics
+- **1-second refresh** — smooth data streaming with EMA-smoothed metrics and historical trend lines
+- **Wirable to production** — swap in Prometheus, Datadog, and deployment-control APIs via environment variables
+- **Dark theme** — matches the project design language
+
+```bash
+cd sre-dashboard && npm run dev   # http://localhost:4200
+```
+
+> See [SRE.md](SRE.md) for comprehensive SRE documentation including SLOs, error budgets, burn-rate alerting, and incident response.
+
 ### Security Scanning (SonarQube & Snyk)
 
 EstateWise integrates **SonarQube** for continuous code quality analysis and **Snyk** for dependency, container, code (SAST), and infrastructure-as-code (IaC) vulnerability scanning.
@@ -2625,5 +2641,11 @@ Thank you for checking out **EstateWise**! We hope you find it useful in your re
 [🗺️ RAG Architecture Documentation](RAG_SYSTEM.md)
 
 [⚖️ gRPC & tRPC Documentation](GRPC_TRPC.md)
+
+[🔧 SRE Documentation](SRE.md)
+
+[📊 SRE Dashboard](sre-dashboard/README.md)
+
+[📋 Service Level Objectives](docs/SLO.md)
 
 [⬆️ Back to Top](#table-of-contents)

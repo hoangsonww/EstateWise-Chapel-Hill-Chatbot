@@ -1243,6 +1243,19 @@ terraform apply -var='enable_datadog=true' -var='datadog_api_key=KEY' -var='data
 
 For full details, see 📘 [docs/datadog-integration.md](docs/datadog-integration.md).
 
+#### SRE Dashboard & SLO Monitoring
+
+A dedicated SRE dashboard ([`sre-dashboard/`](sre-dashboard/)) provides real-time visualization of:
+
+- **SLO compliance** — circular gauges for availability (99.9%) and P95 latency (<500ms), error budget burn-down
+- **Burn-rate alerting** — multi-window burn rate (1h, 6h, 3d) with Google SRE pattern thresholds
+- **Deployment health** — blue/green active color, canary rollout progress, recent deploy feed
+- **DORA metrics** — deployment frequency, lead time, MTTR, change failure rate
+
+Error budget: 43.2 minutes per 30-day window. When exhausted, non-critical deployments are frozen.
+
+> Canonical SLO definitions: [`docs/SLO.md`](docs/SLO.md) | Full SRE guide: [`SRE.md`](SRE.md)
+
 ### 10.6 High Availability Setup
 
 ```yaml
@@ -1485,6 +1498,15 @@ flowchart LR
 | IaC | `snyk iac test` | Terraform, Kubernetes, Helm, Docker Compose |
 
 Per-service policies in `.snyk` (root) and `.snyk.d/` (overrides) control ignore/patch rules. Both tools gate Jenkins and AWS CodeBuild pipelines.
+
+### 12.6 SRE Practices
+
+EstateWise follows Google SRE principles with formal error budgets, multi-window burn-rate alerting, and progressive delivery. Key artifacts:
+
+- **[`docs/SLO.md`](docs/SLO.md)** — canonical SLO definitions and error budget calculations
+- **[`SRE.md`](SRE.md)** — comprehensive SRE reference (alerting, incident response, DORA metrics)
+- **[`sre-dashboard/`](sre-dashboard/)** — real-time observability dashboard (port 4200)
+- **[`kubernetes/monitoring/prometheus-config.yaml`](kubernetes/monitoring/prometheus-config.yaml)** — Prometheus recording rules and burn-rate alerts
 
 ---
 
