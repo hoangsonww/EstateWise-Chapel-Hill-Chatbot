@@ -32,3 +32,4 @@ snyk-*.json
 security-reports/
 coverage-reports/
 trivy-*.json
+/sre-dashboard/node_modules/

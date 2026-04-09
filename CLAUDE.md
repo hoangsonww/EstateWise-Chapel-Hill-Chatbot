@@ -29,6 +29,7 @@ This file is the always-on memory for Claude Code in this repository. Keep it le
 - `grpc/`: market pulse proto contract and Node gRPC service.
 - `context-engineering/`: knowledge graph engine, knowledge base, context window management, ingestion pipeline, D3 visualization UI, and MCP/agent integration.
 - `deployment-control/`: ops API plus separate Nuxt UI for deployment actions.
+- `sre-dashboard/`: standalone SRE observability dashboard with Chart.js charts, mock data provider (wirable to Prometheus/Datadog/deployment-control), runs on port 4200.
 - Infra/docs: `docker/`, `kubernetes/`, `helm/`, `terraform/`, `aws/`, `azure/`, `gcp/`, `oracle-cloud/`, `hashicorp/`, root architecture/deployment docs.
 
 ## High-Signal Entry Points
@@ -58,6 +59,10 @@ This file is the always-on memory for Claude Code in this repository. Keep it le
 - Context factory: `context-engineering/src/factory.ts`
 - Context D3 UI: `context-engineering/src/ui/public/index.html`
 - Deployment-control API: `deployment-control/src/server.ts`
+- SRE Dashboard: `sre-dashboard/public/index.html`
+- SRE Dashboard data provider: `sre-dashboard/public/js/data-provider.js`
+- SRE Dashboard charts: `sre-dashboard/public/js/charts.js`
+- SLO canonical doc: `docs/SLO.md`
 
 ## Important Repo Gotchas
 
@@ -74,6 +79,8 @@ This file is the always-on memory for Claude Code in this repository. Keep it le
 - MCP domain servers use scoped HMAC auth tokens. Each agent only has access to its declared tool scope in the agent registry.
 - Grounding rules in `agentic-ai/src/prompts/grounding.ts` enforce that agents cite tool outputs and cannot fabricate data. Violations trigger re-prompting.
 - `.beads/` captures reasoning chains for audit and replay. Check `.beads/.status.json` before editing shared files in multi-agent scenarios.
+- `sre-dashboard` uses mock data by default; toggle "Live Data" in the header to attempt real API connections. Mock mode generates realistic data with EMA smoothing and diurnal patterns.
+- SLO definitions canonical source is `docs/SLO.md`. Prometheus rules and Datadog monitors should reference it, not the other way around.
 
 ## Validation Defaults
 
@@ -112,6 +119,9 @@ cd context-engineering && npm run seed       # verify seed data
 cd deployment-control && npm run build
 cd deployment-control && npm run build:api
 cd deployment-control && npm run build:ui
+
+# SRE Dashboard
+cd sre-dashboard && npm run dev              # starts dashboard on :4200
 ```
 
 ## Documentation Expectations

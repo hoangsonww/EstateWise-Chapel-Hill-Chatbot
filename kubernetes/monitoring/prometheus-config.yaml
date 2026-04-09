@@ -246,6 +246,41 @@ data:
           - record: sli:throughput
             expr: sum(rate(http_requests_total[5m]))
 
+          # Error budget recording rules
+          - record: sli:error_budget:remaining_ratio
+            expr: |
+              1 - (
+                (1 - avg_over_time(sli:availability:ratio[30d])) /
+                (1 - 0.999)
+              )
+
+          - record: sli:burn_rate:1h
+            expr: |
+              1 - (
+                sum(rate(http_requests_total{status!~"5.."}[1h])) /
+                sum(rate(http_requests_total[1h]))
+              )
+              /
+              (1 - 0.999)
+
+          - record: sli:burn_rate:6h
+            expr: |
+              1 - (
+                sum(rate(http_requests_total{status!~"5.."}[6h])) /
+                sum(rate(http_requests_total[6h]))
+              )
+              /
+              (1 - 0.999)
+
+          - record: sli:burn_rate:3d
+            expr: |
+              1 - (
+                sum(rate(http_requests_total{status!~"5.."}[3d])) /
+                sum(rate(http_requests_total[3d]))
+              )
+              /
+              (1 - 0.999)
+
           - alert: SLOAvailabilityBreach
             expr: sli:availability:ratio < 0.995
             for: 5m
@@ -265,3 +300,73 @@ data:
             annotations:
               summary: "SLO breach: p95 latency above 500ms"
               description: "Current p95 latency: {{ $value }}s"
+
+          # Multi-window burn-rate alerts (Google SRE pattern)
+          - alert: SLOBurnRateCritical
+            expr: sli:burn_rate:1h > 14.4 and sli:burn_rate:6h > 6
+            for: 2m
+            labels:
+              severity: critical
+              slo: availability
+              window: multi
+            annotations:
+              summary: "Critical SLO burn rate - error budget exhausting fast"
+              description: "1h burn rate: {{ $value }}x budget. At this rate, 30-day error budget exhausts in {{ printf \"%.1f\" (div 720.0 $value) }} hours."
+              runbook: "https://estatewise.example.com/runbooks/slo-burn-rate"
+
+          - alert: SLOBurnRateWarning
+            expr: sli:burn_rate:6h > 6 and sli:burn_rate:3d > 3
+            for: 5m
+            labels:
+              severity: warning
+              slo: availability
+              window: multi
+            annotations:
+              summary: "Elevated SLO burn rate - investigate"
+              description: "6h burn rate: {{ $value }}x budget. Sustained burn will breach SLO within the 30-day window."
+
+          - alert: SLOBurnRateTrend
+            expr: sli:burn_rate:3d > 1
+            for: 30m
+            labels:
+              severity: info
+              slo: availability
+              window: trend
+            annotations:
+              summary: "SLO budget trending down"
+              description: "3d burn rate: {{ $value }}x budget. Error budget remaining: {{ printf \"%.1f\" (mul (query \"sli:error_budget:remaining_ratio\") 100) }}%"
+
+          - alert: SLOErrorBudgetLow
+            expr: sli:error_budget:remaining_ratio < 0.25
+            for: 5m
+            labels:
+              severity: warning
+              slo: error-budget
+            annotations:
+              summary: "Less than 25% error budget remaining"
+              description: "Only {{ $value | humanizePercentage }} of the 30-day error budget remains."
+
+          - alert: SLOErrorBudgetExhausted
+            expr: sli:error_budget:remaining_ratio < 0
+            for: 1m
+            labels:
+              severity: critical
+              slo: error-budget
+            annotations:
+              summary: "Error budget exhausted"
+              description: "The 30-day error budget is fully consumed. Freeze non-critical deployments."
+
+          # Latency burn-rate alerts
+          - alert: SLOLatencyBurnRateCritical
+            expr: |
+              (histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[1h])) > 0.5)
+              and
+              (histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[6h])) > 0.5)
+            for: 2m
+            labels:
+              severity: critical
+              slo: latency
+              window: multi
+            annotations:
+              summary: "Sustained P95 latency SLO breach across multiple windows"
+              description: "P95 latency exceeds 500ms in both 1h and 6h windows."

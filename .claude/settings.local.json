@@ -12,7 +12,15 @@
       "Bash(node:*)",
       "Bash(/tmp/ESTATE_WISE_DOCS_SUMMARY.md:*)",
       "Read(//tmp/**)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(npm install:*)",
+      "Bash(kill %1)",
+      "Bash(echo \"Server started, PID: $!\")",
+      "Bash(lsof -ti:4200)",
+      "Bash(xargs kill:*)",
+      "mcp__playwright__browser_take_screenshot",
+      "mcp__playwright__browser_navigate",
+      "Bash(ls -la /Users/davidnguyen/WebstormProjects/EstateWise-Chatbot/*.md)"
     ],
     "deny": [],
     "ask": []

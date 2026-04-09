@@ -201,9 +201,19 @@ frontend:
     minAvailable: 1
   probes:
     readiness:
-      enabled: false
+      enabled: true
+      httpGet:
+        path: /
+        port: http
+      initialDelaySeconds: 15
+      periodSeconds: 20
     liveness:
-      enabled: false
+      enabled: true
+      httpGet:
+        path: /
+        port: http
+      initialDelaySeconds: 30
+      periodSeconds: 30
   podAnnotations:
     consul.hashicorp.com/connect-service: "estatewise-frontend"
     consul.hashicorp.com/connect-service-port: "http"
@@ -292,9 +302,92 @@ mcp:
     enabled: false
   probes:
     readiness:
-      enabled: false
+      enabled: true
+      tcpSocket:
+        port: mcp
+      initialDelaySeconds: 10
+      periodSeconds: 15
     liveness:
-      enabled: false
+      enabled: true
+      tcpSocket:
+        port: mcp
+      initialDelaySeconds: 20
+      periodSeconds: 30
+  podAnnotations: {}
+  podLabels: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  topologySpreadConstraints: []
+  podSecurityContext: {}
+  securityContext: {}
+
+agenticAi:
+  enabled: false
+  replicaCount: 2
+  image:
+    repository: estatewise-app-agentic-ai
+    tag: latest
+  containerPort: 4318
+  service:
+    type: ClusterIP
+    port: 4318
+    annotations: {}
+  env:
+    - name: DEFAULT_AGENT_TIMEOUT_MS
+      value: "60000"
+    - name: MAX_AGENT_ITERATIONS
+      value: "10"
+    - name: MAX_CONCURRENT_AGENTS
+      value: "3"
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+    behavior:
+      scaleDown:
+        stabilizationWindowSeconds: 300
+        policies:
+          - type: Percent
+            value: 25
+            periodSeconds: 60
+      scaleUp:
+        stabilizationWindowSeconds: 60
+        policies:
+          - type: Percent
+            value: 100
+            periodSeconds: 30
+          - type: Pods
+            value: 2
+            periodSeconds: 30
+        selectPolicy: Max
+  pdb:
+    enabled: true
+    minAvailable: 1
+  probes:
+    readiness:
+      enabled: true
+      httpGet:
+        path: /health
+        port: http
+      initialDelaySeconds: 15
+      periodSeconds: 15
+    liveness:
+      enabled: true
+      httpGet:
+        path: /health
+        port: http
+      initialDelaySeconds: 30
+      periodSeconds: 30
   podAnnotations: {}
   podLabels: {}
   nodeSelector: {}

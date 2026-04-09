@@ -48,6 +48,7 @@ This guide provides comprehensive documentation for EstateWise's DevOps practice
   - [Datadog Observability](#datadog-observability)
   - [Logging Strategy](#logging-strategy)
   - [Health Checks](#health-checks)
+  - [SRE Dashboard](#sre-dashboard)
 - [Disaster Recovery](#disaster-recovery)
 - [Security Best Practices](#security-best-practices)
   - [SonarQube — Code Quality & Security](#sonarqube--code-quality--security)
@@ -887,6 +888,18 @@ env:
 | API Availability | 99.9% | 30 days | `1 - (5xx / total)` |
 | API Latency | 95% requests < 500ms | 30 days | `P(latency < 500ms)` |
 
+#### Error Budgets & Burn-Rate Alerting
+
+Multi-window burn-rate alerts detect SLO budget consumption using the Google SRE pattern:
+
+- **Fast burn (critical):** 1h rate > 14.4x AND 6h rate > 6x → pages on-call immediately
+- **Slow burn (warning):** 6h rate > 6x AND 3d rate > 3x → creates ticket for investigation
+- **Trend (info):** 3d rate > 1x sustained 30m → monitors budget trajectory
+- **Budget low:** < 25% remaining → review deployment cadence
+- **Budget exhausted:** 0% → freeze non-critical deployments
+
+Recording rules defined in [`kubernetes/monitoring/prometheus-config.yaml`](kubernetes/monitoring/prometheus-config.yaml). Canonical SLO reference: [`docs/SLO.md`](docs/SLO.md).
+
 #### Custom DogStatsD Metrics (Deployment Control)
 
 | Metric | Type | Tags | Description |
@@ -973,6 +986,22 @@ livenessProbe:
 ```
 
 Datadog synthetic checks additionally verify `/health` from **3 AWS regions** (us-east-1, eu-west-1, ap-southeast-1) every 60 seconds, alerting on consecutive failures.
+
+### SRE Dashboard
+
+Real-time SRE observability dashboard with 14 charts covering service health, SLO compliance, deployment status, infrastructure, multi-region traffic, and DORA metrics.
+
+```bash
+cd sre-dashboard && npm run dev   # http://localhost:4200
+```
+
+Wire to production by setting `PROMETHEUS_URL`, `DEPLOYMENT_CONTROL_URL`, and `DATADOG_API_URL` environment variables.
+
+> Full SRE documentation: [SRE.md](SRE.md) | Dashboard docs: [sre-dashboard/README.md](sre-dashboard/README.md)
+
+<p align="center">
+  <img src="img/sre-dashboard.png" alt="SRE Dashboard" width="100%"/>
+</p>
 
 ---
 
@@ -1281,6 +1310,8 @@ kubectl run debug --image=nicolaka/netshoot -it --rm -n estatewise
 - [Snyk Documentation](https://docs.snyk.io/)
 - [Snyk CLI Reference](https://docs.snyk.io/snyk-cli)
 - [EstateWise Datadog Integration Guide](docs/datadog-integration.md)
+- **SRE**: See `SRE.md` and `docs/SLO.md`
+- **SRE Dashboard**: See `sre-dashboard/README.md`
 
 ---
 

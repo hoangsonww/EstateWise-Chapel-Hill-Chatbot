@@ -1,0 +1,12 @@
+{
+  "name": "estatewise-sre-dashboard",
+  "version": "1.0.0",
+  "description": "EstateWise SRE Observability Dashboard",
+  "scripts": {
+    "dev": "node server.js",
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0"
+  }
+}
