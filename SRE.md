@@ -1,5 +1,6 @@
 # Site Reliability Engineering (SRE) Guide
 
+> [!TIP]
 > **EstateWise** -- A real estate AI platform monorepo with full-spectrum SRE practices: SLOs, error budgets, multi-window burn-rate alerting, progressive delivery, multi-region failover, and deep agentic AI observability.
 
 This document is the single-pane reference for every reliability, observability, and operational concern in the EstateWise platform. It is intended for on-call engineers, SRE practitioners, platform leads, and anyone deploying or operating EstateWise services.
