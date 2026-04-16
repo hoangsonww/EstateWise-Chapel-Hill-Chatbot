@@ -9,6 +9,12 @@ import { buildLangSmithModelConfig, initializeLangSmith } from "./langsmith.js";
 export type ChatModel = ChatOpenAI | ChatGoogleGenerativeAI;
 const GEMINI_EMBEDDING_DIMENSIONS = 768;
 
+export interface ChatModelOptions {
+  deterministic?: boolean;
+  temperature?: number;
+  topP?: number;
+}
+
 class FixedDimensionGoogleGenerativeAIEmbeddings extends GoogleGenerativeAIEmbeddings {
   private buildEmbeddingRequest(
     text: string,
@@ -74,12 +80,23 @@ class FixedDimensionGoogleGenerativeAIEmbeddings extends GoogleGenerativeAIEmbed
 }
 
 /** Select a chat LLM (Google Gemini preferred) from env. */
-export function getChatModel(): ChatModel {
+export function getChatModel(options: ChatModelOptions = {}): ChatModel {
   initializeLangSmith({ runtime: "langgraph", surface: "langgraph" });
   const { GOOGLE_AI_API_KEY, OPENAI_API_KEY } = process.env as Record<
     string,
     string | undefined
   >;
+  const deterministic = !!options.deterministic;
+  const defaultTemperature = deterministic ? 0 : 0.2;
+  const resolvedTemperature =
+    options.temperature ?? Number(process.env.AGENT_CHAT_TEMPERATURE);
+  const temperature = Number.isFinite(resolvedTemperature as number)
+    ? Number(resolvedTemperature)
+    : defaultTemperature;
+  const resolvedTopP = options.topP ?? Number(process.env.AGENT_CHAT_TOP_P);
+  const topP = Number.isFinite(resolvedTopP as number)
+    ? Number(resolvedTopP)
+    : undefined;
   const callbacks = getCostTrackingCallbacks();
   const tracingConfig = buildLangSmithModelConfig({
     runtime: "langgraph",
@@ -91,7 +108,8 @@ export function getChatModel(): ChatModel {
     return new ChatGoogleGenerativeAI({
       apiKey: GOOGLE_AI_API_KEY,
       model,
-      temperature: 0.2,
+      temperature,
+      ...(topP != null ? { topP } : {}),
       callbacks,
       tags: tracingConfig.tags,
       metadata: tracingConfig.metadata,
@@ -102,13 +120,25 @@ export function getChatModel(): ChatModel {
     return new ChatOpenAI({
       apiKey: OPENAI_API_KEY,
       model,
-      temperature: 0.2,
+      temperature,
+      ...(topP != null ? { topP } : {}),
       callbacks,
       tags: tracingConfig.tags,
       metadata: tracingConfig.metadata,
     });
   }
   throw new Error("Missing GOOGLE_AI_API_KEY or OPENAI_API_KEY for chat model");
+}
+
+export function getChatModelName(): string {
+  const { GOOGLE_AI_API_KEY, OPENAI_API_KEY } = process.env as Record<
+    string,
+    string | undefined
+  >;
+  if (GOOGLE_AI_API_KEY)
+    return process.env.GOOGLE_AI_MODEL || "gemini-2.5-flash";
+  if (OPENAI_API_KEY) return process.env.OPENAI_MODEL || "gpt-4o-mini";
+  return process.env.GOOGLE_AI_MODEL || process.env.OPENAI_MODEL || "unknown";
 }
 
 /** Select an embeddings model matching the chosen provider. */

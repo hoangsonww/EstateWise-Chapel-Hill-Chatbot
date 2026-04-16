@@ -89,6 +89,7 @@ This document describes the comprehensive end-to-end architecture for EstateWise
   - [Graph Service (Neo4j)](#graph-service-neo4j)
 - [Data Flow Architecture](#data-flow-architecture)
   - [Real-time Data Pipeline](#real-time-data-pipeline)
+  - [Live Data Snapshot Pipeline](#live-data-snapshot-pipeline)
   - [RAG Pipeline](#rag-pipeline)
   - [Hybrid RAG (Vector + Graph)](#hybrid-rag-vector--graph)
 - [AI/ML Architecture](#aiml-architecture)
@@ -322,6 +323,7 @@ EstateWise-Chapel-Hill-Chatbot/
 EstateWise implements three complementary API protocols to serve different use cases:
 
 ### REST API (Primary)
+
 - **Protocol**: JSON over HTTP/1.1
 - **Use Cases**: Public API, mobile apps, third-party integrations
 - **Documentation**: OpenAPI/Swagger at `/api-docs`
@@ -333,12 +335,14 @@ EstateWise implements three complementary API protocols to serve different use c
   - `GET /api/graph/overview?limit=250` (sampled global graph payload for UI visualization)
 
 ### tRPC (TypeScript-first)
+
 - **Protocol**: JSON over HTTP with type inference
 - **Use Cases**: Web frontend, internal TypeScript services
 - **Benefits**: End-to-end type safety, auto-completion, no code generation
 - **Endpoint**: `/trpc/*`
 
 ### gRPC (High-performance)
+
 - **Protocol**: Protocol Buffers over HTTP/2
 - **Use Cases**: Service-to-service, streaming, cross-language clients
 - **Port**: 50051
@@ -403,6 +407,7 @@ flowchart LR
 ```
 
 Expert models include:
+
 - **Data Analyst**: Statistical analysis, trends
 - **Lifestyle Concierge**: Neighborhood, amenities
 - **Financial Advisor**: Mortgage, investment analysis
@@ -438,6 +443,7 @@ sequenceDiagram
 ```
 
 **How it works:**
+
 - The `editIndex` body parameter tells the backend to slice `conversation.messages` at that index, discarding all subsequent messages.
 - The edited user message is appended, and the MoE pipeline generates a fresh response using the truncated history as context.
 - For guest users, the truncated history is sent directly in the request payload (no server-side persistence).
@@ -536,6 +542,30 @@ flowchart LR
   Primary -.-> Merge
   Cache -.-> Merge
 ```
+
+### Live Data Snapshot Pipeline
+
+EstateWise has a bounded live-data path that fetches public Zillow listing metadata into a local snapshot file. This keeps request-time chat latency predictable while still enabling freshness-aware retrieval.
+
+```mermaid
+flowchart LR
+  subgraph "Offline/Batch"
+    Scheduler[Scheduler/CI] --> Fetch[data/live-zillow/fetch_live_zillow.mjs]
+    Fetch --> Snap[data/live-zillow/output/live_zillow_snapshot.normalized.json]
+  end
+
+  subgraph "Online Retrieval"
+    Snap --> MCPTool[live.zillow.search]
+    MCPTool --> Agentic[agentic-ai runtimes]
+    Snap --> BE[/api/live-data/status + /api/live-data/search/]
+  end
+
+  Backend[backend chat pipeline] -. no direct agentic-ai imports .-> Agentic
+```
+
+- Backend and agentic runtime remain decoupled at code level.
+- Live snapshot reads are local file reads; no live scraping on chat request path.
+- MCP + agentic use the same normalized snapshot contract.
 
 ### RAG Pipeline
 
@@ -705,16 +735,16 @@ flowchart TB
 
 ### Runtime Contracts
 
-| Runtime | Primary execution model | Typical use |
-|---------|--------------------------|-------------|
-| `default` | round-based planner/coordinator + specialists | deterministic multi-step analysis |
-| `langgraph` | tool-calling ReAct agent with checkpointer | adaptive research with deeper tool autonomy |
-| `crewai` | Python crew pipeline via Node bridge | CrewAI-native task orchestration |
+| Runtime     | Primary execution model                       | Typical use                                 |
+| ----------- | --------------------------------------------- | ------------------------------------------- |
+| `default`   | round-based planner/coordinator + specialists | deterministic multi-step analysis           |
+| `langgraph` | tool-calling ReAct agent with checkpointer    | adaptive research with deeper tool autonomy |
+| `crewai`    | Python crew pipeline via Node bridge          | CrewAI-native task orchestration            |
 
 ### HTTP + A2A Contract Surface
 
-- `POST /run` accepts `goal`, `runtime`, `rounds`, `threadId`, and optional `requestId`.
-- `GET /run/stream` supports SSE streaming with `runtime`, `rounds`, `threadId`, and optional `requestId`.
+- `POST /run` accepts `goal`, `runtime`, `rounds`, `threadId`, optional `requestId`, and optional `deterministic`.
+- `GET /run/stream` supports SSE streaming with `runtime`, `rounds`, `threadId`, optional `requestId`, and optional `deterministic=true|false`.
 - `GET /config` returns runtime support, MCP required-tool mode, and LangSmith tracing status.
 - `POST /a2a` supports JSON-RPC methods: `agent.getCard`, `tasks.create/get/list/wait/cancel` (with optional `requestId` on task creation).
 - `GET /a2a/tasks/{taskId}/events` streams task lifecycle events via SSE.
@@ -760,17 +790,17 @@ flowchart TB
 
 #### Agent Registry
 
-| Agent | Domain | MCP Tools Scope | Max Tool Calls | Token Budget |
-|-------|--------|-----------------|----------------|--------------|
-| PropertyAgent | Property search and lookup | `properties.*` | 10 | 4 096 |
-| MarketAgent | Market trends and inventory | `market.*`, `analytics.*` | 8 | 4 096 |
-| FinanceAgent | Mortgage, ROI, affordability | `finance.*` | 6 | 2 048 |
-| GraphAgent | Similarity and relationships | `graph.*` | 6 | 2 048 |
-| MapAgent | Maps and commute analysis | `map.*`, `commute.*` | 4 | 2 048 |
-| ReporterAgent | Summary and presentation | `system.*` | 2 | 8 192 |
-| ZpidFinderAgent | ZPID resolution | `properties.lookup` | 4 | 1 024 |
-| AnalyticsAgent | Statistical analysis | `analytics.*` | 6 | 4 096 |
-| ComplianceAgent | Output validation and filtering | _(none -- reads only)_ | 0 | 1 024 |
+| Agent           | Domain                          | MCP Tools Scope           | Max Tool Calls | Token Budget |
+| --------------- | ------------------------------- | ------------------------- | -------------- | ------------ |
+| PropertyAgent   | Property search and lookup      | `properties.*`            | 10             | 4 096        |
+| MarketAgent     | Market trends and inventory     | `market.*`, `analytics.*` | 8              | 4 096        |
+| FinanceAgent    | Mortgage, ROI, affordability    | `finance.*`               | 6              | 2 048        |
+| GraphAgent      | Similarity and relationships    | `graph.*`                 | 6              | 2 048        |
+| MapAgent        | Maps and commute analysis       | `map.*`, `commute.*`      | 4              | 2 048        |
+| ReporterAgent   | Summary and presentation        | `system.*`                | 2              | 8 192        |
+| ZpidFinderAgent | ZPID resolution                 | `properties.lookup`       | 4              | 1 024        |
+| AnalyticsAgent  | Statistical analysis            | `analytics.*`             | 6              | 4 096        |
+| ComplianceAgent | Output validation and filtering | _(none -- reads only)_    | 0              | 1 024        |
 
 #### Tool-Use Loop
 
@@ -789,18 +819,18 @@ flowchart LR
 
 #### Error Recovery Strategies
 
-| Strategy | Trigger | Action |
-|----------|---------|--------|
-| Retry with backoff | Transient HTTP error (5xx) | Exponential backoff up to 3 retries |
-| Fallback agent | Primary agent timeout | Route to backup agent with reduced scope |
-| Partial result | Some tools fail in fan-out | Return successful results with warnings |
-| Circuit breaker | 3+ consecutive tool failures | Open circuit, skip tool for cooldown period |
-| Budget overflow | Token/call limit exceeded | Truncate context, summarize, and return |
-| Schema violation | Agent output fails Zod validation | Re-prompt agent with error details (1 retry) |
-| Dead letter | All retries exhausted | Log to dead-letter queue for offline inspection |
-| Graceful degradation | MCP server unreachable | Return cached result or informative error |
-| Session recovery | Checkpoint found in `.agent-sessions/` | Resume from last committed state |
-| Bead replay | Audit or debugging request | Replay reasoning chain from `.beads/` snapshots |
+| Strategy             | Trigger                                | Action                                          |
+| -------------------- | -------------------------------------- | ----------------------------------------------- |
+| Retry with backoff   | Transient HTTP error (5xx)             | Exponential backoff up to 3 retries             |
+| Fallback agent       | Primary agent timeout                  | Route to backup agent with reduced scope        |
+| Partial result       | Some tools fail in fan-out             | Return successful results with warnings         |
+| Circuit breaker      | 3+ consecutive tool failures           | Open circuit, skip tool for cooldown period     |
+| Budget overflow      | Token/call limit exceeded              | Truncate context, summarize, and return         |
+| Schema violation     | Agent output fails Zod validation      | Re-prompt agent with error details (1 retry)    |
+| Dead letter          | All retries exhausted                  | Log to dead-letter queue for offline inspection |
+| Graceful degradation | MCP server unreachable                 | Return cached result or informative error       |
+| Session recovery     | Checkpoint found in `.agent-sessions/` | Resume from last committed state                |
+| Bead replay          | Audit or debugging request             | Replay reasoning chain from `.beads/` snapshots |
 
 #### Intent Classification
 
@@ -887,21 +917,21 @@ The RAG pipeline combines vector similarity from Pinecone with graph traversal f
 
 #### Context Strategies
 
-| Strategy | Description | Best For |
-|----------|-------------|----------|
-| `full` | Include all available context up to budget | Simple queries with focused scope |
-| `summary` | Summarize long context sections before inclusion | Multi-document queries |
-| `sliding-window` | Keep recent N turns plus key historical context | Multi-turn conversations |
-| `priority-ranked` | Rank context chunks by relevance and trim lowest | Token-constrained scenarios |
-| `hybrid` | Combine summary + priority ranking dynamically | Complex analytical queries |
+| Strategy          | Description                                      | Best For                          |
+| ----------------- | ------------------------------------------------ | --------------------------------- |
+| `full`            | Include all available context up to budget       | Simple queries with focused scope |
+| `summary`         | Summarize long context sections before inclusion | Multi-document queries            |
+| `sliding-window`  | Keep recent N turns plus key historical context  | Multi-turn conversations          |
+| `priority-ranked` | Rank context chunks by relevance and trim lowest | Token-constrained scenarios       |
+| `hybrid`          | Combine summary + priority ranking dynamically   | Complex analytical queries        |
 
 #### Multi-Level Cache
 
-| Level | Storage | TTL | Hit Rate Target | Use Case |
-|-------|---------|-----|-----------------|----------|
-| L1 | In-memory LRU | 5 min | >80% | Hot tool results and frequent queries |
-| L2 | Redis | 1 hour | >60% | Cross-request sharing and session state |
-| L3 | Disk (`.beads/`) | 24 hours | >40% | Session replay and audit trails |
+| Level | Storage          | TTL      | Hit Rate Target | Use Case                                |
+| ----- | ---------------- | -------- | --------------- | --------------------------------------- |
+| L1    | In-memory LRU    | 5 min    | >80%            | Hot tool results and frequent queries   |
+| L2    | Redis            | 1 hour   | >60%            | Cross-request sharing and session state |
+| L3    | Disk (`.beads/`) | 24 hours | >40%            | Session replay and audit trails         |
 
 ### Beads Architecture & Flywheel Methodology
 
@@ -925,7 +955,10 @@ The Flywheel methodology is the development coordination layer that powers multi
       "verification": "cd agentic-ai && npm run build && npm run test",
       "artifact": "agentic-ai/src/orchestration/agent-registry.ts",
       "testObligations": ["Agent CRUD", "Circuit breaker transitions"],
-      "acceptanceCriteria": ["9 default agents registered", "CB opens after 3 failures"]
+      "acceptanceCriteria": [
+        "9 default agents registered",
+        "CB opens after 3 failures"
+      ]
     }
   }
 }
@@ -935,15 +968,15 @@ Each bead is fully self-describing: an agent can claim and execute any bead with
 
 #### Domain Taxonomy
 
-| Domain | Code | Scope | Example Beads |
-|--------|------|-------|---------------|
-| Orchestration | `ORCH` | Supervisor, agent registry, routing, error recovery | ORCH-001 through ORCH-008 |
-| Configuration | `CCFG` | Claude Code config, skills, DCG, agent pipeline | CCFG-001 through CCFG-006 |
-| Prompts | `PRMT` | System prompts, grounding rules, schemas, caching | PRMT-001 through PRMT-008 |
-| MCP | `MCP` | Tool servers, auth, rate limiting, domain scaffolds | MCP-001 through MCP-007 |
-| Context | `CTX` | Context engineering, knowledge graph, RAG pipeline | CTX-001+ |
-| Cross-cutting | `CROSS` | Integration tests, contract alignment, E2E flows | CROSS-001+ |
-| Testing | `TEST` | Test infrastructure, coverage gates, CI integration | TEST-001+ |
+| Domain        | Code    | Scope                                               | Example Beads             |
+| ------------- | ------- | --------------------------------------------------- | ------------------------- |
+| Orchestration | `ORCH`  | Supervisor, agent registry, routing, error recovery | ORCH-001 through ORCH-008 |
+| Configuration | `CCFG`  | Claude Code config, skills, DCG, agent pipeline     | CCFG-001 through CCFG-006 |
+| Prompts       | `PRMT`  | System prompts, grounding rules, schemas, caching   | PRMT-001 through PRMT-008 |
+| MCP           | `MCP`   | Tool servers, auth, rate limiting, domain scaffolds | MCP-001 through MCP-007   |
+| Context       | `CTX`   | Context engineering, knowledge graph, RAG pipeline  | CTX-001+                  |
+| Cross-cutting | `CROSS` | Integration tests, contract alignment, E2E flows    | CROSS-001+                |
+| Testing       | `TEST`  | Test infrastructure, coverage gates, CI integration | TEST-001+                 |
 
 #### Bead State Machine
 
@@ -969,14 +1002,14 @@ stateDiagram-v2
 
 The `bv.mjs` tool treats `.beads/.status.json` as a directed graph and applies six algorithms to rank beads by structural importance:
 
-| Algorithm | Purpose | Key Parameter |
-|-----------|---------|---------------|
-| **PageRank** | Identify beads that many others depend on | damping = 0.85, 100 iterations |
-| **Betweenness Centrality** | Find bottleneck beads on the most shortest paths | All-pairs shortest paths |
-| **HITS** | Separate hub beads (many outgoing deps) from authority beads (many incoming) | 100 iterations |
-| **Critical Path** | Longest dependency chain — determines minimum project duration | Topological traversal |
-| **Cycle Detection** | Find circular dependencies that would deadlock execution | DFS-based |
-| **Execution Levels** | Group beads into parallel waves for concurrent execution | BFS wavefront |
+| Algorithm                  | Purpose                                                                      | Key Parameter                  |
+| -------------------------- | ---------------------------------------------------------------------------- | ------------------------------ |
+| **PageRank**               | Identify beads that many others depend on                                    | damping = 0.85, 100 iterations |
+| **Betweenness Centrality** | Find bottleneck beads on the most shortest paths                             | All-pairs shortest paths       |
+| **HITS**                   | Separate hub beads (many outgoing deps) from authority beads (many incoming) | 100 iterations                 |
+| **Critical Path**          | Longest dependency chain — determines minimum project duration               | Topological traversal          |
+| **Cycle Detection**        | Find circular dependencies that would deadlock execution                     | DFS-based                      |
+| **Execution Levels**       | Group beads into parallel waves for concurrent execution                     | BFS wavefront                  |
 
 **Robot flags** (machine-readable output for agent consumption):
 
@@ -1028,11 +1061,11 @@ flowchart TD
 
 The session memory system (`tools/session-memory.mjs`) closes the flywheel loop by converting session experience into reusable operational knowledge:
 
-| Layer | Storage | Content | Lifecycle |
-|-------|---------|---------|-----------|
-| **Episodic** | `.beads/session-memory/episodic/` (JSONL) | Raw events: task-start, task-complete, task-fail, decision, discovery, workaround, error, review, handoff | Append-only, immutable |
-| **Working** | `.beads/session-memory/working/` (JSON) | Structured session summaries with outcomes and key decisions | Updated per session |
-| **Procedural** | `.beads/session-memory/procedural/rules.json` | Distilled rules with confidence scores (candidate → established → proven) | Continuously refined |
+| Layer          | Storage                                       | Content                                                                                                   | Lifecycle              |
+| -------------- | --------------------------------------------- | --------------------------------------------------------------------------------------------------------- | ---------------------- |
+| **Episodic**   | `.beads/session-memory/episodic/` (JSONL)     | Raw events: task-start, task-complete, task-fail, decision, discovery, workaround, error, review, handoff | Append-only, immutable |
+| **Working**    | `.beads/session-memory/working/` (JSON)       | Structured session summaries with outcomes and key decisions                                              | Updated per session    |
+| **Procedural** | `.beads/session-memory/procedural/rules.json` | Distilled rules with confidence scores (candidate → established → proven)                                 | Continuously refined   |
 
 Confidence scoring: initial 0.50, +0.10 per helpful confirmation, −0.40 per harmful feedback (4× multiplier), 90-day half-life decay, clamped to [0.01, 0.99].
 
@@ -1058,12 +1091,12 @@ The methodology enforces 9 invariants that every agent must follow:
 
 The beads system integrates with three runtime layers:
 
-| Layer | Integration Point | Mechanism |
-|-------|-------------------|-----------|
-| **Orchestration Engine** | Error recovery | `Bead replay` strategy replays reasoning chains from `.beads/` snapshots for debugging |
-| **Context Management** | L3 disk cache | `.beads/` serves as the 24-hour persistent cache layer for session replay and audit |
-| **Observability** | Audit trails | Bead state transitions emit structured events consumed by the tracing pipeline |
-| **Agent Sessions** | Checkpoint sync | `.agent-sessions/` checkpoints reference active bead IDs for resume-after-crash |
+| Layer                    | Integration Point | Mechanism                                                                              |
+| ------------------------ | ----------------- | -------------------------------------------------------------------------------------- |
+| **Orchestration Engine** | Error recovery    | `Bead replay` strategy replays reasoning chains from `.beads/` snapshots for debugging |
+| **Context Management**   | L3 disk cache     | `.beads/` serves as the 24-hour persistent cache layer for session replay and audit    |
+| **Observability**        | Audit trails      | Bead state transitions emit structured events consumed by the tracing pipeline         |
+| **Agent Sessions**       | Checkpoint sync   | `.agent-sessions/` checkpoints reference active bead IDs for resume-after-crash        |
 
 ### Observability Architecture
 
@@ -1075,16 +1108,16 @@ Traces and metrics flow from instrumented components through an OpenTelemetry co
 
 #### Core Metrics
 
-| Metric | Type | Description |
-|--------|------|-------------|
-| `orchestration.request.latency` | Histogram | End-to-end request duration |
-| `orchestration.tool.call.duration` | Histogram | Per-tool call latency |
-| `orchestration.token.usage` | Counter | Token consumption per model/agent |
-| `orchestration.cache.hit.rate` | Gauge | Cache hit percentage by level |
-| `orchestration.error.rate` | Counter | Errors by type and agent |
-| `orchestration.agent.utilization` | Gauge | Agent busy/idle ratio |
-| `orchestration.cost.per.request` | Histogram | Dollar cost per completed request |
-| `orchestration.queue.depth` | Gauge | Pending tasks in orchestration queue |
+| Metric                             | Type      | Description                          |
+| ---------------------------------- | --------- | ------------------------------------ |
+| `orchestration.request.latency`    | Histogram | End-to-end request duration          |
+| `orchestration.tool.call.duration` | Histogram | Per-tool call latency                |
+| `orchestration.token.usage`        | Counter   | Token consumption per model/agent    |
+| `orchestration.cache.hit.rate`     | Gauge     | Cache hit percentage by level        |
+| `orchestration.error.rate`         | Counter   | Errors by type and agent             |
+| `orchestration.agent.utilization`  | Gauge     | Agent busy/idle ratio                |
+| `orchestration.cost.per.request`   | Histogram | Dollar cost per completed request    |
+| `orchestration.queue.depth`        | Gauge     | Pending tasks in orchestration queue |
 
 #### Health Checks
 
@@ -1187,27 +1220,27 @@ graph TD
 
 **Graph Algorithms:**
 
-| Algorithm | Purpose | Complexity |
-|-----------|---------|------------|
-| BFS | Breadth-first traversal | O(V + E) |
-| DFS | Depth-first traversal | O(V + E) |
-| Dijkstra | Shortest weighted path | O((V + E) log V) |
-| All Paths | Enumerate paths up to depth | O(V!) worst case |
-| PageRank | Node importance scoring | O(iterations x E) |
-| Community Detection | Label propagation clustering | O(iterations x E) |
-| Connected Components | Component discovery | O(V + E) |
-| Betweenness Centrality | Bridge node identification | O(V x E) |
+| Algorithm              | Purpose                      | Complexity        |
+| ---------------------- | ---------------------------- | ----------------- |
+| BFS                    | Breadth-first traversal      | O(V + E)          |
+| DFS                    | Depth-first traversal        | O(V + E)          |
+| Dijkstra               | Shortest weighted path       | O((V + E) log V)  |
+| All Paths              | Enumerate paths up to depth  | O(V!) worst case  |
+| PageRank               | Node importance scoring      | O(iterations x E) |
+| Community Detection    | Label propagation clustering | O(iterations x E) |
+| Connected Components   | Component discovery          | O(V + E)          |
+| Betweenness Centrality | Bridge node identification   | O(V x E)          |
 
 **Query Builder:**
 The fluent query builder supports filter operators (`$gt`, `$lt`, `$gte`, `$lte`, `$eq`, `$ne`, `$contains`, `$in`), dot-path property access, traversal expansion, ordering, and pagination.
 
 ### Knowledge Base & Retrieval
 
-| Strategy | Method | Use Case |
-|----------|--------|----------|
-| Semantic | Cosine similarity on TF-IDF embeddings | Conceptual matches |
-| Keyword | Token frequency scoring | Exact term matches |
-| Hybrid | Weighted blend (65% semantic, 35% keyword) | Best general-purpose |
+| Strategy | Method                                     | Use Case             |
+| -------- | ------------------------------------------ | -------------------- |
+| Semantic | Cosine similarity on TF-IDF embeddings     | Conceptual matches   |
+| Keyword  | Token frequency scoring                    | Exact term matches   |
+| Hybrid   | Weighted blend (65% semantic, 35% keyword) | Best general-purpose |
 
 The knowledge base auto-chunks documents (~500 tokens with 50-token overlap), generates 128-dimensional TF-IDF embeddings without external APIs, and supports pluggable external embedding functions (e.g., OpenAI).
 
@@ -1244,13 +1277,13 @@ sequenceDiagram
 
 **Per-Agent Token Budgets:**
 
-| Agent Role | Max Tokens | Rationale |
-|------------|------------|-----------|
-| GraphAnalyst | 6,000 | Focused graph queries |
-| PropertyAnalyst | 10,000 | Detailed property context |
-| FinanceAnalyst | 8,000 | Financial calculations |
-| Orchestrator/Coordinator | 12,000 | Broad overview needed |
-| Default | 8,000 | Balanced general use |
+| Agent Role               | Max Tokens | Rationale                 |
+| ------------------------ | ---------- | ------------------------- |
+| GraphAnalyst             | 6,000      | Focused graph queries     |
+| PropertyAnalyst          | 10,000     | Detailed property context |
+| FinanceAnalyst           | 8,000      | Financial calculations    |
+| Orchestrator/Coordinator | 12,000     | Broad overview needed     |
+| Default                  | 8,000      | Balanced general use      |
 
 ### Ingestion Pipeline
 
@@ -1283,18 +1316,18 @@ flowchart LR
 
 ### Context MCP Tool Integration
 
-| Tool | Description |
-|------|-------------|
-| `context.search` | Hybrid search across knowledge base |
+| Tool                       | Description                               |
+| -------------------------- | ----------------------------------------- |
+| `context.search`           | Hybrid search across knowledge base       |
 | `context.assembleForAgent` | Full context window assembly for an agent |
-| `context.graphTraverse` | BFS traversal from a starting node |
-| `context.graphQuery` | Filter and query graph nodes |
-| `context.ingest` | Ingest new data into the knowledge system |
-| `context.getStats` | System metrics and statistics |
-| `context.getGraphOverview` | Full graph data for visualization |
-| `context.findRelated` | Find nodes related to a concept |
-| `context.getNodeDetail` | Detailed node information with neighbors |
-| `context.getTimeline` | Recent activity timeline |
+| `context.graphTraverse`    | BFS traversal from a starting node        |
+| `context.graphQuery`       | Filter and query graph nodes              |
+| `context.ingest`           | Ingest new data into the knowledge system |
+| `context.getStats`         | System metrics and statistics             |
+| `context.getGraphOverview` | Full graph data for visualization         |
+| `context.findRelated`      | Find nodes related to a concept           |
+| `context.getNodeDetail`    | Detailed node information with neighbors  |
+| `context.getTimeline`      | Recent activity timeline                  |
 
 ### D3 Visualization Layer
 
@@ -1340,6 +1373,7 @@ flowchart TB
 ```
 
 The `ContextEngineerAgent` runs early in the orchestrator loop (after Planner and Coordinator) to:
+
 1. Analyze the current goal and conversation history
 2. Assemble relevant context from the knowledge graph and knowledge base
 3. Populate `blackboard.contextData` for downstream specialist agents
@@ -1406,8 +1440,7 @@ flowchart LR
 
 ## Infrastructure & Deployment
 
-> [!NOTE]
-> **Production-Ready Infrastructure**: EstateWise features enterprise-grade DevOps with advanced deployment strategies, comprehensive monitoring, and multi-cloud support. See [DEVOPS.md](DEVOPS.md) for complete operational documentation.
+> [!NOTE] > **Production-Ready Infrastructure**: EstateWise features enterprise-grade DevOps with advanced deployment strategies, comprehensive monitoring, and multi-cloud support. See [DEVOPS.md](DEVOPS.md) for complete operational documentation.
 
 ### Multi-Cloud Architecture
 
@@ -1681,11 +1714,11 @@ flowchart LR
 
 **Deployment Strategy Comparison:**
 
-| Strategy | Rollback Speed | Resource Usage | Risk Level | Best For |
-|----------|---------------|----------------|------------|----------|
-| **Blue-Green** | Instant (< 1s) | 2x during switch | Low | Major releases |
-| **Canary** | Gradual | 1.1-1.5x | Very Low | New features |
-| **Rolling** | Re-deploy | 1x | Moderate | Regular updates |
+| Strategy       | Rollback Speed | Resource Usage   | Risk Level | Best For        |
+| -------------- | -------------- | ---------------- | ---------- | --------------- |
+| **Blue-Green** | Instant (< 1s) | 2x during switch | Low        | Major releases  |
+| **Canary**     | Gradual        | 1.1-1.5x         | Very Low   | New features    |
+| **Rolling**    | Re-deploy      | 1x               | Moderate   | Regular updates |
 
 ### Deployment Control UI
 
@@ -1921,12 +1954,12 @@ flowchart TB
 
 **Snyk** provides four scanning dimensions:
 
-| Layer | Target | Trigger |
-|-------|--------|---------|
-| SCA | `package.json` dependency trees | Every CI build |
-| Code SAST | TypeScript/JavaScript source | Every CI build |
-| Container | Built Docker images (OS + app layers) | Post-build stage |
-| IaC | Terraform, Kubernetes, Helm, Docker Compose | Every CI build |
+| Layer     | Target                                      | Trigger          |
+| --------- | ------------------------------------------- | ---------------- |
+| SCA       | `package.json` dependency trees             | Every CI build   |
+| Code SAST | TypeScript/JavaScript source                | Every CI build   |
+| Container | Built Docker images (OS + app layers)       | Post-build stage |
+| IaC       | Terraform, Kubernetes, Helm, Docker Compose | Every CI build   |
 
 Per-service policies in `.snyk.d/` allow granular ignore/patch rules. Both tools gate Jenkins and CodeBuild pipelines — builds fail on quality gate violations or critical vulnerabilities.
 
@@ -2023,22 +2056,22 @@ flowchart TB
 
 **Deployment Targets:**
 
-| Target | Config Location | Resources Managed |
-|--------|----------------|-------------------|
-| Terraform | `terraform/datadog.tf` | ECS/ALB monitors, dashboard, SLOs, synthetic checks, downtime schedules |
-| Helm | `helm/estatewise/templates/datadog-*.yaml` | Agent DaemonSet, Cluster Agent, monitors ConfigMap, NetworkPolicies |
-| Kubernetes | `kubernetes/monitoring/datadog-*.yaml` | Standalone agent + monitor manifests (non-Helm) |
-| Docker Compose | `docker/compose.prod.yml` | `datadog-agent` service, DD env on all app services |
-| Deployment Control | `deployment-control/src/datadog.ts` | Deploy events + DogStatsD custom metrics |
+| Target             | Config Location                            | Resources Managed                                                       |
+| ------------------ | ------------------------------------------ | ----------------------------------------------------------------------- |
+| Terraform          | `terraform/datadog.tf`                     | ECS/ALB monitors, dashboard, SLOs, synthetic checks, downtime schedules |
+| Helm               | `helm/estatewise/templates/datadog-*.yaml` | Agent DaemonSet, Cluster Agent, monitors ConfigMap, NetworkPolicies     |
+| Kubernetes         | `kubernetes/monitoring/datadog-*.yaml`     | Standalone agent + monitor manifests (non-Helm)                         |
+| Docker Compose     | `docker/compose.prod.yml`                  | `datadog-agent` service, DD env on all app services                     |
+| Deployment Control | `deployment-control/src/datadog.ts`        | Deploy events + DogStatsD custom metrics                                |
 
 **Custom DogStatsD Metrics (Deployment Control):**
 
-| Metric | Type | Description |
-|--------|------|-------------|
-| `estatewise.deploy.started` | Counter | Deployment initiated |
-| `estatewise.deploy.finished` | Counter | Deployment completed |
-| `estatewise.deploy.success` | Counter | Successful deployments |
-| `estatewise.deploy.failure` | Counter | Failed deployments |
+| Metric                               | Type      | Description            |
+| ------------------------------------ | --------- | ---------------------- |
+| `estatewise.deploy.started`          | Counter   | Deployment initiated   |
+| `estatewise.deploy.finished`         | Counter   | Deployment completed   |
+| `estatewise.deploy.success`          | Counter   | Successful deployments |
+| `estatewise.deploy.failure`          | Counter   | Failed deployments     |
 | `estatewise.deploy.duration_seconds` | Histogram | Deploy wall-clock time |
 
 For full setup, architecture diagrams, and operational runbooks, see 📘 [docs/datadog-integration.md](docs/datadog-integration.md).
@@ -2306,13 +2339,13 @@ erDiagram
 
 ### Environment Variables Matrix
 
-| Service | Required Variables | Optional Variables |
-|---------|-------------------|-------------------|
-| **Backend** | `MONGO_URI`<br>`JWT_SECRET`<br>`PINECONE_API_KEY`<br>`PINECONE_INDEX`<br>`GOOGLE_AI_API_KEY` | `NEO4J_URI`<br>`NEO4J_USERNAME`<br>`NEO4J_PASSWORD`<br>`REDIS_URL`<br>`SENTRY_DSN` |
-| **Frontend** | `NEXT_PUBLIC_API_BASE_URL` | `NEXT_PUBLIC_GOOGLE_ANALYTICS`<br>`NEXT_PUBLIC_SENTRY_DSN` |
-| **gRPC** | `GRPC_SERVER_PORT`<br>`GRPC_SERVER_HOST` | `GRPC_USE_TLS`<br>`GRPC_CERT_PATH`<br>`GRPC_KEY_PATH` |
-| **MCP** | `API_BASE_URL` | `FRONTEND_BASE_URL`<br>`LOG_LEVEL` |
-| **Agentic** | `GOOGLE_AI_API_KEY` or `OPENAI_API_KEY` | `AGENT_RUNTIME`<br>`THREAD_ID`<br>`LANGSMITH_ENABLED`<br>`LANGSMITH_API_KEY`<br>`LANGSMITH_PROJECT`<br>`LANGSMITH_ENDPOINT`<br>`LANGSMITH_RUN_TAGS`<br>`LANGSMITH_STRICT` |
+| Service      | Required Variables                                                                           | Optional Variables                                                                                                                                                        |
+| ------------ | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Backend**  | `MONGO_URI`<br>`JWT_SECRET`<br>`PINECONE_API_KEY`<br>`PINECONE_INDEX`<br>`GOOGLE_AI_API_KEY` | `NEO4J_URI`<br>`NEO4J_USERNAME`<br>`NEO4J_PASSWORD`<br>`REDIS_URL`<br>`SENTRY_DSN`                                                                                        |
+| **Frontend** | `NEXT_PUBLIC_API_BASE_URL`                                                                   | `NEXT_PUBLIC_GOOGLE_ANALYTICS`<br>`NEXT_PUBLIC_SENTRY_DSN`                                                                                                                |
+| **gRPC**     | `GRPC_SERVER_PORT`<br>`GRPC_SERVER_HOST`                                                     | `GRPC_USE_TLS`<br>`GRPC_CERT_PATH`<br>`GRPC_KEY_PATH`                                                                                                                     |
+| **MCP**      | `API_BASE_URL`                                                                               | `FRONTEND_BASE_URL`<br>`LOG_LEVEL`                                                                                                                                        |
+| **Agentic**  | `GOOGLE_AI_API_KEY` or `OPENAI_API_KEY`                                                      | `AGENT_RUNTIME`<br>`THREAD_ID`<br>`LANGSMITH_ENABLED`<br>`LANGSMITH_API_KEY`<br>`LANGSMITH_PROJECT`<br>`LANGSMITH_ENDPOINT`<br>`LANGSMITH_RUN_TAGS`<br>`LANGSMITH_STRICT` |
 
 ## Performance Targets & SLOs
 
@@ -2320,29 +2353,29 @@ erDiagram
 
 ### Service Level Objectives
 
-| Metric | Target | Critical Threshold |
-|--------|--------|-------------------|
-| **API Latency (P50)** | < 200ms | < 500ms |
-| **API Latency (P95)** | < 800ms | < 2000ms |
-| **API Latency (P99)** | < 1500ms | < 5000ms |
-| **Availability** | 99.9% | 99.5% |
-| **Error Rate** | < 0.1% | < 1% |
-| **Chat Response Time** | < 3s | < 10s |
-| **Map Load Time** | < 2s | < 5s |
-| **Graph Query Time** | < 1.5s | < 3s |
-| **Vector Search Time** | < 500ms | < 1500ms |
+| Metric                 | Target   | Critical Threshold |
+| ---------------------- | -------- | ------------------ |
+| **API Latency (P50)**  | < 200ms  | < 500ms            |
+| **API Latency (P95)**  | < 800ms  | < 2000ms           |
+| **API Latency (P99)**  | < 1500ms | < 5000ms           |
+| **Availability**       | 99.9%    | 99.5%              |
+| **Error Rate**         | < 0.1%   | < 1%               |
+| **Chat Response Time** | < 3s     | < 10s              |
+| **Map Load Time**      | < 2s     | < 5s               |
+| **Graph Query Time**   | < 1.5s   | < 3s               |
+| **Vector Search Time** | < 500ms  | < 1500ms           |
 
 ### Error Budgets & Burn-Rate Alerting
 
 Error budget for 99.9% availability: **43.2 minutes** of allowed downtime per 30-day window. Burn-rate alerts detect budget consumption speed:
 
-| Alert | Condition | Severity | Action |
-|-------|-----------|----------|--------|
-| SLOBurnRateCritical | 1h burn > 14.4x AND 6h burn > 6x | Critical | Page on-call |
-| SLOBurnRateWarning | 6h burn > 6x AND 3d burn > 3x | Warning | Create ticket |
-| SLOBurnRateTrend | 3d burn > 1x (30m sustained) | Info | Monitor trend |
-| SLOErrorBudgetLow | < 25% budget remaining | Warning | Review deployments |
-| SLOErrorBudgetExhausted | Budget consumed | Critical | Freeze non-critical deploys |
+| Alert                   | Condition                        | Severity | Action                      |
+| ----------------------- | -------------------------------- | -------- | --------------------------- |
+| SLOBurnRateCritical     | 1h burn > 14.4x AND 6h burn > 6x | Critical | Page on-call                |
+| SLOBurnRateWarning      | 6h burn > 6x AND 3d burn > 3x    | Warning  | Create ticket               |
+| SLOBurnRateTrend        | 3d burn > 1x (30m sustained)     | Info     | Monitor trend               |
+| SLOErrorBudgetLow       | < 25% budget remaining           | Warning  | Review deployments          |
+| SLOErrorBudgetExhausted | Budget consumed                  | Critical | Freeze non-critical deploys |
 
 Recording rules: `sli:burn_rate:1h`, `sli:burn_rate:6h`, `sli:burn_rate:3d`, `sli:error_budget:remaining_ratio` — defined in [`kubernetes/monitoring/prometheus-config.yaml`](kubernetes/monitoring/prometheus-config.yaml).
 
@@ -2491,4 +2524,4 @@ gitGraph
 
 ---
 
-*This architecture document is maintained alongside the codebase. Last updated: March 18, 2026*
+_This architecture document is maintained alongside the codebase. Last updated: April 18, 2026_

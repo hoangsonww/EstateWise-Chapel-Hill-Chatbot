@@ -11,6 +11,7 @@ Backend API for the EstateWise real-estate assistant. This service exposes REST 
 - Graph: Neo4j-powered “why/related” property insights
 - Commute profiles: multi-destination commute preferences
 - Forums: posts + comments with voting
+- Live data: snapshot status/search APIs for local Zillow live artifacts
 - Observability: logs, Prometheus metrics, and status dashboard
 
 ## Architecture
@@ -29,6 +30,16 @@ flowchart LR
   API --> Status[status]
   API --> Swagger[api-docs]
   API --> TRPC[tRPC]
+  LiveSnap[data/live-zillow snapshot] --> API
+```
+
+### Backend/Agentic Boundary
+
+```mermaid
+flowchart LR
+  Backend[backend/src/*] --> MCP[mcp/*]
+  Agentic[agentic-ai/*] --> MCP
+  Backend -. no direct imports .-> Agentic
 ```
 
 ## Quickstart
@@ -61,6 +72,7 @@ The API runs on `PORT` (default 3001). The root path redirects to `/api-docs`.
 The backend uses `dotenv` and reads from `.env`. Common settings:
 
 Required for core features:
+
 - `PORT`
 - `MONGO_URI`
 - `JWT_SECRET`
@@ -68,12 +80,14 @@ Required for core features:
 - `PINECONE_API_KEY`, `PINECONE_INDEX`
 
 Optional features:
+
 - `OPENAI_API_KEY`, `OPENAI_MODEL` (optional LLM fallback)
 - `GEMINI_WEB_SEARCH_TIMEOUT_MS` (timeout for Gemini web-grounded requests; default 15000)
 - `GEMINI_WEB_SEARCH_DYNAMIC_THRESHOLD` (0..1 threshold for legacy dynamic retrieval mode; default 0.7)
 - `PINECONE_NAMESPACE`
 - `NEO4J_ENABLE`, `NEO4J_URI`, `NEO4J_USERNAME`, `NEO4J_PASSWORD`, `NEO4J_DATABASE`
 - Ingest tuning: `INGEST_LIMIT`, `PINECONE_PAGE_SIZE`, `INGEST_RESUME`, `INGEST_CHECKPOINT_FILE`, `PINECONE_START_TOKEN`, `NEO4J_RESET`, `NEO4J_WRITE_RETRIES`
+- `LIVE_ZILLOW_SNAPSHOT_PATH` (optional path for `/api/live-data/*`; relative values resolve from `backend/`, default resolves to repo `data/live-zillow/output/live_zillow_snapshot.normalized.json`)
 
 ## Data Model (MongoDB)
 
@@ -164,10 +178,12 @@ flowchart LR
 ## API Surface (Grouped)
 
 System:
+
 - `GET /api-docs`, `GET /swagger.json`
 - `GET /metrics`, `GET /status`
 
 Auth:
+
 - `POST /api/auth/signup`
 - `POST /api/auth/login`
 - `POST /api/auth/logout`
@@ -178,11 +194,13 @@ Auth:
 - `PUT /api/auth/password`
 
 Chat:
+
 - `POST /api/chat` (supports `?stream=true`)
 - `POST /api/chat/rate`
 - `POST /api/chat/generate-title`
 
 Conversations:
+
 - `GET /api/conversations`
 - `POST /api/conversations`
 - `PUT /api/conversations/:id`
@@ -190,23 +208,32 @@ Conversations:
 - `GET /api/conversations/search`
 
 Properties:
+
 - `GET /api/properties` (vector search + charts)
 - `GET /api/properties/by-ids`
 - `GET /api/properties/lookup`
 
+Live Data:
+
+- `GET /api/live-data/status`
+- `GET /api/live-data/search?q=...&limit=...`
+
 Graph (Neo4j):
+
 - `GET /api/graph/similar/:zpid`
 - `GET /api/graph/explain?from=...&to=...`
 - `GET /api/graph/neighborhood/:name`
 - `GET /api/graph/overview?limit=250` (sampled global graph for visualization)
 
 Commute Profiles:
+
 - `GET /api/commute-profiles`
 - `POST /api/commute-profiles`
 - `PUT /api/commute-profiles/:id`
 - `DELETE /api/commute-profiles/:id`
 
 Forums:
+
 - `GET /api/posts`
 - `POST /api/posts`
 - `GET /api/posts/:id`
@@ -220,6 +247,7 @@ Forums:
 - `POST /api/comments/:id/downvote`
 
 tRPC:
+
 - `POST /trpc/*` (optional, type-safe routes)
 
 ## Code Organization
@@ -255,6 +283,7 @@ From `backend/package.json`:
 - `npm run upsert` - embed + upsert properties to Pinecone
 - `npm run clean` - clean properties data
 - `npm run graph:ingest` - ingest Pinecone results into Neo4j
+- `npm run check:no-agentic` - enforce backend remains free from agentic-ai imports/files
 - `npm run format` - Prettier
 
 ## Observability

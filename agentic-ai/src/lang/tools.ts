@@ -329,6 +329,18 @@ export function mcpToolset(): LangTool[] {
         maxChars: z.number().int().min(500).max(20000).optional(),
       }),
     ),
+    mcpTool(
+      "live.zillow.search",
+      z.object({
+        q: z.string().optional(),
+        city: z.string().optional(),
+        state: z.string().optional(),
+        zipcode: z.string().optional(),
+        limit: z.number().int().min(1).max(100).optional(),
+        maxAgeHours: z.number().min(1).max(168).optional(),
+        minQualityScore: z.number().min(0).max(1).optional(),
+      }),
+    ),
     mcpTool("graph.explain", z.object({ from: z.number(), to: z.number() })),
     mcpTool(
       "graph.similarityBatch",

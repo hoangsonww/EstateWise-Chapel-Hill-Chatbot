@@ -74,6 +74,7 @@ interface RunRequest {
   threadId?: string;
   source?: "http" | "http-stream" | "a2a";
   requestId?: string;
+  deterministic?: boolean;
 }
 
 function parseRuntime(runtime: unknown): AgentRuntime {
@@ -105,7 +106,17 @@ function parseRunRequest(body: any): RunRequest {
     typeof body?.threadId === "string" && body.threadId.length > 0
       ? body.threadId
       : process.env.THREAD_ID;
-  return { goal, runtime, rounds, threadId };
+  const deterministic =
+    typeof body?.deterministic === "boolean" ? body.deterministic : undefined;
+  return { goal, runtime, rounds, threadId, deterministic };
+}
+
+function parseDeterministicQuery(value: string | null): boolean | undefined {
+  if (value == null) return undefined;
+  const normalized = value.trim().toLowerCase();
+  if (["1", "true", "yes", "on"].includes(normalized)) return true;
+  if (["0", "false", "no", "off"].includes(normalized)) return false;
+  return undefined;
 }
 
 function parseRequestId(value: unknown): string | undefined {
@@ -137,6 +148,7 @@ async function executeRun(req: RunRequest) {
     const result = await runEstateWiseAgent({
       input: req.goal,
       threadId: req.threadId,
+      deterministic: req.deterministic,
       trace: {
         runtime: "langgraph",
         surface: req.source || "http",
@@ -404,6 +416,14 @@ export function createAgenticHttpServer(): http.Server {
           endpoint: langsmith.endpoint || null,
           strict: langsmith.strict,
         },
+        deterministic: {
+          defaultEnabled:
+            process.env.LANGGRAPH_DETERMINISTIC_DEFAULT === "true" ||
+            process.env.LANGGRAPH_DETERMINISTIC_DEFAULT === "1",
+          replayEnabled:
+            process.env.LANGGRAPH_REPLAY_ENABLED !== "false" &&
+            process.env.LANGGRAPH_REPLAY_ENABLED !== "0",
+        },
       });
     }
     if (req.method === "GET" && url.pathname === "/run/stream") {
@@ -454,6 +474,9 @@ export function createAgenticHttpServer(): http.Server {
           const result = await runEstateWiseAgent({
             input: goal,
             threadId: threadId || undefined,
+            deterministic: parseDeterministicQuery(
+              url.searchParams.get("deterministic"),
+            ),
             trace: {
               runtime: "langgraph",
               surface: "http-stream",
@@ -580,6 +603,7 @@ export function startHttpServer(
 export const __httpTestUtils = {
   parseRuntime,
   parseRounds,
+  parseDeterministicQuery,
   parseRequestId,
 };
 

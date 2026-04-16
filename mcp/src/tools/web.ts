@@ -1,11 +1,14 @@
 import { isIP } from "node:net";
+import crypto from "node:crypto";
 import { z } from "zod";
 import { config } from "../core/config.js";
 import type { ToolDef } from "../core/registry.js";
 
 type SearchResult = {
+  citationId: string;
   title: string;
   url: string;
+  host: string;
   snippet?: string;
 };
 
@@ -74,6 +77,13 @@ function parseDuckDuckGoHtml(html: string, limit: number): SearchResult[] {
     const title = normalizeWhitespace(
       decodeHtmlEntities(stripTags(match[2] || "")) || decodedUrl,
     );
+    const host = (() => {
+      try {
+        return new URL(decodedUrl).hostname.toLowerCase();
+      } catch {
+        return "unknown";
+      }
+    })();
 
     const snippetWindow = html.slice(match.index, match.index + 2500);
     const snippetMatch = snippetWindow.match(
@@ -86,14 +96,37 @@ function parseDuckDuckGoHtml(html: string, limit: number): SearchResult[] {
       : "";
 
     results.push({
+      citationId: `src-${results.length + 1}`,
       title,
       url: decodedUrl,
+      host,
       ...(snippet ? { snippet } : {}),
     });
     seen.add(decodedUrl);
   }
 
   return results;
+}
+
+function hashText(value: string): string {
+  return crypto.createHash("sha256").update(value).digest("hex");
+}
+
+function extractPublishedAt(html: string): string | undefined {
+  const patterns = [
+    /<meta[^>]+property=["']article:published_time["'][^>]+content=["']([^"']+)["']/i,
+    /<meta[^>]+name=["']pubdate["'][^>]+content=["']([^"']+)["']/i,
+    /<time[^>]+datetime=["']([^"']+)["']/i,
+  ];
+  for (const pattern of patterns) {
+    const match = html.match(pattern);
+    if (!match?.[1]) continue;
+    const value = match[1].trim();
+    const date = new Date(value);
+    if (!Number.isFinite(date.getTime())) continue;
+    return date.toISOString();
+  }
+  return undefined;
 }
 
 function ensureSafePublicHttpUrl(input: string): URL {
@@ -205,6 +238,7 @@ export const webTools: ToolDef[] = [
       const searchUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(q)}`;
       const html = await fetchText(searchUrl, config.webTimeoutMs);
       const results = parseDuckDuckGoHtml(html, safeLimit);
+      const fetchedAt = new Date().toISOString();
       return {
         content: [
           {
@@ -214,7 +248,19 @@ export const webTools: ToolDef[] = [
               query: q,
               results,
               count: results.length,
-              fetchedAt: new Date().toISOString(),
+              fetchedAt,
+              provenance: {
+                provider: "duckduckgo-html",
+                retrievedAt: fetchedAt,
+                query: q,
+              },
+              citations: results.map((result) => ({
+                citationId: result.citationId,
+                url: result.url,
+                title: result.title,
+                host: result.host,
+                retrievedAt: fetchedAt,
+              })),
             }),
           },
         ],
@@ -273,9 +319,22 @@ export const webTools: ToolDef[] = [
         const extracted = contentType.includes("html")
           ? extractReadableText(rawText)
           : { text: normalizeWhitespace(rawText) };
+        const publishedAt = contentType.includes("html")
+          ? extractPublishedAt(rawText)
+          : undefined;
 
         const sliced = extracted.text.slice(0, Math.max(500, maxChars));
         const truncated = extracted.text.length > sliced.length;
+        const fetchedAt = new Date().toISOString();
+        const ageSeconds = publishedAt
+          ? Math.max(
+              0,
+              Math.floor((Date.now() - new Date(publishedAt).getTime()) / 1000),
+            )
+          : null;
+        const citationId = `fetch-${hashText(
+          `${safeUrl.toString()}::${fetchedAt}`,
+        ).slice(0, 12)}`;
 
         return {
           content: [
@@ -287,7 +346,21 @@ export const webTools: ToolDef[] = [
                 contentType,
                 content: sliced,
                 truncated,
-                fetchedAt: new Date().toISOString(),
+                fetchedAt,
+                contentHash: hashText(sliced),
+                freshness: {
+                  publishedAt: publishedAt || null,
+                  ageSeconds,
+                  observedAt: fetchedAt,
+                },
+                citation: {
+                  citationId,
+                  url: safeUrl.toString(),
+                  title: extracted.title || safeUrl.hostname,
+                  host: safeUrl.hostname.toLowerCase(),
+                  publishedAt: publishedAt || null,
+                  retrievedAt: fetchedAt,
+                },
               }),
             },
           ],
@@ -303,3 +376,9 @@ export const webTools: ToolDef[] = [
     },
   },
 ];
+
+export const __webTestUtils = {
+  parseDuckDuckGoHtml,
+  extractPublishedAt,
+  hashText,
+};

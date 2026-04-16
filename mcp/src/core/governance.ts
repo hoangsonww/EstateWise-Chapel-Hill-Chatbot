@@ -1,4 +1,5 @@
 import { config } from "./config.js";
+import { recordGovernanceEvent } from "./metrics.js";
 
 class Semaphore {
   private permits: number;
@@ -41,9 +42,11 @@ const deniedTools = new Set(config.toolDenyList);
 
 function ensureToolAllowed(toolName: string) {
   if (deniedTools.has(toolName)) {
+    recordGovernanceEvent("denylist_block");
     throw new Error(`Tool '${toolName}' is disabled by MCP_TOOL_DENYLIST`);
   }
   if (allowedTools.size > 0 && !allowedTools.has(toolName)) {
+    recordGovernanceEvent("allowlist_block");
     throw new Error(`Tool '${toolName}' is not allowed by MCP_TOOL_ALLOWLIST`);
   }
 }
@@ -55,6 +58,7 @@ function withTimeout<T>(
 ): Promise<T> {
   return new Promise<T>((resolve, reject) => {
     const timer = setTimeout(() => {
+      recordGovernanceEvent("timeout");
       reject(
         new Error(
           `Tool '${toolName}' timed out after ${timeoutMs}ms (MCP_TOOL_TIMEOUT_MS)`,
@@ -89,6 +93,7 @@ export async function runWithToolGovernance<T>(
   ensureToolAllowed(toolName);
   const argBytes = estimatePayloadBytes(args);
   if (argBytes > config.toolMaxArgBytes) {
+    recordGovernanceEvent("arg_size_block");
     throw new Error(
       `Tool '${toolName}' payload too large: ${argBytes} bytes exceeds MCP_TOOL_MAX_ARG_BYTES=${config.toolMaxArgBytes}`,
     );

@@ -168,40 +168,40 @@ graph TB
 
 ### Component Inventory
 
-| Component | Package | Entry Point | Purpose |
-|-----------|---------|-------------|---------|
-| Supervisor | `agentic-ai` | `src/orchestration/supervisor.ts` | Intent classification, DAG planning, execution, synthesis |
-| Agent Registry | `agentic-ai` | `src/orchestration/agent-registry.ts` | Agent catalog, circuit breakers, fallback resolution |
-| Agent Loop | `agentic-ai` | `src/orchestration/agent-loop.ts` | Iterative LLM + tool-use execution |
-| Routing Strategy | `agentic-ai` | `src/orchestration/routing-strategy.ts` | Single-turn vs. agentic decision |
-| Error Recovery | `agentic-ai` | `src/orchestration/error-recovery.ts` | Error-to-strategy mapping with compound learning |
-| Handoff Manager | `agentic-ai` | `src/orchestration/handoff.ts` | Agent-to-agent delegation with safety guards |
-| Cost Budget | `agentic-ai` | `src/orchestration/cost-budget.ts` | Spend tracking at request/session/daily granularity |
-| Batch Processor | `agentic-ai` | `src/orchestration/batch-processor.ts` | Parallel job execution with concurrency control |
-| Dead Letter Queue | `agentic-ai` | `src/orchestration/dead-letter-queue.ts` | Failed task persistence and replay |
-| LangGraph Runtime | `agentic-ai` | `src/lang/graph.ts` | LangChain ReAct agent with checkpointer |
-| CrewAI Runtime | `agentic-ai` | `src/crewai/CrewRunner.ts` | Python subprocess bridge |
-| HTTP Server | `agentic-ai` | `src/http/server.ts` | REST + SSE + A2A endpoints |
-| A2A Protocol | `agentic-ai` | `src/a2a/protocol.ts` | Agent-to-Agent JSON-RPC |
-| MCP Server | `mcp` | `src/server.ts` | 60+ tools over stdio transport |
-| Gemini Chat | `backend` | `src/services/geminiChat.service.ts` | Multi-expert RAG with K-Means clustering |
-| Knowledge Graph | `context-engineering` | `src/graph/KnowledgeGraph.ts` | In-memory graph with optional Neo4j sync |
-| Context Factory | `context-engineering` | `src/factory.ts` | Wires full context-engineering stack |
+| Component         | Package               | Entry Point                              | Purpose                                                   |
+| ----------------- | --------------------- | ---------------------------------------- | --------------------------------------------------------- |
+| Supervisor        | `agentic-ai`          | `src/orchestration/supervisor.ts`        | Intent classification, DAG planning, execution, synthesis |
+| Agent Registry    | `agentic-ai`          | `src/orchestration/agent-registry.ts`    | Agent catalog, circuit breakers, fallback resolution      |
+| Agent Loop        | `agentic-ai`          | `src/orchestration/agent-loop.ts`        | Iterative LLM + tool-use execution                        |
+| Routing Strategy  | `agentic-ai`          | `src/orchestration/routing-strategy.ts`  | Single-turn vs. agentic decision                          |
+| Error Recovery    | `agentic-ai`          | `src/orchestration/error-recovery.ts`    | Error-to-strategy mapping with compound learning          |
+| Handoff Manager   | `agentic-ai`          | `src/orchestration/handoff.ts`           | Agent-to-agent delegation with safety guards              |
+| Cost Budget       | `agentic-ai`          | `src/orchestration/cost-budget.ts`       | Spend tracking at request/session/daily granularity       |
+| Batch Processor   | `agentic-ai`          | `src/orchestration/batch-processor.ts`   | Parallel job execution with concurrency control           |
+| Dead Letter Queue | `agentic-ai`          | `src/orchestration/dead-letter-queue.ts` | Failed task persistence and replay                        |
+| LangGraph Runtime | `agentic-ai`          | `src/lang/graph.ts`                      | LangChain ReAct agent with checkpointer                   |
+| CrewAI Runtime    | `agentic-ai`          | `src/crewai/CrewRunner.ts`               | Python subprocess bridge                                  |
+| HTTP Server       | `agentic-ai`          | `src/http/server.ts`                     | REST + SSE + A2A endpoints                                |
+| A2A Protocol      | `agentic-ai`          | `src/a2a/protocol.ts`                    | Agent-to-Agent JSON-RPC                                   |
+| MCP Server        | `mcp`                 | `src/server.ts`                          | 60+ tools over stdio transport                            |
+| Gemini Chat       | `backend`             | `src/services/geminiChat.service.ts`     | Multi-expert RAG with K-Means clustering                  |
+| Knowledge Graph   | `context-engineering` | `src/graph/KnowledgeGraph.ts`            | In-memory graph with optional Neo4j sync                  |
+| Context Factory   | `context-engineering` | `src/factory.ts`                         | Wires full context-engineering stack                      |
 
 ### Technology Stack
 
-| Layer | Technology | Version/Model |
-|-------|-----------|---------------|
+| Layer             | Technology                   | Version/Model                                    |
+| ----------------- | ---------------------------- | ------------------------------------------------ |
 | Orchestration LLM | Claude (Opus, Sonnet, Haiku) | claude-opus-4, claude-sonnet-4, claude-haiku-4.5 |
-| Backend LLM | Google Gemini | gemini-2.5-flash (default) |
-| Embeddings | Google gemini-embedding-001 | 768 dimensions |
-| Vector Store | Pinecone | Serverless |
-| Graph Database | Neo4j Aura | Bolt protocol |
-| Document Store | MongoDB | Atlas |
-| Framework | LangGraph / LangChain | @langchain/langgraph |
-| Tracing | LangSmith | Optional, configurable |
-| MCP Transport | stdio | @modelcontextprotocol/sdk |
-| Clustering | K-Means | Custom implementation (k=4) |
+| Backend LLM       | Google Gemini                | gemini-2.5-flash (default)                       |
+| Embeddings        | Google gemini-embedding-001  | 768 dimensions                                   |
+| Vector Store      | Pinecone                     | Serverless                                       |
+| Graph Database    | Neo4j Aura                   | Bolt protocol                                    |
+| Document Store    | MongoDB                      | Atlas                                            |
+| Framework         | LangGraph / LangChain        | @langchain/langgraph                             |
+| Tracing           | LangSmith                    | Optional, configurable                           |
+| MCP Transport     | stdio                        | @modelcontextprotocol/sdk                        |
+| Clustering        | K-Means                      | Custom implementation (k=4)                      |
 
 ---
 
@@ -242,18 +242,18 @@ The supervisor uses keyword-based pattern matching against 10 intent patterns. E
 
 **10 Intent Patterns** (defined in `supervisor.ts`, lines 65-126):
 
-| Intent | Keywords (sample) | Agents | Multi-Step |
-|--------|-------------------|--------|------------|
-| `property-search` | find, search, look for, show me, listing, homes for sale | property-search | No |
-| `market-analysis` | market, trend, forecast, analysis, median, average price | market-analyst, data-enrichment | Yes |
-| `property-comparison` | compare, versus, vs, difference, better, side by side | property-search, market-analyst | Yes |
-| `recommendation` | recommend, suggest, best, top, ideal, should i | recommendation, property-search | Yes |
-| `financial-analysis` | mortgage, affordability, monthly payment, interest rate, loan | market-analyst, data-enrichment | Yes |
-| `neighborhood-info` | neighborhood, school, commute, crime, walkability, amenities | data-enrichment, property-search | Yes |
-| `property-detail` | detail, about this, tell me more, specifics, zpid | property-search, data-enrichment | No |
-| `greeting` | hello, hi, hey, good morning, help, what can you | conversation-mgr | No |
-| `clarification` | what do you mean, clarify, can you explain, i don't understand | conversation-mgr | No |
-| `follow-up` | also, and, what about, how about, another, more | conversation-mgr, property-search | No |
+| Intent                | Keywords (sample)                                              | Agents                            | Multi-Step |
+| --------------------- | -------------------------------------------------------------- | --------------------------------- | ---------- |
+| `property-search`     | find, search, look for, show me, listing, homes for sale       | property-search                   | No         |
+| `market-analysis`     | market, trend, forecast, analysis, median, average price       | market-analyst, data-enrichment   | Yes        |
+| `property-comparison` | compare, versus, vs, difference, better, side by side          | property-search, market-analyst   | Yes        |
+| `recommendation`      | recommend, suggest, best, top, ideal, should i                 | recommendation, property-search   | Yes        |
+| `financial-analysis`  | mortgage, affordability, monthly payment, interest rate, loan  | market-analyst, data-enrichment   | Yes        |
+| `neighborhood-info`   | neighborhood, school, commute, crime, walkability, amenities   | data-enrichment, property-search  | Yes        |
+| `property-detail`     | detail, about this, tell me more, specifics, zpid              | property-search, data-enrichment  | No         |
+| `greeting`            | hello, hi, hey, good morning, help, what can you               | conversation-mgr                  | No         |
+| `clarification`       | what do you mean, clarify, can you explain, i don't understand | conversation-mgr                  | No         |
+| `follow-up`           | also, and, what about, how about, another, more                | conversation-mgr, property-search | No         |
 
 #### Entity Extraction
 
@@ -273,11 +273,13 @@ flowchart LR
 ```
 
 **Location patterns** (`supervisor.ts`, lines 132-150):
+
 - `(?:in|near|around|close to)\s+([A-Z][a-zA-Z]+...)` captures "in Chapel Hill"
 - `([A-Z][a-zA-Z]+), ([A-Z]{2})` captures "Durham, NC"
 - Filters out common English words: I, The, A, An, My, And, Or, But
 
 **Price patterns** (`supervisor.ts`, lines 152-177):
+
 - Range: `$X - $Y` or `$X to $Y`
 - Upper bound: `under $X`, `below $X`, `less than $X`, `max $X`
 - Lower bound: `over $X`, `above $X`, `more than $X`, `at least $X`
@@ -331,6 +333,7 @@ graph TD
 ```
 
 **Key plan construction rules:**
+
 - Steps are ordered by the `suggestedAgents` array from intent classification.
 - For multi-step intents, each step depends on the previous step (sequential DAG).
 - Only the first agent is marked `required`; all subsequent agents are `optional`.
@@ -369,17 +372,17 @@ The Agent Registry (`agentic-ai/src/orchestration/agent-registry.ts`) is the cen
 
 **9 Default Agents** (registered in `createDefaultRegistry()`, lines 360-579):
 
-| Agent ID | Model | Cost Tier | Fallback | Timeout | Capabilities |
-|----------|-------|-----------|----------|---------|-------------|
-| `supervisor` | sonnet | medium | -- | 60s | classification, planning, orchestration, synthesis |
-| `property-search` | sonnet | medium | property-search-lite | 120s | property-search, filtering, listing-retrieval |
-| `property-search-lite` | haiku | low | -- | 120s | property-search, filtering |
-| `market-analyst` | opus | premium | market-analyst-lite | 180s | market-analysis, trend-detection, forecasting, comparison |
-| `market-analyst-lite` | sonnet | medium | -- | 120s | market-analysis, comparison |
-| `conversation-mgr` | haiku | low | -- | 30s | conversation, clarification, greeting, follow-up |
-| `data-enrichment` | sonnet | medium | -- | 120s | data-enrichment, web-lookup, graph-query |
-| `recommendation` | sonnet | medium | -- | 120s | recommendation, personalization, ranking |
-| `quality-reviewer` | haiku | low | -- | 30s | quality-review, hallucination-detection, compliance-check |
+| Agent ID               | Model  | Cost Tier | Fallback             | Timeout | Capabilities                                              |
+| ---------------------- | ------ | --------- | -------------------- | ------- | --------------------------------------------------------- |
+| `supervisor`           | sonnet | medium    | --                   | 60s     | classification, planning, orchestration, synthesis        |
+| `property-search`      | sonnet | medium    | property-search-lite | 120s    | property-search, filtering, listing-retrieval             |
+| `property-search-lite` | haiku  | low       | --                   | 120s    | property-search, filtering                                |
+| `market-analyst`       | opus   | premium   | market-analyst-lite  | 180s    | market-analysis, trend-detection, forecasting, comparison |
+| `market-analyst-lite`  | sonnet | medium    | --                   | 120s    | market-analysis, comparison                               |
+| `conversation-mgr`     | haiku  | low       | --                   | 30s     | conversation, clarification, greeting, follow-up          |
+| `data-enrichment`      | sonnet | medium    | --                   | 120s    | data-enrichment, web-lookup, graph-query                  |
+| `recommendation`       | sonnet | medium    | --                   | 120s    | recommendation, personalization, ranking                  |
+| `quality-reviewer`     | haiku  | low       | --                   | 30s     | quality-review, hallucination-detection, compliance-check |
 
 #### Circuit Breaker State Machine
 
@@ -435,6 +438,7 @@ flowchart TD
 The `resolveFallbackChain` method (`agent-registry.ts`, line 263) traverses `fallbackAgentId` links up to `maxDepth=3`, tracking visited IDs to prevent loops. `findHealthyFallback` returns the first healthy agent in the chain that is not the original agent.
 
 **Health scoring and metrics** are tracked per agent with a sliding window of 100 latency samples:
+
 - `totalRequests`, `successCount`, `failureCount`
 - `averageLatencyMs`, `p95LatencyMs` (95th percentile from sorted samples)
 - `averageCostUsd` (running average)
@@ -491,6 +495,7 @@ sequenceDiagram
 **Context compaction** (`agent-loop.ts`, `compactMessages` at line 76): Keeps the first 2 messages and last 4 messages verbatim. Middle messages are summarized to 200-character snippets prefixed with their role.
 
 **Error classification** (`agent-loop.ts`, `classifyError` at line 100): Pattern-matches error messages to `AgentErrorType` values:
+
 - "rate" / "429" / "throttl" -> `RATE_LIMITED`
 - "timeout" / "timed out" -> `TIMEOUT`
 - "context" + "length"/"overflow" -> `CONTEXT_OVERFLOW`
@@ -539,13 +544,13 @@ flowchart LR
     THR -->|No| ST
 ```
 
-| Signal | Weight | Normalization | Effect |
-|--------|--------|---------------|--------|
-| `toolCount` | +0.30 | `min(tools/5, 1)` | More tools push toward agentic |
-| `intentConfidence` | -0.20 | Raw 0-1 | High confidence pulls toward single-turn |
-| `conversationDepth` | +0.10 | `min(depth/10, 1)` | Deep conversations push toward agentic |
-| `dataDependencies` | +0.25 | `min(deps/4, 1)` | External data needs push toward agentic |
-| `ambiguityLevel` | +0.15 | Raw 0-1 | Ambiguous queries push toward agentic |
+| Signal              | Weight | Normalization      | Effect                                   |
+| ------------------- | ------ | ------------------ | ---------------------------------------- |
+| `toolCount`         | +0.30  | `min(tools/5, 1)`  | More tools push toward agentic           |
+| `intentConfidence`  | -0.20  | Raw 0-1            | High confidence pulls toward single-turn |
+| `conversationDepth` | +0.10  | `min(depth/10, 1)` | Deep conversations push toward agentic   |
+| `dataDependencies`  | +0.25  | `min(deps/4, 1)`   | External data needs push toward agentic  |
+| `ambiguityLevel`    | +0.15  | Raw 0-1            | Ambiguous queries push toward agentic    |
 
 The `AGENTIC_THRESHOLD` is `0.45` (configurable). A score at or above triggers full orchestration; below triggers a direct single-turn response.
 
@@ -555,21 +560,21 @@ The Error Recovery Engine (`agentic-ai/src/orchestration/error-recovery.ts`) map
 
 **13 Error Types -> 11 Recovery Strategies:**
 
-| Error Type | Strategy | Retryable | Max Retries | Delay |
-|------------|----------|-----------|-------------|-------|
-| `RATE_LIMITED` | ExponentialBackoff | Yes | 3 | `min(1000*2^attempt, 30000)` ms |
-| `TIMEOUT` | RetryWithSimplerPrompt | Yes | 2 | 0 |
-| `CONTEXT_OVERFLOW` | ContextCompaction | Yes | 1 | 0 |
-| `TOOL_FAILURE` | ToolBypass | Yes | 1 | 0 |
-| `HALLUCINATION_DETECTED` | RePromptWithGrounding | Yes | 1 | 0 |
-| `INVALID_OUTPUT` | SchemaReminder | Yes | 2 | 0 |
-| `SCHEMA_VALIDATION_FAILED` | SchemaReminder | Yes | 2 | 0 |
-| `MODEL_REFUSAL` | RephraseAndRetry | Yes | 1 | 0 |
-| `DEPENDENCY_FAILURE` | UseCachedData | Yes | 1 | 0 |
-| `BUDGET_EXCEEDED` | DegradeToHaiku | Yes | 1 | 0 |
-| `CIRCULAR_HANDOFF` | AbortWithContext | No | 0 | 0 |
-| `MAX_ITERATIONS_EXCEEDED` | AbortWithContext | No | 0 | 0 |
-| `EXTERNAL_API_FAILURE` | GracefulDegradation | Yes (if attempt<2) | 2 | `min(2000*2^attempt, 15000)` ms |
+| Error Type                 | Strategy               | Retryable          | Max Retries | Delay                           |
+| -------------------------- | ---------------------- | ------------------ | ----------- | ------------------------------- |
+| `RATE_LIMITED`             | ExponentialBackoff     | Yes                | 3           | `min(1000*2^attempt, 30000)` ms |
+| `TIMEOUT`                  | RetryWithSimplerPrompt | Yes                | 2           | 0                               |
+| `CONTEXT_OVERFLOW`         | ContextCompaction      | Yes                | 1           | 0                               |
+| `TOOL_FAILURE`             | ToolBypass             | Yes                | 1           | 0                               |
+| `HALLUCINATION_DETECTED`   | RePromptWithGrounding  | Yes                | 1           | 0                               |
+| `INVALID_OUTPUT`           | SchemaReminder         | Yes                | 2           | 0                               |
+| `SCHEMA_VALIDATION_FAILED` | SchemaReminder         | Yes                | 2           | 0                               |
+| `MODEL_REFUSAL`            | RephraseAndRetry       | Yes                | 1           | 0                               |
+| `DEPENDENCY_FAILURE`       | UseCachedData          | Yes                | 1           | 0                               |
+| `BUDGET_EXCEEDED`          | DegradeToHaiku         | Yes                | 1           | 0                               |
+| `CIRCULAR_HANDOFF`         | AbortWithContext       | No                 | 0           | 0                               |
+| `MAX_ITERATIONS_EXCEEDED`  | AbortWithContext       | No                 | 0           | 0                               |
+| `EXTERNAL_API_FAILURE`     | GracefulDegradation    | Yes (if attempt<2) | 2           | `min(2000*2^attempt, 15000)` ms |
 
 ```mermaid
 flowchart TD
@@ -608,6 +613,7 @@ flowchart TD
 The Handoff Protocol (`agentic-ai/src/orchestration/handoff.ts`) manages agent-to-agent delegation with depth limits, circular detection, health checks, and automatic fallback.
 
 **5 Handoff Types** (defined in `types.ts`, line 266):
+
 - `delegation` -- general task delegation to a specialist
 - `escalation` -- escalate to a higher-capability agent
 - `fallback` -- automatic fallback when primary agent is unhealthy
@@ -660,11 +666,11 @@ The Cost Budget Manager (`agentic-ai/src/orchestration/cost-budget.ts`) tracks s
 
 **Default budget configuration** (`cost-budget.ts`, lines 13-23):
 
-| Granularity | Default Limit | Description |
-|-------------|---------------|-------------|
-| Per-request | $0.50 | Maximum cost for any single agent invocation |
-| Per-session | $2.00 | Maximum cumulative cost for a user session |
-| Daily | $10.00 | Maximum cumulative cost across all sessions per day |
+| Granularity | Default Limit | Description                                         |
+| ----------- | ------------- | --------------------------------------------------- |
+| Per-request | $0.50         | Maximum cost for any single agent invocation        |
+| Per-session | $2.00         | Maximum cumulative cost for a user session          |
+| Daily       | $10.00        | Maximum cumulative cost across all sessions per day |
 
 **Alert levels** are computed from daily spend:
 
@@ -748,6 +754,7 @@ flowchart TD
 ```
 
 Each `DeadLetterEntry` tracks:
+
 - `entryId`, `taskId`, `agentId` for identification
 - `input` (the original request string)
 - `error` (the `AgentError` that caused the failure)
@@ -799,18 +806,18 @@ The prompt includes an `<agent_roster>` table mapping agents to their specializa
 
 All 10 grounding rules are defined in `agentic-ai/src/prompts/grounding.ts` (lines 9-20) and injected into every agent's system prompt as XML:
 
-| Rule # | Rule Text | Severity |
-|--------|-----------|----------|
-| 1 | Never fabricate property listings, prices, or addresses that were not returned by a tool call. | High |
-| 2 | Always cite the data source and retrieval timestamp when presenting market statistics. | Medium |
-| 3 | If tool results are empty or unavailable, explicitly state that no data was found rather than generating plausible-sounding alternatives. | Medium |
-| 4 | Distinguish clearly between verified facts (from tool results) and inferred analysis (from the model). | Medium |
-| 5 | Do not extrapolate price trends beyond the time range covered by the retrieved data. | Medium |
-| 6 | When presenting comparable properties, only include properties that appeared in actual search results. | High |
-| 7 | Mark any neighborhood, school, or commute data as approximate if the source does not guarantee precision. | Low |
-| 8 | Never claim a property is still available unless the listing status was confirmed by the most recent tool call. | High |
-| 9 | If multiple data sources conflict, present both values and note the discrepancy instead of silently choosing one. | Medium |
-| 10 | Do not round, truncate, or modify numeric values (prices, square footage, rates) from tool results without disclosure. | Low |
+| Rule # | Rule Text                                                                                                                                 | Severity |
+| ------ | ----------------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| 1      | Never fabricate property listings, prices, or addresses that were not returned by a tool call.                                            | High     |
+| 2      | Always cite the data source and retrieval timestamp when presenting market statistics.                                                    | Medium   |
+| 3      | If tool results are empty or unavailable, explicitly state that no data was found rather than generating plausible-sounding alternatives. | Medium   |
+| 4      | Distinguish clearly between verified facts (from tool results) and inferred analysis (from the model).                                    | Medium   |
+| 5      | Do not extrapolate price trends beyond the time range covered by the retrieved data.                                                      | Medium   |
+| 6      | When presenting comparable properties, only include properties that appeared in actual search results.                                    | High     |
+| 7      | Mark any neighborhood, school, or commute data as approximate if the source does not guarantee precision.                                 | Low      |
+| 8      | Never claim a property is still available unless the listing status was confirmed by the most recent tool call.                           | High     |
+| 9      | If multiple data sources conflict, present both values and note the discrepancy instead of silently choosing one.                         | Medium   |
+| 10     | Do not round, truncate, or modify numeric values (prices, square footage, rates) from tool results without disclosure.                    | Low      |
 
 **GroundingValidator** (`grounding.ts`, class at line 75) checks LLM responses against tool results:
 
@@ -867,6 +874,7 @@ flowchart TB
 ```
 
 **Cost savings estimation** (`cache-strategy.ts`, `estimateCacheSavings` at line 109):
+
 - `savingsRatio = cachedTokens / totalTokens`
 - `estimatedCostReductionPercent = savingsRatio * 90`
 - Anthropic charges 90% less for cache hits on input tokens
@@ -892,7 +900,7 @@ The `PromptRegistry` (`agentic-ai/src/prompts/versioning.ts`) provides version t
 
 ```mermaid
 flowchart TD
-    REG["register(id, version, content, changelog)"] --> STORE[(PromptRegistry<br/>Map: id -> PromptVersion[])]
+    REG["register(id, version, content, changelog)"] --> STORE[(PromptRegistry<br/>Map: id -> PromptVersion)]
     STORE --> ACTIVE["getActive(id)<br/>returns current version"]
     STORE --> ROLL["rollback(id, targetVersion)<br/>deactivate all, activate target"]
     STORE --> METRICS["updateMetrics(id, partial)"]
@@ -927,14 +935,14 @@ The Token Budget Manager (`agentic-ai/src/context/token-budget.ts`) dynamically 
 
 **Default allocation** (lines 28-37, `maxTokens=128000`):
 
-| Category | Base Tokens | Description |
-|----------|-------------|-------------|
-| System | 2,000 | System prompt and role definition |
-| Static Context | 1,000 | Grounding rules, schemas, agent roster |
-| RAG | 4,000 | Retrieved documents from vector/graph search |
-| Conversation | 3,000 + scaling | Chat history, grows with message count |
-| Tool Buffer | 5,000 | Space for tool call inputs/outputs |
-| Generation | 4,000 | Reserved for model output |
+| Category       | Base Tokens     | Description                                  |
+| -------------- | --------------- | -------------------------------------------- |
+| System         | 2,000           | System prompt and role definition            |
+| Static Context | 1,000           | Grounding rules, schemas, agent roster       |
+| RAG            | 4,000           | Retrieved documents from vector/graph search |
+| Conversation   | 3,000 + scaling | Chat history, grows with message count       |
+| Tool Buffer    | 5,000           | Space for tool call inputs/outputs           |
+| Generation     | 4,000           | Reserved for model output                    |
 
 ```mermaid
 pie title Default Token Budget Allocation (19,000 base tokens)
@@ -975,20 +983,20 @@ flowchart TD
 
 **Agent-to-strategy mapping** (`strategies.ts`, lines 231-249):
 
-| Agent | Strategy | Rationale |
-|-------|----------|-----------|
-| `planner` | hierarchical | Needs topic-level overview of full conversation |
-| `coordinator` | summarize-recent | Balances summary context with recent detail |
-| `context-engineer` | rag-first | Maximizes retrieval content for context assembly |
-| `graph-analyst` | entity-anchored | Focuses on entity mentions for graph queries |
-| `property-analyst` | rag-first | Property data from RAG is primary input |
-| `map-analyst` | sliding-window | Recent location context is most relevant |
-| `finance-analyst` | summarize-recent | Needs financial context summary + latest query |
-| `zpid-finder` | sliding-window | Only needs recent ZPID mentions |
-| `analytics-analyst` | rag-first | Statistical data from RAG is primary input |
-| `ranker-analyst` | entity-anchored | Ranks entities mentioned in conversation |
-| `compliance-analyst` | hierarchical | Full conversation overview for compliance checking |
-| `reporter` | summarize-recent | Summary + recent for final report generation |
+| Agent                | Strategy         | Rationale                                          |
+| -------------------- | ---------------- | -------------------------------------------------- |
+| `planner`            | hierarchical     | Needs topic-level overview of full conversation    |
+| `coordinator`        | summarize-recent | Balances summary context with recent detail        |
+| `context-engineer`   | rag-first        | Maximizes retrieval content for context assembly   |
+| `graph-analyst`      | entity-anchored  | Focuses on entity mentions for graph queries       |
+| `property-analyst`   | rag-first        | Property data from RAG is primary input            |
+| `map-analyst`        | sliding-window   | Recent location context is most relevant           |
+| `finance-analyst`    | summarize-recent | Needs financial context summary + latest query     |
+| `zpid-finder`        | sliding-window   | Only needs recent ZPID mentions                    |
+| `analytics-analyst`  | rag-first        | Statistical data from RAG is primary input         |
+| `ranker-analyst`     | entity-anchored  | Ranks entities mentioned in conversation           |
+| `compliance-analyst` | hierarchical     | Full conversation overview for compliance checking |
+| `reporter`           | summarize-recent | Summary + recent for final report generation       |
 
 ### 4.3 Multi-Level Cache
 
@@ -1071,6 +1079,7 @@ flowchart TD
 The `KnowledgeGraph` class (`context-engineering/src/graph/KnowledgeGraph.ts`) is an enterprise-grade in-memory graph engine:
 
 **Architecture:**
+
 - Nodes stored in `Map<id, GraphNode>`
 - Edges stored in `Map<id, GraphEdge>`
 - Adjacency via two Maps of Sets: `outgoing[sourceId]` and `incoming[targetId]`
@@ -1248,13 +1257,13 @@ flowchart TD
     CHARTS --> FINAL["Final Markdown Response"]
 ```
 
-| Expert | Focus | Example Output |
-|--------|-------|----------------|
-| Data Analyst | Numbers and trends | "Average price: $470K, range $420K-$520K, 12% YoY appreciation" |
-| Lifestyle Concierge | Daily living | "Top-rated schools (9/10), 2 parks within 0.5mi, farmers market Saturdays" |
-| Financial Advisor | Money matters | "At $465K with 20% down: $2,487/mo mortgage. 30-year at 6.5%" |
-| Neighborhood Expert | Community | "Walk score: 78, low crime, new shopping center opening Q2 2026" |
-| Cluster Analyst | Pattern recognition | "This home is in Cluster 1 (mid-range family), priced 5% below cluster average" |
+| Expert              | Focus               | Example Output                                                                  |
+| ------------------- | ------------------- | ------------------------------------------------------------------------------- |
+| Data Analyst        | Numbers and trends  | "Average price: $470K, range $420K-$520K, 12% YoY appreciation"                 |
+| Lifestyle Concierge | Daily living        | "Top-rated schools (9/10), 2 parks within 0.5mi, farmers market Saturdays"      |
+| Financial Advisor   | Money matters       | "At $465K with 20% down: $2,487/mo mortgage. 30-year at 6.5%"                   |
+| Neighborhood Expert | Community           | "Walk score: 78, low crime, new shopping center opening Q2 2026"                |
+| Cluster Analyst     | Pattern recognition | "This home is in Cluster 1 (mid-range family), priced 5% below cluster average" |
 
 **Weight system**: Expert weights default to 1.0 but can be adjusted per-request via `expertWeights` parameter. User feedback adjusts weights for future requests: higher weight means the expert's analysis is prioritized in synthesis.
 
@@ -1282,14 +1291,14 @@ flowchart LR
     HE --> COMP2["Rich: explainability, neighborhood coherence,<br/>multi-hop reasoning, market segmentation"]
 ```
 
-| Dimension | Vector-Only | Hybrid (Vector + Graph) |
-|-----------|-------------|-------------------------|
-| Explainability | Score-based ranking only | "Same neighborhood", "same zip code", reasons |
-| Neighborhood Coherence | May mix unrelated areas | Graph ensures geographic grouping |
-| Multi-hop Reasoning | None | Zip -> Neighborhood -> School chains |
-| Market Segmentation | None | K-Means clusters identify segments |
-| Expert Coverage | Single analysis | 5 specialized perspectives |
-| Latency | ~1-2s | ~3-5s (parallel expert execution) |
+| Dimension              | Vector-Only              | Hybrid (Vector + Graph)                       |
+| ---------------------- | ------------------------ | --------------------------------------------- |
+| Explainability         | Score-based ranking only | "Same neighborhood", "same zip code", reasons |
+| Neighborhood Coherence | May mix unrelated areas  | Graph ensures geographic grouping             |
+| Multi-hop Reasoning    | None                     | Zip -> Neighborhood -> School chains          |
+| Market Segmentation    | None                     | K-Means clusters identify segments            |
+| Expert Coverage        | Single analysis          | 5 specialized perspectives                    |
+| Latency                | ~1-2s                    | ~3-5s (parallel expert execution)             |
 
 ---
 
@@ -1299,16 +1308,16 @@ flowchart LR
 
 Three model tiers are configured in `agentic-ai/src/orchestration/types.ts` (lines 90-121):
 
-| Property | Opus | Sonnet | Haiku |
-|----------|------|--------|-------|
-| API Model ID | `claude-opus-4-20250514` | `claude-sonnet-4-20250514` | `claude-haiku-4-5-20251001` |
-| Context Window | 200,000 tokens | 200,000 tokens | 200,000 tokens |
-| Max Output | 32,000 tokens | 16,000 tokens | 8,192 tokens |
-| Input Cost / 1M tokens | $15.00 | $3.00 | $0.80 |
-| Output Cost / 1M tokens | $75.00 | $15.00 | $4.00 |
-| Cache Cost / 1M tokens | $1.875 | $0.375 | $0.10 |
-| Extended Thinking | Yes | Yes | No |
-| Caching | Yes | Yes | Yes |
+| Property                | Opus                     | Sonnet                     | Haiku                       |
+| ----------------------- | ------------------------ | -------------------------- | --------------------------- |
+| API Model ID            | `claude-opus-4-20250514` | `claude-sonnet-4-20250514` | `claude-haiku-4-5-20251001` |
+| Context Window          | 200,000 tokens           | 200,000 tokens             | 200,000 tokens              |
+| Max Output              | 32,000 tokens            | 16,000 tokens              | 8,192 tokens                |
+| Input Cost / 1M tokens  | $15.00                   | $3.00                      | $0.80                       |
+| Output Cost / 1M tokens | $75.00                   | $15.00                     | $4.00                       |
+| Cache Cost / 1M tokens  | $1.875                   | $0.375                     | $0.10                       |
+| Extended Thinking       | Yes                      | Yes                        | No                          |
+| Caching                 | Yes                      | Yes                        | Yes                         |
 
 ```mermaid
 flowchart LR
@@ -1356,11 +1365,13 @@ stateDiagram-v2
 ```
 
 **LLM Client selection** (`agentic-ai/src/lang/llm.ts`, `getChatModel` at line 77):
+
 1. If `GOOGLE_AI_API_KEY` is set: use `ChatGoogleGenerativeAI` with `gemini-2.5-flash` (default)
 2. If `OPENAI_API_KEY` is set: use `ChatOpenAI` with `gpt-4o-mini` (default)
 3. Both support custom model selection via `GOOGLE_AI_MODEL` / `OPENAI_MODEL` env vars
 
 **Embeddings** (`llm.ts`, `getEmbeddings` at line 115):
+
 - Google: `gemini-embedding-001` with fixed 768 dimensions (custom subclass `FixedDimensionGoogleGenerativeAIEmbeddings`)
 - OpenAI: `text-embedding-3-large` (fallback)
 
@@ -1448,30 +1459,30 @@ flowchart TD
 
     CLI -->|ToolClient| ENTRY
     HTTP2 -->|ToolClient| ENTRY
-    LG2 -->|mcpToolset()| ENTRY
+    LG2 -->|mcpToolset| ENTRY
 ```
 
 **Tool categories and counts** (from `mcp/src/tools/index.ts`):
 
-| Module | Domain | Example Tools |
-|--------|--------|---------------|
-| `properties` | Property search & lookup | `properties.search`, `properties.lookup`, `properties.filter` |
-| `analytics` | Statistical analysis | `analytics.summarizeSearch`, `analytics.groupByZip` |
-| `graph` | Knowledge graph queries | `graph.explain`, `graph.similarityBatch`, `graph.comparePairs` |
-| `finance` | Mortgage & affordability | `finance.mortgage`, `finance.affordability` |
-| `map` | Map link generation | `map.linkForZpids`, `map.buildLinkByQuery` |
-| `web` | Internet search & fetch | `web.search`, `web.fetch` |
-| `context` | Context engineering | Context search, assembly tools |
-| `auth` | Token management | HMAC token generation |
-| `commute` | Commute analysis | Commute time calculation |
-| `system` | Server management | Health, config tools |
-| `monitoring` | Observability | Metrics, logging tools |
-| `batch` | Batch operations | Multi-property batch queries |
-| `market` | Market data | Market pulse, trends |
-| `mcpToken` | MCP token workflows | Token lifecycle tools |
-| `a2a` | Agent-to-Agent | A2A protocol tools |
-| `util` | Utilities | `util.parseGoal` |
-| `conversation` | Conversation management | History, summary tools |
+| Module         | Domain                   | Example Tools                                                  |
+| -------------- | ------------------------ | -------------------------------------------------------------- |
+| `properties`   | Property search & lookup | `properties.search`, `properties.lookup`, `properties.filter`  |
+| `analytics`    | Statistical analysis     | `analytics.summarizeSearch`, `analytics.groupByZip`            |
+| `graph`        | Knowledge graph queries  | `graph.explain`, `graph.similarityBatch`, `graph.comparePairs` |
+| `finance`      | Mortgage & affordability | `finance.mortgage`, `finance.affordability`                    |
+| `map`          | Map link generation      | `map.linkForZpids`, `map.buildLinkByQuery`                     |
+| `web`          | Internet search & fetch  | `web.search`, `web.fetch`                                      |
+| `context`      | Context engineering      | Context search, assembly tools                                 |
+| `auth`         | Token management         | HMAC token generation                                          |
+| `commute`      | Commute analysis         | Commute time calculation                                       |
+| `system`       | Server management        | Health, config tools                                           |
+| `monitoring`   | Observability            | Metrics, logging tools                                         |
+| `batch`        | Batch operations         | Multi-property batch queries                                   |
+| `market`       | Market data              | Market pulse, trends                                           |
+| `mcpToken`     | MCP token workflows      | Token lifecycle tools                                          |
+| `a2a`          | Agent-to-Agent           | A2A protocol tools                                             |
+| `util`         | Utilities                | `util.parseGoal`                                               |
+| `conversation` | Conversation management  | History, summary tools                                         |
 
 ### 7.2 Domain Servers
 
@@ -1493,17 +1504,17 @@ flowchart TD
 
 **Permission matrix** (from `mcp/shared/auth.ts`, lines 25-78):
 
-| Agent | Allowed Servers | Access Mode |
-|-------|----------------|-------------|
-| `supervisor` | property-db, vector-search, graph-query, geocoding, market-data, user-preferences | all |
-| `property-search` | property-db, vector-search | read |
-| `property-search-lite` | property-db | read |
-| `market-analyst` | market-data, graph-query | read |
-| `market-analyst-lite` | market-data | read |
-| `data-enrichment` | graph-query, geocoding, property-db | write |
-| `recommendation` | property-db, vector-search, user-preferences | read |
-| `conversation-mgr` | user-preferences | read |
-| `quality-reviewer` | (none) | read |
+| Agent                  | Allowed Servers                                                                   | Access Mode |
+| ---------------------- | --------------------------------------------------------------------------------- | ----------- |
+| `supervisor`           | property-db, vector-search, graph-query, geocoding, market-data, user-preferences | all         |
+| `property-search`      | property-db, vector-search                                                        | read        |
+| `property-search-lite` | property-db                                                                       | read        |
+| `market-analyst`       | market-data, graph-query                                                          | read        |
+| `market-analyst-lite`  | market-data                                                                       | read        |
+| `data-enrichment`      | graph-query, geocoding, property-db                                               | write       |
+| `recommendation`       | property-db, vector-search, user-preferences                                      | read        |
+| `conversation-mgr`     | user-preferences                                                                  | read        |
+| `quality-reviewer`     | (none)                                                                            | read        |
 
 ### 7.3 A2A Bridge
 
@@ -1536,6 +1547,7 @@ sequenceDiagram
 ```
 
 **Agent Card** (discoverable at `/.well-known/agent-card.json`):
+
 - Protocol: a2a v0.1
 - ID: `estatewise-agentic-ai`
 - Capabilities: taskManagement, streaming
@@ -1594,6 +1606,7 @@ flowchart TD
 ```
 
 Each span records:
+
 - `spanId`, `traceId`, `parentSpanId` for hierarchy
 - `name` (operation name), `startTime`, `endTime`
 - `status`: "ok" | "error" | "running"
@@ -1689,6 +1702,7 @@ flowchart TD
 The Flywheel methodology uses "beads" as the unit of work. Each bead is a self-contained task with full context, tracked in `.beads/.status.json`.
 
 **Bead structure fields:**
+
 - `title`, `domain` (ORCH, CCFG, PRMT, MCP, CTX, CROSS, TEST)
 - `status`: open | claimed | implementing | verifying | done | blocked
 - `priority`: p0 | p1 | p2
@@ -1782,6 +1796,7 @@ flowchart TD
 ```
 
 **Key features:**
+
 - Whimsical agent names (e.g., "Scarlet Falcon", "Azure Brook")
 - File reservations with configurable TTL (default 3600s) -- advisory locks, not rigid
 - Bead-threaded communication for task-specific discussions
@@ -1794,15 +1809,15 @@ The DCG (`tools/dcg.mjs`) mechanically blocks dangerous operations:
 
 **11 Blocked Patterns:**
 
-| Pattern | Description | Safe Alternative | Severity |
-|---------|-------------|------------------|----------|
-| `git reset --hard` | Destroys uncommitted changes | `git stash` | critical |
-| `git clean -fd` | Deletes untracked files permanently | `git clean -fdn` (preview) | critical |
-| `git checkout -- <file>` | Discards uncommitted file changes | `git stash push <file>` | high |
-| `git push --force` | Overwrites remote history | `git push --force-with-lease` | critical |
-| `rm -rf /` or parent paths | Destroys critical data | `rm -ri <path>` (interactive) | critical |
-| `git branch -D` | Force-deletes unmerged branch | `git branch -d` (safe delete) | medium |
-| And 5 more patterns | Various destructive operations | Safer alternatives provided | varies |
+| Pattern                    | Description                         | Safe Alternative              | Severity |
+| -------------------------- | ----------------------------------- | ----------------------------- | -------- |
+| `git reset --hard`         | Destroys uncommitted changes        | `git stash`                   | critical |
+| `git clean -fd`            | Deletes untracked files permanently | `git clean -fdn` (preview)    | critical |
+| `git checkout -- <file>`   | Discards uncommitted file changes   | `git stash push <file>`       | high     |
+| `git push --force`         | Overwrites remote history           | `git push --force-with-lease` | critical |
+| `rm -rf /` or parent paths | Destroys critical data              | `rm -ri <path>` (interactive) | critical |
+| `git branch -D`            | Force-deletes unmerged branch       | `git branch -d` (safe delete) | medium   |
+| And 5 more patterns        | Various destructive operations      | Safer alternatives provided   | varies   |
 
 **Integration**: `dcg.mjs --install` adds a git pre-commit hook. `dcg.mjs --check-staged` scans staged files for dangerous patterns before allowing commits.
 
@@ -1841,6 +1856,7 @@ flowchart TD
 ```
 
 **Confidence scoring parameters** (`session-memory.mjs`, lines 46-52):
+
 - `HALF_LIFE_DAYS = 90` -- rules lose half their confidence every 90 days
 - `HARMFUL_MULTIPLIER = 4` -- harmful feedback has 4x the impact of helpful
 - `INITIAL_CONFIDENCE = 0.5`
@@ -1848,6 +1864,7 @@ flowchart TD
 - Range: `[MIN_CONFIDENCE=0.01, MAX_CONFIDENCE=0.99]`
 
 **Rule stage progression:**
+
 - `candidate`: Newly distilled, low evidence
 - `established`: Multiple confirmations, moderate confidence
 - `proven`: High confidence, consistently validated
@@ -1856,17 +1873,17 @@ flowchart TD
 
 The Flywheel methodology enforces 9 invariants that govern how agents decompose, execute, and converge on work. These are non-negotiable rules that every agent (human or AI) must follow:
 
-| # | Invariant | Rationale | Enforcement |
-|---|-----------|-----------|-------------|
-| 1 | **Plan-first** — Global reasoning belongs in plan space | Scattered reasoning across files leads to contradictory implementations | `PLAN.md` must exist and be current before any bead is created |
-| 2 | **Comprehensive plans** — Markdown plan must be comprehensive before coding | Incomplete plans produce beads with ambiguous scope | Plan review gate before bead decomposition |
-| 3 | **Self-contained beads** — Plan-to-beads is a distinct translation problem | Beads that reference external context create implicit dependencies | Each bead carries: title, description, rationale, verification, artifact, acceptanceCriteria |
-| 4 | **Beads as substrate** — Every change maps to a bead | Untracked changes bypass quality gates and audit trails | `.beads/.status.json` is the single source of truth for all work |
-| 5 | **Convergence over drafts** — Polish beads 4–6 times minimum | First drafts consistently miss edge cases, error handling, and integration issues | Verification step is mandatory; `verifying → implementing` rework loop is expected |
-| 6 | **Fungible agents** — No specialist bottlenecks | Agent crashes must not block the project | Any agent can claim any bead; no role-locked assignments |
-| 7 | **Crash-proof coordination** — AGENTS.md + Agent Mail + beads + bv survive crashes | In-memory state is lost on process death | All coordination state persists to `.beads/` filesystem |
-| 8 | **Feedback loop** — Session history feeds back into infrastructure | Repeated mistakes indicate missing procedural rules | Session memory distills rules with confidence scoring |
-| 9 | **Review is core** — Testing, review, and hardening are part of the method | Post-hoc review catches issues too late | `testObligations` and `acceptanceCriteria` are required bead fields |
+| #   | Invariant                                                                          | Rationale                                                                         | Enforcement                                                                                  |
+| --- | ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| 1   | **Plan-first** — Global reasoning belongs in plan space                            | Scattered reasoning across files leads to contradictory implementations           | `PLAN.md` must exist and be current before any bead is created                               |
+| 2   | **Comprehensive plans** — Markdown plan must be comprehensive before coding        | Incomplete plans produce beads with ambiguous scope                               | Plan review gate before bead decomposition                                                   |
+| 3   | **Self-contained beads** — Plan-to-beads is a distinct translation problem         | Beads that reference external context create implicit dependencies                | Each bead carries: title, description, rationale, verification, artifact, acceptanceCriteria |
+| 4   | **Beads as substrate** — Every change maps to a bead                               | Untracked changes bypass quality gates and audit trails                           | `.beads/.status.json` is the single source of truth for all work                             |
+| 5   | **Convergence over drafts** — Polish beads 4–6 times minimum                       | First drafts consistently miss edge cases, error handling, and integration issues | Verification step is mandatory; `verifying → implementing` rework loop is expected           |
+| 6   | **Fungible agents** — No specialist bottlenecks                                    | Agent crashes must not block the project                                          | Any agent can claim any bead; no role-locked assignments                                     |
+| 7   | **Crash-proof coordination** — AGENTS.md + Agent Mail + beads + bv survive crashes | In-memory state is lost on process death                                          | All coordination state persists to `.beads/` filesystem                                      |
+| 8   | **Feedback loop** — Session history feeds back into infrastructure                 | Repeated mistakes indicate missing procedural rules                               | Session memory distills rules with confidence scoring                                        |
+| 9   | **Review is core** — Testing, review, and hardening are part of the method         | Post-hoc review catches issues too late                                           | `testObligations` and `acceptanceCriteria` are required bead fields                          |
 
 **Post-compaction recovery protocol**: After every context compaction (when an agent's context window is truncated), the agent must immediately: (1) re-read AGENTS.md, (2) check Agent Mail inbox, (3) run `bv --robot-triage` to find next work, (4) review `.beads/.status.json` for current state.
 
@@ -1911,15 +1928,15 @@ flowchart TB
 
 **Integration details:**
 
-| Integration Point | Direction | Mechanism | Data Flow |
-|-------------------|-----------|-----------|-----------|
-| **Error Recovery → Bead Replay** | Orchestration reads beads | `Bead replay` strategy in ErrorRecoveryEngine | Replays reasoning chain from `.beads/` snapshots when audit/debugging is requested |
-| **Dead Letter Queue → Bead Status** | Orchestration writes beads | Failed tasks that exhaust all recovery are linked to originating bead | DLQ entry references `beadId` for traceability |
-| **Agent Sessions → Bead Context** | Bidirectional | `.agent-sessions/` checkpoints store active bead IDs | Resume-after-crash knows which beads were in-progress |
-| **L3 Cache → Bead Storage** | Context reads beads | `.beads/` directory serves as 24h persistent disk cache | Session replay and audit trail retrieval |
-| **Session Memory → RAG** | Context reads memory | Procedural rules (proven confidence) inform context assembly | High-confidence rules are injected into agent system prompts |
-| **Tracing → Bead Events** | Observability reads beads | Bead state transitions emit OpenTelemetry spans | `bead.claim`, `bead.implement`, `bead.verify`, `bead.complete` span names |
-| **Cost Tracking → Bead Budget** | Observability aggregates | Token usage per LLM call is attributed to the active bead | Enables per-bead cost analysis and budget enforcement |
+| Integration Point                   | Direction                  | Mechanism                                                             | Data Flow                                                                          |
+| ----------------------------------- | -------------------------- | --------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| **Error Recovery → Bead Replay**    | Orchestration reads beads  | `Bead replay` strategy in ErrorRecoveryEngine                         | Replays reasoning chain from `.beads/` snapshots when audit/debugging is requested |
+| **Dead Letter Queue → Bead Status** | Orchestration writes beads | Failed tasks that exhaust all recovery are linked to originating bead | DLQ entry references `beadId` for traceability                                     |
+| **Agent Sessions → Bead Context**   | Bidirectional              | `.agent-sessions/` checkpoints store active bead IDs                  | Resume-after-crash knows which beads were in-progress                              |
+| **L3 Cache → Bead Storage**         | Context reads beads        | `.beads/` directory serves as 24h persistent disk cache               | Session replay and audit trail retrieval                                           |
+| **Session Memory → RAG**            | Context reads memory       | Procedural rules (proven confidence) inform context assembly          | High-confidence rules are injected into agent system prompts                       |
+| **Tracing → Bead Events**           | Observability reads beads  | Bead state transitions emit OpenTelemetry spans                       | `bead.claim`, `bead.implement`, `bead.verify`, `bead.complete` span names          |
+| **Cost Tracking → Bead Budget**     | Observability aggregates   | Token usage per LLM call is attributed to the active bead             | Enables per-bead cost analysis and budget enforcement                              |
 
 ### 9.8 Convergence Protocol
 
@@ -1937,6 +1954,7 @@ flowchart LR
 ```
 
 **Convergence criteria** — a bead is converged when:
+
 1. All `testObligations` have passing tests
 2. All `acceptanceCriteria` are demonstrably met
 3. The `verification` command exits 0
@@ -1945,14 +1963,14 @@ flowchart LR
 
 **Quality gates per pass:**
 
-| Pass | Focus | Exit Criteria |
-|------|-------|---------------|
-| **Draft** | Core logic, happy path | Compiles, basic functionality works |
-| **Self-review** | Edge cases, error handling, input validation | No unhandled error paths |
-| **Cross-agent review** | Integration with dependent/consuming beads | Contract types match, no breaking changes |
-| **Random exploration** | Unexpected input combinations, concurrency, timing | No crashes on adversarial input |
-| **Hardening** | Tests, documentation, type safety | Coverage targets met, docs updated |
-| **Convergence check** | Full re-review with fresh eyes | Zero new findings |
+| Pass                   | Focus                                              | Exit Criteria                             |
+| ---------------------- | -------------------------------------------------- | ----------------------------------------- |
+| **Draft**              | Core logic, happy path                             | Compiles, basic functionality works       |
+| **Self-review**        | Edge cases, error handling, input validation       | No unhandled error paths                  |
+| **Cross-agent review** | Integration with dependent/consuming beads         | Contract types match, no breaking changes |
+| **Random exploration** | Unexpected input combinations, concurrency, timing | No crashes on adversarial input           |
+| **Hardening**          | Tests, documentation, type safety                  | Coverage targets met, docs updated        |
+| **Convergence check**  | Full re-review with fresh eyes                     | Zero new findings                         |
 
 ### 9.9 Crash Recovery & Swarm Coordination
 
@@ -1973,17 +1991,17 @@ flowchart TD
 
 **What survives a crash:**
 
-| Artifact | Location | Survives? | Recovery Action |
-|----------|----------|-----------|-----------------|
-| Bead state | `.beads/.status.json` | ✅ Always | Read directly, resume or reclaim |
-| Agent identity | `.beads/agent-mail/agents.json` | ✅ Always | New agent re-registers, reads existing state |
-| File reservations | `.beads/agent-mail/reservations.json` | ✅ Always | TTL-based expiry cleans stale locks automatically |
-| Messages | `.beads/agent-mail/messages/` | ✅ Always | New agent reads inbox for context |
-| Session checkpoints | `.agent-sessions/` | ✅ Always | Resume from last committed state |
-| Episodic memory | `.beads/session-memory/episodic/` | ✅ Always | Append-only JSONL, never lost |
-| Working memory | `.beads/session-memory/working/` | ✅ Always | Structured summaries persist |
-| Procedural rules | `.beads/session-memory/procedural/rules.json` | ✅ Always | Confidence-scored rules survive |
-| In-flight LLM context | (Agent memory) | ❌ Lost | Reconstruct from bead description + checkpoint |
+| Artifact              | Location                                      | Survives? | Recovery Action                                   |
+| --------------------- | --------------------------------------------- | --------- | ------------------------------------------------- |
+| Bead state            | `.beads/.status.json`                         | ✅ Always | Read directly, resume or reclaim                  |
+| Agent identity        | `.beads/agent-mail/agents.json`               | ✅ Always | New agent re-registers, reads existing state      |
+| File reservations     | `.beads/agent-mail/reservations.json`         | ✅ Always | TTL-based expiry cleans stale locks automatically |
+| Messages              | `.beads/agent-mail/messages/`                 | ✅ Always | New agent reads inbox for context                 |
+| Session checkpoints   | `.agent-sessions/`                            | ✅ Always | Resume from last committed state                  |
+| Episodic memory       | `.beads/session-memory/episodic/`             | ✅ Always | Append-only JSONL, never lost                     |
+| Working memory        | `.beads/session-memory/working/`              | ✅ Always | Structured summaries persist                      |
+| Procedural rules      | `.beads/session-memory/procedural/rules.json` | ✅ Always | Confidence-scored rules survive                   |
+| In-flight LLM context | (Agent memory)                                | ❌ Lost   | Reconstruct from bead description + checkpoint    |
 
 #### Swarm Coordination Model
 
@@ -2006,6 +2024,7 @@ All agents operate on the `main` branch. No worktrees. No per-agent feature bran
 ```
 
 **Conflict prevention rules:**
+
 - **Conflict zones** (single-agent access): `package.json`, `package-lock.json`, `docker-compose.yml`, shared type definitions, config files (`tsconfig.json`, `.env.example`), `.beads/.status.json` (use `bv claim/complete` instead of direct edits)
 - **Safe parallel zones** (concurrent access OK): individual MCP servers (`mcp/servers/<name>/`), individual agent modules, individual test files, documentation files
 - **Git workflow**: pull → reserve files → edit → test → commit → push → release reservations. Small commits, pushed immediately after each bead completion.
@@ -2197,6 +2216,7 @@ sequenceDiagram
 ```
 
 The HTTP server supports three streaming modes:
+
 1. **Default orchestrator**: `runStream(goal, rounds, callback)` emits events per agent round
 2. **LangGraph**: Collects all messages and tool executions, streams them sequentially
 3. **CrewAI**: Streams structured timeline entries and summary
@@ -2260,28 +2280,29 @@ flowchart TD
 
 ### Full Pricing Table
 
-| Model | Input / 1M | Output / 1M | Cache Read / 1M | Cache Write / 1M | Context Window |
-|-------|-----------|-------------|-----------------|------------------|---------------|
-| Claude Opus 4 | $15.00 | $75.00 | $1.875 | $15.00 | 200K |
-| Claude Sonnet 4 | $3.00 | $15.00 | $0.375 | $3.00 | 200K |
-| Claude Haiku 4.5 | $0.80 | $4.00 | $0.10 | $0.80 | 200K |
-| Gemini 2.5 Flash | varies | varies | n/a | n/a | 1M |
-| GPT-4o-mini | varies | varies | n/a | n/a | 128K |
+| Model            | Input / 1M | Output / 1M | Cache Read / 1M | Cache Write / 1M | Context Window |
+| ---------------- | ---------- | ----------- | --------------- | ---------------- | -------------- |
+| Claude Opus 4    | $15.00     | $75.00      | $1.875          | $15.00           | 200K           |
+| Claude Sonnet 4  | $3.00      | $15.00      | $0.375          | $3.00            | 200K           |
+| Claude Haiku 4.5 | $0.80      | $4.00       | $0.10           | $0.80            | 200K           |
+| Gemini 2.5 Flash | varies     | varies      | n/a             | n/a              | 1M             |
+| GPT-4o-mini      | varies     | varies      | n/a             | n/a              | 128K           |
 
 ### Cost Estimation Formulas
 
 **Per-agent-call cost** (from `supervisor.ts`, line 569):
+
 ```
 costUsd = (inputTokens * inputCostPer1M + outputTokens * outputCostPer1M) / 1,000,000
 ```
 
 **Default estimate** (assumes 2000 input + 1000 output tokens per call):
 
-| Model | Estimated Cost / Call |
-|-------|---------------------|
-| Opus | $0.105 |
-| Sonnet | $0.021 |
-| Haiku | $0.0056 |
+| Model  | Estimated Cost / Call |
+| ------ | --------------------- |
+| Opus   | $0.105                |
+| Sonnet | $0.021                |
+| Haiku  | $0.0056               |
 
 ### Budget Optimization Strategies
 
@@ -2316,13 +2337,13 @@ flowchart TD
 
 For a typical sonnet request with 13,000 cached tokens and 6,000 fresh tokens:
 
-| Component | Without Caching | With Caching |
-|-----------|----------------|--------------|
-| 13,000 cached input tokens | $0.039 | $0.004875 (at cache rate) |
-| 6,000 fresh input tokens | $0.018 | $0.018 |
-| 1,000 output tokens | $0.015 | $0.015 |
-| **Total** | **$0.072** | **$0.038** |
-| **Savings** | -- | **47%** |
+| Component                  | Without Caching | With Caching              |
+| -------------------------- | --------------- | ------------------------- |
+| 13,000 cached input tokens | $0.039          | $0.004875 (at cache rate) |
+| 6,000 fresh input tokens   | $0.018          | $0.018                    |
+| 1,000 output tokens        | $0.015          | $0.015                    |
+| **Total**                  | **$0.072**      | **$0.038**                |
+| **Savings**                | --              | **47%**                   |
 
 ---
 
@@ -2330,51 +2351,62 @@ For a typical sonnet request with 13,000 cached tokens and 6,000 fresh tokens:
 
 ### Environment Variables for AI Components
 
-| Variable | Package | Default | Description |
-|----------|---------|---------|-------------|
-| `GOOGLE_AI_API_KEY` | agentic-ai, backend | (required) | Google AI API key for Gemini models |
-| `OPENAI_API_KEY` | agentic-ai | (optional) | OpenAI API key (fallback if no Google key) |
-| `GOOGLE_AI_MODEL` | agentic-ai | `gemini-2.5-flash` | Chat model selection |
-| `OPENAI_MODEL` | agentic-ai | `gpt-4o-mini` | OpenAI chat model selection |
-| `GOOGLE_EMBED_MODEL` | agentic-ai | `gemini-embedding-001` | Embedding model selection |
-| `OPENAI_EMBED_MODEL` | agentic-ai | `text-embedding-3-large` | OpenAI embedding model selection |
-| `PINECONE_API_KEY` | agentic-ai, backend | (required for RAG) | Pinecone vector store API key |
-| `PINECONE_INDEX` | agentic-ai, backend | (required for RAG) | Pinecone index name |
-| `NEO4J_URI` | agentic-ai, backend, context-eng | (required for graph) | Neo4j connection URI |
-| `NEO4J_USERNAME` | agentic-ai, backend, context-eng | (required for graph) | Neo4j username |
-| `NEO4J_PASSWORD` | agentic-ai, backend, context-eng | (required for graph) | Neo4j password |
-| `NEO4J_ENABLE` | backend | `false` | Enable Neo4j graph features |
-| `MONGO_URI` | backend | (required) | MongoDB connection string |
-| `AGENT_RUNTIME` | agentic-ai | `default` | Runtime selection: default, langgraph, crewai |
-| `THREAD_ID` | agentic-ai | `default` | Conversation thread ID for LangGraph |
-| `PORT` | agentic-ai | `4318` | HTTP server port |
-| `MCP_TOKEN_SECRET` | mcp | (required for auth) | HMAC secret for MCP token generation |
-| `LANGSMITH_API_KEY` | agentic-ai | (optional) | LangSmith API key for tracing |
-| `LANGSMITH_PROJECT` | agentic-ai | `estatewise-agentic-ai` | LangSmith project name |
-| `LANGSMITH_TRACING_V2` | agentic-ai | (auto-detected) | Enable LangSmith tracing |
-| `LANGSMITH_STRICT` | agentic-ai | `false` | Throw on misconfiguration |
-| `LANGSMITH_ENDPOINT` | agentic-ai | (default LangSmith) | Custom LangSmith endpoint |
-| `A2A_MAX_TASKS` | agentic-ai | `500` | Maximum concurrent A2A tasks |
-| `A2A_TASK_RETENTION_MS` | agentic-ai | `86400000` (24h) | A2A task retention period |
-| `A2A_WAIT_TIMEOUT_MS` | agentic-ai | `120000` (2min) | Default A2A wait timeout |
-| `MCP_REQUIRED_TOOLS_MODE` | agentic-ai | (auto) | Tool requirement enforcement mode |
+| Variable                          | Package                          | Default                  | Description                                                              |
+| --------------------------------- | -------------------------------- | ------------------------ | ------------------------------------------------------------------------ |
+| `GOOGLE_AI_API_KEY`               | agentic-ai, backend              | (required)               | Google AI API key for Gemini models                                      |
+| `OPENAI_API_KEY`                  | agentic-ai                       | (optional)               | OpenAI API key (fallback if no Google key)                               |
+| `GOOGLE_AI_MODEL`                 | agentic-ai                       | `gemini-2.5-flash`       | Chat model selection                                                     |
+| `OPENAI_MODEL`                    | agentic-ai                       | `gpt-4o-mini`            | OpenAI chat model selection                                              |
+| `GOOGLE_EMBED_MODEL`              | agentic-ai                       | `gemini-embedding-001`   | Embedding model selection                                                |
+| `OPENAI_EMBED_MODEL`              | agentic-ai                       | `text-embedding-3-large` | OpenAI embedding model selection                                         |
+| `PINECONE_API_KEY`                | agentic-ai, backend              | (required for RAG)       | Pinecone vector store API key                                            |
+| `PINECONE_INDEX`                  | agentic-ai, backend              | (required for RAG)       | Pinecone index name                                                      |
+| `NEO4J_URI`                       | agentic-ai, backend, context-eng | (required for graph)     | Neo4j connection URI                                                     |
+| `NEO4J_USERNAME`                  | agentic-ai, backend, context-eng | (required for graph)     | Neo4j username                                                           |
+| `NEO4J_PASSWORD`                  | agentic-ai, backend, context-eng | (required for graph)     | Neo4j password                                                           |
+| `NEO4J_ENABLE`                    | backend                          | `false`                  | Enable Neo4j graph features                                              |
+| `MONGO_URI`                       | backend                          | (required)               | MongoDB connection string                                                |
+| `AGENT_RUNTIME`                   | agentic-ai                       | `default`                | Runtime selection: default, langgraph, crewai                            |
+| `THREAD_ID`                       | agentic-ai                       | `default`                | Conversation thread ID for LangGraph                                     |
+| `LANGGRAPH_DETERMINISTIC_DEFAULT` | agentic-ai                       | `false`                  | Enable deterministic defaults for LangGraph runs                         |
+| `LANGGRAPH_REPLAY_ENABLED`        | agentic-ai                       | `true`                   | Enable replay-cache lookup for deterministic runs                        |
+| `LANGGRAPH_REPLAY_STORE_PATH`     | agentic-ai                       | (unset)                  | Optional persisted replay store file path                                |
+| `LANGGRAPH_REPLAY_MAX_ENTRIES`    | agentic-ai                       | `500`                    | Replay cache size cap                                                    |
+| `AGENT_POLICY_CONFIG`             | agentic-ai                       | (unset)                  | Inline JSON ranking-policy configuration                                 |
+| `AGENT_POLICY_CONFIG_PATH`        | agentic-ai                       | (unset)                  | File path for ranking-policy configuration                               |
+| `AGENT_POLICY_ALLOW_INJECTION`    | agentic-ai                       | `false`                  | Allows sponsored candidate injection when policy permits                 |
+| `PORT`                            | agentic-ai                       | `4318`                   | HTTP server port                                                         |
+| `MCP_TOKEN_SECRET`                | mcp                              | (required for auth)      | HMAC secret for MCP token generation                                     |
+| `MCP_TOKEN_REQUIRE_SECRET`        | mcp                              | `false`                  | Require configured token secret (disallow ephemeral fallback)            |
+| `MCP_TOKEN_PERSIST_PATH`          | mcp                              | (unset)                  | Optional on-disk token/refresh-token persistence path                    |
+| `LIVE_ZILLOW_SNAPSHOT_PATH`       | mcp, backend                     | repo-local default       | Path to local Zillow snapshot artifact used by live data tools/endpoints |
+| `LIVE_ZILLOW_MAX_RESULTS`         | mcp                              | `25`                     | Upper bound on MCP live snapshot search result count                     |
+| `LANGSMITH_API_KEY`               | agentic-ai                       | (optional)               | LangSmith API key for tracing                                            |
+| `LANGSMITH_PROJECT`               | agentic-ai                       | `estatewise-agentic-ai`  | LangSmith project name                                                   |
+| `LANGSMITH_TRACING_V2`            | agentic-ai                       | (auto-detected)          | Enable LangSmith tracing                                                 |
+| `LANGSMITH_STRICT`                | agentic-ai                       | `false`                  | Throw on misconfiguration                                                |
+| `LANGSMITH_ENDPOINT`              | agentic-ai                       | (default LangSmith)      | Custom LangSmith endpoint                                                |
+| `A2A_MAX_TASKS`                   | agentic-ai                       | `500`                    | Maximum concurrent A2A tasks                                             |
+| `A2A_TASK_RETENTION_MS`           | agentic-ai                       | `86400000` (24h)         | A2A task retention period                                                |
+| `A2A_WAIT_TIMEOUT_MS`             | agentic-ai                       | `120000` (2min)          | Default A2A wait timeout                                                 |
+| `MCP_REQUIRED_TOOLS_MODE`         | agentic-ai                       | (auto)                   | Tool requirement enforcement mode                                        |
 
 ### Tuning Guidance
 
-| Parameter | Location | Default | Range | Impact |
-|-----------|----------|---------|-------|--------|
-| `maxBudgetUsd` | SupervisorConfig | -- | $0.10-$10.00 | Controls per-request cost ceiling |
-| `maxPlanSteps` | SupervisorConfig | -- | 1-10 | Maximum agents per execution plan |
-| `timeoutMs` | SupervisorConfig | -- | 10000-300000 | Request-level timeout |
-| `maxIterations` | AgentLoopConfig | -- | 1-20 | Tool-use loop iteration limit |
-| `maxContextPercent` | AgentLoopConfig | -- | 50-95 | Context window utilization cap |
-| `failureThreshold` | CircuitBreakerConfig | 3 | 1-10 | Failures before circuit opens |
-| `resetTimeoutMs` | CircuitBreakerConfig | 60000 | 10000-300000 | Time before half-open probe |
-| `compactThreshold` | TokenBudgetConfig | 0.85 | 0.50-0.95 | Utilization level triggering compaction |
-| `maxTokens` | TokenBudgetConfig | 128000 | 8000-200000 | Total token budget |
-| `AGENTIC_THRESHOLD` | RoutingStrategy | 0.45 | 0.20-0.80 | Score threshold for agentic routing |
-| `concurrency` | BatchProcessor | 3 | 1-10 | Parallel batch execution slots |
-| `maxSize` | MultiLevelCache | 500 | 100-10000 | L1 cache entry limit |
+| Parameter           | Location             | Default | Range        | Impact                                  |
+| ------------------- | -------------------- | ------- | ------------ | --------------------------------------- |
+| `maxBudgetUsd`      | SupervisorConfig     | --      | $0.10-$10.00 | Controls per-request cost ceiling       |
+| `maxPlanSteps`      | SupervisorConfig     | --      | 1-10         | Maximum agents per execution plan       |
+| `timeoutMs`         | SupervisorConfig     | --      | 10000-300000 | Request-level timeout                   |
+| `maxIterations`     | AgentLoopConfig      | --      | 1-20         | Tool-use loop iteration limit           |
+| `maxContextPercent` | AgentLoopConfig      | --      | 50-95        | Context window utilization cap          |
+| `failureThreshold`  | CircuitBreakerConfig | 3       | 1-10         | Failures before circuit opens           |
+| `resetTimeoutMs`    | CircuitBreakerConfig | 60000   | 10000-300000 | Time before half-open probe             |
+| `compactThreshold`  | TokenBudgetConfig    | 0.85    | 0.50-0.95    | Utilization level triggering compaction |
+| `maxTokens`         | TokenBudgetConfig    | 128000  | 8000-200000  | Total token budget                      |
+| `AGENTIC_THRESHOLD` | RoutingStrategy      | 0.45    | 0.20-0.80    | Score threshold for agentic routing     |
+| `concurrency`       | BatchProcessor       | 3       | 1-10         | Parallel batch execution slots          |
+| `maxSize`           | MultiLevelCache      | 500     | 100-10000    | L1 cache entry limit                    |
 
 ---
 
@@ -2382,145 +2414,145 @@ For a typical sonnet request with 13,000 cached tokens and 6,000 fresh tokens:
 
 ### Supervisor
 
-| Field | Value |
-|-------|-------|
-| ID | `supervisor` |
-| Model | sonnet ($3/$15 per 1M) |
-| Cost Tier | medium |
-| Timeout | 60s |
-| Fallback | -- |
-| Capabilities | classification, planning, orchestration, synthesis |
-| Tools | (none -- delegates to other agents) |
-| Intent | Routes all intents |
-| Priorities | accuracy, latency, cost-efficiency |
-| Quality Gates | intent-confidence >= 0.5 |
-| Escalation | confidence < 0.4 -> conversation-mgr |
+| Field           | Value                                                                             |
+| --------------- | --------------------------------------------------------------------------------- |
+| ID              | `supervisor`                                                                      |
+| Model           | sonnet ($3/$15 per 1M)                                                            |
+| Cost Tier       | medium                                                                            |
+| Timeout         | 60s                                                                               |
+| Fallback        | --                                                                                |
+| Capabilities    | classification, planning, orchestration, synthesis                                |
+| Tools           | (none -- delegates to other agents)                                               |
+| Intent          | Routes all intents                                                                |
+| Priorities      | accuracy, latency, cost-efficiency                                                |
+| Quality Gates   | intent-confidence >= 0.5                                                          |
+| Escalation      | confidence < 0.4 -> conversation-mgr                                              |
 | Allowed Servers | property-db, vector-search, graph-query, geocoding, market-data, user-preferences |
 
 ### Property Search
 
-| Field | Value |
-|-------|-------|
-| ID | `property-search` |
-| Model | sonnet |
-| Cost Tier | medium |
-| Timeout | 120s |
-| Fallback | `property-search-lite` (haiku) |
-| Capabilities | property-search, filtering, listing-retrieval |
-| Tools | properties.search, properties.lookup, properties.filter |
-| Intent | property-search, property-detail, follow-up |
-| Priorities | recall, relevance, freshness |
-| Quality Gates | top-3 relevance >= 0.6 |
-| Escalation | resultCount == 0 -> supervisor |
-| Allowed Servers | property-db, vector-search |
+| Field           | Value                                                   |
+| --------------- | ------------------------------------------------------- |
+| ID              | `property-search`                                       |
+| Model           | sonnet                                                  |
+| Cost Tier       | medium                                                  |
+| Timeout         | 120s                                                    |
+| Fallback        | `property-search-lite` (haiku)                          |
+| Capabilities    | property-search, filtering, listing-retrieval           |
+| Tools           | properties.search, properties.lookup, properties.filter |
+| Intent          | property-search, property-detail, follow-up             |
+| Priorities      | recall, relevance, freshness                            |
+| Quality Gates   | top-3 relevance >= 0.6                                  |
+| Escalation      | resultCount == 0 -> supervisor                          |
+| Allowed Servers | property-db, vector-search                              |
 
 ### Property Search Lite
 
-| Field | Value |
-|-------|-------|
-| ID | `property-search-lite` |
-| Model | haiku |
-| Cost Tier | low |
-| Timeout | 120s |
-| Fallback | -- |
-| Capabilities | property-search, filtering |
-| Tools | properties.search, properties.lookup |
-| Intent | (fallback for property-search) |
-| Priorities | cost-efficiency, speed |
-| Allowed Servers | property-db |
+| Field           | Value                                |
+| --------------- | ------------------------------------ |
+| ID              | `property-search-lite`               |
+| Model           | haiku                                |
+| Cost Tier       | low                                  |
+| Timeout         | 120s                                 |
+| Fallback        | --                                   |
+| Capabilities    | property-search, filtering           |
+| Tools           | properties.search, properties.lookup |
+| Intent          | (fallback for property-search)       |
+| Priorities      | cost-efficiency, speed               |
+| Allowed Servers | property-db                          |
 
 ### Market Analyst
 
-| Field | Value |
-|-------|-------|
-| ID | `market-analyst` |
-| Model | opus ($15/$75 per 1M) |
-| Cost Tier | premium |
-| Timeout | 180s |
-| Fallback | `market-analyst-lite` (sonnet) |
-| Capabilities | market-analysis, trend-detection, forecasting, comparison |
-| Tools | analytics.summarizeSearch, analytics.groupByZip, web.search, web.fetch |
-| Intent | market-analysis, property-comparison, financial-analysis |
-| Priorities | analytical-depth, data-grounding, accuracy |
-| Quality Gates | all claims have data backing; no fabricated statistics |
-| Escalation | dataAgeHours > 72 -> data-enrichment |
-| Allowed Servers | market-data, graph-query |
+| Field           | Value                                                                  |
+| --------------- | ---------------------------------------------------------------------- |
+| ID              | `market-analyst`                                                       |
+| Model           | opus ($15/$75 per 1M)                                                  |
+| Cost Tier       | premium                                                                |
+| Timeout         | 180s                                                                   |
+| Fallback        | `market-analyst-lite` (sonnet)                                         |
+| Capabilities    | market-analysis, trend-detection, forecasting, comparison              |
+| Tools           | analytics.summarizeSearch, analytics.groupByZip, web.search, web.fetch |
+| Intent          | market-analysis, property-comparison, financial-analysis               |
+| Priorities      | analytical-depth, data-grounding, accuracy                             |
+| Quality Gates   | all claims have data backing; no fabricated statistics                 |
+| Escalation      | dataAgeHours > 72 -> data-enrichment                                   |
+| Allowed Servers | market-data, graph-query                                               |
 
 ### Market Analyst Lite
 
-| Field | Value |
-|-------|-------|
-| ID | `market-analyst-lite` |
-| Model | sonnet |
-| Cost Tier | medium |
-| Timeout | 120s |
-| Fallback | -- |
-| Capabilities | market-analysis, comparison |
-| Tools | analytics.summarizeSearch, analytics.groupByZip |
-| Intent | (fallback for market-analyst) |
-| Priorities | cost-efficiency, speed, accuracy |
-| Allowed Servers | market-data |
+| Field           | Value                                           |
+| --------------- | ----------------------------------------------- |
+| ID              | `market-analyst-lite`                           |
+| Model           | sonnet                                          |
+| Cost Tier       | medium                                          |
+| Timeout         | 120s                                            |
+| Fallback        | --                                              |
+| Capabilities    | market-analysis, comparison                     |
+| Tools           | analytics.summarizeSearch, analytics.groupByZip |
+| Intent          | (fallback for market-analyst)                   |
+| Priorities      | cost-efficiency, speed, accuracy                |
+| Allowed Servers | market-data                                     |
 
 ### Conversation Manager
 
-| Field | Value |
-|-------|-------|
-| ID | `conversation-mgr` |
-| Model | haiku |
-| Cost Tier | low |
-| Timeout | 30s |
-| Fallback | -- |
-| Capabilities | conversation, clarification, greeting, follow-up |
-| Tools | (none) |
-| Intent | greeting, clarification, follow-up |
-| Priorities | responsiveness, naturalness, context-preservation |
-| Allowed Servers | user-preferences |
+| Field           | Value                                             |
+| --------------- | ------------------------------------------------- |
+| ID              | `conversation-mgr`                                |
+| Model           | haiku                                             |
+| Cost Tier       | low                                               |
+| Timeout         | 30s                                               |
+| Fallback        | --                                                |
+| Capabilities    | conversation, clarification, greeting, follow-up  |
+| Tools           | (none)                                            |
+| Intent          | greeting, clarification, follow-up                |
+| Priorities      | responsiveness, naturalness, context-preservation |
+| Allowed Servers | user-preferences                                  |
 
 ### Data Enrichment
 
-| Field | Value |
-|-------|-------|
-| ID | `data-enrichment` |
-| Model | sonnet |
-| Cost Tier | medium |
-| Timeout | 120s |
-| Fallback | -- |
-| Capabilities | data-enrichment, web-lookup, graph-query |
-| Tools | web.search, web.fetch, graph.explain, graph.similar, context.search |
-| Intent | neighborhood-info, market-analysis, financial-analysis |
-| Priorities | data-completeness, freshness, accuracy |
-| Quality Gates | all enrichment has source attribution |
-| Allowed Servers | graph-query, geocoding, property-db |
+| Field           | Value                                                               |
+| --------------- | ------------------------------------------------------------------- |
+| ID              | `data-enrichment`                                                   |
+| Model           | sonnet                                                              |
+| Cost Tier       | medium                                                              |
+| Timeout         | 120s                                                                |
+| Fallback        | --                                                                  |
+| Capabilities    | data-enrichment, web-lookup, graph-query                            |
+| Tools           | web.search, web.fetch, graph.explain, graph.similar, context.search |
+| Intent          | neighborhood-info, market-analysis, financial-analysis              |
+| Priorities      | data-completeness, freshness, accuracy                              |
+| Quality Gates   | all enrichment has source attribution                               |
+| Allowed Servers | graph-query, geocoding, property-db                                 |
 
 ### Recommendation Engine
 
-| Field | Value |
-|-------|-------|
-| ID | `recommendation` |
-| Model | sonnet |
-| Cost Tier | medium |
-| Timeout | 120s |
-| Fallback | -- |
-| Capabilities | recommendation, personalization, ranking |
-| Tools | properties.search, graph.similar, analytics.summarizeSearch |
-| Intent | recommendation |
-| Priorities | personalization, relevance, diversity |
-| Quality Gates | recommendations span >= 2 neighborhoods |
-| Allowed Servers | property-db, vector-search, user-preferences |
+| Field           | Value                                                       |
+| --------------- | ----------------------------------------------------------- |
+| ID              | `recommendation`                                            |
+| Model           | sonnet                                                      |
+| Cost Tier       | medium                                                      |
+| Timeout         | 120s                                                        |
+| Fallback        | --                                                          |
+| Capabilities    | recommendation, personalization, ranking                    |
+| Tools           | properties.search, graph.similar, analytics.summarizeSearch |
+| Intent          | recommendation                                              |
+| Priorities      | personalization, relevance, diversity                       |
+| Quality Gates   | recommendations span >= 2 neighborhoods                     |
+| Allowed Servers | property-db, vector-search, user-preferences                |
 
 ### Quality Reviewer
 
-| Field | Value |
-|-------|-------|
-| ID | `quality-reviewer` |
-| Model | haiku |
-| Cost Tier | low |
-| Timeout | 30s |
-| Fallback | -- |
-| Capabilities | quality-review, hallucination-detection, compliance-check |
-| Tools | (none) |
-| Intent | Appended to all multi-step plans |
-| Priorities | accuracy, safety, compliance |
-| Quality Gates | no unsupported claims; no discriminatory language |
-| Escalation | hallucinationScore > 0.3 -> supervisor |
-| Allowed Servers | (none) |
+| Field           | Value                                                     |
+| --------------- | --------------------------------------------------------- |
+| ID              | `quality-reviewer`                                        |
+| Model           | haiku                                                     |
+| Cost Tier       | low                                                       |
+| Timeout         | 30s                                                       |
+| Fallback        | --                                                        |
+| Capabilities    | quality-review, hallucination-detection, compliance-check |
+| Tools           | (none)                                                    |
+| Intent          | Appended to all multi-step plans                          |
+| Priorities      | accuracy, safety, compliance                              |
+| Quality Gates   | no unsupported claims; no discriminatory language         |
+| Escalation      | hallucinationScore > 0.3 -> supervisor                    |
+| Allowed Servers | (none)                                                    |

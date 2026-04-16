@@ -2,3 +2,4 @@
 */dist/
 deployment-control/ui/.nuxt/
 deployment-control/ui/.output/
+data/live-zillow/output/

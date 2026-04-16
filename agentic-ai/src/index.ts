@@ -34,6 +34,7 @@ async function main() {
   const crewFlag = argv.find(
     (a) => a === "--crewai" || a === "--runtime=crewai",
   );
+  const deterministicFlag = argv.includes("--deterministic");
   const threadId = process.env.THREAD_ID;
   const selectedRuntime =
     crewFlag || process.env.AGENT_RUNTIME === "crewai"
@@ -50,6 +51,7 @@ async function main() {
     const result = await runEstateWiseAgent({
       input: goal,
       threadId,
+      deterministic: deterministicFlag,
       trace: {
         runtime: "langgraph",
         surface: "cli",

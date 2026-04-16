@@ -62,6 +62,7 @@ Agentic AI is a standalone, multi‑agent CLI that orchestrates real‑estate re
 - Optional LangSmith tracing with request/thread metadata for production observability.
 - Optional CrewAI runtime (Python crew of planner/researcher/analyst/reporter).
 - Output is a clean terminal transcript with a final summary and links.
+- Live-data-first context via MCP `live.zillow.search` against local Zillow snapshot artifacts, including freshness warnings and quality scoring.
 
 ```mermaid
 flowchart LR
@@ -90,6 +91,7 @@ flowchart LR
 ```
 
 ## Quick Start
+
 ```bash
 # Build MCP tools once
 cd mcp && npm install && npm run build
@@ -128,6 +130,7 @@ flowchart TD
   Finance --> Reporter
   Map --> Reporter
   Graph --> Reporter
+  LiveData[live.zillow.search] --> Reporter
   Analytics --> Reporter
   Ranker --> Reporter
 ```
@@ -136,43 +139,55 @@ flowchart TD
 
 You can integrate Agentic AI in multiple ways depending on your stack and requirements.
 
-1) **HTTP (recommended for web/mobile)**
+1. **HTTP (recommended for web/mobile)**
+
 - **Bring up the server:** `npm run serve` (dev) or `npm run start:server` (prod)
-- Call `POST /run` from your app with a `goal` and optional `runtime`/`rounds`/`threadId`/`requestId` (for trace correlation).
+- Call `POST /run` from your app with a `goal` and optional `runtime`/`rounds`/`threadId`/`requestId`/`deterministic` (for trace correlation and replay-safe responses).
 - Use `GET /run/stream` for SSE progress updates and `GET /config` to inspect runtime/tool/tracing settings.
 
 Browser (vanilla JS)
+
 ```html
 <script>
-async function run(goal){
-  const res = await fetch('http://localhost:4318/run',{
-    method:'POST',headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ goal, runtime: 'default', requestId: crypto.randomUUID() })
-  });
-  const json = await res.json();
-  console.log(json);
-}
+  async function run(goal) {
+    const res = await fetch("http://localhost:4318/run", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        goal,
+        runtime: "default",
+        requestId: crypto.randomUUID(),
+      }),
+    });
+    const json = await res.json();
+    console.log(json);
+  }
 </script>
 ```
 
 Node (fetch)
+
 ```js
-import fetch from 'node-fetch';
-const res = await fetch('http://localhost:4318/run', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json', 'x-request-id': 'estatewise-demo-1' },
+import fetch from "node-fetch";
+const res = await fetch("http://localhost:4318/run", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    "x-request-id": "estatewise-demo-1",
+  },
   body: JSON.stringify({
-    goal: 'Find 3 bed homes; map + mortgage',
-    runtime: 'langgraph',
-    threadId: 'demo-1',
-    requestId: 'estatewise-demo-1'
-  })
+    goal: "Find 3 bed homes; map + mortgage",
+    runtime: "langgraph",
+    threadId: "demo-1",
+    requestId: "estatewise-demo-1",
+  }),
 });
 const json = await res.json();
 console.log(json);
 ```
 
 Python (requests)
+
 ```python
 import requests
 r = requests.post('http://localhost:4318/run', json={
@@ -185,34 +200,45 @@ print(r.json())
 ```
 
 Inspect runtime configuration:
+
 ```bash
 curl -s http://localhost:4318/config | jq
 ```
 
-2) **Spawn the CLI (simple servers/services)**
+2. **Spawn the CLI (simple servers/services)**
+
 - Use Node’s child_process to run the CLI and capture stdout.
+
 ```js
-import { spawn } from 'node:child_process';
-const p = spawn('node', ['dist/index.js', 'Find 3-bed in Chapel Hill; map + mortgage'], { cwd: 'agentic-ai' });
-p.stdout.on('data', (d)=> process.stdout.write(d));
-p.stderr.on('data', (d)=> process.stderr.write(d));
+import { spawn } from "node:child_process";
+const p = spawn(
+  "node",
+  ["dist/index.js", "Find 3-bed in Chapel Hill; map + mortgage"],
+  { cwd: "agentic-ai" },
+);
+p.stdout.on("data", (d) => process.stdout.write(d));
+p.stderr.on("data", (d) => process.stderr.write(d));
 ```
 
-3) **Programmatic (monorepo / library usage)**
+3. **Programmatic (monorepo / library usage)**
+
 - Inside this repo (or if you publish it), you can instantiate the orchestrator directly.
+
 ```ts
-import { AgentOrchestrator } from 'agentic-ai/dist/orchestrator/AgentOrchestrator.js';
-import { PlannerAgent } from 'agentic-ai/dist/agents/PlannerAgent.js';
-import { CoordinatorAgent } from 'agentic-ai/dist/agents/CoordinatorAgent.js';
+import { AgentOrchestrator } from "agentic-ai/dist/orchestrator/AgentOrchestrator.js";
+import { PlannerAgent } from "agentic-ai/dist/agents/PlannerAgent.js";
+import { CoordinatorAgent } from "agentic-ai/dist/agents/CoordinatorAgent.js";
 // ... import other agents
 
 const orchestrator = new AgentOrchestrator().register(
-  new PlannerAgent(), new CoordinatorAgent(), /* ...other agents... */
+  new PlannerAgent(),
+  new CoordinatorAgent() /* ...other agents... */,
 );
-const messages = await orchestrator.run('Find 3 beds near Chapel Hill', 5);
+const messages = await orchestrator.run("Find 3 beds near Chapel Hill", 5);
 ```
 
-4) **LangGraph or CrewAI directly**
+4. **LangGraph or CrewAI directly**
+
 - **LangGraph:** set `runtime: 'langgraph'` in `/run` (HTTP), or run `npm run dev -- --langgraph`.
 - **CrewAI:** set `runtime: 'crewai'` in `/run`, or run `npm run dev -- --crewai`.
 
@@ -237,6 +263,7 @@ Agentic AI exposes an A2A interface in addition to existing `/run` and `/run/str
   - `queued`, `running`, `succeeded`, `failed`, `canceled`
 
 Example: create an async task via JSON-RPC
+
 ```bash
 curl -s http://localhost:4318/a2a \
   -H 'content-type: application/json' \
@@ -254,6 +281,7 @@ curl -s http://localhost:4318/a2a \
 ```
 
 Example: wait for completion
+
 ```bash
 curl -s http://localhost:4318/a2a \
   -H 'content-type: application/json' \
@@ -266,10 +294,13 @@ curl -s http://localhost:4318/a2a \
 ```
 
 Tips
+
 - Choose `default` runtime for deterministic, stepwise orchestration, `langgraph` for autonomous tool-calling, or `crewai` for CrewAI-style flows.
 - Use `threadId` with LangGraph to resume/continue runs with a memory checkpointer.
+- Set `deterministic: true` (or `--deterministic` in CLI) for replay-backed stable responses on repeated prompts.
 
 ### LangChain + LangGraph Runtime
+
 ```bash
 # Ensure env is configured
 # Required: one of GOOGLE_AI_API_KEY or OPENAI_API_KEY
@@ -284,6 +315,7 @@ AGENT_RUNTIME=langgraph npm run dev -- "Compare 123456 vs 654321 and compute mor
 ```
 
 What it adds:
+
 - Tool-calling agent built with `@langchain/langgraph` prebuilt ReAct agent.
 - Tools include MCP tools (search/lookup/analytics/web/graph/map/finance), Pinecone vector retrieval, and Neo4j Cypher QA.
 - Lightweight in-memory checkpointer; easy to swap for Redis/Postgres in production.
@@ -292,21 +324,28 @@ What it adds:
 - Programmatic `EstateWiseLangGraphRuntime` class to inject custom context, instructions, or additional tools per thread.
 
 **Programmatic usage**
+
 ```ts
-import { EstateWiseLangGraphRuntime } from './lang/graph.js';
+import { EstateWiseLangGraphRuntime } from "./lang/graph.js";
 
 const runtime = new EstateWiseLangGraphRuntime({
-  defaultContext: { portfolio: 'Triangle relocation', mustHave: ['3+ beds'] },
-  defaultInstructions: 'Highlight walkability and school quality.',
+  defaultContext: { portfolio: "Triangle relocation", mustHave: ["3+ beds"] },
+  defaultInstructions: "Highlight walkability and school quality.",
 });
 
 const run = await runtime.run({
-  goal: 'Compare Chapel Hill listings with similar graph neighbors',
-  context: { budget: 850000, focus: 'Briar Chapel' },
+  goal: "Compare Chapel Hill listings with similar graph neighbors",
+  context: { budget: 850000, focus: "Briar Chapel" },
 });
 
 console.log(run.finalMessage);
-console.table(run.toolExecutions.map(({ name, status, durationMs }) => ({ name, status, durationMs })));
+console.table(
+  run.toolExecutions.map(({ name, status, durationMs }) => ({
+    name,
+    status,
+    durationMs,
+  })),
+);
 ```
 
 **LangGraph orchestration:**
@@ -344,12 +383,14 @@ flowchart TD
 LangSmith is integrated as an optional first-class tracing layer for LangChain/LangGraph execution.
 
 What is traced:
+
 - Root run metadata: runtime, surface (`cli`, `http`, `http-stream`, `a2a`), component, environment.
 - Correlation fields: `threadId` and `requestId` (when provided).
 - Chat model runs with inherited tags/metadata.
 - Existing `toolExecutions` and cost telemetry remain available in API responses.
 
 Key behavior:
+
 - Tracing is enabled when `LANGSMITH_ENABLED=true` or `LANGSMITH_API_KEY` is set.
 - If tracing is requested but no API key is provided:
   - default mode logs a warning and continues with tracing disabled.
@@ -357,6 +398,7 @@ Key behavior:
 - `/config` includes a `langsmith` block so clients can introspect tracing state.
 
 Recommended production env:
+
 ```bash
 LANGSMITH_ENABLED=true
 LANGSMITH_API_KEY=lsv2_pt_...
@@ -366,9 +408,11 @@ LANGSMITH_STRICT=true
 ```
 
 ### CrewAI Runtime
+
 CrewAI integration is provided via a small Python runner. This is great for teams standardizing on CrewAI’s Agent/Task/Crew abstractions.
 
 Setup
+
 ```bash
 cd agentic-ai/crewai
 python3 -m venv .venv && source .venv/bin/activate
@@ -379,6 +423,7 @@ export OPENAI_API_KEY=sk-...
 ```
 
 Run from the Node CLI
+
 ```bash
 # Dev
 cd agentic-ai
@@ -392,21 +437,26 @@ PYTHON_BIN=python3.11 npm run dev -- --crewai "..."
 ```
 
 Notes
+
 - Python runner path: `agentic-ai/crewai/runner.py`. It reads a JSON payload `{goal}` on stdin and returns JSON.
 - Model: uses `OPENAI_MODEL` env (default `gpt-4o-mini`).
 - Output: structured JSON with `summary`, `sections` (plan/analysis/graph/finance/report), and a `timeline` of agent/task outputs.
 - Programmatic: import `CrewRuntime` from `src/crewai/CrewRunner.ts` to drive the Python crew with custom context or include flags.
 
 Programmatic usage
+
 ```ts
-import { CrewRuntime } from './crewai/CrewRunner.js';
+import { CrewRuntime } from "./crewai/CrewRunner.js";
 
 const runtime = new CrewRuntime({ timeoutMs: 240_000 });
-const result = await runtime.run('Scout Chapel Hill new construction under $900k', {
-  includeFinance: true,
-  hints: ['prefer energy-efficient builds'],
-  context: { mustHave: ['3 beds', 'home office'], timeframeMonths: 6 },
-});
+const result = await runtime.run(
+  "Scout Chapel Hill new construction under $900k",
+  {
+    includeFinance: true,
+    hints: ["prefer energy-efficient builds"],
+    context: { mustHave: ["3 beds", "home office"], timeframeMonths: 6 },
+  },
+);
 
 if (result.ok && result.structured) {
   console.log(result.structured.summary);
@@ -440,6 +490,7 @@ flowchart LR
 ### Pipeline Overview
 
 **What Makes It Special:**
+
 - **Assembly Line Architecture** - Sequential stage processing with composable, reusable components
 - **8 Specialized Workflows** - Production-ready pipelines for common real estate tasks
 - **10+ Enterprise Middleware** - Logging, metrics, caching, validation, circuit breakers, rate limiting, and more
@@ -452,7 +503,7 @@ flowchart LR
 
 ```typescript
 // Simple property search pipeline
-import { createPropertySearchPipeline } from './pipelines/propertySearch.js';
+import { createPropertySearchPipeline } from "./pipelines/propertySearch.js";
 
 const pipeline = createPropertySearchPipeline({
   enableLogging: true,
@@ -471,7 +522,7 @@ console.log(result.output); // { properties: [...], mapLink: "...", metrics: {..
 
 ```typescript
 // Financial analysis pipeline
-import { createFinancialAnalysisPipeline } from './pipelines/financialAnalysis.js';
+import { createFinancialAnalysisPipeline } from "./pipelines/financialAnalysis.js";
 
 const pipeline = createFinancialAnalysisPipeline({
   enableLogging: true,
@@ -522,12 +573,14 @@ const result = await customPipeline.execute({ goal: "Find homes" });
 #### 1. **8 Specialized Workflow Pipelines**
 
 **Property Search** (`src/pipelines/propertySearch.ts`)
+
 - Standard search with all features
 - Quick search (fast, reduced features)
 - Advanced search (parallel analysis)
 - Features: Goal parsing, deduplication, ranking, map links
 
 **Financial Analysis** (`src/pipelines/financialAnalysis.ts`)
+
 - Comprehensive analysis (all features)
 - Mortgage calculator (payments only)
 - Affordability checker (income/debt analysis)
@@ -535,6 +588,7 @@ const result = await customPipeline.execute({ goal: "Find homes" });
 - Features: Mortgage calculations, affordability checks, validation
 
 **Market Research** (`src/pipelines/marketResearch.ts`)
+
 - Standard research (analytics + insights)
 - Quick overview (fast market snapshot)
 - Deep analysis (comprehensive research)
@@ -542,6 +596,7 @@ const result = await customPipeline.execute({ goal: "Find homes" });
 - **Backward compatible** with legacy `runMarketResearch()` function
 
 **Compliance Check** (`src/pipelines/complianceCheck.ts`)
+
 - Comprehensive compliance (all checks)
 - Zoning check (quick verification)
 - Disclosure verification (legal requirements)
@@ -549,24 +604,28 @@ const result = await customPipeline.execute({ goal: "Find homes" });
 - Features: Audit trails, validation, compliance reporting
 
 **Graph Analysis** (`src/pipelines/graphAnalysis.ts`)
+
 - Property similarity detection
 - Neighborhood clustering
 - Market trend analysis
 - Features: Neo4j integration, pattern detection
 
 **Composite Workflows** (`src/pipelines/compositeWorkflows.ts`)
+
 - Multi-pipeline orchestration
 - Comprehensive property analysis
 - Investment decision support
 - Features: Pipeline composition, branching, parallel execution
 
 **Integration Examples** (`src/pipelines/examples.ts`)
+
 - 12 complete integration examples
 - AgentOrchestrator integration
 - LangGraph runtime integration
 - CrewAI runtime integration
 
 **Central Export** (`src/pipelines/index.ts`)
+
 - Convenience exports for all pipelines
 - Quick access templates
 - Pre-configured pipeline variants
@@ -578,7 +637,7 @@ const result = await customPipeline.execute({ goal: "Find homes" });
 ```typescript
 // Logging middleware
 createLoggingMiddleware({
-  logLevel: 'info' | 'debug' | 'warn' | 'error',
+  logLevel: "info" | "debug" | "warn" | "error",
   logger: console,
   includeContext: false,
 });
@@ -588,7 +647,7 @@ createMetricsMiddleware({
   onMetrics: (metrics) => {
     // Track: executionId, success, duration, toolCalls, stageMetrics
     console.log(metrics);
-  }
+  },
 });
 
 // Caching middleware
@@ -623,7 +682,7 @@ createAuditMiddleware({
 createCircuitBreakerMiddleware({
   failureThreshold: 5,
   resetTimeout: 60000,
-  onCircuitOpen: () => alert('Service degraded'),
+  onCircuitOpen: () => alert("Service degraded"),
 });
 
 // Rate limiting
@@ -636,7 +695,7 @@ createRateLimitMiddleware({
 createRetryMiddleware({
   maxAttempts: 3,
   backoffMs: 1000,
-  shouldRetry: (error) => error.code === 'TIMEOUT',
+  shouldRetry: (error) => error.code === "TIMEOUT",
 });
 
 // Timeout middleware
@@ -648,37 +707,40 @@ createTimeoutMiddleware({
 #### 3. **Advanced Orchestration**
 
 **Conditional Execution:**
+
 ```typescript
 pipeline
   .conditional(
     (context) => context.input.needsFinancial,
-    createFinancialAnalysisStage()
+    createFinancialAnalysisStage(),
   )
   .conditional(
     (context) => context.state.propertyCount > 0,
-    createMapLinkStage()
+    createMapLinkStage(),
   );
 ```
 
 **Parallel Execution:**
+
 ```typescript
-import { createParallelStage } from './pipeline/advanced.js';
+import { createParallelStage } from "./pipeline/advanced.js";
 
 pipeline.addStage(
-  createParallelStage('parallel-analysis', [
+  createParallelStage("parallel-analysis", [
     createAnalyticsStage(),
     createGraphStage(),
     createComplianceStage(),
-  ])
+  ]),
 );
 ```
 
 **Error Recovery:**
+
 ```typescript
-import { createErrorRecoveryStage } from './pipeline/advanced.js';
+import { createErrorRecoveryStage } from "./pipeline/advanced.js";
 
 const strategy = {
-  isRecoverable: (error) => error.code !== 'FATAL',
+  isRecoverable: (error) => error.code !== "FATAL",
   recover: async (error, context, stage) => {
     // Attempt recovery
     return { success: true, output: fallbackData };
@@ -686,16 +748,14 @@ const strategy = {
 };
 
 pipeline.addStage(
-  createErrorRecoveryStage(riskyStage, strategy, { maxAttempts: 3 })
+  createErrorRecoveryStage(riskyStage, strategy, { maxAttempts: 3 }),
 );
 ```
 
 **Pipeline Composition:**
+
 ```typescript
-const subPipeline = createPipeline()
-  .addStage(stage1)
-  .addStage(stage2)
-  .build();
+const subPipeline = createPipeline().addStage(stage1).addStage(stage2).build();
 
 const mainPipeline = createPipeline()
   .addStage(createPipelineStage(subPipeline))
@@ -706,11 +766,11 @@ const mainPipeline = createPipeline()
 #### 4. **Type-Safe Stage Creation**
 
 ```typescript
-import { createStage, createTransformStage } from './pipeline/Stage.js';
+import { createStage, createTransformStage } from "./pipeline/Stage.js";
 
 // Custom processing stage
 const parseStage = createStage<string, ParsedGoal, MyState>(
-  'parse-goal',
+  "parse-goal",
   async (context) => {
     const goal = context.input as string;
     return {
@@ -720,23 +780,20 @@ const parseStage = createStage<string, ParsedGoal, MyState>(
     };
   },
   {
-    description: 'Parse natural language goal',
+    description: "Parse natural language goal",
     timeout: 5000,
     retryable: false,
-  }
+  },
 );
 
 // State transformation stage
-const enrichStage = createTransformStage(
-  'enrich-state',
-  async (state) => {
-    return {
-      ...state,
-      enrichedAt: Date.now(),
-      validated: true,
-    };
-  }
-);
+const enrichStage = createTransformStage("enrich-state", async (state) => {
+  return {
+    ...state,
+    enrichedAt: Date.now(),
+    validated: true,
+  };
+});
 ```
 
 ### 9 Major Feature Sets
@@ -744,23 +801,30 @@ const enrichStage = createTransformStage(
 Beyond the core pipelines and middleware, the system includes **9 major enterprise feature sets**:
 
 #### 1. **State Persistence & Checkpointing**
+
 ```typescript
-import { createCheckpointMiddleware, restorePipeline } from './pipeline/persistence.js';
+import {
+  createCheckpointMiddleware,
+  restorePipeline,
+} from "./pipeline/persistence.js";
 
 // Save pipeline state
-pipeline.use(createCheckpointMiddleware({
-  saveInterval: 10000,
-  storage: 'redis', // or 'file', 'database'
-}));
+pipeline.use(
+  createCheckpointMiddleware({
+    saveInterval: 10000,
+    storage: "redis", // or 'file', 'database'
+  }),
+);
 
 // Resume from checkpoint
-const restored = await restorePipeline('execution-123');
+const restored = await restorePipeline("execution-123");
 const result = await restored.resume();
 ```
 
 #### 2. **Distributed Execution**
+
 ```typescript
-import { DistributedPipeline, WorkerPool } from './pipeline/distributed.js';
+import { DistributedPipeline, WorkerPool } from "./pipeline/distributed.js";
 
 const workerPool = new WorkerPool({ minWorkers: 2, maxWorkers: 10 });
 const distributed = new DistributedPipeline(pipeline, workerPool);
@@ -769,33 +833,35 @@ await distributed.execute(input); // Automatic load balancing
 ```
 
 #### 3. **Advanced Scheduling**
+
 ```typescript
-import { PipelineScheduler } from './pipeline/scheduler.js';
+import { PipelineScheduler } from "./pipeline/scheduler.js";
 
 const scheduler = new PipelineScheduler();
 
 // Cron scheduling
-scheduler.schedule(pipeline, '0 */6 * * *', {
-  goal: 'Daily market analysis'
+scheduler.schedule(pipeline, "0 */6 * * *", {
+  goal: "Daily market analysis",
 });
 
 // Delayed execution
 scheduler.scheduleOnce(pipeline, Date.now() + 3600000, input);
 
 // With dependencies
-scheduler.schedule(pipelineB, '0 8 * * *', input, {
-  dependencies: ['pipelineA-execution-id'],
+scheduler.schedule(pipelineB, "0 8 * * *", input, {
+  dependencies: ["pipelineA-execution-id"],
 });
 ```
 
 #### 4. **Testing Framework**
+
 ```typescript
-import { PipelineTestRunner, MockStage, SpyStage } from './pipeline/testing.js';
+import { PipelineTestRunner, MockStage, SpyStage } from "./pipeline/testing.js";
 
 const runner = new PipelineTestRunner();
 
 // Mock stages
-const mockSearch = new MockStage('search', { properties: mockData });
+const mockSearch = new MockStage("search", { properties: mockData });
 
 // Spy on stages
 const spy = new SpyStage(realStage);
@@ -817,29 +883,31 @@ expect(spy.calls[0].result.success).toBe(true);
 ```
 
 #### 5. **Auto-Optimization**
+
 ```typescript
-import { PipelineOptimizer } from './pipeline/optimization.js';
+import { PipelineOptimizer } from "./pipeline/optimization.js";
 
 const optimizer = new PipelineOptimizer(monitor);
 
 // Analyze performance
-const profile = optimizer.analyzePerformance('market-research');
+const profile = optimizer.analyzePerformance("market-research");
 
 console.log(profile.bottlenecks); // Slow stages
 console.log(profile.parallelizationOpportunities); // Stages that can run in parallel
 
 // Get AI-powered recommendations
-const recommendations = optimizer.generateRecommendations('market-research');
+const recommendations = optimizer.generateRecommendations("market-research");
 // "Consider caching analytics.summarizeSearch results"
 // "Stage 'graph-analysis' could run in parallel with 'compliance-check'"
 ```
 
 #### 6. **Plugin Architecture**
+
 ```typescript
-import { PipelinePlugin } from './pipeline/plugins.js';
+import { PipelinePlugin } from "./pipeline/plugins.js";
 
 class CustomPlugin implements PipelinePlugin {
-  name = 'custom-plugin';
+  name = "custom-plugin";
 
   async onPipelineStart(context) {
     // Initialize resources
@@ -858,8 +926,12 @@ pipeline.use(new CustomPlugin());
 ```
 
 #### 7. **Visualization & DAG**
+
 ```typescript
-import { PipelineDAGBuilder, exportToMermaid } from './pipeline/visualization.js';
+import {
+  PipelineDAGBuilder,
+  exportToMermaid,
+} from "./pipeline/visualization.js";
 
 const dag = new PipelineDAGBuilder(pipeline);
 
@@ -876,12 +948,18 @@ const dashboard = await DashboardGenerator.generate(pipeline, {
 ```
 
 #### 8. **Multi-Level Caching**
+
 ```typescript
-import { MultiLevelCache, L1Cache, L2Cache, L3Cache } from './pipeline/caching.js';
+import {
+  MultiLevelCache,
+  L1Cache,
+  L2Cache,
+  L3Cache,
+} from "./pipeline/caching.js";
 
 const cache = new MultiLevelCache([
   new L1Cache({ maxSize: 100 }), // In-memory, fast
-  new L2Cache({ path: './cache' }), // File-based
+  new L2Cache({ path: "./cache" }), // File-based
   new L3Cache({ redis: redisClient }), // Distributed
 ]);
 
@@ -889,27 +967,28 @@ pipeline.use(createCachingMiddleware({ cache }));
 ```
 
 #### 9. **Human-in-the-Loop**
+
 ```typescript
-import { ApprovalManager, UserInputManager } from './pipeline/workflows.js';
+import { ApprovalManager, UserInputManager } from "./pipeline/workflows.js";
 
 const approvalMgr = new ApprovalManager();
 
 // Request approval
 pipeline.addStage(
-  new ApprovalGateStage('approve-purchase', {
+  new ApprovalGateStage("approve-purchase", {
     approvalManager: approvalMgr,
     timeout: 300000,
-    requiredApprovers: ['manager@company.com'],
-  })
+    requiredApprovers: ["manager@company.com"],
+  }),
 );
 
 // Request user input
 pipeline.addStage(
-  new UserInputStage('confirm-details', {
+  new UserInputStage("confirm-details", {
     inputManager: new UserInputManager(),
-    prompt: 'Confirm property details',
+    prompt: "Confirm property details",
     schema: z.object({ confirmed: z.boolean() }),
-  })
+  }),
 );
 ```
 
@@ -918,9 +997,10 @@ pipeline.addStage(
 The pipeline system seamlessly integrates with existing agentic AI components:
 
 #### **With AgentOrchestrator**
+
 ```typescript
-import { AgentOrchestrator } from './orchestrator/AgentOrchestrator.js';
-import { createMarketResearchPipeline } from './pipelines/marketResearch.js';
+import { AgentOrchestrator } from "./orchestrator/AgentOrchestrator.js";
+import { createMarketResearchPipeline } from "./pipelines/marketResearch.js";
 
 // Use pipeline within orchestrator
 const orchestrator = new AgentOrchestrator();
@@ -934,26 +1014,28 @@ const result = await pipeline.execute({ goal });
 ```
 
 #### **With LangGraph Runtime**
+
 ```typescript
-import { EstateWiseLangGraphRuntime } from './lang/graph.js';
-import { createPipeline } from './pipeline/index.js';
+import { EstateWiseLangGraphRuntime } from "./lang/graph.js";
+import { createPipeline } from "./pipeline/index.js";
 
 const runtime = new EstateWiseLangGraphRuntime();
 
 // Use pipeline as a tool
 const pipelineTool = createPipelineAsLangChainTool(
   createMarketResearchPipeline(),
-  'market_research',
-  'Run comprehensive market research'
+  "market_research",
+  "Run comprehensive market research",
 );
 
 runtime.addTool(pipelineTool);
 ```
 
 #### **With CrewAI Runtime**
+
 ```typescript
-import { CrewRuntime } from './crewai/CrewRunner.js';
-import { createPropertySearchPipeline } from './pipelines/propertySearch.js';
+import { CrewRuntime } from "./crewai/CrewRunner.js";
+import { createPropertySearchPipeline } from "./pipelines/propertySearch.js";
 
 // Pre-process with pipeline before sending to crew
 const pipeline = createPropertySearchPipeline();
@@ -967,16 +1049,13 @@ const crewResult = await new CrewRuntime().run(goal, {
 ### Complete Pipeline API
 
 #### **Core Exports**
+
 ```typescript
 // Pipeline builder
-import { createPipeline, PipelineBuilder } from './pipeline/PipelineBuilder.js';
+import { createPipeline, PipelineBuilder } from "./pipeline/PipelineBuilder.js";
 
 // Stage creation
-import {
-  createStage,
-  createTransformStage,
-  Stage
-} from './pipeline/Stage.js';
+import { createStage, createTransformStage, Stage } from "./pipeline/Stage.js";
 
 // Middleware
 import {
@@ -990,7 +1069,7 @@ import {
   createRateLimitMiddleware,
   createRetryMiddleware,
   createTimeoutMiddleware,
-} from './pipeline/middleware.js';
+} from "./pipeline/middleware.js";
 
 // Advanced stages
 import {
@@ -998,7 +1077,7 @@ import {
   createConditionalStage,
   createErrorRecoveryStage,
   createPipelineStage,
-} from './pipeline/advanced.js';
+} from "./pipeline/advanced.js";
 
 // Pre-built stages
 import {
@@ -1012,34 +1091,34 @@ import {
   createAffordabilityCalculationStage,
   createComplianceCheckStage,
   createReportGenerationStage,
-} from './pipeline/stages/AgentStages.js';
+} from "./pipeline/stages/AgentStages.js";
 
 // Pre-built pipelines
 import {
   createPropertySearchPipeline,
   createQuickPropertySearchPipeline,
   createAdvancedPropertySearchPipeline,
-} from './pipelines/propertySearch.js';
+} from "./pipelines/propertySearch.js";
 
 import {
   createFinancialAnalysisPipeline,
   createMortgageCalculatorPipeline,
   createAffordabilityCheckerPipeline,
   createInvestmentAnalysisPipeline,
-} from './pipelines/financialAnalysis.js';
+} from "./pipelines/financialAnalysis.js";
 
 import {
   createMarketResearchPipeline,
   createQuickMarketOverviewPipeline,
   createDeepMarketAnalysisPipeline,
-} from './pipelines/marketResearch.js';
+} from "./pipelines/marketResearch.js";
 
 import {
   createComplianceCheckPipeline,
   createZoningCheckPipeline,
   createDisclosureVerificationPipeline,
   createRegulatoryCompliancePipeline,
-} from './pipelines/complianceCheck.js';
+} from "./pipelines/complianceCheck.js";
 
 // Types
 import type {
@@ -1050,12 +1129,13 @@ import type {
   StageResult,
   PipelineMiddleware,
   PipelineOptions,
-} from './pipeline/types.js';
+} from "./pipeline/types.js";
 ```
 
 ### Pipeline Documentation
 
 For complete documentation, examples, and best practices, see:
+
 - **[pipelines/README.md](src/pipelines/README.md)** - Complete pipeline system documentation
 - **[pipeline/examples.ts](src/pipeline/examples.ts)** - Infrastructure usage examples
 - **[pipelines/examples.ts](src/pipelines/examples.ts)** - 12 integration examples
@@ -1063,6 +1143,7 @@ For complete documentation, examples, and best practices, see:
 ### Build & Quality
 
 **Build Status:**
+
 ```bash
 npm run build
 # ✅ TypeScript compilation: SUCCESS
@@ -1073,6 +1154,7 @@ npm run build
 ```
 
 **Code Statistics:**
+
 - **8 pipeline implementations** (propertySearch, financialAnalysis, marketResearch, complianceCheck, graphAnalysis, compositeWorkflows, index, examples)
 - **20 infrastructure files** (Pipeline, PipelineBuilder, Stage, middleware, advanced, monitoring, etc.)
 - **50 total compiled files**
@@ -1081,12 +1163,14 @@ npm run build
 - **Zero compilation errors**
 
 ## Example Goals
+
 - "Find 3‑bed homes in Chapel Hill, NC; compare 123456 and 654321; estimate $600k at 6.25%."
 - "Lookup ZPID for 123 Main St, Chapel Hill, NC and show similar homes nearby."
 
 ## Pipeline
 
 The pipeline is driven by the CoordinatorAgent over a shared blackboard. The high-level plan is:
+
 1. Parse the user goal to extract addresses, cities, states, ZIPs, beds, baths, price, and ZPIDs.
 2. Optionally run web research when the goal requests latest/current/news-style context.
 3. Lookup ZPIDs for any addresses found.
@@ -1195,6 +1279,7 @@ flowchart LR
 ```
 
 ## Structure
+
 ```
 agentic-ai/
 └─ src/
@@ -1255,6 +1340,14 @@ Set the following environment variables as needed:
   - `AGENT_RUNTIME=langgraph` to enable the LangGraph runtime by default.
   - Optional `THREAD_ID` for conversation continuity when using the LangGraph checkpointer.
   - `AGENT_RUNTIME=crewai` or `--crewai` to enable the CrewAI runtime; requires Python + crewai deps and `OPENAI_API_KEY`.
+  - `--deterministic` enables deterministic mode for LangGraph CLI runs.
+  - `LANGGRAPH_DETERMINISTIC_DEFAULT=true` enables deterministic mode by default in LangGraph runtime.
+  - `LANGGRAPH_REPLAY_ENABLED=true|false` controls replay cache reads for deterministic runs.
+  - `LANGGRAPH_REPLAY_STORE_PATH` sets optional replay-store persistence path.
+  - `LANGGRAPH_REPLAY_MAX_ENTRIES` caps replay-store cardinality (default `500`).
+  - `AGENT_POLICY_CONFIG` accepts inline JSON policy for ranking adjustments.
+  - `AGENT_POLICY_CONFIG_PATH` points to a JSON file with policy configuration.
+  - `AGENT_POLICY_ALLOW_INJECTION=true|false` allows sponsored ZPID injection when not present in base ranking.
   - `A2A_MAX_TASKS` (default `500`) limits in-memory task records retained by the A2A server.
   - `A2A_TASK_RETENTION_MS` (default `86400000`) controls retention of completed A2A tasks.
   - `A2A_WAIT_TIMEOUT_MS` (default `120000`) sets default max wait time for `tasks.wait`.
@@ -1273,6 +1366,8 @@ Set the following environment variables as needed:
   - `MCP_CLIENT_STARTUP_RETRIES` (default `2`) and `MCP_CLIENT_STARTUP_RETRY_MS` (default `750`) for startup resilience.
   - `MCP_CLIENT_CALL_TIMEOUT_MS` (default `45000`) and `MCP_CLIENT_LIST_CACHE_MS` (default `15000`) for client-side behavior.
   - `MCP_REQUIRED_TOOLS_MODE` with `off|warn|strict` (default `warn`) to control runtime contract enforcement.
+  - Ensure MCP `LIVE_ZILLOW_SNAPSHOT_PATH` points to your latest live snapshot if you want `live.zillow.search` results.
+  - Optionally tune `LIVE_ZILLOW_STALE_HOURS` and `LIVE_ZILLOW_MIN_QUALITY_SCORE` in MCP env for stricter live-data quality/freshness behavior.
 
 Please make sure to have upserted properties to Pinecone and ingested the graph to Neo4j if you plan to use those tools - they will return empty results otherwise!
 
@@ -1300,6 +1395,7 @@ See [COSTS.md](COSTS.md) for details on pricing assumptions and calculations.
 ## Error Handling & Retries
 
 The CLI includes robust error handling:
+
 - Uncaught exceptions in agents or the orchestrator are caught and logged; the run exits gracefully
 - The MCP client enforces startup retries, tool-call timeouts, and one retry on failed tool calls.
 - Runtime-specific MCP tool contracts are validated at startup to detect producer/consumer drift early.
@@ -1342,47 +1438,47 @@ flowchart TB
 
 ### Components
 
-| Component | File | Responsibility |
-|-----------|------|----------------|
-| Supervisor | `orchestration/supervisor.ts` | Intent classification, agent selection, fan-out/join, result aggregation |
-| Agent Registry | `orchestration/agent-registry.ts` | Agent declarations with capabilities, tool scopes, and token budgets |
-| Intent Router | `orchestration/intent-router.ts` | Two-pass classification: fast keyword matching + LLM-based NLU fallback |
-| Tool-Use Loop | `orchestration/tool-loop.ts` | Per-agent budget enforcement, circuit breakers, retry with backoff |
-| Session Manager | `orchestration/session.ts` | Checkpoint persistence to `.agent-sessions/`, multi-turn resume |
-| Types | `orchestration/types.ts` | Zod schemas for all orchestration boundaries |
-| Bead Writer | `orchestration/supervisor.ts` | Reasoning chain capture to `.beads/` for audit and replay |
-| Dead Letter Queue | `orchestration/tool-loop.ts` | Failed task capture for offline inspection |
-| Event Emitter | `orchestration/supervisor.ts` | Real-time SSE emission for live progress tracking |
-| Budget Allocator | `orchestration/supervisor.ts` | Dynamic token/call budget distribution across activated agents |
+| Component         | File                              | Responsibility                                                           |
+| ----------------- | --------------------------------- | ------------------------------------------------------------------------ |
+| Supervisor        | `orchestration/supervisor.ts`     | Intent classification, agent selection, fan-out/join, result aggregation |
+| Agent Registry    | `orchestration/agent-registry.ts` | Agent declarations with capabilities, tool scopes, and token budgets     |
+| Intent Router     | `orchestration/intent-router.ts`  | Two-pass classification: fast keyword matching + LLM-based NLU fallback  |
+| Tool-Use Loop     | `orchestration/tool-loop.ts`      | Per-agent budget enforcement, circuit breakers, retry with backoff       |
+| Session Manager   | `orchestration/session.ts`        | Checkpoint persistence to `.agent-sessions/`, multi-turn resume          |
+| Types             | `orchestration/types.ts`          | Zod schemas for all orchestration boundaries                             |
+| Bead Writer       | `orchestration/supervisor.ts`     | Reasoning chain capture to `.beads/` for audit and replay                |
+| Dead Letter Queue | `orchestration/tool-loop.ts`      | Failed task capture for offline inspection                               |
+| Event Emitter     | `orchestration/supervisor.ts`     | Real-time SSE emission for live progress tracking                        |
+| Budget Allocator  | `orchestration/supervisor.ts`     | Dynamic token/call budget distribution across activated agents           |
 
 ### Agent Registry
 
-| Agent | Tool Scope | Max Calls | Token Budget |
-|-------|-----------|-----------|--------------|
-| PropertyAgent | `properties.*` | 10 | 4 096 |
-| MarketAgent | `market.*`, `analytics.*` | 8 | 4 096 |
-| FinanceAgent | `finance.*` | 6 | 2 048 |
-| GraphAgent | `graph.*` | 6 | 2 048 |
-| MapAgent | `map.*`, `commute.*` | 4 | 2 048 |
-| ReporterAgent | `system.*` | 2 | 8 192 |
-| ZpidFinderAgent | `properties.lookup` | 4 | 1 024 |
-| AnalyticsAgent | `analytics.*` | 6 | 4 096 |
-| ComplianceAgent | _(read-only)_ | 0 | 1 024 |
+| Agent           | Tool Scope                | Max Calls | Token Budget |
+| --------------- | ------------------------- | --------- | ------------ |
+| PropertyAgent   | `properties.*`            | 10        | 4 096        |
+| MarketAgent     | `market.*`, `analytics.*` | 8         | 4 096        |
+| FinanceAgent    | `finance.*`               | 6         | 2 048        |
+| GraphAgent      | `graph.*`                 | 6         | 2 048        |
+| MapAgent        | `map.*`, `commute.*`      | 4         | 2 048        |
+| ReporterAgent   | `system.*`                | 2         | 8 192        |
+| ZpidFinderAgent | `properties.lookup`       | 4         | 1 024        |
+| AnalyticsAgent  | `analytics.*`             | 6         | 4 096        |
+| ComplianceAgent | _(read-only)_             | 0         | 1 024        |
 
 ### Error Recovery
 
-| Strategy | Trigger | Action |
-|----------|---------|--------|
-| Retry with backoff | Transient 5xx | Exponential backoff, max 3 retries |
-| Fallback agent | Primary agent timeout | Route to backup with reduced scope |
-| Partial result | Fan-out tool failure | Return successes with warnings |
-| Circuit breaker | 3+ consecutive failures | Open circuit, cooldown skip |
-| Budget overflow | Token/call limit hit | Truncate, summarize, return |
-| Schema violation | Zod validation failure | Re-prompt with error (1 retry) |
-| Dead letter | All retries exhausted | Log for offline inspection |
-| Graceful degradation | MCP server unreachable | Return cached or informative error |
-| Session recovery | Checkpoint in `.agent-sessions/` | Resume from last state |
-| Bead replay | Audit request | Replay from `.beads/` snapshots |
+| Strategy             | Trigger                          | Action                             |
+| -------------------- | -------------------------------- | ---------------------------------- |
+| Retry with backoff   | Transient 5xx                    | Exponential backoff, max 3 retries |
+| Fallback agent       | Primary agent timeout            | Route to backup with reduced scope |
+| Partial result       | Fan-out tool failure             | Return successes with warnings     |
+| Circuit breaker      | 3+ consecutive failures          | Open circuit, cooldown skip        |
+| Budget overflow      | Token/call limit hit             | Truncate, summarize, return        |
+| Schema violation     | Zod validation failure           | Re-prompt with error (1 retry)     |
+| Dead letter          | All retries exhausted            | Log for offline inspection         |
+| Graceful degradation | MCP server unreachable           | Return cached or informative error |
+| Session recovery     | Checkpoint in `.agent-sessions/` | Resume from last state             |
+| Bead replay          | Audit request                    | Replay from `.beads/` snapshots    |
 
 ## Prompt Engineering System
 
@@ -1409,12 +1505,12 @@ The prompt system uses XML-structured templates with schema validation and multi
 
 ### Schemas
 
-| Schema | Purpose | Validation |
-|--------|---------|------------|
-| SystemPromptSchema | System-level instructions and persona | Required fields, max token length |
-| AgentPromptSchema | Per-agent instructions and tool scopes | Tool scope matching, budget bounds |
-| ToolCallSchema | Tool invocation parameters | Zod input validation, scope enforcement |
-| OutputFormatSchema | Structured response format | JSON schema compliance, required fields |
+| Schema             | Purpose                                | Validation                              |
+| ------------------ | -------------------------------------- | --------------------------------------- |
+| SystemPromptSchema | System-level instructions and persona  | Required fields, max token length       |
+| AgentPromptSchema  | Per-agent instructions and tool scopes | Tool scope matching, budget bounds      |
+| ToolCallSchema     | Tool invocation parameters             | Zod input validation, scope enforcement |
+| OutputFormatSchema | Structured response format             | JSON schema compliance, required fields |
 
 ### Grounding Rules
 
@@ -1431,14 +1527,14 @@ The prompt system uses XML-structured templates with schema validation and multi
 
 ### Prompt Caching (6 Layers)
 
-| Layer | Content | Cache TTL | Invalidation |
-|-------|---------|-----------|-------------|
-| L1 | Static system prompt | Infinite | Code deploy |
-| L2 | Agent persona | 24 hours | Agent registry change |
-| L3 | Domain context (RAG) | 1 hour | New data ingestion |
-| L4 | Tool results | 5 minutes | New tool call |
-| L5 | Conversation history | Session | Session end |
-| L6 | User query | None | Per-request |
+| Layer | Content              | Cache TTL | Invalidation          |
+| ----- | -------------------- | --------- | --------------------- |
+| L1    | Static system prompt | Infinite  | Code deploy           |
+| L2    | Agent persona        | 24 hours  | Agent registry change |
+| L3    | Domain context (RAG) | 1 hour    | New data ingestion    |
+| L4    | Tool results         | 5 minutes | New tool call         |
+| L5    | Conversation history | Session   | Session end           |
+| L6    | User query           | None      | Per-request           |
 
 ## Context Management
 
@@ -1460,21 +1556,21 @@ The pipeline combines Pinecone vector similarity with Neo4j graph traversal, the
 
 ### Context Strategies
 
-| Strategy | Description | Best For |
-|----------|-------------|----------|
-| `full` | All available context up to budget | Simple, focused queries |
-| `summary` | Summarize long sections before inclusion | Multi-document queries |
-| `sliding-window` | Recent N turns + key historical context | Multi-turn conversations |
-| `priority-ranked` | Rank chunks by relevance, trim lowest | Token-constrained scenarios |
-| `hybrid` | Dynamic summary + priority ranking | Complex analytical queries |
+| Strategy          | Description                              | Best For                    |
+| ----------------- | ---------------------------------------- | --------------------------- |
+| `full`            | All available context up to budget       | Simple, focused queries     |
+| `summary`         | Summarize long sections before inclusion | Multi-document queries      |
+| `sliding-window`  | Recent N turns + key historical context  | Multi-turn conversations    |
+| `priority-ranked` | Rank chunks by relevance, trim lowest    | Token-constrained scenarios |
+| `hybrid`          | Dynamic summary + priority ranking       | Complex analytical queries  |
 
 ### Multi-Level Cache
 
-| Level | Storage | TTL | Use Case |
-|-------|---------|-----|----------|
-| L1 | In-memory LRU | 5 min | Hot tool results, frequent queries |
-| L2 | Redis | 1 hour | Cross-request sharing, session state |
-| L3 | Disk (`.beads/`) | 24 hours | Session replay, audit trails |
+| Level | Storage          | TTL      | Use Case                             |
+| ----- | ---------------- | -------- | ------------------------------------ |
+| L1    | In-memory LRU    | 5 min    | Hot tool results, frequent queries   |
+| L2    | Redis            | 1 hour   | Cross-request sharing, session state |
+| L3    | Disk (`.beads/`) | 24 hours | Session replay, audit trails         |
 
 ## Observability Stack
 
@@ -1484,26 +1580,26 @@ OpenTelemetry instrumentation spans the entire request lifecycle: supervisor int
 
 ### Core Metrics
 
-| Metric | Type | Description |
-|--------|------|-------------|
-| `orchestration.request.latency` | Histogram | End-to-end request duration |
-| `orchestration.tool.call.duration` | Histogram | Per-tool call latency |
-| `orchestration.token.usage` | Counter | Token consumption per model/agent |
-| `orchestration.cache.hit.rate` | Gauge | Cache hit % by level (L1/L2/L3) |
-| `orchestration.error.rate` | Counter | Errors by type and agent |
-| `orchestration.agent.utilization` | Gauge | Agent busy/idle ratio |
-| `orchestration.cost.per.request` | Histogram | Dollar cost per completed request |
-| `orchestration.queue.depth` | Gauge | Pending tasks in orchestration queue |
+| Metric                             | Type      | Description                          |
+| ---------------------------------- | --------- | ------------------------------------ |
+| `orchestration.request.latency`    | Histogram | End-to-end request duration          |
+| `orchestration.tool.call.duration` | Histogram | Per-tool call latency                |
+| `orchestration.token.usage`        | Counter   | Token consumption per model/agent    |
+| `orchestration.cache.hit.rate`     | Gauge     | Cache hit % by level (L1/L2/L3)      |
+| `orchestration.error.rate`         | Counter   | Errors by type and agent             |
+| `orchestration.agent.utilization`  | Gauge     | Agent busy/idle ratio                |
+| `orchestration.cost.per.request`   | Histogram | Dollar cost per completed request    |
+| `orchestration.queue.depth`        | Gauge     | Pending tasks in orchestration queue |
 
 ### Cost Tracking
 
-| Model | Input (per 1M tokens) | Output (per 1M tokens) |
-|-------|----------------------|------------------------|
-| gemini-2.5-flash | $0.15 | $0.60 |
-| gpt-4o-mini | $0.15 | $0.60 |
-| gpt-4o | $5.00 | $15.00 |
-| text-embedding-3-large | $0.13 | -- |
-| gemini-embedding-001 | $0.01 | -- |
+| Model                  | Input (per 1M tokens) | Output (per 1M tokens) |
+| ---------------------- | --------------------- | ---------------------- |
+| gemini-2.5-flash       | $0.15                 | $0.60                  |
+| gpt-4o-mini            | $0.15                 | $0.60                  |
+| gpt-4o                 | $5.00                 | $15.00                 |
+| text-embedding-3-large | $0.13                 | --                     |
+| gemini-embedding-001   | $0.01                 | --                     |
 
 Budget alerting thresholds can be configured per agent and per request. When a request exceeds its cost ceiling, the orchestrator truncates remaining tool calls and returns partial results.
 
@@ -1540,6 +1636,7 @@ Test coverage includes supervisor routing logic, agent budget enforcement, circu
 ## Extensibility
 
 Feel free to extend the pipeline with new agents, tools, or runtimes:
+
 - Add new tools in the MCP backend under `backend/src/controllers/property.controller.ts` and expose
 - Add agents under `src/agents/` and extend the coordinator plan in `src/pipelines/marketResearch.ts`.
 - Add MCP wrappers to `src/lang/tools.ts` and expose new tools in the set.

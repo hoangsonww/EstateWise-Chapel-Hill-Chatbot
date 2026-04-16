@@ -1,0 +1,111 @@
+{
+  "version": 2,
+  "runId": "20260416_022036878",
+  "generatedAt": "2026-04-16T02:20:42.121Z",
+  "source": "zillow-web-public",
+  "metadata": {
+    "schemaVersion": 2,
+    "pipelineVersion": "2026.04.16",
+    "stats": {
+      "candidateUrlCount": 60,
+      "refreshableUrlCount": 60,
+      "fetchedCount": 3,
+      "successCount": 3,
+      "fetchErrorCount": 0,
+      "acceptedCount": 3,
+      "dedupedCount": 3,
+      "droppedCount": 0,
+      "durationMs": 5243
+    },
+    "quality": {
+      "average": 0.8,
+      "p10": 0.8,
+      "p50": 0.8,
+      "p90": 0.8,
+      "min": 0.8,
+      "max": 0.8,
+      "minAcceptable": 0.5
+    },
+    "freshness": {
+      "oldestFetchedAt": "2026-04-16T02:20:39.919Z",
+      "newestFetchedAt": "2026-04-16T02:20:41.615Z",
+      "oldestAgeHours": 0,
+      "newestAgeHours": 0
+    },
+    "warnings": []
+  },
+  "listings": [
+    {
+      "zpid": 2077800306,
+      "url": "https://www.zillow.com/homedetails/107-Lockart-Plz-Philadelphia-PA-19116/2077800306_zpid/",
+      "address": "107 Lockart Plz, Philadelphia, PA, 19116",
+      "city": "Philadelphia",
+      "state": "PA",
+      "zipcode": "19116",
+      "price": 549000,
+      "bedrooms": null,
+      "bathrooms": null,
+      "livingAreaSqft": null,
+      "homeType": "RealEstateListing,Product",
+      "status": "https://schema.org/InStock",
+      "publishedAt": null,
+      "fetchedAt": "2026-04-16T02:20:39.919Z",
+      "source": "zillow-web-public",
+      "qualityScore": 0.8,
+      "qualityFlags": [
+        "missing_bed_bath",
+        "missing_living_area"
+      ],
+      "firstSeenAt": "2026-04-16T02:20:42.121Z",
+      "lastSeenAt": "2026-04-16T02:20:42.121Z"
+    },
+    {
+      "zpid": 23430011,
+      "url": "https://www.zillow.com/homedetails/17040-Agate-St-NE-Bainbridge-Island-WA-98110/23430011_zpid/",
+      "address": "17040 Agate Street NE, Bainbridge Island, WA, 98110",
+      "city": "Bainbridge Island",
+      "state": "WA",
+      "zipcode": "98110",
+      "price": 2800000,
+      "bedrooms": null,
+      "bathrooms": null,
+      "livingAreaSqft": null,
+      "homeType": "RealEstateListing,Product",
+      "status": "https://schema.org/InStock",
+      "publishedAt": null,
+      "fetchedAt": "2026-04-16T02:20:40.797Z",
+      "source": "zillow-web-public",
+      "qualityScore": 0.8,
+      "qualityFlags": [
+        "missing_bed_bath",
+        "missing_living_area"
+      ],
+      "firstSeenAt": "2026-04-16T02:20:42.121Z",
+      "lastSeenAt": "2026-04-16T02:20:42.121Z"
+    },
+    {
+      "zpid": 250772154,
+      "url": "https://www.zillow.com/homedetails/3886-Big-Magnolia-Way-Southport-NC-28461/250772154_zpid/",
+      "address": "3886 Big Magnolia Way, Southport, NC, 28461",
+      "city": "Southport",
+      "state": "NC",
+      "zipcode": "28461",
+      "price": 799000,
+      "bedrooms": null,
+      "bathrooms": null,
+      "livingAreaSqft": null,
+      "homeType": "RealEstateListing,Product",
+      "status": "https://schema.org/InStock",
+      "publishedAt": null,
+      "fetchedAt": "2026-04-16T02:20:41.615Z",
+      "source": "zillow-web-public",
+      "qualityScore": 0.8,
+      "qualityFlags": [
+        "missing_bed_bath",
+        "missing_living_area"
+      ],
+      "firstSeenAt": "2026-04-16T02:20:42.121Z",
+      "lastSeenAt": "2026-04-16T02:20:42.121Z"
+    }
+  ]
+}

@@ -24,9 +24,10 @@
     "url": "https://github.com/hoangsonww/AI-Assistant-Chatbot/issues"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "cd backend && npm run build && cd ../frontend && npm run build && cd ../agentic-ai && npm run build && cd ../mcp && npm run build",
     "start": "cd frontend && npm run dev",
     "dev": "concurrently \"npm run frontend\" \"npm run backend\"",
+    "test": "cd backend && npm test && cd ../frontend && npm test && cd ../agentic-ai && npm test && cd ../mcp && npm test && cd ../context-engineering && npm test",
     "frontend": "cd frontend && npm run dev",
     "backend": "cd backend && npm start",
     "context": "cd context-engineering && npm run dev",

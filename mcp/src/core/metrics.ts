@@ -22,6 +22,7 @@ const state = {
   startedAt: Date.now(),
   totalRequests: 0,
   totalErrors: 0,
+  governanceEvents: new Map<string, number>(),
   tools: new Map<string, ToolMetric>(),
 };
 
@@ -67,6 +68,12 @@ export function recordToolCall(toolName: string, input: RecordMetricInput) {
   if (tool.durationsMs.length > MAX_DURATION_SAMPLES) {
     tool.durationsMs.splice(0, tool.durationsMs.length - MAX_DURATION_SAMPLES);
   }
+}
+
+export function recordGovernanceEvent(eventType: string) {
+  const key = eventType.trim() || "unknown";
+  const current = state.governanceEvents.get(key) ?? 0;
+  state.governanceEvents.set(key, current + 1);
 }
 
 export function getToolUsage(toolName: string) {
@@ -120,6 +127,7 @@ export function getMetricsSnapshot(options?: { detailed?: boolean }) {
           100
         : 100,
     uniqueToolsCalled: allTools.length,
+    governanceEvents: Object.fromEntries(state.governanceEvents),
   };
   if (!detailed) return { summary, tools };
   const topTools = allTools
@@ -133,5 +141,6 @@ export function resetMetrics() {
   state.startedAt = Date.now();
   state.totalRequests = 0;
   state.totalErrors = 0;
+  state.governanceEvents.clear();
   state.tools.clear();
 }

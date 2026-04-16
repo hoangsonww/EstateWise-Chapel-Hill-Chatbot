@@ -20,7 +20,10 @@ const parsePositiveInt = (value: unknown, fallback: number) => {
   return parsed;
 };
 
-const resolveSort = (sortBy?: string, sortOrder?: string) => {
+const resolveSort = (
+  sortBy?: string,
+  sortOrder?: string,
+): { sortBy: string; sortOrder: 1 | -1 } => {
   const resolvedSortBy =
     sortBy && SORTABLE_FIELDS.has(sortBy) ? sortBy : "createdAt";
   const resolvedSortOrder = sortOrder === "asc" ? 1 : -1;

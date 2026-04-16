@@ -54,6 +54,43 @@ describe("LangGraph prompt utilities", () => {
     const text = __langTestUtils.serializeContext("Consider recent comps");
     assert.equal(text, "Consider recent comps");
   });
+
+  it("normalizes deterministic options", () => {
+    const normalized = __langTestUtils.normalizeDeterministicOptions({
+      enabled: true,
+      allowReplay: false,
+      replayWrites: false,
+    });
+    assert.equal(normalized.enabled, true);
+    assert.equal(normalized.allowReplay, false);
+    assert.equal(normalized.replayWrites, false);
+  });
+
+  it("builds stable replay key", () => {
+    const a = __langTestUtils.createReplayKey({
+      goal: "same",
+      tools: ["a", "b"],
+    });
+    const b = __langTestUtils.createReplayKey({
+      tools: ["a", "b"],
+      goal: "same",
+    });
+    assert.equal(a, b);
+  });
+
+  it("includes thread identity in replay key inputs when provided", () => {
+    const a = __langTestUtils.createReplayKey({
+      goal: "same",
+      threadId: "thread-a",
+      tools: ["a", "b"],
+    });
+    const b = __langTestUtils.createReplayKey({
+      goal: "same",
+      threadId: "thread-b",
+      tools: ["a", "b"],
+    });
+    assert.notEqual(a, b);
+  });
 });
 
 describe("CrewAI payload helpers", () => {
@@ -219,5 +256,9 @@ describe("HTTP helper parsing", () => {
       () => __httpTestUtils.parseRuntime("invalid"),
       /runtime must be one of default\|langgraph\|crewai/,
     );
+    assert.equal(__httpTestUtils.parseDeterministicQuery("true"), true);
+    assert.equal(__httpTestUtils.parseDeterministicQuery("false"), false);
+    assert.equal(__httpTestUtils.parseDeterministicQuery("garbage"), undefined);
+    assert.equal(__httpTestUtils.parseDeterministicQuery(null), undefined);
   });
 });

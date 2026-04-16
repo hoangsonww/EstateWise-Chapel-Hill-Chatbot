@@ -1,0 +1,112 @@
+{
+  "version": 2,
+  "runId": "20260416_022103785",
+  "generatedAt": "2026-04-16T02:21:07.320Z",
+  "source": "zillow-web-public",
+  "metadata": {
+    "schemaVersion": 2,
+    "pipelineVersion": "2026.04.16",
+    "stats": {
+      "candidateUrlCount": 60,
+      "refreshableUrlCount": 57,
+      "fetchedCount": 3,
+      "successCount": 3,
+      "fetchErrorCount": 0,
+      "acceptedCount": 3,
+      "dedupedCount": 3,
+      "droppedCount": 0,
+      "durationMs": 3535
+    },
+    "quality": {
+      "average": 0.767,
+      "p10": 0.72,
+      "p50": 0.8,
+      "p90": 0.8,
+      "min": 0.7,
+      "max": 0.8,
+      "minAcceptable": 0.5
+    },
+    "freshness": {
+      "oldestFetchedAt": "2026-04-16T02:21:04.776Z",
+      "newestFetchedAt": "2026-04-16T02:21:06.396Z",
+      "oldestAgeHours": 0,
+      "newestAgeHours": 0
+    },
+    "warnings": []
+  },
+  "listings": [
+    {
+      "zpid": 459548370,
+      "url": "https://www.zillow.com/homedetails/167-Parkhurst-Blvd-Toronto-ON-M4G-2E9/459548370_zpid/",
+      "address": "167 Parkhurst Blvd, Toronto, ON",
+      "city": "Toronto",
+      "state": "ON",
+      "zipcode": null,
+      "price": 3399000,
+      "bedrooms": null,
+      "bathrooms": null,
+      "livingAreaSqft": null,
+      "homeType": "RealEstateListing,Product",
+      "status": "https://schema.org/InStock",
+      "publishedAt": null,
+      "fetchedAt": "2026-04-16T02:21:04.776Z",
+      "source": "zillow-web-public",
+      "qualityScore": 0.7,
+      "qualityFlags": [
+        "missing_zipcode",
+        "missing_bed_bath",
+        "missing_living_area"
+      ],
+      "firstSeenAt": "2026-04-16T02:21:07.320Z",
+      "lastSeenAt": "2026-04-16T02:21:07.320Z"
+    },
+    {
+      "zpid": 20871765,
+      "url": "https://www.zillow.com/homedetails/1195-N-Chester-Ave-Pasadena-CA-91104/20871765_zpid/",
+      "address": "1195 N Chester Ave, Pasadena, CA, 91104",
+      "city": "Pasadena",
+      "state": "CA",
+      "zipcode": "91104",
+      "price": 2380000,
+      "bedrooms": null,
+      "bathrooms": null,
+      "livingAreaSqft": null,
+      "homeType": "RealEstateListing,Product",
+      "status": "https://schema.org/InStock",
+      "publishedAt": null,
+      "fetchedAt": "2026-04-16T02:21:05.478Z",
+      "source": "zillow-web-public",
+      "qualityScore": 0.8,
+      "qualityFlags": [
+        "missing_bed_bath",
+        "missing_living_area"
+      ],
+      "firstSeenAt": "2026-04-16T02:21:07.320Z",
+      "lastSeenAt": "2026-04-16T02:21:07.320Z"
+    },
+    {
+      "zpid": 82469946,
+      "url": "https://www.zillow.com/homedetails/2895-Kalakaua-Ave-APT-1403-Honolulu-HI-96815/82469946_zpid/",
+      "address": "2895 Kalakaua Ave APT 1403, Honolulu, HI, 96815",
+      "city": "Honolulu",
+      "state": "HI",
+      "zipcode": "96815",
+      "price": 1250000,
+      "bedrooms": null,
+      "bathrooms": null,
+      "livingAreaSqft": null,
+      "homeType": "RealEstateListing,Product",
+      "status": "https://schema.org/InStock",
+      "publishedAt": null,
+      "fetchedAt": "2026-04-16T02:21:06.396Z",
+      "source": "zillow-web-public",
+      "qualityScore": 0.8,
+      "qualityFlags": [
+        "missing_bed_bath",
+        "missing_living_area"
+      ],
+      "firstSeenAt": "2026-04-16T02:21:07.320Z",
+      "lastSeenAt": "2026-04-16T02:21:07.320Z"
+    }
+  ]
+}

@@ -1,8 +1,10 @@
 import { Agent, AgentContext, AgentMessage, PlanStep } from "../core/types.js";
+import { applyRankingPolicy } from "../orchestrator/policy-engine.js";
 
 /** Canonical keys for coordinator-managed steps. */
 type StepKey =
   | "parseGoal"
+  | "liveData"
   | "webResearch"
   | "lookup"
   | "search"
@@ -46,6 +48,11 @@ export class CoordinatorAgent implements Agent {
       {
         key: "parseGoal",
         description: "Parse goal for filters",
+        status: "pending",
+      },
+      {
+        key: "liveData",
+        description: "Search local live Zillow snapshot (freshness + quality)",
         status: "pending",
       },
       {
@@ -207,12 +214,14 @@ export class CoordinatorAgent implements Agent {
             ranked.push(id);
           }
         }
-        ctx.blackboard.rankedZpids = ranked.slice(0, 100);
+        const policy = applyRankingPolicy(ranked.slice(0, 100));
+        ctx.blackboard.policy = policy;
+        ctx.blackboard.rankedZpids = policy.adjustedZpids.slice(0, 100);
         ctx.blackboard.zpids = ctx.blackboard.rankedZpids.slice();
         this.markDone(ctx, key);
         return {
           from: this.role,
-          content: `Dedupe+rank complete (${ctx.blackboard.zpids.length} ZPIDs).`,
+          content: `Dedupe+rank complete (${ctx.blackboard.zpids.length} ZPIDs, policy=${policy.version}, adjustments=${policy.applied.length}).`,
         };
       }
       case "compliance": {
@@ -267,6 +276,28 @@ export class CoordinatorAgent implements Agent {
           content: "Searching web for current context",
           data: {
             tool: { name: "web.search", args: { q: ctx.goal, limit: 5 } },
+          },
+        };
+      }
+      case "liveData": {
+        const parsed = ctx.blackboard.parsed || {};
+        this.markRunning(ctx, key);
+        return {
+          from: this.role,
+          content: "Checking live Zillow snapshot",
+          data: {
+            tool: {
+              name: "live.zillow.search",
+              args: {
+                q: ctx.goal,
+                city: parsed.city ?? undefined,
+                state: parsed.state ?? undefined,
+                zipcode: parsed.zipcode ?? undefined,
+                limit: 10,
+                maxAgeHours: 72,
+                minQualityScore: 0.5,
+              },
+            },
           },
         };
       }
@@ -459,6 +490,8 @@ function expectedTools(key: StepKey): string[] {
       return ["util.parseGoal"];
     case "webResearch":
       return ["web.search"];
+    case "liveData":
+      return ["live.zillow.search"];
     case "lookup":
       return ["properties.lookup"];
     case "search":

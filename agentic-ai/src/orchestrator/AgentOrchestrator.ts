@@ -264,6 +264,28 @@ export class AgentOrchestrator {
         web.pages = pages.slice(-5);
         break;
       }
+      case "live.zillow.search": {
+        const live = (this.blackboard.liveData ??= {});
+        live.source = data?.source ?? "zillow-live";
+        live.generatedAt = data?.generatedAt ?? null;
+        live.staleHours = Number.isFinite(Number(data?.staleHours))
+          ? Number(data?.staleHours)
+          : null;
+        live.warnings = Array.isArray(data?.warnings)
+          ? data.warnings.map((item: unknown) => String(item))
+          : [];
+        live.metadata =
+          data?.metadata && typeof data.metadata === "object"
+            ? data.metadata
+            : null;
+        live.count = Number(data?.count ?? 0);
+        live.results = Array.isArray(data?.results) ? data.results : [];
+        const z: number[] = (live.results || [])
+          .map((row: any) => Number(row?.zpid))
+          .filter((id: number) => Number.isFinite(id));
+        this.mergeZpids(z);
+        break;
+      }
       case "context.search":
       case "context.assembleContext": {
         if (!this.blackboard.contextData) this.blackboard.contextData = {};

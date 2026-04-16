@@ -5,6 +5,7 @@ EstateWise implements a sophisticated multi-protocol API architecture using REST
 ## Table of Contents
 
 - [Overview](#overview)
+- [Production Readiness Updates (2026-04)](#production-readiness-updates-2026-04)
 - [gRPC Implementation](#grpc-implementation)
   - [Understanding gRPC in Depth](#understanding-grpc-in-depth)
   - [Architecture & Components](#architecture--components)
@@ -109,10 +110,26 @@ flowchart TB
 ```
 
 The architecture follows key design principles:
+
 - **Protocol Independence**: Business logic remains agnostic to transport protocols
 - **Shared Services**: All protocols access the same backend services and data stores
 - **Optimal Path Selection**: Each client type uses the most appropriate protocol
 - **Consistency**: Uniform behavior across protocols through shared implementation
+
+## Production Readiness Updates (2026-04)
+
+- Backend API builds now fail on TypeScript errors (`backend` build uses `tsc` directly).
+- Forum API sorting type contracts are now strict and compile-safe with unchanged runtime semantics.
+- Backend tRPC client example compiles consistently via explicit `@trpc/client` dependency.
+- Live listing freshness is integrated through local snapshot + MCP (`live.zillow.search`) rather than direct request-path scraping.
+- LangGraph runtime now enforces required MCP tool contract alignment through automated tests.
+
+```mermaid
+flowchart LR
+  TRPCBuild[Type-safe tRPC example build] --> CompileSafety[Compile-time API safety]
+  StrictBackendBuild[backend tsc hard gate] --> CIQuality[Higher CI signal]
+  LiveSnapshotFlow[data/live-zillow -> MCP -> agentic] --> StableRPCSurface[Stable API surfaces]
+```
 
 ## gRPC Implementation
 
@@ -172,6 +189,7 @@ flowchart TB
 ### Protocol Buffers Deep Dive
 
 Protocol Buffers provide several advantages over JSON:
+
 - **Compact Binary Format**: 20-30% smaller payloads than equivalent JSON
 - **Strong Typing**: Type safety enforced at compile time
 - **Backward Compatibility**: Field numbering enables schema evolution
@@ -179,6 +197,7 @@ Protocol Buffers provide several advantages over JSON:
 - **Performance**: Faster serialization/deserialization than JSON
 
 Message definition follows structured patterns with field types, numbers, and rules:
+
 - **Scalar Types**: int32, int64, float, double, bool, string, bytes
 - **Composite Types**: Messages, enums, oneofs, maps, repeated fields
 - **Well-Known Types**: Timestamp, Duration, Any, Struct, Value
@@ -219,24 +238,28 @@ sequenceDiagram
 ```
 
 **Unary RPC** suits traditional request-response operations:
+
 - Property lookups by ID
 - User authentication
 - Simple CRUD operations
 - Synchronous calculations
 
 **Server Streaming** enables progressive data delivery:
+
 - Real-time market updates
 - Large dataset pagination
 - Search results as they're found
 - Log streaming
 
 **Client Streaming** aggregates multiple client inputs:
+
 - Batch property uploads
 - Telemetry collection
 - File uploads in chunks
 - Event aggregation
 
 **Bidirectional Streaming** powers real-time interactions:
+
 - Chat applications
 - Collaborative editing
 - Live bidding systems
@@ -247,12 +270,14 @@ sequenceDiagram
 EstateWise implements four core gRPC services, each handling specific domain responsibilities:
 
 **MarketPulseService** provides real-time market analytics:
+
 - GetSnapshot: Returns current market conditions for a location
 - StreamHotZips: Continuously streams trending zip codes
 - ListMarkets: Returns available market datasets
 - GetTrends: Analyzes historical market patterns
 
 **PropertyService** manages property data operations:
+
 - GetProperty: Retrieves single property by ID
 - ListProperties: Returns filtered property lists
 - SearchProperties: Performs vector similarity search
@@ -260,12 +285,14 @@ EstateWise implements four core gRPC services, each handling specific domain res
 - BatchGet: Efficiently retrieves multiple properties
 
 **AnalyticsService** delivers complex calculations:
+
 - PredictPrice: ML-based property valuation
 - CalculateROI: Investment return analysis
 - GetComparables: Find similar properties
 - StreamMetrics: Real-time performance indicators
 
 **GraphService** handles relationship queries:
+
 - GetSimilar: Find related properties via graph
 - ExplainPath: Describe relationship between properties
 - GetNeighborhood: Aggregate neighborhood statistics
@@ -306,18 +333,21 @@ flowchart LR
 ```
 
 **Connection Optimization**:
+
 - Persistent HTTP/2 connections reduce handshake overhead
 - Connection pooling distributes load across multiple connections
 - Keep-alive pings maintain connections through proxies
 - Automatic reconnection with exponential backoff
 
 **Message Optimization**:
+
 - Streaming compression (gzip, snappy) reduces bandwidth
 - Message batching amortizes protocol overhead
 - Field-level lazy deserialization improves memory usage
 - Protobuf arena allocation reduces memory fragmentation
 
 **Flow Control**:
+
 - Window-based flow control prevents overwhelming receivers
 - Backpressure propagation manages system load
 - Deadline propagation ensures timely request cancellation
@@ -328,6 +358,7 @@ flowchart LR
 gRPC provides rich error semantics through status codes and metadata:
 
 **Standard Status Codes**:
+
 - OK (0): Successful completion
 - CANCELLED (1): Operation cancelled by client
 - UNKNOWN (2): Unknown error
@@ -378,6 +409,7 @@ flowchart TB
 ```
 
 gRPC supports sophisticated load balancing:
+
 - **Pick First**: Tries addresses sequentially until one succeeds
 - **Round Robin**: Distributes requests evenly across backends
 - **Weighted Round Robin**: Distributes based on server capacity
@@ -481,6 +513,7 @@ graph TD
 ```
 
 **Properties Router** handles all property-related operations:
+
 - list: Paginated property listings with filters
 - byId: Single property retrieval
 - search: Vector similarity search
@@ -492,6 +525,7 @@ graph TD
 - subscribe: Real-time property updates
 
 **Analytics Router** provides complex calculations:
+
 - marketTrends: Historical trend analysis
 - pricePrediction: ML-based valuation
 - neighborhoodStats: Area demographics
@@ -501,6 +535,7 @@ graph TD
 - portfolioPerformance: Investment tracking
 
 **Authentication Router** manages user sessions:
+
 - login: User authentication
 - signup: Account creation
 - logout: Session termination
@@ -556,6 +591,7 @@ flowchart TD
 The context system provides request-scoped resources:
 
 **Context Creation Process**:
+
 1. Extract request information (headers, cookies, IP)
 2. Parse and validate JWT tokens
 3. Establish database connections from pool
@@ -564,6 +600,7 @@ The context system provides request-scoped resources:
 6. Create performance monitoring spans
 
 **Context Contents**:
+
 - User object with permissions and preferences
 - Database clients (MongoDB, Pinecone, Neo4j, Redis)
 - External service clients (Gemini AI, email, SMS)
@@ -613,6 +650,7 @@ flowchart LR
 ```
 
 **Query Procedures** for read operations:
+
 - Automatically cached by React Query
 - Safe to retry on failure
 - Can be prefetched during SSR
@@ -620,6 +658,7 @@ flowchart LR
 - Examples: getProperty, listProperties, searchProperties
 
 **Mutation Procedures** for state changes:
+
 - Not automatically retried
 - Support optimistic updates
 - Can invalidate related queries
@@ -627,6 +666,7 @@ flowchart LR
 - Examples: createProperty, updateProperty, deleteProperty
 
 **Subscription Procedures** for real-time updates:
+
 - Use WebSocket transport
 - Maintain persistent connections
 - Support reconnection logic
@@ -642,6 +682,7 @@ tRPC's frontend integration provides seamless TypeScript experience:
 **React Hooks Integration** provides useQuery for data fetching, useMutation for state changes, useSubscription for real-time data, and useInfiniteQuery for pagination.
 
 **Type Safety Benefits**:
+
 - Autocomplete for all procedure names
 - Type checking for input parameters
 - Inferred response types
@@ -649,6 +690,7 @@ tRPC's frontend integration provides seamless TypeScript experience:
 - Refactoring safety across stack
 
 **Developer Experience Features**:
+
 - Hot reload preserves types
 - No code generation step
 - Instant feedback on API changes
@@ -693,6 +735,7 @@ flowchart TB
 ```
 
 tRPC provides sophisticated error handling:
+
 - Zod validation errors with field-level details
 - Custom business logic errors with context
 - Network errors with retry strategies
@@ -703,28 +746,28 @@ tRPC provides sophisticated error handling:
 
 ### Comprehensive Feature Matrix
 
-| Category | Feature | REST | tRPC | gRPC |
-|----------|---------|------|------|------|
-| **Type Safety** | Compile-time checking | ❌ Manual | ✅ Automatic | ✅ Generated |
-| | Runtime validation | ✅ Libraries | ✅ Zod | ✅ Protobuf |
-| | Refactoring safety | ❌ | ✅ | ⚠️ Regenerate |
-| **Performance** | Payload size | Baseline | Same as REST | -30% |
-| | Latency | Baseline | Same as REST | -25% |
-| | Throughput | 1x | 1x | 1.5x |
-| | Connection reuse | ⚠️ HTTP/1.1 | ⚠️ HTTP/1.1 | ✅ HTTP/2 |
-| **Streaming** | Server push | ❌ SSE/WS | ⚠️ Subscriptions | ✅ Native |
-| | Bidirectional | ❌ | ❌ | ✅ |
-| | Backpressure | ❌ | ❌ | ✅ |
-| **Developer Experience** | Learning curve | Low | Medium | High |
-| | Documentation | OpenAPI | Types as docs | Proto files |
-| | Tooling | Extensive | TypeScript | Multi-language |
-| | Debugging | Easy | Easy | Complex |
-| **Compatibility** | Browser support | ✅ Universal | ✅ Universal | ⚠️ Proxy needed |
-| | Language support | ✅ Any | ❌ TypeScript | ✅ 10+ langs |
-| | Legacy systems | ✅ | ❌ | ⚠️ |
-| **Features** | Caching | ✅ HTTP | ✅ React Query | ❌ Custom |
-| | File upload | ✅ Multipart | ⚠️ Base64 | ✅ Streaming |
-| | Auth standards | ✅ OAuth/JWT | ✅ JWT | ⚠️ Custom |
+| Category                 | Feature               | REST         | tRPC             | gRPC            |
+| ------------------------ | --------------------- | ------------ | ---------------- | --------------- |
+| **Type Safety**          | Compile-time checking | ❌ Manual    | ✅ Automatic     | ✅ Generated    |
+|                          | Runtime validation    | ✅ Libraries | ✅ Zod           | ✅ Protobuf     |
+|                          | Refactoring safety    | ❌           | ✅               | ⚠️ Regenerate   |
+| **Performance**          | Payload size          | Baseline     | Same as REST     | -30%            |
+|                          | Latency               | Baseline     | Same as REST     | -25%            |
+|                          | Throughput            | 1x           | 1x               | 1.5x            |
+|                          | Connection reuse      | ⚠️ HTTP/1.1  | ⚠️ HTTP/1.1      | ✅ HTTP/2       |
+| **Streaming**            | Server push           | ❌ SSE/WS    | ⚠️ Subscriptions | ✅ Native       |
+|                          | Bidirectional         | ❌           | ❌               | ✅              |
+|                          | Backpressure          | ❌           | ❌               | ✅              |
+| **Developer Experience** | Learning curve        | Low          | Medium           | High            |
+|                          | Documentation         | OpenAPI      | Types as docs    | Proto files     |
+|                          | Tooling               | Extensive    | TypeScript       | Multi-language  |
+|                          | Debugging             | Easy         | Easy             | Complex         |
+| **Compatibility**        | Browser support       | ✅ Universal | ✅ Universal     | ⚠️ Proxy needed |
+|                          | Language support      | ✅ Any       | ❌ TypeScript    | ✅ 10+ langs    |
+|                          | Legacy systems        | ✅           | ❌               | ⚠️              |
+| **Features**             | Caching               | ✅ HTTP      | ✅ React Query   | ❌ Custom       |
+|                          | File upload           | ✅ Multipart | ⚠️ Base64        | ✅ Streaming    |
+|                          | Auth standards        | ✅ OAuth/JWT | ✅ JWT           | ⚠️ Custom       |
 
 ### Performance Benchmarks
 
@@ -843,6 +886,7 @@ flowchart TB
 ```
 
 **gRPC Mesh Integration**:
+
 - Native support for Envoy proxy
 - Automatic protocol detection
 - Built-in load balancing policies
@@ -850,6 +894,7 @@ flowchart TB
 - Health check protocol support
 
 **tRPC Mesh Integration**:
+
 - Standard HTTP routing
 - Header-based routing rules
 - Cookie-based session affinity
@@ -908,6 +953,7 @@ flowchart TB
 ```
 
 **Common Security Infrastructure**:
+
 - Shared JWT validation service
 - Unified permission system
 - Centralized audit logging
@@ -917,18 +963,21 @@ flowchart TB
 **Protocol-Specific Implementation**:
 
 REST Security:
+
 - Standard Authorization headers
 - OAuth 2.0 support
 - API key authentication
 - CORS configuration
 
 tRPC Security:
+
 - Context-based auth
 - Procedure-level permissions
 - Type-safe user objects
 - Automatic token refresh
 
 gRPC Security:
+
 - Metadata-based auth
 - mTLS support
 - Channel credentials
@@ -1048,16 +1097,19 @@ flowchart TB
 ### Scaling Strategies
 
 **Horizontal Scaling**: Protocol-specific considerations for scaling out:
+
 - REST/tRPC: Standard round-robin load balancing
 - gRPC: Client-side load balancing for better connection distribution
 - All: Pod anti-affinity for high availability
 
 **Vertical Scaling**: Resource optimization per protocol:
+
 - gRPC: More memory for connection pools (512MB)
 - tRPC: Standard Node.js requirements (256MB)
 - REST: Minimal overhead (256MB)
 
 **Auto-scaling Policies**: Metrics-based scaling triggers:
+
 - CPU utilization > 70%
 - Memory usage > 80%
 - Request rate thresholds
@@ -1117,6 +1169,7 @@ flowchart TB
 ### Connection Optimization
 
 **gRPC Connection Management**:
+
 - Persistent HTTP/2 connections
 - Connection pooling with size limits
 - Keep-alive with configurable intervals
@@ -1124,6 +1177,7 @@ flowchart TB
 - Connection state monitoring
 
 **tRPC/REST Connection Optimization**:
+
 - HTTP/1.1 keep-alive
 - Connection reuse
 - Request pipelining
@@ -1133,11 +1187,13 @@ flowchart TB
 ### Batching & Aggregation
 
 **Request Batching**: Combining multiple operations for efficiency:
+
 - tRPC: Automatic HTTP request batching
 - gRPC: Manual batching in service methods
 - REST: Explicit batch endpoints
 
 **Data Aggregation**: Reducing round trips through smart queries:
+
 - GraphQL-like field selection
 - Included related resources
 - Projection queries
@@ -1192,6 +1248,7 @@ flowchart TB
 ### Key Performance Indicators
 
 **System Metrics**:
+
 - Request rate (req/s)
 - Error rate (4xx, 5xx)
 - Latency (P50, P95, P99)
@@ -1200,6 +1257,7 @@ flowchart TB
 **Protocol-Specific Metrics**:
 
 gRPC Metrics:
+
 - Active streams count
 - Stream duration
 - Message send/receive rate
@@ -1207,6 +1265,7 @@ gRPC Metrics:
 - Status code distribution
 
 tRPC Metrics:
+
 - Procedure call rate
 - Batch size distribution
 - Type validation failures
@@ -1214,6 +1273,7 @@ tRPC Metrics:
 - Subscription count
 
 REST Metrics:
+
 - HTTP method distribution
 - Response size
 - Cache effectiveness
@@ -1243,11 +1303,13 @@ sequenceDiagram
 ```
 
 **Trace Propagation**:
+
 - gRPC: Automatic via metadata
 - tRPC: Manual via headers
 - REST: Standard headers (W3C Trace Context)
 
 **Trace Analysis**:
+
 - Request flow visualization
 - Latency breakdown
 - Error attribution
@@ -1259,6 +1321,7 @@ sequenceDiagram
 ### API Design Guidelines
 
 **Consistency Across Protocols**:
+
 - Uniform resource naming
 - Consistent error formats
 - Shared validation rules
@@ -1266,6 +1329,7 @@ sequenceDiagram
 - Standardized filtering
 
 **Version Management**:
+
 - Semantic versioning
 - Backward compatibility
 - Deprecation notices
@@ -1273,6 +1337,7 @@ sequenceDiagram
 - Feature flags
 
 **Documentation Standards**:
+
 - API reference documentation
 - Integration guides
 - Code examples
@@ -1317,15 +1382,19 @@ flowchart TB
 ```
 
 **Test Implementation**:
+
 - Unit tests for pure business logic
 - Integration tests for API contracts
 - Contract tests for protocol compatibility
+- LangGraph/MCP contract tests to ensure required MCP tools are actually exposed by runtime wrappers
+- Backend typecheck gate (`tsc`) in CI to catch cross-protocol type regressions before deploy
 - Load tests for performance baselines
 - Chaos tests for resilience
 
 ### Operational Excellence
 
 **Deployment Best Practices**:
+
 - Blue-green deployments for zero downtime
 - Canary releases for gradual rollout
 - Feature flags for controlled activation
@@ -1333,6 +1402,7 @@ flowchart TB
 - Health checks before traffic routing
 
 **Monitoring & Alerting**:
+
 - SLI/SLO definition and tracking
 - Alert fatigue prevention
 - Runbook automation
@@ -1340,6 +1410,7 @@ flowchart TB
 - Post-mortem culture
 
 **Capacity Planning**:
+
 - Load testing regular intervals
 - Growth projection models
 - Resource utilization tracking
@@ -1373,6 +1444,7 @@ flowchart LR
 ```
 
 **Incremental Migration Steps**:
+
 1. Deploy new protocol alongside existing
 2. Route new features to new protocol
 3. Gradually migrate existing features
@@ -1381,6 +1453,7 @@ flowchart LR
 6. Remove legacy code after transition period
 
 **Risk Mitigation**:
+
 - Maintain backward compatibility
 - Provide protocol translation layer
 - Implement comprehensive testing
@@ -1401,4 +1474,4 @@ flowchart LR
 
 ---
 
-*This comprehensive documentation covers all aspects of EstateWise's RPC implementations. For specific implementation details and code examples, refer to the respective service repositories.*
+_This comprehensive documentation covers all aspects of EstateWise's RPC implementations. For specific implementation details and code examples, refer to the respective service repositories._

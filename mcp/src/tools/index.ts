@@ -17,6 +17,7 @@ import { mcpTokenTools } from "./mcpToken.js";
 import { a2aTools } from "./a2a.js";
 import { webTools } from "./web.js";
 import { contextTools } from "./context.js";
+import { liveDataTools } from "./liveData.js";
 
 /** Register all domain tool modules with the MCP server. */
 export function registerAllTools(server: McpServer) {
@@ -38,5 +39,6 @@ export function registerAllTools(server: McpServer) {
     ...a2aTools,
     ...webTools,
     ...contextTools,
+    ...liveDataTools,
   ]);
 }
