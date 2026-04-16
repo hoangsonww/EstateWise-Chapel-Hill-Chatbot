@@ -2,6 +2,8 @@
 
 This directory contains exploratory data analysis (EDA), cleaning, export, and vectorization scripts used during dataset exploration and model prototyping. It is **not required** for running the production app, but it is useful if you want to understand the data pipeline and reproduce the experiments.
 
+It also contains a **live Zillow ingestion pipeline** under `data/live-zillow/` used by MCP + agentic-ai for freshness-aware listing context with quality gating, incremental refresh state, and run manifests.
+
 ## High-Level Pipeline
 
 ```mermaid
@@ -13,6 +15,10 @@ flowchart LR
   Mongo --> Vectors[Embeddings]
   Vectors --> Pinecone[(Pinecone Index)]
   Pinecone --> Backend[Backend /api/properties]
+  ZillowWeb[Zillow Public Web] --> LiveIngest[data/live-zillow ingestion]
+  LiveIngest --> LiveSnap[data/live-zillow/output/live_zillow_snapshot.normalized.json]
+  LiveSnap --> MCP[MCP live.zillow.search]
+  MCP --> Agentic[agentic-ai]
 ```
 
 ## Directory Layout
@@ -20,9 +26,12 @@ flowchart LR
 ```
 data/
   js/        # JS utilities for ML metrics + quick scripts
+  live-zillow/ # Live snapshot fetch + normalization pipeline
   python/    # Python EDA + cleaning + Pinecone upsert helpers
   README.md
 ```
+
+See `data/live-zillow/README.md` for full live-data details.
 
 ## Quickstart
 
@@ -56,9 +65,11 @@ Some files use ESM-style imports (e.g., `pricePrediction.js`). If Node complains
 Most scripts read from `.env` (root) using `python-dotenv` or `dotenv`:
 
 Required for MongoDB workflows:
+
 - `MONGO_URI`
 
 Required for embedding/upsert:
+
 - `GOOGLE_AI_API_KEY`
 - `PINECONE_API_KEY`, `PINECONE_ENVIRONMENT`, `PINECONE_INDEX`
 
@@ -66,17 +77,17 @@ Required for embedding/upsert:
 
 Located under `data/python/`:
 
-| Script | Purpose | Notes |
-|--------|---------|-------|
-| `analyze_properties.py` | Aggregate stats by city | Prints avg/min/max + counts |
-| `data_summary.py` | Overall and per-city price distribution | Uses numpy for summaries |
-| `clean_properties.py` | Clean + normalize MongoDB documents | **Mutates data in place** |
-| `export_properties.py` | Export MongoDB collection to CSV | Output: `properties_export.csv` |
-| `sync_properties.py` | Full collection sync to CSV | Output: `properties_sync.csv` |
-| `upsert_properties.py` | Stream JSON, embed, and upsert to Pinecone | Uses ijson streaming |
-| `pinecone_client.py` | Pinecone client config | Reads env vars |
-| `utils.py` | Cleaning + metadata helpers | Shared by scripts |
-| `estatewise_cli_chatbot.py` | Colab notebook export | Large, exploratory notebook |
+| Script                      | Purpose                                    | Notes                           |
+| --------------------------- | ------------------------------------------ | ------------------------------- |
+| `analyze_properties.py`     | Aggregate stats by city                    | Prints avg/min/max + counts     |
+| `data_summary.py`           | Overall and per-city price distribution    | Uses numpy for summaries        |
+| `clean_properties.py`       | Clean + normalize MongoDB documents        | **Mutates data in place**       |
+| `export_properties.py`      | Export MongoDB collection to CSV           | Output: `properties_export.csv` |
+| `sync_properties.py`        | Full collection sync to CSV                | Output: `properties_sync.csv`   |
+| `upsert_properties.py`      | Stream JSON, embed, and upsert to Pinecone | Uses ijson streaming            |
+| `pinecone_client.py`        | Pinecone client config                     | Reads env vars                  |
+| `utils.py`                  | Cleaning + metadata helpers                | Shared by scripts               |
+| `estatewise_cli_chatbot.py` | Colab notebook export                      | Large, exploratory notebook     |
 
 ### Example: Run a summary
 
@@ -105,15 +116,15 @@ python upsert_properties.py
 
 Located under `data/js/`:
 
-| Script | Purpose | Notes |
-|--------|---------|-------|
-| `anomalyDetection.js` | z-score + IQR outlier detection | Utility functions |
-| `clusteringMetrics.js` | Silhouette + Davies-Bouldin | Utility functions |
-| `featureEngineering.js` | Derived features for modeling | Used by price model |
-| `pricePrediction.js` | TensorFlow.js regression model | Requires tfjs-node |
-| `modelEvaluation.js` | Regression metrics (MSE/MAE/R2) | Utility functions |
-| `exportProperties.js` | Export MongoDB to CSV | Output: `properties_export.csv` |
-| `updatePropertyStatus.js` | Update `homeStatus` by price | **Mutates data in place** |
+| Script                    | Purpose                         | Notes                           |
+| ------------------------- | ------------------------------- | ------------------------------- |
+| `anomalyDetection.js`     | z-score + IQR outlier detection | Utility functions               |
+| `clusteringMetrics.js`    | Silhouette + Davies-Bouldin     | Utility functions               |
+| `featureEngineering.js`   | Derived features for modeling   | Used by price model             |
+| `pricePrediction.js`      | TensorFlow.js regression model  | Requires tfjs-node              |
+| `modelEvaluation.js`      | Regression metrics (MSE/MAE/R2) | Utility functions               |
+| `exportProperties.js`     | Export MongoDB to CSV           | Output: `properties_export.csv` |
+| `updatePropertyStatus.js` | Update `homeStatus` by price    | **Mutates data in place**       |
 
 ## Common Workflows
 

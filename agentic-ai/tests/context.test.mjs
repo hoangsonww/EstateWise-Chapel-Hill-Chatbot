@@ -1,5 +1,8 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import { TokenBudgetManager, MultiLevelCache, ConversationStore, CoherenceManager, HybridRAGPipeline, STRATEGIES, getStrategyForAgent } from "../dist/context/index.js";
 
 describe("Token Budget", () => {
@@ -15,6 +18,22 @@ describe("Cache", () => {
 describe("ConversationStore", () => {
   it("manages messages", () => { const s = new ConversationStore(); const id = s.create("t1"); s.appendMessage(id, { role: "user", content: "Hi", timestamp: new Date() }); assert.equal(s.get(id).messages.length, 1); });
   it("tracks entities", () => { const s = new ConversationStore(); const id = s.create("t2"); s.trackEntity(id, "property", "123 Main"); const e = s.get(id).entities; assert.ok(e.property && e.property.length > 0); });
+  it("persists and reloads snapshots", () => {
+    const persistPath = path.join(
+      os.tmpdir(),
+      `estatewise-conversation-${Date.now()}.json`,
+    );
+    const s1 = new ConversationStore({ persistPath });
+    const id = s1.create("persist-1");
+    s1.appendMessage(id, { role: "user", content: "hello" });
+    s1.trackEntity(id, "city", "Austin");
+    const s2 = new ConversationStore({ persistPath });
+    const restored = s2.get("persist-1");
+    assert.ok(restored);
+    assert.equal(restored.messages.length, 1);
+    assert.ok(restored.entities.city.includes("Austin"));
+    fs.unlinkSync(persistPath);
+  });
 });
 describe("Coherence", () => {
   it("tracks turns", () => { const m = new CoherenceManager(); for (let i = 0; i < 6; i++) { m.addMessage("user", "M"); m.addMessage("assistant", "R"); } assert.ok(m.getContext().totalTurns >= 6); });

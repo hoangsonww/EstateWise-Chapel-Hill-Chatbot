@@ -83,6 +83,7 @@ Below, we outline the architecture, key components, and challenges faced during 
 
 ## Table of Contents
 
+- [0. Production Readiness Updates (2026-04)](#0-production-readiness-updates-2026-04)
 - [1. Data Ingestion \& Validation](#1-data-ingestion--validation)
   - [1.1 Streaming Parser Setup](#11-streaming-parser-setup)
   - [1.2 Schema \& Field Selection](#12-schema--field-selection)
@@ -183,6 +184,26 @@ Below, we outline the architecture, key components, and challenges faced during 
   - [C. Overall App’s Flow Diagram](#c-overall-apps-flow-diagram)
   - [D. Mermaid Sequence Diagram](#d-mermaid-sequence-diagram)
   - [E. Vector Schema \& Metadata Example](#e-vector-schema--metadata-example)
+
+---
+
+## 0. Production Readiness Updates (2026-04)
+
+Recent implementation hardening completed across backend, MCP, and agentic runtime:
+
+- **Backend typecheck gate fixed**: forum post sorting now uses strict literal sort-order typing, and backend build enforces `tsc` (no silent pass-through).
+- **tRPC example compile stability**: backend now includes `@trpc/client` so `src/trpc/client.example.ts` remains type-safe and build-clean.
+- **Live data reliability**: MCP live snapshot search accepts both normalized (`listings`) and raw (`records`) snapshot shapes.
+- **Runtime contract enforcement**: LangGraph MCP wrappers include `live.zillow.search`, with automated tests preventing future required-tool drift.
+- **Policy resilience**: malformed ranking policy JSON no longer crashes orchestration; runtime falls back to default policy with warning.
+
+```mermaid
+flowchart LR
+  BuildGate[backend tsc hard gate] --> SaferRelease[Safer production releases]
+  ContractGuard[LangGraph/MCP contract test] --> ToolConsistency[Tool contract consistency]
+  PolicyFallback[Policy parse fallback] --> RuntimeContinuity[Runtime continuity]
+  SnapshotCompat[records + listings support] --> FreshDataReliability[Fresh data retrieval reliability]
+```
 
 ---
 
@@ -429,11 +450,13 @@ This string is inserted into the LLM system prompt.
 A retrieval pipeline that combines semantic vector search (Pinecone) with structural graph enrichment (Neo4j), then merges the results into a single context for the LLM.
 
 **Why we use it:**
+
 - Vector search captures semantic intent from free-form user prompts.
 - Graph traversal adds explainable relationships (same neighborhood, same ZIP, similar-to edges).
 - The merged context improves recall and makes recommendations easier to justify.
 
 **High-level flow:**
+
 1. Embed the user query and fetch Top-K candidates from Pinecone.
 2. Enrich top results with Neo4j neighbors and relationship reasons.
 3. Merge, dedupe, and cluster results before building the final prompt context.
@@ -647,11 +670,13 @@ They are ultra-specific and tailored to the task at hand, ensuring that the AI c
 EstateWise includes a production `agentic-ai/` package that extends the core MoE pipeline with runtime-selectable, tool-centric workflows.
 
 **Runtime modes:**
+
 - `default`: round-based orchestrator with specialist agents and blackboard state.
 - `langgraph`: ReAct tool-calling runtime over MCP with optional Pinecone and Neo4j augmentation.
 - `crewai`: Python CrewAI runtime bridged from Node for crew-style execution.
 
 **Entry surfaces:**
+
 - CLI: `npm run dev -- "<goal>"` (`--langgraph`, `--crewai`, or `AGENT_RUNTIME`).
 - HTTP: `POST /run`, `GET /run/stream`, `GET /config`.
 - A2A: `POST /a2a` (JSON-RPC, optional task `requestId`), `GET /a2a/tasks/{taskId}/events` (SSE).
@@ -670,6 +695,7 @@ flowchart LR
 ```
 
 **Observability updates:**
+
 - LangGraph run output includes normalized `toolExecutions` (status, duration, output/error).
 - Cost telemetry is returned for LangGraph and CrewAI runs.
 - Optional LangSmith tracing is supported via environment configuration with strict-mode validation.
@@ -722,8 +748,9 @@ const model = genAI.getGenerativeModel({
 A runtime router that executes the same business intent through one of three modes (`default`, `langgraph`, `crewai`) and standardizes output envelopes across CLI/HTTP/A2A surfaces.
 
 **Current orchestration contract:**
-- HTTP batch: `POST /run` with `goal`, optional `runtime`, `rounds`, `threadId`, `requestId`.
-- HTTP stream: `GET /run/stream` with the same runtime controls plus SSE progress events.
+
+- HTTP batch: `POST /run` with `goal`, optional `runtime`, `rounds`, `threadId`, `requestId`, and `deterministic`.
+- HTTP stream: `GET /run/stream` with the same runtime controls plus SSE progress events and optional `deterministic=true|false`.
 - Runtime config discovery: `GET /config` reports supported runtimes, MCP tool requirements, and LangSmith tracing state.
 - Request correlation: `requestId` (or `x-request-id`) is carried into LangGraph trace metadata.
 
@@ -745,6 +772,7 @@ flowchart LR
 A stdio-based MCP server that exposes tools (search, graph, analytics, monitoring) to agentic runtimes and other MCP-compatible clients.
 
 **Why we use it:**
+
 - Standardizes tool access for agents across runtimes.
 - Centralizes logging, caching, and observability for tool calls.
 - Enables a clean separation between tools and orchestration logic.
@@ -759,6 +787,7 @@ flowchart TB
 ```
 
 **Docs & entry points:**
+
 - MCP server lives in `mcp/`
 - Full tool catalog and setup: [mcp/README.md](mcp/README.md)
 
@@ -768,6 +797,7 @@ flowchart TB
 A JSON-RPC task protocol exposed by `agentic-ai` for asynchronous agent-to-agent execution.
 
 **Why we use it:**
+
 - Standardizes inter-agent task lifecycle (`queued`, `running`, `succeeded`, `failed`, `canceled`).
 - Supports async execution with polling (`tasks.get`, `tasks.wait`) or live streams (`/a2a/tasks/{taskId}/events`).
 - Enables runtime selection per task without changing caller integration.
@@ -785,7 +815,7 @@ sequenceDiagram
   Client->>API: GET /a2a/tasks/{taskId}/events (optional SSE)
 ```
 
-*Note: The chain-of-thought reasoning and agentic AI orchestration are designed to work together seamlessly, allowing for complex workflows that can adapt to a wide range of user queries and scenarios.*
+_Note: The chain-of-thought reasoning and agentic AI orchestration are designed to work together seamlessly, allowing for complex workflows that can adapt to a wide range of user queries and scenarios._
 
 ---
 
@@ -803,8 +833,16 @@ Provides a secure, scalable interface for the frontend to interact with the AI p
 // routes/chat.ts
 router.post("/chat", chatController);
 router.post("/chat/rate", ratingController);
+router.get("/live-data/status", liveDataStatusController);
+router.get("/live-data/search", liveDataSearchController);
 // More endpoints follow similarly…
 ```
+
+Production guardrails added in this layer:
+
+- `npm run check:no-agentic` prevents backend imports/coupling to `agentic-ai` internals.
+- `npm run build` now enforces strict TypeScript compilation (`tsc`) as a hard quality gate.
+- Live-data endpoints consume local snapshot artifacts and do not trigger inline web scraping during chat requests.
 
 ### 8.2 MongoDB Models & Conversations
 
@@ -855,11 +893,13 @@ paths:
 A TypeScript-first RPC layer that shares types end-to-end between the backend and frontend without code generation.
 
 **Why we use it:**
+
 - Keeps API contracts and client calls fully type-safe.
 - Pairs well with React Query for caching and request batching.
 - Runs alongside REST at `/trpc/*`, so it can be adopted incrementally.
 
 **Implementation notes:**
+
 - Backend router lives in `backend/src/trpc/` with domain-specific routers.
 - Input validation uses Zod schemas.
 - Frontend clients consume typed procedures directly.
@@ -875,15 +915,14 @@ flowchart TB
 ```
 
 **Example tRPC calls:**
+
 ```ts
 import { createTRPCProxyClient, httpBatchLink } from "@trpc/client";
 import type { AppRouter } from "../../backend/src/trpc/routers";
 
 // Adjust the AppRouter import to your frontend setup.
 const client = createTRPCProxyClient<AppRouter>({
-  links: [
-    httpBatchLink({ url: "http://localhost:5000/trpc" }),
-  ],
+  links: [httpBatchLink({ url: "http://localhost:5000/trpc" })],
 });
 
 const listings = await client.properties.list.query({
@@ -905,11 +944,13 @@ For detailed router layouts, middleware, and usage patterns, see [GRPC_TRPC.md](
 A high-performance RPC layer using Protocol Buffers and HTTP/2 for cross-language and streaming workloads.
 
 **Why we use it:**
+
 - Efficient binary transport and streaming support.
 - Strongly-typed contracts for services outside the TypeScript stack.
 - Ideal for microservice and analytics pipelines.
 
 **Implementation notes:**
+
 - Service definitions live in `grpc/proto/` (for example, `MarketPulseService`).
 - Server implementation lives in `grpc/src/` and defaults to `0.0.0.0:50051`.
 - gRPC configuration is controlled via `GRPC_HOST` and `GRPC_PORT`.
@@ -928,6 +969,7 @@ sequenceDiagram
 ```
 
 **Example gRPC calls:**
+
 ```bash
 # List available markets
 grpcurl -plaintext localhost:50051 \
@@ -961,8 +1003,8 @@ https://estatewise-backend.vercel.app/
 
 EstateWise features **production-ready, enterprise-grade infrastructure** with multi-cloud deployment options, advanced deployment strategies, comprehensive monitoring, and automated operations.
 
-> [!TIP]
-> **📘 Complete Documentation:**
+> [!TIP] > **📘 Complete Documentation:**
+>
 > - **[DEVOPS.md](DEVOPS.md)** – Comprehensive DevOps guide with deployment strategies, monitoring, and operations
 > - **[DEPLOYMENTS.md](DEPLOYMENTS.md)** – Platform-specific deployment guides (AWS, Azure, GCP, Kubernetes)
 > - **[PRODUCTION-READINESS.md](PRODUCTION-READINESS.md)** – Complete production checklist and metrics
@@ -972,6 +1014,7 @@ EstateWise features **production-ready, enterprise-grade infrastructure** with m
 EstateWise supports three zero-downtime deployment strategies:
 
 #### Blue-Green Deployment
+
 ```bash
 # Automated script for blue-green deployments
 ./kubernetes/scripts/blue-green-deploy.sh backend \
@@ -985,6 +1028,7 @@ EstateWise supports three zero-downtime deployment strategies:
 ```
 
 #### Canary Deployment
+
 ```bash
 # Progressive rollout with traffic shifting
 ./kubernetes/scripts/canary-deploy.sh backend \
@@ -999,6 +1043,7 @@ EstateWise supports three zero-downtime deployment strategies:
 ```
 
 #### Rolling Update
+
 ```bash
 # Kubernetes-native gradual rollout
 kubectl set image deployment/estatewise-backend \
@@ -1045,6 +1090,7 @@ kubernetes/chaos/
 ```
 
 **Helm packaging** (for CI/CD and multi-cloud clusters):
+
 - Chart lives in `helm/estatewise/` and mirrors the base manifests with configurable values.
 - Includes templates for Deployments, Services, Ingress, HPA, PDB, NetworkPolicy, RBAC, and ServiceMonitor.
 - Cloud-specific annotations can be injected via `global.cloud.*` for EKS/AKS/GKE/OCI.
@@ -1096,6 +1142,7 @@ pipeline {
 ```
 
 **Security Scanning Layers:**
+
 1. **npm audit** – Dependency vulnerabilities
 2. **Semgrep** – Static application security testing (SAST)
 3. **Trufflehog** – Secret scanning
@@ -1111,15 +1158,15 @@ pipeline {
 
 SonarQube is configured as a multi-module project via `sonar-project.properties`, scanning all 7 services:
 
-| Module | Sources | Tests |
-|--------|---------|-------|
-| `backend` | `src/` | `tests/` |
-| `frontend` | `pages/`, `components/`, `lib/`, `server/` | `__tests__/` |
-| `grpc` | `src/` | `src/**/*.test.ts` |
-| `mcp` | `src/` | – |
-| `agentic-ai` | `src/` | `src/**/*.test.ts` |
-| `deployment-control` | `src/` | – |
-| `context-engineering` | `src/` | – |
+| Module                | Sources                                    | Tests              |
+| --------------------- | ------------------------------------------ | ------------------ |
+| `backend`             | `src/`                                     | `tests/`           |
+| `frontend`            | `pages/`, `components/`, `lib/`, `server/` | `__tests__/`       |
+| `grpc`                | `src/`                                     | `src/**/*.test.ts` |
+| `mcp`                 | `src/`                                     | –                  |
+| `agentic-ai`          | `src/`                                     | `src/**/*.test.ts` |
+| `deployment-control`  | `src/`                                     | –                  |
+| `context-engineering` | `src/`                                     | –                  |
 
 Quality gate enforcement breaks CI on new code violations. A local SonarQube server is available:
 
@@ -1157,6 +1204,7 @@ Per-service Snyk policies live in `.snyk` (root) and `.snyk.d/` (per-service ove
 ### 10.5 Monitoring & Observability
 
 #### Prometheus Metrics
+
 ```yaml
 # 16 Alert Rules across 5 categories:
 - Availability: ServiceDown, HighErrorRate, CriticalErrorRate
@@ -1167,6 +1215,7 @@ Per-service Snyk policies live in `.snyk` (root) and `.snyk.d/` (per-service ove
 ```
 
 #### Grafana Dashboards
+
 ```json
 // Real-time visualization:
 - Request rate by service
@@ -1178,6 +1227,7 @@ Per-service Snyk policies live in `.snyk` (root) and `.snyk.d/` (per-service ove
 ```
 
 #### Centralized Logging
+
 - **Kubernetes logs** – `kubectl logs` with structured JSON
 - **CloudWatch** (AWS) / **Cloud Logging** (GCP) / **Log Analytics** (Azure)
 - **Prometheus exporters** – Custom metrics for business KPIs
@@ -1220,12 +1270,12 @@ flowchart TB
 
 **Configuration by deployment target:**
 
-| Target | Config Location | What It Manages |
-|--------|----------------|-----------------|
-| Terraform | `terraform/datadog.tf` | Monitors, dashboard, SLOs, synthetic checks, downtime schedules |
-| Helm | `helm/estatewise/templates/datadog-*.yaml` | Agent DaemonSet, Cluster Agent, monitors ConfigMap, NetworkPolicies |
-| Docker Compose | `docker/compose.prod.yml` | `datadog-agent` service with APM + logs + DogStatsD |
-| Deployment Control | `deployment-control/src/datadog.ts` | Deploy events + DogStatsD custom metrics |
+| Target             | Config Location                            | What It Manages                                                     |
+| ------------------ | ------------------------------------------ | ------------------------------------------------------------------- |
+| Terraform          | `terraform/datadog.tf`                     | Monitors, dashboard, SLOs, synthetic checks, downtime schedules     |
+| Helm               | `helm/estatewise/templates/datadog-*.yaml` | Agent DaemonSet, Cluster Agent, monitors ConfigMap, NetworkPolicies |
+| Docker Compose     | `docker/compose.prod.yml`                  | `datadog-agent` service with APM + logs + DogStatsD                 |
+| Deployment Control | `deployment-control/src/datadog.ts`        | Deploy events + DogStatsD custom metrics                            |
 
 **Quick enable:**
 
@@ -1283,6 +1333,7 @@ Resource Quotas:
 ### 10.7 Disaster Recovery
 
 #### Automated Backups
+
 ```yaml
 # Daily MongoDB backups
 CronJob: mongodb-backup
@@ -1296,6 +1347,7 @@ CronJob: mongodb-backup
 ```
 
 #### Recovery Procedures
+
 ```bash
 # Database restore
 kubectl apply -f kubernetes/jobs/db-migration-job.yaml
@@ -1309,6 +1361,7 @@ kubectl patch service estatewise-backend \
 ```
 
 **Recovery Metrics:**
+
 - RTO (Recovery Time Objective): < 4 hours
 - RPO (Recovery Point Objective): < 24 hours
 - Rollback Time: < 1 second (Blue-Green)
@@ -1317,13 +1370,13 @@ kubectl patch service estatewise-backend \
 
 EstateWise achieves industry-leading DevOps metrics:
 
-| Metric | Industry Standard | EstateWise Achievement |
-|--------|------------------|----------------------|
-| **Deployment Frequency** | Multiple per week | ✅ Multiple per day (automated) |
-| **Lead Time** | < 1 day | ✅ < 30 minutes |
-| **MTTR** | < 1 hour | ✅ < 5 minutes (instant rollback) |
-| **Change Failure Rate** | < 15% | ✅ < 5% (automated tests + canary) |
-| **Availability** | 99.9% (3 nines) | ✅ 99.95%+ (HA setup) |
+| Metric                   | Industry Standard | EstateWise Achievement             |
+| ------------------------ | ----------------- | ---------------------------------- |
+| **Deployment Frequency** | Multiple per week | ✅ Multiple per day (automated)    |
+| **Lead Time**            | < 1 day           | ✅ < 30 minutes                    |
+| **MTTR**                 | < 1 hour          | ✅ < 5 minutes (instant rollback)  |
+| **Change Failure Rate**  | < 15%             | ✅ < 5% (automated tests + canary) |
+| **Availability**         | 99.9% (3 nines)   | ✅ 99.95%+ (HA setup)              |
 
 ### 10.9 Operational Runbooks
 
@@ -1490,12 +1543,12 @@ flowchart LR
   Gate -->|Fail| Block["Block Pipeline"]
 ```
 
-| Scan Type | Tool | Scope |
-|-----------|------|-------|
-| Dependency SCA | `snyk test` | All `package.json` dependency trees |
-| Code SAST | `snyk code test` | TypeScript/JavaScript source patterns |
-| Container | `snyk container test` | Docker image OS + app layer CVEs |
-| IaC | `snyk iac test` | Terraform, Kubernetes, Helm, Docker Compose |
+| Scan Type      | Tool                  | Scope                                       |
+| -------------- | --------------------- | ------------------------------------------- |
+| Dependency SCA | `snyk test`           | All `package.json` dependency trees         |
+| Code SAST      | `snyk code test`      | TypeScript/JavaScript source patterns       |
+| Container      | `snyk container test` | Docker image OS + app layer CVEs            |
+| IaC            | `snyk iac test`       | Terraform, Kubernetes, Helm, Docker Compose |
 
 Per-service policies in `.snyk` (root) and `.snyk.d/` (overrides) control ignore/patch rules. Both tools gate Jenkins and AWS CodeBuild pipelines.
 
@@ -1588,14 +1641,14 @@ The GitHub Actions workflow is defined in `.github/workflows/ci.yml` and include
 To ensure the CI/CD pipeline runs smoothly, you need to configure the following secrets in your GitHub repository:
 
 | Name                                                                | Purpose                            |
-|---------------------------------------------------------------------|------------------------------------|
+| ------------------------------------------------------------------- | ---------------------------------- |
 | `MONGO_URI`                                                         | MongoDB connection string          |
 | `GOOGLE_AI_API_KEY`                                                 | Google Gemini & Embedding API key  |
 | `PINECONE_API_KEY`                                                  | Pinecone service key               |
 | `PINECONE_ENVIRONMENT`                                              | Pinecone environment identifier    |
 | `PINECONE_INDEX`                                                    | Name of your Pinecone vector index |
 | `JWT_SECRET`                                                        | Secret key for signing JWTs        |
-| additional secrets for Docker, AWS, and Vercel deployment as needed | ...                                | 
+| additional secrets for Docker, AWS, and Vercel deployment as needed | ...                                |
 
 ### 13.3 Monitoring and Troubleshooting
 
@@ -1604,38 +1657,38 @@ This section describes how to monitor, debug, and troubleshoot the GitHub Action
 
 **Monitoring the pipeline:**
 
-* **GitHub Actions Dashboard**
+- **GitHub Actions Dashboard**
   Navigate to the **Actions** tab in your GitHub repository to view real-time build and deployment progress, logs, and job status.
 
-* **Code Scanning Alerts**
+- **Code Scanning Alerts**
   Security issues identified by CodeQL or Trivy will appear under the repository’s **Security > Code scanning alerts** section.
 
-* **Artifacts**
+- **Artifacts**
   Coverage reports, documentation, and build artifacts are uploaded at various pipeline stages and are accessible from the workflow run summary in the Actions dashboard.
 
 **Troubleshooting tips:**
 
-* **Workflow Failures**
+- **Workflow Failures**
 
-  * Inspect the job logs in the Actions tab for stack traces or error messages.
-  * Ensure environment variables and required secrets are correctly set up under **Settings > Secrets and variables**.
-  * Check that the correct Node.js version and package dependencies are defined in `package.json` and `package-lock.json`.
+  - Inspect the job logs in the Actions tab for stack traces or error messages.
+  - Ensure environment variables and required secrets are correctly set up under **Settings > Secrets and variables**.
+  - Check that the correct Node.js version and package dependencies are defined in `package.json` and `package-lock.json`.
 
-* **Database or connectivity issues**
+- **Database or connectivity issues**
 
-  * Confirm that the `DB_*` secrets are valid and that the database is reachable from the GitHub runner.
-  * Validate that firewalls or network rules allow connections from GitHub-hosted runners.
+  - Confirm that the `DB_*` secrets are valid and that the database is reachable from the GitHub runner.
+  - Validate that firewalls or network rules allow connections from GitHub-hosted runners.
 
-* **Container Image and Deployment**
+- **Container Image and Deployment**
 
-  * If Docker/Podman pushes fail, verify that `GHCR` credentials are correct and that the user has permission to push packages.
-  * For AWS or Vercel deploy steps, confirm that deployment secrets are valid and permissions are correct.
+  - If Docker/Podman pushes fail, verify that `GHCR` credentials are correct and that the user has permission to push packages.
+  - For AWS or Vercel deploy steps, confirm that deployment secrets are valid and permissions are correct.
 
 **Common troubleshooting commands:**
 
-* Re-run failed jobs from the GitHub Actions dashboard with the **Re-run jobs** button
-* Use `npm ci` locally to replicate dependency issues
-* Use `npm test`, `npm run lint`, or `npx typedoc` locally to reproduce test or documentation build failures
+- Re-run failed jobs from the GitHub Actions dashboard with the **Re-run jobs** button
+- Use `npm ci` locally to replicate dependency issues
+- Use `npm test`, `npm run lint`, or `npx typedoc` locally to reproduce test or documentation build failures
 
 ### 13.4 Deployment Rollback
 
@@ -1647,19 +1700,19 @@ Rolling back quickly ensures minimal disruption for users and reduces operationa
 
 **How to roll back:**
 
-* **Vercel Rollback**
+- **Vercel Rollback**
 
-  * Visit the Vercel dashboard for the `estatewise` project.
-  * Navigate to **Deployments**, identify a previous successful build, and promote it to production by clicking **Restore**.
+  - Visit the Vercel dashboard for the `estatewise` project.
+  - Navigate to **Deployments**, identify a previous successful build, and promote it to production by clicking **Restore**.
 
-* **AWS Infrastructure Rollback**
+- **AWS Infrastructure Rollback**
 
-  * Use your infrastructure-as-code (IaC) tools (e.g., CloudFormation, Terraform) to redeploy the previous working stack definition.
-  * If using Docker images, redeploy the prior known working tag (e.g., `ghcr.io/owner/estatewise-app-frontend:previous`).
+  - Use your infrastructure-as-code (IaC) tools (e.g., CloudFormation, Terraform) to redeploy the previous working stack definition.
+  - If using Docker images, redeploy the prior known working tag (e.g., `ghcr.io/owner/estatewise-app-frontend:previous`).
 
-* **Container Images Rollback**
+- **Container Images Rollback**
 
-  * If the latest pushed image is broken, redeploy an earlier image tagged as `latest` or use a SHA-tagged release:
+  - If the latest pushed image is broken, redeploy an earlier image tagged as `latest` or use a SHA-tagged release:
 
     ```bash
     docker pull ghcr.io/your-org/estatewise-app-frontend:<previous-sha>
@@ -1668,26 +1721,28 @@ Rolling back quickly ensures minimal disruption for users and reduces operationa
     # podman pull ghcr.io/your-org/estatewise-app-frontend:<previous-sha>
     # podman run ...
     ```
-  * For Kubernetes or similar orchestrators, update the deployment to use the previous container image tag.
+
+  - For Kubernetes or similar orchestrators, update the deployment to use the previous container image tag.
 
 **Checklist before rollback:**
 
-* ✅ Confirm the production issue is critical enough to warrant a rollback
-* ✅ Notify the team and stakeholders about the rollback
-* ✅ Review logs, alerts, and monitoring dashboards to confirm the nature of the failure
-* ✅ Validate that the prior deployment is healthy before promoting it
+- ✅ Confirm the production issue is critical enough to warrant a rollback
+- ✅ Notify the team and stakeholders about the rollback
+- ✅ Review logs, alerts, and monitoring dashboards to confirm the nature of the failure
+- ✅ Validate that the prior deployment is healthy before promoting it
 
 **Post-rollback:**
 
-* Perform a root cause analysis (RCA)
-* Document lessons learned in your incident reports
-* Create issues or tasks to prevent similar failures in future releases
+- Perform a root cause analysis (RCA)
+- Document lessons learned in your incident reports
+- Create issues or tasks to prevent similar failures in future releases
 
 ### 13.5 Other CI/CD Enhancements (Travis, GitLab CI, Jenkins)
 
 The EstateWise repo also includes alternative CI/CD configurations for Travis CI, GitLab CI, and Jenkins. These configurations provide similar functionality to the GitHub Actions pipeline, ensuring flexibility for different development teams and environments.
 
 These alternative configurations can be found in the following files:
+
 - `.travis.yml` – Travis CI configuration
 - `.gitlab-ci.yml` – GitLab CI configuration
 - `Jenkinsfile` – Jenkins pipeline configuration
@@ -1737,39 +1792,39 @@ erDiagram
 
 **Node Type Taxonomy (12 types):**
 
-| Type | Description | Seed Count |
-|------|-------------|------------|
-| Property | Real estate listings with zpid, price, address | 0 (populated via ingestion) |
-| Concept | Domain concepts: valuation, mortgage, ROI, etc. | 14 |
-| Entity | Named entities extracted from text | 0 |
-| Topic | High-level categories: residential, commercial, trends | 6 |
-| Document | Knowledge base document references | 0 |
-| Conversation | Chat session nodes | 0 |
-| Agent | AI agent nodes: Planner, GraphAnalyst, etc. | 11 |
-| Tool | MCP tool nodes: graph.similar, finance.mortgage, etc. | 7 |
-| Workflow | Multi-step process definitions | 4 |
-| Neighborhood | Geographic neighborhood nodes | 0 |
-| ZipCode | ZIP code area nodes | 0 |
-| MarketSegment | Market classification segments | 0 |
+| Type          | Description                                            | Seed Count                  |
+| ------------- | ------------------------------------------------------ | --------------------------- |
+| Property      | Real estate listings with zpid, price, address         | 0 (populated via ingestion) |
+| Concept       | Domain concepts: valuation, mortgage, ROI, etc.        | 14                          |
+| Entity        | Named entities extracted from text                     | 0                           |
+| Topic         | High-level categories: residential, commercial, trends | 6                           |
+| Document      | Knowledge base document references                     | 0                           |
+| Conversation  | Chat session nodes                                     | 0                           |
+| Agent         | AI agent nodes: Planner, GraphAnalyst, etc.            | 11                          |
+| Tool          | MCP tool nodes: graph.similar, finance.mortgage, etc.  | 7                           |
+| Workflow      | Multi-step process definitions                         | 4                           |
+| Neighborhood  | Geographic neighborhood nodes                          | 0                           |
+| ZipCode       | ZIP code area nodes                                    | 0                           |
+| MarketSegment | Market classification segments                         | 0                           |
 
 **Edge Type Taxonomy (14 types):**
 
-| Type | Semantics | Typical Source -> Target |
-|------|-----------|------------------------|
-| SIMILAR_TO | Similarity relationship | Property -> Property |
-| RELATED_TO | General association | Concept -> Concept |
-| BELONGS_TO | Membership | Entity -> Topic |
-| MENTIONS | Reference in text | Document -> Entity |
-| DERIVED_FROM | Derivation chain | Concept -> Concept |
-| DEPENDS_ON | Dependency | Workflow -> Tool |
-| LINKS_TO | Hyperlink/reference | Document -> Document |
-| PART_OF | Containment | Concept -> Topic |
-| USES | Tool usage | Agent -> Tool |
-| PRODUCES | Output creation | Tool -> Concept |
-| IN_NEIGHBORHOOD | Geographic membership | Property -> Neighborhood |
-| IN_ZIP | ZIP code membership | Property -> ZipCode |
-| HAS_CAPABILITY | Agent capability | Agent -> Concept |
-| PRECEDES | Temporal ordering | Workflow -> Workflow |
+| Type            | Semantics               | Typical Source -> Target |
+| --------------- | ----------------------- | ------------------------ |
+| SIMILAR_TO      | Similarity relationship | Property -> Property     |
+| RELATED_TO      | General association     | Concept -> Concept       |
+| BELONGS_TO      | Membership              | Entity -> Topic          |
+| MENTIONS        | Reference in text       | Document -> Entity       |
+| DERIVED_FROM    | Derivation chain        | Concept -> Concept       |
+| DEPENDS_ON      | Dependency              | Workflow -> Tool         |
+| LINKS_TO        | Hyperlink/reference     | Document -> Document     |
+| PART_OF         | Containment             | Concept -> Topic         |
+| USES            | Tool usage              | Agent -> Tool            |
+| PRODUCES        | Output creation         | Tool -> Concept          |
+| IN_NEIGHBORHOOD | Geographic membership   | Property -> Neighborhood |
+| IN_ZIP          | ZIP code membership     | Property -> ZipCode      |
+| HAS_CAPABILITY  | Agent capability        | Agent -> Concept         |
+| PRECEDES        | Temporal ordering       | Workflow -> Workflow     |
 
 **Traversal Algorithms:**
 
@@ -1796,13 +1851,13 @@ flowchart LR
 **Fluent Query Builder:**
 
 ```typescript
-import { query, NodeType, EdgeType } from '@estatewise/context-engineering';
+import { query, NodeType, EdgeType } from "@estatewise/context-engineering";
 
 const result = query(graph)
   .match(NodeType.Concept)
-  .where({ 'metadata.importance': { $gte: 0.7 } })
+  .where({ "metadata.importance": { $gte: 0.7 } })
   .traverse(EdgeType.RELATED_TO, { maxDepth: 2 })
-  .orderBy('metadata.importance', 'desc')
+  .orderBy("metadata.importance", "desc")
   .limit(10)
   .execute();
 ```
@@ -1812,6 +1867,7 @@ Supported operators: `$gt`, `$lt`, `$gte`, `$lte`, `$eq`, `$ne`, `$contains`, `$
 **Neo4j Synchronization:**
 
 The `Neo4jSyncManager` provides bidirectional sync between the in-memory graph and Neo4j:
+
 - `pushToNeo4j()`: MERGE semantics, batched in 500-node chunks
 - `pullFromNeo4j()`: Merges into in-memory graph without overwriting newer local nodes
 - Graceful degradation: Neo4j unavailability never crashes the application
@@ -1833,13 +1889,14 @@ flowchart LR
 
 **Retrieval Strategies:**
 
-| Strategy | Method | Score Composition | Best For |
-|----------|--------|-------------------|----------|
-| Semantic | Cosine similarity on embeddings | Vector distance (0-1) | Conceptual matches, paraphrases |
-| Keyword | TF-IDF token frequency | Term overlap ratio | Exact term matches, technical queries |
-| Hybrid | Weighted blend | 65% semantic + 35% keyword | General-purpose retrieval |
+| Strategy | Method                          | Score Composition          | Best For                              |
+| -------- | ------------------------------- | -------------------------- | ------------------------------------- |
+| Semantic | Cosine similarity on embeddings | Vector distance (0-1)      | Conceptual matches, paraphrases       |
+| Keyword  | TF-IDF token frequency          | Term overlap ratio         | Exact term matches, technical queries |
+| Hybrid   | Weighted blend                  | 65% semantic + 35% keyword | General-purpose retrieval             |
 
 All strategies support:
+
 - `SearchFilter` predicates (`eq`, `ne`, `gt`, `lt`, `contains`, `in`)
 - Recency boost (exponential decay weighting for newer documents)
 - Frequency boost (prioritize frequently accessed documents)
@@ -1883,32 +1940,32 @@ sequenceDiagram
 
 **Priority Tiers:**
 
-| Priority | Level | Weight | Examples |
-|----------|-------|--------|---------|
-| Critical (4) | Highest | Always included | System prompts, safety rules |
-| High (3) | High | Included first | Direct graph/KB matches |
-| Medium (2) | Medium | Space permitting | Related context, recent conversation |
-| Low (1) | Low | If budget allows | Background knowledge |
-| Background (0) | Lowest | First evicted | Oldest/least relevant items |
+| Priority       | Level   | Weight           | Examples                             |
+| -------------- | ------- | ---------------- | ------------------------------------ |
+| Critical (4)   | Highest | Always included  | System prompts, safety rules         |
+| High (3)       | High    | Included first   | Direct graph/KB matches              |
+| Medium (2)     | Medium  | Space permitting | Related context, recent conversation |
+| Low (1)        | Low     | If budget allows | Background knowledge                 |
+| Background (0) | Lowest  | First evicted    | Oldest/least relevant items          |
 
 **Ranking Strategies:**
 
-| Strategy | Formula | Use Case |
-|----------|---------|----------|
-| Recency | Exponential decay (30-min half-life) | Prioritize recent information |
-| Relevance | 70% provider score + 30% keyword overlap | Match quality |
-| Importance | Priority tier + metadata importance | Domain significance |
-| Combined | 40% relevance + 30% recency + 30% importance | Default strategy |
+| Strategy   | Formula                                      | Use Case                      |
+| ---------- | -------------------------------------------- | ----------------------------- |
+| Recency    | Exponential decay (30-min half-life)         | Prioritize recent information |
+| Relevance  | 70% provider score + 30% keyword overlap     | Match quality                 |
+| Importance | Priority tier + metadata importance          | Domain significance           |
+| Combined   | 40% relevance + 30% recency + 30% importance | Default strategy              |
 
 **Per-Agent Token Budgets:**
 
-| Agent Role | Budget | Reserved |
-|------------|--------|----------|
-| Orchestrator/Coordinator | 12,000 | 3,000 |
-| PropertyAnalyst | 10,000 | 2,500 |
-| FinanceAnalyst | 8,000 | 2,000 |
-| GraphAnalyst | 6,000 | 1,500 |
-| Default | 8,000 | 2,000 |
+| Agent Role               | Budget | Reserved |
+| ------------------------ | ------ | -------- |
+| Orchestrator/Coordinator | 12,000 | 3,000    |
+| PropertyAnalyst          | 10,000 | 2,500    |
+| FinanceAnalyst           | 8,000  | 2,000    |
+| GraphAnalyst             | 6,000  | 1,500    |
+| Default                  | 8,000  | 2,000    |
 
 ### 14.4 Ingestion Pipeline
 
@@ -1947,20 +2004,21 @@ Each parser returns a `ParsedData` object containing nodes, edges, and documents
 
 10 context engineering tools are registered in the MCP server for agent access:
 
-| Tool | Args | Description |
-|------|------|-------------|
-| `context.search` | query, strategy?, limit? | Hybrid search across knowledge base |
-| `context.assembleForAgent` | agentRole, query, maxTokens? | Assemble full context window |
-| `context.graphTraverse` | startNodeId, edgeTypes?, maxDepth?, direction? | BFS graph traversal |
-| `context.graphQuery` | nodeType?, filters?, limit? | Query graph with filters |
-| `context.ingest` | type, title, content, tags? | Ingest new data |
-| `context.getStats` | -- | System metrics snapshot |
-| `context.getGraphOverview` | limit? | Full graph for visualization |
-| `context.findRelated` | concept, maxDepth?, limit? | Find related knowledge nodes |
-| `context.getNodeDetail` | nodeId, includeNeighbors? | Detailed node information |
-| `context.getTimeline` | limit? | Recent activity timeline |
+| Tool                       | Args                                           | Description                         |
+| -------------------------- | ---------------------------------------------- | ----------------------------------- |
+| `context.search`           | query, strategy?, limit?                       | Hybrid search across knowledge base |
+| `context.assembleForAgent` | agentRole, query, maxTokens?                   | Assemble full context window        |
+| `context.graphTraverse`    | startNodeId, edgeTypes?, maxDepth?, direction? | BFS graph traversal                 |
+| `context.graphQuery`       | nodeType?, filters?, limit?                    | Query graph with filters            |
+| `context.ingest`           | type, title, content, tags?                    | Ingest new data                     |
+| `context.getStats`         | --                                             | System metrics snapshot             |
+| `context.getGraphOverview` | limit?                                         | Full graph for visualization        |
+| `context.findRelated`      | concept, maxDepth?, limit?                     | Find related knowledge nodes        |
+| `context.getNodeDetail`    | nodeId, includeNeighbors?                      | Detailed node information           |
+| `context.getTimeline`      | limit?                                         | Recent activity timeline            |
 
 4 MCP resources are also registered:
+
 - `context://graph/stats` -- Current graph statistics
 - `context://kb/stats` -- Knowledge base statistics
 - `context://metrics/snapshot` -- Metrics snapshot
@@ -1973,6 +2031,7 @@ The context engineering system includes a professional dark-themed D3.js visuali
 **Technology:** D3.js v7 (CDN), vanilla JavaScript, CSS Grid layout
 
 **Features:**
+
 - Force-directed graph with D3 force simulation (link, charge, center, collide, clustering forces)
 - 12 color-coded node types with importance-based sizing (radius 8-24px)
 - Unicode emoji icons per node type (Property, Agent, Tool, Concept, etc.)
@@ -1986,15 +2045,16 @@ The context engineering system includes a professional dark-themed D3.js visuali
 
 The monitoring system tracks all context engineering operations:
 
-| Metric | Type | Source |
-|--------|------|--------|
-| Context assemblies | Counter + timing | ContextEngine |
-| KB searches | Counter + timing | KnowledgeBase |
-| Graph traversals | Counter + timing | Traversal functions |
-| Ingestions | Counter + timing + errors | Ingester |
-| Cache hits/misses | Counter | ToolResultProvider |
+| Metric             | Type                      | Source              |
+| ------------------ | ------------------------- | ------------------- |
+| Context assemblies | Counter + timing          | ContextEngine       |
+| KB searches        | Counter + timing          | KnowledgeBase       |
+| Graph traversals   | Counter + timing          | Traversal functions |
+| Ingestions         | Counter + timing + errors | Ingester            |
+| Cache hits/misses  | Counter                   | ToolResultProvider  |
 
 Metrics are collected in a rolling window (last 1,000 events) and exposed via:
+
 - `GET /api/context/metrics` -- Aggregate snapshot
 - `GET /api/context/metrics/timeseries?metric=context_assembly` -- Time-series data
 - MCP resource `context://metrics/snapshot`
@@ -2009,40 +2069,40 @@ Additional resources, diagrams, and references for developers and data scientist
 
 The following environment variables are required for the application to function correctly. Ensure they are set in your `.env` file.
 
-| Name | Purpose |
-| ---- | ------- |
-| `MONGO_URI` | MongoDB connection string |
-| `JWT_SECRET` | Secret key for signing JWTs |
-| `GOOGLE_AI_API_KEY` | Google Gemini API key (chat + embeddings) |
-| `OPENAI_API_KEY` | OpenAI API key (fallback/runtime + CrewAI) |
-| `PINECONE_API_KEY` | Pinecone service key |
-| `PINECONE_INDEX` | Name of your Pinecone vector index |
-| `NEO4J_URI` | Neo4j endpoint for graph workflows |
-| `NEO4J_USERNAME` / `NEO4J_PASSWORD` | Neo4j credentials |
-| `AGENT_RUNTIME` | Default agentic runtime (`default`, `langgraph`, `crewai`) |
-| `THREAD_ID` | Optional LangGraph conversation continuity identifier |
-| `LANGSMITH_ENABLED` | Enable/disable LangSmith tracing explicitly |
-| `LANGSMITH_API_KEY` | LangSmith authentication key |
-| `LANGSMITH_PROJECT` | LangSmith project name |
-| `LANGSMITH_ENDPOINT` | Optional custom LangSmith endpoint |
-| `LANGSMITH_RUN_TAGS` | Comma-separated baseline trace tags |
-| `LANGSMITH_STRICT` | Fail fast on tracing misconfiguration |
-| `CONTEXT_PORT` | Port for context engineering API + UI (default: 4200) |
-| `CONTEXT_API_BASE_URL` | Base URL for context API when used by MCP tools |
-| `DD_API_KEY` | Datadog API key (required when Datadog is enabled) |
-| `DD_APP_KEY` | Datadog application key (Terraform monitors/SLOs) |
-| `DD_AGENT_HOST` | Datadog agent host (auto-detected on K8s via `status.hostIP`) |
-| `DD_DOGSTATSD_PORT` | DogStatsD UDP port (default: `8125`) |
-| `DD_SERVICE` | Service name for unified tagging (e.g. `estatewise-backend`) |
-| `DD_ENV` | Environment tag (e.g. `production`, `staging`) |
-| `DD_VERSION` | Deployed version for trace/log correlation |
-| `DD_LOGS_INJECTION` | Enable automatic log ↔ trace correlation (`true`) |
-| `SONAR_HOST_URL` | SonarQube server URL (default: `http://localhost:9000`) |
-| `SONAR_TOKEN` | SonarQube authentication token for CI analysis |
-| `SONAR_PROJECT_KEY` | SonarQube project key (default: `estatewise`) |
-| `SNYK_TOKEN` | Snyk API token for CLI and CI scanning |
-| `SNYK_ORG` | Snyk organization ID for `snyk monitor` reports |
-| `SNYK_SEVERITY_THRESHOLD` | Minimum severity to fail builds (`low`, `medium`, `high`, `critical`) |
+| Name                                | Purpose                                                               |
+| ----------------------------------- | --------------------------------------------------------------------- |
+| `MONGO_URI`                         | MongoDB connection string                                             |
+| `JWT_SECRET`                        | Secret key for signing JWTs                                           |
+| `GOOGLE_AI_API_KEY`                 | Google Gemini API key (chat + embeddings)                             |
+| `OPENAI_API_KEY`                    | OpenAI API key (fallback/runtime + CrewAI)                            |
+| `PINECONE_API_KEY`                  | Pinecone service key                                                  |
+| `PINECONE_INDEX`                    | Name of your Pinecone vector index                                    |
+| `NEO4J_URI`                         | Neo4j endpoint for graph workflows                                    |
+| `NEO4J_USERNAME` / `NEO4J_PASSWORD` | Neo4j credentials                                                     |
+| `AGENT_RUNTIME`                     | Default agentic runtime (`default`, `langgraph`, `crewai`)            |
+| `THREAD_ID`                         | Optional LangGraph conversation continuity identifier                 |
+| `LANGSMITH_ENABLED`                 | Enable/disable LangSmith tracing explicitly                           |
+| `LANGSMITH_API_KEY`                 | LangSmith authentication key                                          |
+| `LANGSMITH_PROJECT`                 | LangSmith project name                                                |
+| `LANGSMITH_ENDPOINT`                | Optional custom LangSmith endpoint                                    |
+| `LANGSMITH_RUN_TAGS`                | Comma-separated baseline trace tags                                   |
+| `LANGSMITH_STRICT`                  | Fail fast on tracing misconfiguration                                 |
+| `CONTEXT_PORT`                      | Port for context engineering API + UI (default: 4200)                 |
+| `CONTEXT_API_BASE_URL`              | Base URL for context API when used by MCP tools                       |
+| `DD_API_KEY`                        | Datadog API key (required when Datadog is enabled)                    |
+| `DD_APP_KEY`                        | Datadog application key (Terraform monitors/SLOs)                     |
+| `DD_AGENT_HOST`                     | Datadog agent host (auto-detected on K8s via `status.hostIP`)         |
+| `DD_DOGSTATSD_PORT`                 | DogStatsD UDP port (default: `8125`)                                  |
+| `DD_SERVICE`                        | Service name for unified tagging (e.g. `estatewise-backend`)          |
+| `DD_ENV`                            | Environment tag (e.g. `production`, `staging`)                        |
+| `DD_VERSION`                        | Deployed version for trace/log correlation                            |
+| `DD_LOGS_INJECTION`                 | Enable automatic log ↔ trace correlation (`true`)                    |
+| `SONAR_HOST_URL`                    | SonarQube server URL (default: `http://localhost:9000`)               |
+| `SONAR_TOKEN`                       | SonarQube authentication token for CI analysis                        |
+| `SONAR_PROJECT_KEY`                 | SonarQube project key (default: `estatewise`)                         |
+| `SNYK_TOKEN`                        | Snyk API token for CLI and CI scanning                                |
+| `SNYK_ORG`                          | Snyk organization ID for `snyk monitor` reports                       |
+| `SNYK_SEVERITY_THRESHOLD`           | Minimum severity to fail builds (`low`, `medium`, `high`, `critical`) |
 
 ### B. AI/ML Flow Chart
 

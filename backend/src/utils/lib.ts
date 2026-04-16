@@ -1,35 +1,5 @@
-import { runEstateWiseAgent } from "../services/geminiAgent.service";
-
-/**
- * Run the EstateWise agent to determine if we need to fetch
- * property data or not.
- *
- * @param message - The user’s message
- * @param userContext - Any additional context to pass through
- * @param expertWeights - Weights for each expert in the MoE
- * @return The final text response and expert views, which
- * include the decision to fetch property data or not
- */
-export async function runEstateWiseAgentCheck(
-  message: string,
-  userContext = "",
-  expertWeights: Record<string, number> = {},
-): Promise<{ finalText: string; expertViews: Record<string, string> }> {
-  const response = await runEstateWiseAgent(
-    message,
-    userContext,
-    expertWeights,
-  );
-
-  return {
-    finalText: response.finalText,
-    expertViews: response.expertViews,
-  };
-}
-
 /**
  * Detect if a user message is a simple greeting or small‑talk.
- * (Deprecated - not being used anymore in the current codebase.)
  *
  * @param message - the user’s message text
  * @return true if we can skip data retrieval and clustering

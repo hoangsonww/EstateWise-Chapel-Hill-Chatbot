@@ -57,6 +57,19 @@ export interface Plan {
 export interface Blackboard {
   zpids: number[];
   rankedZpids?: number[];
+  policy?: {
+    version: string;
+    baseZpids: number[];
+    adjustedZpids: number[];
+    applied: Array<{
+      campaignId: string;
+      zpid: number;
+      boost: number;
+      reason: string;
+      disclosure: string;
+    }>;
+    disclosures: string[];
+  };
   plan?: { steps: PlanStep[]; inFlightStepKey?: string };
   parsed?: {
     zpids?: number[];
@@ -79,6 +92,15 @@ export interface Blackboard {
   web?: {
     search?: Record<string, unknown> | null;
     pages?: Array<Record<string, unknown>> | null;
+  };
+  liveData?: {
+    source?: string | null;
+    generatedAt?: string | null;
+    staleHours?: number | null;
+    warnings?: string[];
+    metadata?: Record<string, unknown> | null;
+    count?: number;
+    results?: Array<Record<string, unknown>>;
   };
   pairs?: Array<Record<string, unknown>> | null;
   compliance?: { ok: boolean; issues: string[] } | null;

@@ -1,7 +1,7 @@
 import type { BaseMessage } from "@langchain/core/messages";
 import { createReactAgent } from "@langchain/langgraph/prebuilt";
 import { getCheckpointer } from "./memory.js";
-import { getChatModel, type ChatModel } from "./llm.js";
+import { getChatModel, getChatModelName, type ChatModel } from "./llm.js";
 import {
   CostTracker,
   withCostTracking,
@@ -19,6 +19,12 @@ import {
   initializeLangSmith,
   type LangSmithRunContext,
 } from "./langsmith.js";
+import {
+  createReplayKey,
+  getDefaultReplayStore,
+  isDeterministicDefaultEnabled,
+  isReplayEnabled,
+} from "./replay-store.js";
 
 const BASE_SYSTEM_PROMPT = `
 You are EstateWise, a real-estate research and analysis agent.
@@ -28,6 +34,7 @@ Use tools to:
 - query the Neo4j knowledge graph (explanations, similarities, Cypher QA),
 - do mortgage/affordability calculations,
 - search/fetch public web pages when the user asks for current external facts,
+- query locally cached live Zillow snapshots for fresh listing context,
 - use vector search for semantic matches.
 
 Guidelines:
@@ -35,6 +42,7 @@ Guidelines:
 - Keep responses concise; include links (map) and key figures.
 - If you need specific zpids but only have text, search first; then refine.
 - If the user asks for latest/current/news/rates, run web.search first and web.fetch for the strongest sources before concluding.
+- For fresh listing availability questions, run live.zillow.search before broader web browsing.
 - Always sanity-check tool outputs. If a tool fails, try an alternative path.
 `.trim();
 
@@ -67,6 +75,13 @@ export interface LangGraphRunOptions {
   appendTools?: LangTool[];
   checkpointer?: ReturnType<typeof getCheckpointer>;
   trace?: LangSmithRunContext;
+  deterministic?:
+    | boolean
+    | {
+        enabled?: boolean;
+        allowReplay?: boolean;
+        replayWrites?: boolean;
+      };
 }
 
 export interface NormalizedMessage {
@@ -95,6 +110,13 @@ export interface LangGraphRunResult {
   metrics: {
     durationMs: number;
     toolCalls: number;
+    deterministic: boolean;
+    replayHit: boolean;
+  };
+  replay?: {
+    key: string;
+    hit: boolean;
+    storedAt?: string;
   };
   threadId: string;
   costs: CostReport;
@@ -107,6 +129,13 @@ export type RunInput = {
   context?: LangGraphRunContext;
   additionalInstructions?: string;
   trace?: LangSmithRunContext;
+  deterministic?:
+    | boolean
+    | {
+        enabled?: boolean;
+        allowReplay?: boolean;
+        replayWrites?: boolean;
+      };
 };
 
 export function createEstateWiseAgentGraph(config: {
@@ -168,6 +197,37 @@ function resolveTools(...sets: Array<LangTool[] | undefined>): LangTool[] {
     for (const tool of set) resolved.push(tool);
   }
   return resolved;
+}
+
+function normalizeDeterministicOptions(
+  input: LangGraphRunOptions["deterministic"],
+): { enabled: boolean; allowReplay: boolean; replayWrites: boolean } {
+  const defaultEnabled = isDeterministicDefaultEnabled();
+  if (typeof input === "boolean") {
+    return {
+      enabled: input,
+      allowReplay: isReplayEnabled(),
+      replayWrites: true,
+    };
+  }
+  if (input && typeof input === "object") {
+    const enabled =
+      typeof input.enabled === "boolean" ? input.enabled : defaultEnabled;
+    return {
+      enabled,
+      allowReplay:
+        typeof input.allowReplay === "boolean"
+          ? input.allowReplay
+          : isReplayEnabled(),
+      replayWrites:
+        typeof input.replayWrites === "boolean" ? input.replayWrites : true,
+    };
+  }
+  return {
+    enabled: defaultEnabled,
+    allowReplay: isReplayEnabled(),
+    replayWrites: true,
+  };
 }
 
 function normalizeMessages(messages: BaseMessage[] | undefined) {
@@ -233,6 +293,8 @@ function findFinalAssistantMessage(messages: NormalizedMessage[]): string {
 export const __langTestUtils = {
   buildSystemPrompt,
   serializeContext,
+  normalizeDeterministicOptions,
+  createReplayKey,
 };
 
 export class EstateWiseLangGraphRuntime {
@@ -250,7 +312,7 @@ export class EstateWiseLangGraphRuntime {
 
   private readonly defaultInstructions?: string;
 
-  private readonly llm: ChatModel;
+  private readonly baseLlm?: ChatModel;
 
   constructor(defaults: EstateWiseRuntimeConfig = {}) {
     this.defaults = defaults;
@@ -265,7 +327,7 @@ export class EstateWiseLangGraphRuntime {
     this.defaultThreadId = defaults.defaultThreadId ?? DEFAULT_THREAD_ID;
     this.defaultContext = defaults.defaultContext;
     this.defaultInstructions = defaults.defaultInstructions;
-    this.llm = defaults.llm ?? getChatModel();
+    this.baseLlm = defaults.llm;
   }
 
   async run(options: LangGraphRunOptions): Promise<LangGraphRunResult> {
@@ -276,6 +338,57 @@ export class EstateWiseLangGraphRuntime {
     const costTracker = new CostTracker();
     return await withCostTracking(costTracker, async () => {
       const startedAt = Date.now();
+      const deterministic = normalizeDeterministicOptions(
+        options.deterministic,
+      );
+      const basePrompt =
+        options.systemPrompt ??
+        this.defaults.systemPrompt ??
+        this.baseSystemPrompt;
+      const mergedContext = options.context ?? this.defaultContext;
+      const mergedInstructions =
+        options.additionalInstructions ?? this.defaultInstructions;
+      const systemPrompt = buildSystemPrompt(
+        basePrompt,
+        mergedContext,
+        mergedInstructions,
+      );
+      const tools = options.tools
+        ? resolveTools(options.tools, options.appendTools)
+        : resolveTools(this.baseTools, options.appendTools);
+      const threadId = options.threadId ?? this.defaultThreadId;
+      const replayKey = createReplayKey({
+        goal: options.goal,
+        threadId,
+        context: mergedContext ?? null,
+        additionalInstructions: mergedInstructions ?? "",
+        systemPrompt,
+        tools: tools.map((tool) => tool.name).sort(),
+        model: getChatModelName(),
+      });
+      if (deterministic.enabled && deterministic.allowReplay) {
+        const replayHit =
+          getDefaultReplayStore<LangGraphRunResult>().get(replayKey);
+        if (replayHit) {
+          return {
+            ...replayHit.value,
+            threadId,
+            metrics: {
+              ...replayHit.value.metrics,
+              durationMs: Date.now() - startedAt,
+              deterministic: true,
+              replayHit: true,
+            },
+            replay: {
+              key: replayKey,
+              hit: true,
+              storedAt: replayHit.createdAt,
+            },
+            costs: costTracker.getReport(),
+          };
+        }
+      }
+
       await startMcp();
       const toolExecutions: ToolExecutionRecord[] = [];
       setToolObserver({
@@ -313,32 +426,17 @@ export class EstateWiseLangGraphRuntime {
       });
 
       try {
-        const basePrompt =
-          options.systemPrompt ??
-          this.defaults.systemPrompt ??
-          this.baseSystemPrompt;
-        const mergedContext = options.context ?? this.defaultContext;
-        const mergedInstructions =
-          options.additionalInstructions ?? this.defaultInstructions;
-        const systemPrompt = buildSystemPrompt(
-          basePrompt,
-          mergedContext,
-          mergedInstructions,
-        );
-
-        const tools = options.tools
-          ? resolveTools(options.tools, options.appendTools)
-          : resolveTools(this.baseTools, options.appendTools);
-
         const checkpointer = options.checkpointer ?? this.baseCheckpointer;
-
+        const llm =
+          deterministic.enabled || !this.baseLlm
+            ? getChatModel({ deterministic: deterministic.enabled })
+            : this.baseLlm;
         const { app } = createEstateWiseAgentGraph({
           systemPrompt,
           tools,
           checkpointer,
-          llm: this.llm,
+          llm,
         });
-        const threadId = options.threadId ?? this.defaultThreadId;
         const tracingConfig = buildLangSmithRunnableConfig({
           runtime: "langgraph",
           surface: options.trace?.surface || "langgraph",
@@ -372,18 +470,32 @@ export class EstateWiseLangGraphRuntime {
           return entry;
         });
 
-        return {
+        const response: LangGraphRunResult = {
           finalMessage,
           messages,
           toolExecutions: finalizedExecutions,
           metrics: {
             durationMs: Date.now() - startedAt,
             toolCalls: finalizedExecutions.length,
+            deterministic: deterministic.enabled,
+            replayHit: false,
+          },
+          replay: {
+            key: replayKey,
+            hit: false,
           },
           threadId,
           costs: costTracker.getReport(),
           raw: result,
-        } satisfies LangGraphRunResult;
+        };
+        if (deterministic.enabled && deterministic.replayWrites) {
+          getDefaultReplayStore<LangGraphRunResult>().set(replayKey, {
+            ...response,
+            costs: { ...response.costs, events: [] },
+            raw: undefined,
+          });
+        }
+        return response;
       } finally {
         setToolObserver(null);
         await stopMcp();
@@ -400,5 +512,6 @@ export async function runEstateWiseAgent(input: RunInput) {
     context: input.context,
     additionalInstructions: input.additionalInstructions,
     trace: input.trace,
+    deterministic: input.deterministic,
   });
 }

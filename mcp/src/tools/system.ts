@@ -24,6 +24,10 @@ export const systemTools: ToolDef[] = [
         toolTimeoutMs: config.toolTimeoutMs,
         toolMaxArgBytes: config.toolMaxArgBytes,
         toolMaxConcurrent: config.toolMaxConcurrent,
+        tokenRequireSecret: config.tokenRequireSecret,
+        tokenPersistPath: config.tokenPersistPath || null,
+        liveDataSnapshotPath: config.liveDataSnapshotPath,
+        liveDataMaxResults: config.liveDataMaxResults,
       };
       return { content: [{ type: "text", text: JSON.stringify(safe) }] };
     },

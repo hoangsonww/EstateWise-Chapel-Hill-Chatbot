@@ -99,7 +99,7 @@ _Feel free to use the app as a guest or sign up for an account to save your conv
 ![Jest](https://img.shields.io/badge/Jest-C21325?style=for-the-badge&logo=jest&logoColor=white)
 ![Selenium WebDriver](https://img.shields.io/badge/Selenium%20WebDriver-43B02A?style=for-the-badge&logo=selenium&logoColor=white)
 ![Cypress](https://img.shields.io/badge/Cypress-17202C?style=for-the-badge&logo=cypress&logoColor=white)
-![VS Code Extension](https://img.shields.io/badge/VS%20Code%20Extension-007ACC?style=for-the-badge&logo=gitextensions&logoColor=white) 
+![VS Code Extension](https://img.shields.io/badge/VS%20Code%20Extension-007ACC?style=for-the-badge&logo=gitextensions&logoColor=white)
 ![Neo4j](https://img.shields.io/badge/Neo4j-008CC1?style=for-the-badge&logo=neo4j&logoColor=white)
 ![Leaflet](https://img.shields.io/badge/Leaflet-199900?style=for-the-badge&logo=leaflet&logoColor=white)
 ![MCP](https://img.shields.io/badge/MCP-Model%20Context%20Protocol-6E56CF?style=for-the-badge&logo=modelcontextprotocol&logoColor=white)
@@ -147,6 +147,7 @@ For a CLI version of the chatbot, as well as the initial EDA (Exploratory Data A
 - **MCP (Model Context Protocol):** Standardizes communication between models and the backend, ensuring consistent context handling and response formatting.
 - **A2A (Agent-to-Agent Protocol):** Enables agent-native task orchestration between EstateWise Agentic AI and external agent systems.
 - **Web-Grounded AI (Internet Research):** Supports web search and page retrieval for freshness-sensitive queries (latest market/rate/news context) through MCP web tools and Gemini web grounding service support.
+- **Live Zillow Snapshot Layer:** Periodically crawls fresh listing metadata into `data/live-zillow/output/*.json` with normalization, quality scoring, dedupe, and manifest/state artifacts; exposed through MCP `live.zillow.search` and consumed by agentic runtimes.
 - **Multi-LLM Approach:** Utilizes multiple LLMs for different tasks to optimize performance and cost.
 - **k‑Means Clustering:** Automatically groups similar listings and finds closest matches to refine recommendations.
   - All features are also normalized to a range of 0-1 for better clustering and kNN performance.
@@ -187,11 +188,13 @@ EstateWise is packed with both UI and AI features to enhance your home-finding e
 - **Secure User Authentication:** Sign up, log in, and log out with JWT‑based security.
 
 - **Conversation History:**
+
   - **Authenticated users** can view, rename, and delete past chats.
   - **Auto-Generated Conversation Titles**: New conversations automatically receive AI-generated titles (3-6 words) based on the first message, replacing the default "New Conversation" title within seconds.
   - **Guest users** still have their conversation history saved locally in the browser.
 
 - **Message Editing & Conversation Branching:**
+
   - Edit any previously sent message by clicking the pencil icon next to it.
   - Editing a message creates a new conversation branch: the history is truncated at the edit point, the edited message replaces the original, and a fresh AI response is generated from the updated context.
   - Works for both authenticated users (persisted server-side in MongoDB) and guest users (applied to the local history payload).
@@ -203,6 +206,7 @@ EstateWise is packed with both UI and AI features to enhance your home-finding e
 - **Rating System & Feedback Loop:** Rate each AI response (thumbs up/down) to adjust expert weights and continuously improve recommendations.
 
 - **Mixture‑of‑Experts (MoE) & Manual Expert View:**
+
   - The AI dynamically routes queries through specialized experts (Data Analyst, Lifestyle Concierge, Financial Advisor, Neighborhood Expert, Cluster Analyst).
   - There is a master merger model that synthesizes the responses from all experts.
   - Optionally switch to any single expert’s view to see their raw recommendation.
@@ -210,15 +214,18 @@ EstateWise is packed with both UI and AI features to enhance your home-finding e
 - **Chain-of-Thought (CoT):** Each expert uses a CoT approach to break down complex queries into manageable steps, ensuring accurate and relevant responses.
 
 - **Interactive Visualizations:**
+
   - In‑chat, the AI generates live Chart.js graphs from Pinecone data so you can instantly see trends and distributions.
   - A dedicated Visualizations page offers aggregate charts and insights for all Chapel Hill properties.
 
 - **Clustering & Similarity Search:**
+
   - k‑Means clustering groups similar properties for more focused suggestions.
   - kNN & Cosine Similarity (via Pinecone) finds the closest matches to your query in real time.
   - Graph traversal (via Neo4j) adds explainable relationships like same neighborhood/zip and vector‑similar links, enabling statements like “Recommended because it’s in the same neighborhood and similar in price/size to a liked home.”
 
 - **Insights & Tools Page:** A dedicated page at `/insights` with:
+
   - Explain Relationship: shortest graph path between two homes (ZIP/Neighborhood/Similarity edges) with a mini node‑edge diagram.
   - Graph Similar Properties: reasoned similarities (same neighborhood/zip/similar‑to) with a radial node graph.
   - Neighborhood Stats: counts and averages for a named neighborhood.
@@ -226,6 +233,7 @@ EstateWise is packed with both UI and AI features to enhance your home-finding e
   - Mortgage & Affordability tools: interactive breakdown + quick utilities.
 
 - **Deal Analyzer:** Utilizes AI/ML to evaluate if a property is a good deal based on historical trends, neighborhood data, and market conditions (at `/analyzer`).
+
   - The AI provides a detailed breakdown of factors influencing the deal quality.
   - Users can input specific properties to analyze or let the AI suggest potential deals from the dataset.
   - Scorecard system rates properties on various criteria (e.g., price, location, amenities).
@@ -239,11 +247,13 @@ EstateWise is packed with both UI and AI features to enhance your home-finding e
   - Visual indicators (e.g., color-coded scores) help users quickly assess deal quality.
 
 - **Forums & Community Discussions:** A space for users to discuss properties, share experiences, and seek advice from fellow homebuyers (at `/forums`).
+
   - Users can create new discussion threads or reply to existing ones.
   - Upvote/downvote system to highlight valuable contributions.
   - Moderation tools to ensure a respectful and informative community environment.
 
 - **Map Page:** A map view at `/map` that displays properties with markers:
+
   - Accepts `?zpids=123,456` to show specific homes only.
   - If no `zpids`, accepts `?q=` to search and caps to a safe max (200) for performance.
   - Includes a right-side Results Panel with Snapshot stats (median price, avg $/sqft, avg beds/baths, home-type mix).
@@ -254,37 +264,42 @@ EstateWise is packed with both UI and AI features to enhance your home-finding e
 - **Smooth Animations:** Engaging transitions and micro‑interactions powered by Framer Motion.
 
 - **Interactive Chat Interface:** Enjoy a fully animated chat experience with Markdown‑formatted responses, collapsible expert views, inline charts, and **real-time streaming responses** powered by Server-Sent Events (SSE).
+
   - **Streaming AI Responses:** Words appear in real-time as the AI generates them, providing an engaging and responsive user experience.
   - **Automatic Retries:** Built-in retry logic with exponential backoff ensures reliable message delivery even with unstable connections.
   - **Visual Feedback:** Loading indicators, animated cursors, and connection status updates keep users informed throughout the conversation.
   - **Inline Message Editing:** Click the pencil icon on any sent message to edit it in-place with an auto-resizing textarea, then send to branch the conversation from that point.
 
 - **Responsive, Themeable UI:**
+
   - Optimized for desktop, tablet, and mobile.
   - Dark and light modes with your preference saved locally.
 
 - **Guest Mode**: Use the app without creating an account—history is stored only in your browser.
 
 - **Comprehensive Property Data:**
+
   - **Over 50,000** Chapel Hill area listings, complete with prices, beds, baths, living area, year built, and more.
   - For security, this data isn’t included in the repo—please plug in your own.
   - Peek at our sample dataset here:  
     [Google Drive CSV (50k+ records)](https://drive.google.com/file/d/1vJCSlQgnQyVxoINosfWJWl6Jg1f0ltyo/view?usp=sharing)
 
-- **Production-Ready DevOps & Multi-Cloud Delivery:**  
-  - Turn-key deployments for **AWS (ECS Fargate)**, **Azure (Container Apps)**, **GCP (Cloud Run)**, and **HashiCorp Terraform + Kubernetes (Consul/Nomad mesh)**.  
-  - Built-in support for **Vercel** (frontend + optional backend edge) and **kustomize/Helm** manifests for any Kubernetes cluster.  
+- **Production-Ready DevOps & Multi-Cloud Delivery:**
+
+  - Turn-key deployments for **AWS (ECS Fargate)**, **Azure (Container Apps)**, **GCP (Cloud Run)**, and **HashiCorp Terraform + Kubernetes (Consul/Nomad mesh)**.
+  - Built-in support for **Vercel** (frontend + optional backend edge) and **kustomize/Helm** manifests for any Kubernetes cluster.
   - Enterprise GitOps control plane with **Argo CD** and **Flux CD** in non-overlapping ownership scopes.
   - Progressive delivery with **Argo Rollouts** for core services and **Flagger** in an isolated delivery namespace.
   - Operational automation with **Argo Workflows** (`WorkflowTemplate` + `CronWorkflow`) and cluster preflight validation.
   - Helm charts and Kustomize manifests available in `helm/` and `kubernetes/` for easy customization and deployment to Kubernetes environments.
-  - CI/CD ready with **Jenkins**, **GitHub Actions**, **Azure Pipelines**, and **Cloud Build**.  
+  - CI/CD ready with **Jenkins**, **GitHub Actions**, **Azure Pipelines**, and **Cloud Build**.
   - See [DEPLOYMENTS.md](DEPLOYMENTS.md) for diagrams, step-by-step guides, and environment toggles.
   - After cleaning, approx. **30,772 properties** remain in the database, available for the chatbot to use.
   - Explore `Initial-Data-Analysis.ipynb` in the repo root for an initial, quick Jupyter‑powered dive into the data.
   - Explore `EDA-CLI-Chatbot.ipynb` in the repo root for a more detailed and comprehensive analysis of the data, as well as a CLI version of our chatbot.
 
 - **Context Engineering & Knowledge Graph:**
+
   - Enterprise-grade context engineering system with in-memory knowledge graph (42 seed nodes, 55 edges, 12 node types).
   - Knowledge base with hybrid retrieval (semantic + keyword + graph-enhanced) and 10 pre-loaded domain documents.
   - Token-aware context window with priority-based allocation and per-agent budgets.
@@ -292,6 +307,12 @@ EstateWise is packed with both UI and AI features to enhance your home-finding e
   - 10 MCP tools (`context.search`, `context.assembleForAgent`, `context.graphTraverse`, etc.) and 4 MCP resources.
   - Ingestion pipeline for properties, conversations, and documents.
   - Full integration with the agentic AI orchestrator via `ContextEngineerAgent`.
+
+- **Live Data Snapshot & Web-Grounded AI:**
+
+  - Periodic crawling of fresh listing metadata into `data/live-zillow/output/*.json` with normalization, quality scoring, dedupe, and manifest/state artifacts.
+  - Exposed through MCP `live.zillow.search` and consumed by agentic runtimes for up-to-date recommendations.
+  - Web search and page retrieval for freshness-sensitive queries (latest market/rate/news context) through MCP web tools and Gemini web grounding service support.
 
 - _and so many more features in the app..._
 
@@ -496,7 +517,7 @@ Below is a high-level diagram that illustrates the flow of the application, incl
 │ (User Data,     │◄─────►│   Database      │◄─────►│ (relationships, │
 │  Convo History) │       │ (Knowledge Base)│       │ explainability) │
 └─────────────────┘       └─────────────────┘       └─────────────────┘
-           ▲                                            
+           ▲
            │
            │  (Utilizes stored data & docs)
            │
@@ -557,11 +578,13 @@ The graph layer enhances explainability by allowing the AI to reference relation
 **Neo4j integration details:**
 
 - What it adds
+
   - Explicit relationship modeling: `(Property)‑[:IN_ZIP|IN_NEIGHBORHOOD]->(...)` and optional `(:Property)‑[:SIMILAR_TO]->(:Property)`.
   - New API endpoints under `/api/graph` for explainable recommendations and path explanations.
   - Optional graph context appended to chat responses for better explainability when Neo4j is configured.
 
 - Configure (env)
+
   - `NEO4J_ENABLE=true`
   - `NEO4J_URI=neo4j+s://<your-instance-id>.databases.neo4j.io`
   - `NEO4J_USERNAME=neo4j`
@@ -569,6 +592,7 @@ The graph layer enhances explainability by allowing the AI to reference relation
   - `NEO4J_DATABASE=neo4j` (optional)
 
 - Ingest data
+
   - `cd backend`
   - `npm run graph:ingest` (uses `INGEST_LIMIT` to cap batch)
 
@@ -581,6 +605,7 @@ The graph layer enhances explainability by allowing the AI to reference relation
 Note: The graph layer is optional. If not configured, the API gracefully responds with 503 for graph routes and the chat pipeline skips graph context.
 
 Example managed credentials
+
 - Username: `neo4j`
 - Password: paste your one‑time admin password from Neo4j Aura (e.g., the one you saved when provisioning)
 - URI: from your Neo4j Aura instance (e.g., `neo4j+s://<id>.databases.neo4j.io`)
@@ -618,7 +643,7 @@ Example managed credentials
     NEO4J_PASSWORD=<paste-once-admin-password>
     NEO4J_DATABASE=neo4j
     INGEST_LIMIT=30772
-    
+
     # Speed & reliability tuning for Pinecone -> Neo4j ingest
     # Max IDs per page (serverless only). Range 1..1000
     PINECONE_PAGE_SIZE=1000
@@ -817,12 +842,14 @@ bash kubernetes/gitops/preflight.sh
 EstateWise now supports **three deployment strategies** for zero-downtime releases:
 
 1. **Blue-Green Deployment** – Instant traffic switch with immediate rollback capability
+
    - Deploy to inactive environment (blue/green)
    - Full testing before traffic switch
    - Rollback in < 1 second
    - Best for: Major releases
 
 2. **Canary Deployment** – Progressive rollout with real user testing
+
    - Gradual traffic shifting (10% → 25% → 50% → 75% → 100%)
    - Automated health monitoring and rollback
    - Manual approval gates
@@ -863,6 +890,7 @@ See [DEVOPS.md](DEVOPS.md) for detailed guides and [kubernetes/scripts/](kuberne
 ### CI/CD & DevOps Features
 
 **Jenkins Pipeline** (`jenkins/workflow.Jenkinsfile`) with comprehensive stages:
+
 - Linting & Formatting
 - Unit & Integration Tests
 - **Security Scanning** (5 layers: npm audit, SAST, secrets, container vulnerabilities, best practices)
@@ -873,6 +901,7 @@ See [DEVOPS.md](DEVOPS.md) for detailed guides and [kubernetes/scripts/](kuberne
 - Helm/Kustomize support for Kubernetes clusters
 
 **Production-Ready Infrastructure:**
+
 - **Horizontal Pod Autoscaling** (HPA) – Auto-scale from 2-10 replicas based on CPU/memory
 - **Pod Disruption Budgets** (PDB) – High availability during updates
 - **NetworkPolicies** – Network segmentation and security
@@ -883,6 +912,7 @@ See [DEVOPS.md](DEVOPS.md) for detailed guides and [kubernetes/scripts/](kuberne
 - **Chaos Engineering** – Resilience testing suite
 
 **Additional CI/CD Options:**
+
 - **GitHub Actions / GitLab CI** – Reuse deployment scripts or trigger native cloud pipelines
 - **Azure Pipelines** – Container build/update pipeline for Container Apps
 - **GCP Cloud Build** – Docker build + Cloud Run deploy in a single step
@@ -893,6 +923,7 @@ See [DEVOPS.md](DEVOPS.md) for detailed guides and [kubernetes/scripts/](kuberne
 ### Deployment Architecture Overview
 
 **DevOps Metrics:**
+
 - Deployment Frequency: **Multiple per day** (automated)
 - Lead Time: **< 30 minutes**
 - MTTR: **< 5 minutes** (instant rollback)
@@ -901,43 +932,43 @@ See [DEVOPS.md](DEVOPS.md) for detailed guides and [kubernetes/scripts/](kuberne
 
 **Infrastructure as Code (IaC)**
 
-  - **Terraform**: Provision VPC, subnets, Internet Gateway, ECS/Fargate cluster & service, ALB, IAM roles, and security groups via the `terraform/` modules.
-  - **CloudFormation**: Modular templates under `aws/cloudformation/` for VPC, IAM roles, ECS cluster/task/service, and ALB if you prefer AWS’s native IaC.
+- **Terraform**: Provision VPC, subnets, Internet Gateway, ECS/Fargate cluster & service, ALB, IAM roles, and security groups via the `terraform/` modules.
+- **CloudFormation**: Modular templates under `aws/cloudformation/` for VPC, IAM roles, ECS cluster/task/service, and ALB if you prefer AWS’s native IaC.
 
 **CI/CD Pipelines**
 
-  - **GitHub Actions**: Builds, tests, and pushes Docker images to AWS ECR or Google Artifact Registry, then triggers deployments.
-  - **AWS CodePipeline**: (Optional) Fully AWS-native pipeline—CodeBuild builds & pushes your image, CodePipeline deploys to ECS via Fargate.
-  - **GCP Cloud Build**: Builds and pushes containers to Artifact Registry and deploys the backend to Cloud Run using `gcp/cloudbuild.yaml`.
+- **GitHub Actions**: Builds, tests, and pushes Docker images to AWS ECR or Google Artifact Registry, then triggers deployments.
+- **AWS CodePipeline**: (Optional) Fully AWS-native pipeline—CodeBuild builds & pushes your image, CodePipeline deploys to ECS via Fargate.
+- **GCP Cloud Build**: Builds and pushes containers to Artifact Registry and deploys the backend to Cloud Run using `gcp/cloudbuild.yaml`.
 
 **Backend**
 
-  - **AWS ECS (Fargate)**: Containerized Node/TypeScript API hosted on ECS behind an Application Load Balancer, with autoscaling.
-  - **GCP Cloud Run**: Serverless container deployment option via Cloud Build; autoscaling to zero when idle.
-  - **Microsoft Azure**: Another option for hosting the backend with easy scaling.
-  - **Vercel** (Backup): Node server largely stateless, can run on Vercel for smaller workloads.
-  - **Docker / Podman**: Containerized backend for consistent environments across dev, test, and prod. Both Docker Compose and Podman Compose files are provided (see [`docker/README.md`](docker/README.md)).
-  - **Load Balancing & SSL**: ALB (AWS) or Cloud Load Balancing (GCP) with managed SSL certs for secure HTTPS.
-  - **Secrets Management**: Vault (HashiCorp), AWS Secrets Manager, or GCP Secret Manager for sensitive config.
+- **AWS ECS (Fargate)**: Containerized Node/TypeScript API hosted on ECS behind an Application Load Balancer, with autoscaling.
+- **GCP Cloud Run**: Serverless container deployment option via Cloud Build; autoscaling to zero when idle.
+- **Microsoft Azure**: Another option for hosting the backend with easy scaling.
+- **Vercel** (Backup): Node server largely stateless, can run on Vercel for smaller workloads.
+- **Docker / Podman**: Containerized backend for consistent environments across dev, test, and prod. Both Docker Compose and Podman Compose files are provided (see [`docker/README.md`](docker/README.md)).
+- **Load Balancing & SSL**: ALB (AWS) or Cloud Load Balancing (GCP) with managed SSL certs for secure HTTPS.
+- **Secrets Management**: Vault (HashiCorp), AWS Secrets Manager, or GCP Secret Manager for sensitive config.
 
 **Frontend**
 
-  - **Vercel**: Primary host for the Next.js/React UI with edge caching.
-  - **Netlify** (Backup): Can also deploy static build artifacts with environment overrides for API endpoints.
-  - **S3 + CloudFront**: (Optional) Host `out/` export of Next.js as static site, fronted by a CDN.
+- **Vercel**: Primary host for the Next.js/React UI with edge caching.
+- **Netlify** (Backup): Can also deploy static build artifacts with environment overrides for API endpoints.
+- **S3 + CloudFront**: (Optional) Host `out/` export of Next.js as static site, fronted by a CDN.
 
 **Data Stores**
 
-  - **MongoDB Atlas**: Global, fully managed MongoDB for user data and chat histories.
-  - **Pinecone**: Managed vector database for RAG-based property retrieval.
-  - **MongoDB Atlas**: Fully managed, global MongoDB for user data and chat histories.
-  - **Neo4j Aura**: Managed Neo4j graph database for relationship modeling and explainable recommendations.
-  - **Redis**: Managed Redis (Elasticache on AWS, Memorystore on GCP) for caching and performance.
+- **MongoDB Atlas**: Global, fully managed MongoDB for user data and chat histories.
+- **Pinecone**: Managed vector database for RAG-based property retrieval.
+- **MongoDB Atlas**: Fully managed, global MongoDB for user data and chat histories.
+- **Neo4j Aura**: Managed Neo4j graph database for relationship modeling and explainable recommendations.
+- **Redis**: Managed Redis (Elasticache on AWS, Memorystore on GCP) for caching and performance.
 
 **Monitoring & Logging**
 
-  - **Prometheus + Grafana** on AWS ECS (or GKE) for metrics collection and dashboards.
-  - **CloudWatch** (AWS) / **Cloud Logging** (GCP) for logs, alarms, and alerts.
+- **Prometheus + Grafana** on AWS ECS (or GKE) for metrics collection and dashboards.
+- **CloudWatch** (AWS) / **Cloud Logging** (GCP) for logs, alarms, and alerts.
 
 ### Azure Deployment
 
@@ -1225,6 +1256,7 @@ To run the application **(OPTIONAL)** using Docker or Podman:
    ```
 
 To run with orchestration engine + Redis cache:
+
 ```bash
 # Docker — agentic profile (orchestration engine, Redis cache, domain MCP servers)
 docker compose -f docker/compose.prod.yml --env-file .env --profile agentic up --build -d
@@ -1307,15 +1339,15 @@ flowchart TB
 
 **Key Capabilities:**
 
-| Feature | Description |
-|---------|-------------|
-| **APM Traces** | Distributed tracing across all services with unified service tagging (DD_SERVICE, DD_ENV, DD_VERSION) |
-| **Log Management** | Centralized logs from all containers with automatic correlation to traces |
-| **17 Monitors** | Error rate, latency P95/P99, pod crash loops, memory/CPU, ALB health, deploy tracking |
-| **SLOs** | 99.9% API availability and 95% latency-under-500ms over 30-day windows |
-| **Synthetic Checks** | Proactive health check from 3 AWS regions every 60 seconds |
-| **DogStatsD Metrics** | Custom deploy counters and duration histograms from deployment-control |
-| **Network Policies** | Helm-managed NetworkPolicies for agent ↔ app and agent ↔ cluster-agent traffic |
+| Feature               | Description                                                                                           |
+| --------------------- | ----------------------------------------------------------------------------------------------------- |
+| **APM Traces**        | Distributed tracing across all services with unified service tagging (DD_SERVICE, DD_ENV, DD_VERSION) |
+| **Log Management**    | Centralized logs from all containers with automatic correlation to traces                             |
+| **17 Monitors**       | Error rate, latency P95/P99, pod crash loops, memory/CPU, ALB health, deploy tracking                 |
+| **SLOs**              | 99.9% API availability and 95% latency-under-500ms over 30-day windows                                |
+| **Synthetic Checks**  | Proactive health check from 3 AWS regions every 60 seconds                                            |
+| **DogStatsD Metrics** | Custom deploy counters and duration histograms from deployment-control                                |
+| **Network Policies**  | Helm-managed NetworkPolicies for agent ↔ app and agent ↔ cluster-agent traffic                      |
 
 **Setup:**
 
@@ -1379,21 +1411,21 @@ flowchart LR
 
 **SonarQube** — multi-module analysis across all 7 services (`sonar-project.properties`):
 
-| Feature | Detail |
-|---------|--------|
-| Modules | `backend`, `frontend`, `grpc`, `mcp`, `agentic-ai`, `deployment-control`, `context-engineering` |
-| Quality Gate | Enforced — build breaks on new code quality violations |
-| Coverage | TypeScript LCOV reports per module |
-| Local Server | `docker compose -f docker/compose.sonarqube.yml up -d` |
+| Feature      | Detail                                                                                          |
+| ------------ | ----------------------------------------------------------------------------------------------- |
+| Modules      | `backend`, `frontend`, `grpc`, `mcp`, `agentic-ai`, `deployment-control`, `context-engineering` |
+| Quality Gate | Enforced — build breaks on new code quality violations                                          |
+| Coverage     | TypeScript LCOV reports per module                                                              |
+| Local Server | `docker compose -f docker/compose.sonarqube.yml up -d`                                          |
 
 **Snyk** — four scan layers with configurable severity threshold:
 
-| Scan Type | Command | Scope |
-|-----------|---------|-------|
-| SCA (Dependencies) | `make snyk` | All `package.json` files |
-| Code SAST | `snyk code test` | Source-level vulnerability patterns |
-| Container | `make snyk-container` | Docker image OS + app layer CVEs |
-| IaC | `make snyk-iac` | Terraform, Kubernetes, Helm, Docker Compose misconfigs |
+| Scan Type          | Command               | Scope                                                  |
+| ------------------ | --------------------- | ------------------------------------------------------ |
+| SCA (Dependencies) | `make snyk`           | All `package.json` files                               |
+| Code SAST          | `snyk code test`      | Source-level vulnerability patterns                    |
+| Container          | `make snyk-container` | Docker image OS + app layer CVEs                       |
+| IaC                | `make snyk-iac`       | Terraform, Kubernetes, Helm, Docker Compose misconfigs |
 
 ```bash
 # Run all security scans
@@ -1521,6 +1553,7 @@ flowchart LR
 ### Environment Variables
 
 Configure in `mcp/.env` (copy from `.env.example`):
+
 - `API_BASE_URL` (default: `https://estatewise-backend.vercel.app`)
 - `FRONTEND_BASE_URL` (default: `https://estatewise.vercel.app`)
 - `A2A_BASE_URL` (default: `http://localhost:4318`) – Target Agentic AI A2A endpoint for `a2a.*` bridge tools
@@ -1532,6 +1565,7 @@ Configure in `mcp/.env` (copy from `.env.example`):
 ### Quick Start
 
 Local development
+
 ```bash
 cd mcp
 npm install
@@ -1539,6 +1573,7 @@ npm run dev
 ```
 
 Build & run
+
 ```bash
 cd mcp
 npm run build
@@ -1546,6 +1581,7 @@ npm start
 ```
 
 Test with example client
+
 ```bash
 npm run client:dev  # List all tools
 npm run client:call -- properties.search '{"q":"Chapel Hill 3 bed","topK":5}'
@@ -1561,8 +1597,7 @@ npm run client:call -- monitoring.stats '{"detailed":true}'
 - Monitoring automatically tracks all tool usage without requiring manual instrumentation.
 - Cache can be cleared anytime via `system.cache.clear` or `monitoring.reset`.
 
-> [!TIP]
-> **For comprehensive documentation, tool examples, and deployment guides, see [mcp/README.md](mcp/README.md).**
+> [!TIP] > **For comprehensive documentation, tool examples, and deployment guides, see [mcp/README.md](mcp/README.md).**
 
 ## Agentic AI Pipeline
 
@@ -1577,16 +1612,16 @@ A production-grade, multi-runtime agent stack is available under `agentic-ai/`:
 
 ### Runtime Entry Points
 
-| Surface | Endpoint / Command | Notes |
-|---------|--------------------|-------|
-| CLI | `npm run dev -- "<goal>"` | Default orchestrator runtime |
-| CLI (LangGraph) | `npm run dev -- --langgraph "<goal>"` | ReAct runtime with tool traces |
-| CLI (CrewAI) | `npm run dev -- --crewai "<goal>"` | Python crew runtime |
-| HTTP batch | `POST /run` | Supports `runtime`, `rounds`, `threadId`, `requestId` |
-| HTTP stream | `GET /run/stream` | SSE streaming + optional `requestId` correlation |
-| Runtime metadata | `GET /config` | Includes runtime/tool modes and LangSmith status |
-| A2A JSON-RPC | `POST /a2a` | `tasks.create/get/list/wait/cancel` (supports optional `requestId`) |
-| A2A events | `GET /a2a/tasks/{taskId}/events` | SSE task lifecycle stream |
+| Surface          | Endpoint / Command                    | Notes                                                                  |
+| ---------------- | ------------------------------------- | ---------------------------------------------------------------------- | ------ |
+| CLI              | `npm run dev -- "<goal>"`             | Default orchestrator runtime                                           |
+| CLI (LangGraph)  | `npm run dev -- --langgraph "<goal>"` | ReAct runtime with tool traces                                         |
+| CLI (CrewAI)     | `npm run dev -- --crewai "<goal>"`    | Python crew runtime                                                    |
+| HTTP batch       | `POST /run`                           | Supports `runtime`, `rounds`, `threadId`, `requestId`, `deterministic` |
+| HTTP stream      | `GET /run/stream`                     | SSE streaming + optional `requestId`, `deterministic=true              | false` |
+| Runtime metadata | `GET /config`                         | Includes runtime/tool modes and LangSmith status                       |
+| A2A JSON-RPC     | `POST /a2a`                           | `tasks.create/get/list/wait/cancel` (supports optional `requestId`)    |
+| A2A events       | `GET /a2a/tasks/{taskId}/events`      | SSE task lifecycle stream                                              |
 
 ### Observability & Tracing
 
@@ -1653,8 +1688,7 @@ flowchart LR
   CREW --> MCP
 ```
 
-> [!IMPORTANT]
-> **For details and examples, see [agentic-ai/README.md](agentic-ai/README.md).**
+> [!IMPORTANT] > **For details and examples, see [agentic-ai/README.md](agentic-ai/README.md).**
 
 ### Orchestration Engine (New)
 
@@ -1707,6 +1741,7 @@ flowchart TB
 The Flywheel methodology is a bead-based task decomposition and coordination system that enables multi-agent development with full audit trails, crash recovery, and graph-theory work prioritization. All state lives in `.beads/` so any agent can pick up where another left off.
 
 **Core concepts:**
+
 - **Bead**: The smallest unit of work that produces a verifiable artifact. Each bead carries self-contained context (title, domain, priority, dependencies, acceptance criteria, verification command) so agents never need external briefings
 - **Status machine**: `open → claimed → implementing → verifying → done` (with `blocked` side-state). Tracked in `.beads/.status.json` as the single source of truth
 - **Domain taxonomy**: 7 domains — ORCH (orchestration), CCFG (configuration), PRMT (prompts), MCP (tool servers), CTX (context engineering), CROSS (integration), TEST (testing)
@@ -1714,14 +1749,15 @@ The Flywheel methodology is a bead-based task decomposition and coordination sys
 
 **Flywheel toolchain** (`tools/`):
 
-| Tool | Command | Purpose |
-|------|---------|---------|
-| **Beads Viewer** | `node tools/bv.mjs --robot-triage` | Graph-theory triage with PageRank, betweenness, critical path |
-| **Agent Mail** | `node tools/agent-mail.mjs send <to> <subj> <body>` | Multi-agent coordination: identities, messaging, file reservations |
-| **DCG** | `node tools/dcg.mjs <command>` | Destructive Command Guard — blocks `git reset --hard`, `rm -rf`, force pushes |
-| **Session Memory** | `node tools/session-memory.mjs log <agent> <type> <desc>` | 3-layer memory: episodic → working → procedural with confidence scoring |
+| Tool               | Command                                                   | Purpose                                                                       |
+| ------------------ | --------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| **Beads Viewer**   | `node tools/bv.mjs --robot-triage`                        | Graph-theory triage with PageRank, betweenness, critical path                 |
+| **Agent Mail**     | `node tools/agent-mail.mjs send <to> <subj> <body>`       | Multi-agent coordination: identities, messaging, file reservations            |
+| **DCG**            | `node tools/dcg.mjs <command>`                            | Destructive Command Guard — blocks `git reset --hard`, `rm -rf`, force pushes |
+| **Session Memory** | `node tools/session-memory.mjs log <agent> <type> <desc>` | 3-layer memory: episodic → working → procedural with confidence scoring       |
 
 **Flywheel invariants** (the 9 rules):
+
 1. Global reasoning belongs in plan space — not scattered across code
 2. The markdown plan must be comprehensive before coding starts
 3. Plan-to-beads is a distinct translation problem; beads carry self-contained context
@@ -1733,6 +1769,7 @@ The Flywheel methodology is a bead-based task decomposition and coordination sys
 9. Review, testing, and hardening are part of the core method
 
 **File reservations & conflict zones:**
+
 - Agents declare file reservations via Agent Mail before editing (advisory locks with configurable TTL)
 - **Conflict zones** (single-agent only): `package.json`, `docker-compose.yml`, shared type definitions, `.beads/.status.json`
 - **Safe parallel zones**: individual MCP servers, agent modules, test files, documentation
@@ -1780,14 +1817,14 @@ flowchart LR
 
 ### MCP Domain Servers (New)
 
-| Server | Port | Tools | Description |
-|--------|------|-------|-------------|
-| `property-server` | 3100 | 8 | Search, lookup, compare, enrich, sample properties |
-| `market-server` | 3101 | 5 | Price trends, inventory, affordability, competitive analysis |
-| `finance-server` | 3102 | 4 | Mortgage calculator, ROI projections, affordability |
-| `graph-server` | 3103 | 3 | Similarity, explain relationships, neighborhood analysis |
-| `commute-server` | 3104 | 2 | Commute time estimation, transit scoring |
-| `system-server` | 3105 | 2 | Cache management, health checks, monitoring |
+| Server            | Port | Tools | Description                                                  |
+| ----------------- | ---- | ----- | ------------------------------------------------------------ |
+| `property-server` | 3100 | 8     | Search, lookup, compare, enrich, sample properties           |
+| `market-server`   | 3101 | 5     | Price trends, inventory, affordability, competitive analysis |
+| `finance-server`  | 3102 | 4     | Mortgage calculator, ROI projections, affordability          |
+| `graph-server`    | 3103 | 3     | Similarity, explain relationships, neighborhood analysis     |
+| `commute-server`  | 3104 | 2     | Commute time estimation, transit scoring                     |
+| `system-server`   | 3105 | 2     | Cache management, health checks, monitoring                  |
 
 ## Context Engineering
 
@@ -1882,18 +1919,18 @@ graph LR
 
 10 pre-loaded domain documents covering the full EstateWise platform:
 
-| Document | Content |
-|----------|---------|
-| Platform Overview | Architecture, capabilities, tech stack |
-| Property Search Guide | Filters, ZPID lookup, search strategies |
-| Market Analysis Methodology | Data sources, metrics, trend analysis |
-| Financial Analysis Tools | Mortgage, ROI, affordability calculators |
-| Graph & Knowledge System | Neo4j integration, graph enrichment |
-| Agent Capabilities Reference | All 12 AI agent roles and specialties |
-| MCP Tool Reference | All 67+ MCP tools and descriptions |
-| Neighborhood Analysis Guide | School districts, crime, demographics |
-| Commute Analysis | Scoring, transportation modes |
-| Compliance & Regulations | Fair housing, data privacy |
+| Document                     | Content                                  |
+| ---------------------------- | ---------------------------------------- |
+| Platform Overview            | Architecture, capabilities, tech stack   |
+| Property Search Guide        | Filters, ZPID lookup, search strategies  |
+| Market Analysis Methodology  | Data sources, metrics, trend analysis    |
+| Financial Analysis Tools     | Mortgage, ROI, affordability calculators |
+| Graph & Knowledge System     | Neo4j integration, graph enrichment      |
+| Agent Capabilities Reference | All 12 AI agent roles and specialties    |
+| MCP Tool Reference           | All 67+ MCP tools and descriptions       |
+| Neighborhood Analysis Guide  | School districts, crime, demographics    |
+| Commute Analysis             | Scoring, transportation modes            |
+| Compliance & Regulations     | Fair housing, data privacy               |
 
 **Retrieval strategies:** semantic (cosine similarity), keyword (TF-IDF), hybrid (weighted blend).
 
@@ -1915,17 +1952,18 @@ flowchart LR
   W --> AC[Assembled Context<br/>for agent prompt]
 ```
 
-| Priority | Level | Examples |
-|----------|-------|---------|
-| Critical (4) | System prompts, safety rules | Always included |
-| High (3) | Direct graph/KB matches | Core relevance |
-| Medium (2) | Related context, recent conversation | Supporting info |
-| Low (1) | Background knowledge | Space permitting |
-| Background (0) | Oldest/least relevant | First evicted |
+| Priority       | Level                                | Examples         |
+| -------------- | ------------------------------------ | ---------------- |
+| Critical (4)   | System prompts, safety rules         | Always included  |
+| High (3)       | Direct graph/KB matches              | Core relevance   |
+| Medium (2)     | Related context, recent conversation | Supporting info  |
+| Low (1)        | Background knowledge                 | Space permitting |
+| Background (0) | Oldest/least relevant                | First evicted    |
 
 ### D3 Visualization UI
 
 A professional dark-themed dashboard at `http://localhost:4200` featuring:
+
 - **Force-directed graph** with 12 color-coded node types, zoom/pan/drag, click-to-inspect
 - **Node detail panel** with properties, metadata, and neighbor navigation
 - **Knowledge base search** with scored results
@@ -1941,8 +1979,7 @@ npm run seed         # Verify seed data (42 nodes, 55 edges, 10 docs)
 npm run build        # Production build
 ```
 
-> [!TIP]
-> **For comprehensive documentation, see [context-engineering/README.md](context-engineering/README.md).**
+> [!TIP] > **For comprehensive documentation, see [context-engineering/README.md](context-engineering/README.md).**
 
 ## Codex Multi-Agent
 
@@ -2007,11 +2044,11 @@ flowchart TB
 
 ### When to Use Each API
 
-| API | Best For | Protocol | Type Safety | Languages |
-|-----|----------|----------|-------------|-----------|
-| **REST** | Web standards, wide compatibility | JSON/HTTP/1.1 | OpenAPI/Swagger | Any |
-| **tRPC** | TypeScript apps, React/Next.js | JSON/HTTP | End-to-end TS | TypeScript |
-| **gRPC** | Microservices, high performance | Protobuf/HTTP/2 | Code generation | 10+ languages |
+| API      | Best For                          | Protocol        | Type Safety     | Languages     |
+| -------- | --------------------------------- | --------------- | --------------- | ------------- |
+| **REST** | Web standards, wide compatibility | JSON/HTTP/1.1   | OpenAPI/Swagger | Any           |
+| **tRPC** | TypeScript apps, React/Next.js    | JSON/HTTP       | End-to-end TS   | TypeScript    |
+| **gRPC** | Microservices, high performance   | Protobuf/HTTP/2 | Code generation | 10+ languages |
 
 ### tRPC API
 
@@ -2034,13 +2071,14 @@ The tRPC API is organized into logical routers:
 ```typescript
 // Main app router combining all sub-routers
 appRouter = {
-  properties: propertiesRouter,  // Property CRUD and search
-  analytics: analyticsRouter,    // Market trends, predictions, metrics
+  properties: propertiesRouter, // Property CRUD and search
+  analytics: analyticsRouter, // Market trends, predictions, metrics
   // Additional routers can be added here
-}
+};
 ```
 
 **Properties Router** (`/trpc/properties.*`):
+
 - `list` - Get paginated properties with filters (type, price, bedrooms)
 - `byId` - Get single property by ID
 - `search` - Full-text search across properties
@@ -2048,6 +2086,7 @@ appRouter = {
 - `stats` - Get aggregate statistics
 
 **Analytics Router** (`/trpc/analytics.*`):
+
 - `marketTrends` - Historical price/volume data for a location
 - `pricePrediction` - AI-powered price estimates
 - `neighborhoodInsights` - Demographics, schools, amenities
@@ -2131,14 +2170,14 @@ One of tRPC's main benefits is compile-time type safety:
 
 ```typescript
 // ❌ TypeScript Error - 'apartament' is not a valid type
-trpc.properties.list.query({ type: 'apartament' });
+trpc.properties.list.query({ type: "apartament" });
 
 // ❌ TypeScript Error - 'bedroom' doesn't exist
 trpc.properties.list.query({ bedroom: 3 });
 
 // ✅ Correct - TypeScript knows all valid parameters
 trpc.properties.list.query({
-  type: 'apartment',
+  type: "apartment",
   bedrooms: 3,
   maxPrice: 750000,
 });
@@ -2170,6 +2209,7 @@ EstateWise also provides **gRPC** (Google Remote Procedure Call) services for hi
 #### Protocol Buffers
 
 All gRPC services are defined using Protocol Buffers (protobuf), providing:
+
 - **Strongly typed contracts** between services
 - **Language-agnostic** service definitions
 - **Efficient binary serialization** (smaller payloads than JSON)
@@ -2363,6 +2403,7 @@ grpcurl -plaintext -d '{"query": "3 bedrooms"}' \
 **Language Support**:
 
 The gRPC services can be consumed by clients written in:
+
 - JavaScript/TypeScript (Node.js)
 - Python
 - Go
@@ -2382,8 +2423,7 @@ Travis CI complements the existing GitHub Actions workflows by running the Node 
 - **Frontend stage:** Installs dependencies with `npm --prefix frontend ci`, performs linting, builds the Next.js app, and runs Jest.
 - **Secrets:** Configure the same environment variables used locally (database URIs, Pinecone, Google AI keys, etc.) through the Travis project settings.
 
-> [!NOTE]
-> **More details:** See [`TRAVIS_CI.md`](TRAVIS_CI.md) for enablement steps, local parity commands, and maintenance tips.
+> [!NOTE] > **More details:** See [`TRAVIS_CI.md`](TRAVIS_CI.md) for enablement steps, local parity commands, and maintenance tips.
 
 ## Testing
 
@@ -2394,55 +2434,61 @@ The application includes unit tests for both the backend and frontend components
 To run the tests, follow these steps:
 
 1. **Backend Unit & Integration Tests:**
-  - Navigate to the `backend` directory.
-  - Run the tests using the following command:
 
-    ```bash
-    npm run test
-    
-    # or run with watch mode (recommended for development - reruns tests on file changes)
-    npm run test:watch
-    
-    # or run with coverage report (recommended for CI/CD - generates a coverage report)
-    npm run test:coverage
-    ```
-  - This command runs the unit tests defined in the `src/tests` directory using Jest.
+- Navigate to the `backend` directory.
+- Run the tests using the following command:
+
+  ```bash
+  npm run test
+
+  # or run with watch mode (recommended for development - reruns tests on file changes)
+  npm run test:watch
+
+  # or run with coverage report (recommended for CI/CD - generates a coverage report)
+  npm run test:coverage
+  ```
+
+- This command runs the unit tests defined in the `src/tests` directory using Jest.
 
 2. **Frontend Unit & Integration Tests:**
-  - Navigate to the `frontend` directory.
-  - Run the tests using the following command:
 
-    ```bash
-    npm run test
-    
-    # or run with watch mode (recommended for development - reruns tests on file changes)
-    npm run test:watch
-    
-    # or run with coverage report (recommended for CI/CD - generates a coverage report)
-    npm run test:coverage
-    ```
-  - This command runs the unit tests defined in the `__tests__` directory using Jest and React Testing Library.
+- Navigate to the `frontend` directory.
+- Run the tests using the following command:
+
+  ```bash
+  npm run test
+
+  # or run with watch mode (recommended for development - reruns tests on file changes)
+  npm run test:watch
+
+  # or run with coverage report (recommended for CI/CD - generates a coverage report)
+  npm run test:coverage
+  ```
+
+- This command runs the unit tests defined in the `__tests__` directory using Jest and React Testing Library.
 
 3. **Frontend E2E Tests:**
-  - For end-to-end tests, we use Cypress and Selenium WebDriver.
-  - To run the Selenium E2E tests, navigate to the `frontend` directory and run:
 
-    ```bash
-    npm run test:selenium
-    ```
+- For end-to-end tests, we use Cypress and Selenium WebDriver.
+- To run the Selenium E2E tests, navigate to the `frontend` directory and run:
 
-  - To run the Cypress E2E tests, navigate to the `frontend` directory and run:
+  ```bash
+  npm run test:selenium
+  ```
 
-    ```bash
-    npm run cypress:run
-    
-    # to open the Cypress Test Runner in interactive mode, run:
-    npm run cypress:open
-    ```
+- To run the Cypress E2E tests, navigate to the `frontend` directory and run:
 
-  - This command runs the end-to-end tests defined in the `cypress/integration` directory using Cypress.
+  ```bash
+  npm run cypress:run
+
+  # to open the Cypress Test Runner in interactive mode, run:
+  npm run cypress:open
+  ```
+
+- This command runs the end-to-end tests defined in the `cypress/integration` directory using Cypress.
 
 These tests cover various aspects of the application, including:
+
 - **Unit Tests:** Individual components and functions to ensure they behave as expected.
 - **Integration Tests:** Multiple components working together to ensure they interact correctly.
 - **End-to-End Tests:** Simulating user interactions to ensure the entire application flow works as intended.
@@ -2517,22 +2563,22 @@ For more details, see [jsdoc.app](https://jsdoc.app) and [typedoc.org](https://t
 
 The application is containerized using Docker or Podman to ensure consistent, portable, and reproducible builds across different environments.
 
-* **Backend and Frontend Dockerfiles:**
+- **Backend and Frontend Dockerfiles:**
   The `backend/Dockerfile` and `frontend/Dockerfile` define how to build the container images for their respective services. They include steps to install dependencies, build the code, and configure the production servers.
 
-* **Production Stack:**
+- **Production Stack:**
   The `docker/` directory contains a full production compose stack (`compose.prod.yml` for Docker, `podman-compose.prod.yml` for Podman) with Nginx, MongoDB, healthchecks, and optional Neo4j/Agentic AI profiles. See [`docker/README.md`](docker/README.md) for details.
 
-* **Package-level Compose:**
+- **Package-level Compose:**
   Each package with its own container also ships a `podman-compose.yaml` alongside its `docker-compose.yaml` (`agentic-ai/`, `mcp/`).
 
-* **GitHub Actions Integration:**
+- **GitHub Actions Integration:**
   As part of the CI/CD pipeline, the workflow automatically builds these Docker images after testing and linting have succeeded. It uses the `docker/build-push-action@v5` to build the images and then push them to GitHub Container Registry (GHCR).
 
-* **Image Scanning:**
+- **Image Scanning:**
   Once the images are built and published, they are scanned for vulnerabilities using Trivy in the pipeline to catch any security issues before deployment.
 
-* **Local Usage:**
+- **Local Usage:**
   For local development or quick testing:
 
   ```bash
@@ -2543,7 +2589,7 @@ The application is containerized using Docker or Podman to ensure consistent, po
   podman compose up --build
   ```
 
-* **Deployment:**
+- **Deployment:**
   In production, the images are pulled directly from GHCR and deployed to AWS infrastructure or Vercel, enabling a consistent artifact to run from local to production.
 
 This approach ensures faster onboarding for developers, simplifies deployments, and minimizes environment drift.
@@ -2603,11 +2649,11 @@ Contributions are welcome! Follow these steps:
 4. **Push to the branch:**  
    `git push origin feature/your-feature-name`
 5. **Open a Pull Request** with a clear description of your changes.
-6. **Follow the project's coding standards:**  
+6. **Follow the project's coding standards:**
    - Use ESLint and Prettier for code formatting.
    - Write tests for new features or bug fixes.
    - Update documentation as needed.
-7. **Review and address feedback:**  
+7. **Review and address feedback:**
    - Be responsive to comments on your pull request.
    - Make necessary changes and push updates to the same branch.
 8. **Celebrate your contribution!**  

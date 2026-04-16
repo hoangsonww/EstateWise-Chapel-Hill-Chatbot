@@ -17,10 +17,12 @@ Works with any MCP client, such as IDE plugins (e.g., Claude Desktop) or agent f
 The MCP server wraps the existing EstateWise backend API and frontend map viewer to provide a comprehensive suite of 60+ tools for real estate research, market analysis, and data management. It supports property search, graph-based similarity analysis, market intelligence, batch operations, token-based authentication, performance monitoring, and more.
 
 Key capabilities:
+
 - **Property Discovery**: Search, lookup, and analyze properties with advanced filters
 - **Graph Analysis**: Find similar properties and explain relationships using Neo4j
 - **Market Intelligence**: Price trends, inventory analysis, competitive positioning, affordability metrics
 - **Web Research**: Public internet search and page fetch for current external context
+- **Live Zillow Snapshot Access**: Query locally refreshed Zillow listing snapshots for freshness-aware context
 - **MCP Primitives**: Production-ready `tools`, `resources`, and `prompts` for richer client UX
 - **Batch Operations**: Compare, enrich, and export multiple properties efficiently
 - **A2A Interop**: Create, wait, list, and cancel remote Agentic AI tasks via A2A JSON-RPC
@@ -51,8 +53,18 @@ await mcp.callTool("a2a.task.create", {
   goal: "Find 3-bed homes in Chapel Hill and summarize risks",
   runtime: "langgraph",
   rounds: 5,
-  waitForCompletion: true
+  waitForCompletion: true,
 });
+```
+
+## Live Zillow Snapshot Integration
+
+```mermaid
+flowchart LR
+  Z[data/live-zillow/fetch_live_zillow.mjs] --> S[data/live-zillow/output/live_zillow_snapshot.normalized.json]
+  S --> MCP[live.zillow.search tool]
+  MCP --> A[agentic-ai runtimes]
+  MCP --> C[MCP clients]
 ```
 
 ## Token Management
@@ -77,6 +89,12 @@ Add to your `.env` file:
 # Secret key for signing tokens (use a strong random value in production!)
 MCP_TOKEN_SECRET=your-secret-key-change-in-production
 
+# Require configured secret and disable ephemeral fallback
+MCP_TOKEN_REQUIRE_SECRET=true
+
+# Optional file path for persisted token/refresh-token state
+MCP_TOKEN_PERSIST_PATH=./.runtime/tokens.json
+
 # Access token TTL in milliseconds (default: 1 hour)
 MCP_TOKEN_TTL_MS=3600000
 
@@ -92,7 +110,7 @@ const { accessToken, refreshToken } = await mcp.token.generate({
   subject: "user@example.com",
   scope: ["read:properties", "write:favorites"],
   metadata: { userId: "12345", plan: "premium" },
-  includeRefreshToken: true
+  includeRefreshToken: true,
 });
 
 // 2. Validate the token before making requests
@@ -102,7 +120,7 @@ const validation = await mcp.token.validate({ token: accessToken });
 // 3. When access token expires, refresh it
 const newToken = await mcp.token.refresh({
   refreshToken: refreshToken,
-  scope: ["read:properties", "write:favorites"]
+  scope: ["read:properties", "write:favorites"],
 });
 
 // 4. Revoke tokens when logging out
@@ -113,11 +131,13 @@ await mcp.token.revokeRefresh({ refreshToken: refreshToken });
 ### Token Structure
 
 Tokens are base64-encoded JSON with HMAC signature:
+
 ```
 <base64_payload>.<hmac_signature>
 ```
 
 Payload structure:
+
 ```json
 {
   "sub": "user123",
@@ -137,29 +157,32 @@ Payload structure:
 5. **Revoke on Logout**: Always revoke both access and refresh tokens on logout
 6. **Monitor Usage**: Use `mcp.token.stats` to monitor token usage patterns
 
-### In-Memory Storage
+### Token State Durability
 
-⚠️ **Note**: Tokens are currently stored in memory. For production deployments:
-- Use Redis or a database for persistent token storage
-- Implement distributed token storage for multiple server instances
-- Consider using JWT with public/private key pairs for stateless validation
+- By default, token state is in memory.
+- Set `MCP_TOKEN_PERSIST_PATH` to persist access/refresh token state across restarts.
+- Set `MCP_TOKEN_REQUIRE_SECRET=true` to fail token generation when `MCP_TOKEN_SECRET` is missing.
+- For multi-instance deployments, use shared storage (Redis/DB) instead of local files.
 
 ## Quick Start
 
 Getting started is easy. Follow the steps below to install dependencies, build the server, and run it.
 
 ### Prerequisites
+
 - Node.js 18+ (recommended 20+)
 - npm
 - (Optional) `tsx` for development mode (`npm install -g tsx`)
 
 ### Install
+
 ```bash
 cd mcp
 npm install
 ```
 
 ### Development (watch mode)
+
 ```bash
 npm run dev
 ```
@@ -178,12 +201,14 @@ node dist/client.js prompt workflow.market-brief '{"market":"Austin TX"}'
 ```
 
 ### Build & Run
+
 ```bash
 npm run build
 npm start
 ```
 
 ### Environment
+
 - Copy `.env.example` to `.env` and adjust as needed.
 - Variables:
   - `API_BASE_URL` (default: `https://estatewise-backend.vercel.app`)
@@ -193,6 +218,10 @@ npm start
   - `A2A_POLL_MS` (default: `1000`) – polling interval fallback when waiting for remote task completion
   - `A2A_WAIT_TIMEOUT_MS` (default: `120000`) – default wait cap for `a2a.task.wait`
   - `WEB_TIMEOUT_MS` (default: `12000`) – timeout for `web.search` and `web.fetch` outbound requests
+  - `LIVE_ZILLOW_SNAPSHOT_PATH` (default: `../data/live-zillow/output/live_zillow_snapshot.normalized.json`) – local live snapshot consumed by `live.zillow.search`
+  - `LIVE_ZILLOW_MAX_RESULTS` (default: `25`) – max rows returned by `live.zillow.search`
+  - `LIVE_ZILLOW_STALE_HOURS` (default: `72`) – stale-age threshold used for warning annotation in `live.zillow.search`
+  - `LIVE_ZILLOW_MIN_QUALITY_SCORE` (default: `0`) – default quality floor (0-1) applied by `live.zillow.search`
   - `MCP_CACHE_TTL_MS` (default: `30000`) – cache TTL for GET responses
   - `MCP_CACHE_MAX` (default: `200`) – max cached GET responses
   - `MCP_SERVER_NAME` / `MCP_SERVER_VERSION` – server identity metadata
@@ -200,6 +229,8 @@ npm start
   - `MCP_TOOL_MAX_ARG_BYTES` (default: `65536`) – max serialized tool argument size
   - `MCP_TOOL_MAX_CONCURRENT` (default: `32`) – max concurrent in-flight tool calls
   - `MCP_TOOL_ALLOWLIST` / `MCP_TOOL_DENYLIST` – optional CSV policy controls for tool execution
+  - `MCP_TOKEN_REQUIRE_SECRET` (default: `false`) – require explicit `MCP_TOKEN_SECRET` instead of ephemeral fallback
+  - `MCP_TOKEN_PERSIST_PATH` (default: unset) – persist token state to a JSON file
   - `MCP_DEBUG` (default: `false`) – verbose debug logs
 
 ## MCP Resources & Prompts
@@ -228,6 +259,7 @@ These primitives are intended for enterprise clients that need schema introspect
 All tools validate inputs with Zod and return content blocks per MCP. For maximum compatibility, JSON payloads are returned as stringified text.
 
 - Properties
+
   - `properties.search(q: string, topK?: number)`
     - Search properties via Pinecone‑backed API. Returns listings and charts.
     - Example: `{ "q": "3 bed in Chapel Hill", "topK": 5 }`
@@ -242,6 +274,7 @@ All tools validate inputs with Zod and return content blocks per MCP. For maximu
   - `properties.sample(topK?: number)` – Small bootstrap sample (`q=homes`, defaults to 50)
 
 - Graph
+
   - `graph.similar(zpid: number, limit?: number)` – Similar properties for a ZPID
   - `graph.explain(from: number, to: number)` – Explain path between two ZPIDs
   - `graph.neighborhood(name: string, limit?: number)` – Neighborhood stats/samples
@@ -250,6 +283,7 @@ All tools validate inputs with Zod and return content blocks per MCP. For maximu
   - `graph.pathMatrix(zpids: number[], limitPairs?: number)` – Explain paths for adjacent pairs across a list
 
 - Charts & Analytics
+
   - `charts.priceHistogram(q: string, topK?: number)` – Price distribution series
   - `analytics.summarizeSearch(q: string, topK?: number)` – Medians for price/sqft/$psf/beds/baths
   - `analytics.groupByZip(q: string, topK?: number)` – Counts and median price by ZIP
@@ -257,24 +291,28 @@ All tools validate inputs with Zod and return content blocks per MCP. For maximu
   - `analytics.pricePerSqft(q: string, topK?: number, buckets?: number)` – Distribution and quantiles of $/sqft
 
 - Market Analysis
+
   - `market.pricetrends({ q, topK? })` – Analyze price trends and statistics for an area
   - `market.inventory({ q, topK? })` – Current inventory levels by bedrooms, type, and location
   - `market.competitiveAnalysis({ zpid, radius? })` – Compare a property to similar listings
   - `market.affordabilityIndex({ q, medianIncome?, topK? })` – Calculate affordability metrics
 
 - Batch Operations
+
   - `batch.compareProperties({ zpids })` – Side-by-side comparison with rankings and metrics
   - `batch.bulkSearch({ queries })` – Execute multiple searches in parallel (max 5)
   - `batch.enrichProperties({ zpids, includeFinancials? })` – Add computed fields and estimates
   - `batch.exportProperties({ zpids, format?, fields? })` – Export data as JSON or CSV
 
 - Monitoring
+
   - `monitoring.stats({ detailed? })` – Server usage statistics and metrics
   - `monitoring.toolUsage({ toolName })` – Usage stats for a specific tool
   - `monitoring.health()` – Comprehensive health check with memory and uptime
   - `monitoring.reset({ confirm })` – Reset all monitoring metrics
 
 - MCP Token Management
+
   - `mcp.token.generate({ subject, scope?, metadata?, ttlMs?, includeRefreshToken? })` – Generate access tokens
   - `mcp.token.validate({ token })` – Validate token and return payload
   - `mcp.token.revoke({ token })` – Revoke an access token
@@ -285,6 +323,7 @@ All tools validate inputs with Zod and return content blocks per MCP. For maximu
   - `mcp.token.validateRequest({ authorizationHeader })` – Validate Bearer token from header
 
 - A2A (Agent-to-Agent)
+
   - `a2a.agentCard({ agentUrl? })` – Fetch remote A2A agent metadata
   - `a2a.task.create({ goal, runtime?, rounds?, threadId?, metadata?, waitForCompletion?, timeoutMs?, pollMs?, agentUrl? })`
   - `a2a.task.get({ taskId, agentUrl?, timeoutMs? })`
@@ -293,10 +332,16 @@ All tools validate inputs with Zod and return content blocks per MCP. For maximu
   - `a2a.task.list({ limit?, agentUrl?, timeoutMs? })`
 
 - Web
-  - `web.search({ q, limit? })` – Search public web results with titles, URLs, and snippets
-  - `web.fetch({ url, maxChars? })` – Fetch and extract readable text from a public page
+
+  - `web.search({ q, limit? })` – Search public web results with citation IDs, source hosts, and provenance metadata
+  - `web.fetch({ url, maxChars? })` – Fetch readable page content with content hash, freshness metadata, and citation envelope
+
+- Live Data
+
+  - `live.zillow.search({ q?, city?, state?, zipcode?, limit?, maxAgeHours?, minQualityScore? })` – query local Zillow live snapshot artifact with freshness + quality filtering
 
 - Map
+
   - `map.linkForZpids(ids: Array<string | number>)` – Deep link to `/map` with zpids
   - `map.buildLinkByQuery({ q: string })` – Deep link to `/map?q=...`
   - `map.decodeLink({ url })` – Parse a map URL and return query params
@@ -312,6 +357,7 @@ All tools validate inputs with Zod and return content blocks per MCP. For maximu
   - `finance.mortgage({ price, downPct?, apr?, years?, taxRatePct?, insMonthly?, hoaMonthly? })` – Monthly payment breakdown
   - `finance.affordability({ monthlyBudget? | annualIncome?, maxDtiPct?, downPct?, apr?, years?, taxRatePct?, insMonthly?, hoaMonthly? })` – Estimate max affordable price
 - `finance.schedule({ price, downPct?, apr?, years?, months? })` – First N months of amortization schedule
+
   - `finance.capRate({ price, annualRent, vacancyPct?, expensesAnnual?, taxRatePct?, insuranceAnnual?, hoaAnnual? })` – NOI + cap rate
   - `finance.rentVsBuy({ monthlyRent, price, downPct?, apr?, years?, taxRatePct?, insMonthly?, hoaMonthly? })` – Compare monthly costs
   - `util.csvToJson({ text, delimiter?, header? })` – Parse CSV string to JSON
@@ -320,12 +366,14 @@ All tools validate inputs with Zod and return content blocks per MCP. For maximu
   - `util.units.convertDistance({ value, from, to })` – mi/km conversion
 
 - Auth
+
   - `auth.login({ email, password })` – Login and retrieve token
   - `auth.signup({ username, email, password })` – Sign up
   - `auth.verifyEmail({ email })` – Verify email
   - `auth.resetPassword({ email, newPassword })` – Reset password
 
 - Commute Profiles (requires token)
+
   - `commute.create({ token, name, destinations[], maxMinutes?, combine? })`
   - `commute.list({ token })`
   - `commute.get({ token, id })`
@@ -359,14 +407,14 @@ flowchart TB
   subgraph Client["MCP Client (IDE/Agent)"]
     UI[User Interface]
   end
-  
+
   subgraph MCP["MCP Server (stdio)"]
     direction TB
     Registry[Tool Registry]
     Monitor[Monitoring System]
     TokenMgr[Token Manager]
     Cache[LRU Cache]
-    
+
     subgraph Tools["Tool Categories"]
       Props[Properties]
       Graph[Graph]
@@ -375,23 +423,23 @@ flowchart TB
       Batch[Batch Ops]
       TokenTools[Token Tools]
     end
-    
+
     Registry --> Tools
     Monitor -.monitors.-> Tools
     TokenMgr -.secures.-> Tools
   end
-  
+
   subgraph Backend["EstateWise Backend"]
     API[REST API]
     DB[(MongoDB)]
     Vector[(Pinecone)]
     GraphDB[(Neo4j)]
   end
-  
+
   subgraph Frontend["EstateWise Frontend"]
     Map[Interactive Map]
   end
-  
+
   UI -- stdio --> Registry
   Props --> API
   Graph --> API
@@ -399,11 +447,11 @@ flowchart TB
   Market --> API
   Batch --> API
   TokenTools --> TokenMgr
-  
+
   API --> DB
   API --> Vector
   API --> GraphDB
-  
+
   Props -.deep links.-> Map
   Market -.deep links.-> Map
 ```
@@ -416,7 +464,7 @@ sequenceDiagram
   participant Server as MCP Server
   participant TokenMgr as Token Manager
   participant Store as Token Store
-  
+
   Client->>Server: mcp.token.generate(subject, scope)
   Server->>TokenMgr: Generate token
   TokenMgr->>TokenMgr: Create payload + signature
@@ -424,9 +472,9 @@ sequenceDiagram
   Store-->>TokenMgr: Stored
   TokenMgr-->>Server: Token + metadata
   Server-->>Client: { accessToken, refreshToken, expiresAt }
-  
+
   Note over Client: Use token for protected calls
-  
+
   Client->>Server: Tool call with Bearer token
   Server->>TokenMgr: Validate token
   TokenMgr->>Store: Check token exists
@@ -435,9 +483,9 @@ sequenceDiagram
   TokenMgr-->>Server: Valid ✓
   Server->>Server: Execute tool
   Server-->>Client: Result
-  
+
   Note over Client: Token expires
-  
+
   Client->>Server: mcp.token.refresh(refreshToken)
   Server->>TokenMgr: Validate refresh token
   TokenMgr->>Store: Check refresh token
@@ -455,25 +503,25 @@ flowchart TD
   Start[Client Call: batch.bulkSearch] --> Validate{Validate Input}
   Validate -->|Invalid| Error1[Return Error]
   Validate -->|Valid| Split[Split into Parallel Queries]
-  
+
   Split --> Q1[Query 1]
   Split --> Q2[Query 2]
   Split --> Q3[Query 3]
   Split --> Q4[Query 4]
   Split --> Q5[Query 5]
-  
+
   Q1 --> API1[Backend API]
   Q2 --> API2[Backend API]
   Q3 --> API3[Backend API]
   Q4 --> API4[Backend API]
   Q5 --> API5[Backend API]
-  
+
   API1 --> R1{Success?}
   API2 --> R2{Success?}
   API3 --> R3{Success?}
   API4 --> R4{Success?}
   API5 --> R5{Success?}
-  
+
   R1 -->|Yes| D1[Data 1]
   R1 -->|No| E1[Error 1]
   R2 -->|Yes| D2[Data 2]
@@ -484,7 +532,7 @@ flowchart TD
   R4 -->|No| E4[Error 4]
   R5 -->|Yes| D5[Data 5]
   R5 -->|No| E5[Error 5]
-  
+
   D1 --> Aggregate[Aggregate Results]
   D2 --> Aggregate
   D3 --> Aggregate
@@ -495,7 +543,7 @@ flowchart TD
   E3 --> Aggregate
   E4 --> Aggregate
   E5 --> Aggregate
-  
+
   Aggregate --> Summary[Generate Summary Stats]
   Summary --> Return[Return Combined Results]
 ```
@@ -511,38 +559,39 @@ flowchart LR
     T4[batch.compare]
     T5[...]
   end
-  
+
   subgraph Registry["Tool Registry"]
     Wrapper[Monitoring Wrapper]
   end
-  
+
   subgraph Monitor["Monitoring System"]
     Tracker[Call Tracker]
     Metrics[(Metrics Store)]
     Stats[Statistics Engine]
   end
-  
+
   T1 --> Wrapper
   T2 --> Wrapper
   T3 --> Wrapper
   T4 --> Wrapper
   T5 --> Wrapper
-  
+
   Wrapper -->|Record call| Tracker
   Tracker -->|Success/Failure| Metrics
-  
+
   Metrics --> Stats
-  
+
   Stats -->|monitoring.stats| Client1[Get Statistics]
   Stats -->|monitoring.toolUsage| Client2[Get Tool Usage]
   Stats -->|monitoring.health| Client3[Health Check]
-  
+
   style Wrapper fill:#90EE90
   style Tracker fill:#87CEEB
   style Stats fill:#FFB6C1
 ```
 
 ### Notes
+
 - Graph tools depend on Neo4j being configured in the backend; otherwise the backend responds with `503`.
 - Returns use `{ type: 'text', text: '...' }` content blocks; parse JSON text in the client if needed.
 
@@ -552,81 +601,81 @@ In addition to the monolithic stdio MCP server, EstateWise now supports decompos
 
 ### Server Overview
 
-| Server | Port | Tools | Description |
-|--------|------|-------|-------------|
-| `property-server` | 3100 | 8 | Property search, lookup, compare, enrich, sample, byIds, searchAdvanced, dedupe |
-| `market-server` | 3101 | 5 | Price trends, inventory analysis, affordability metrics, competitive positioning, market summary |
-| `finance-server` | 3102 | 4 | Mortgage calculator, ROI projections, affordability analysis, investment comparison |
-| `graph-server` | 3103 | 3 | Similarity search, relationship explanation, neighborhood graph analysis |
-| `commute-server` | 3104 | 2 | Commute time estimation, transit/walk score lookup |
-| `system-server` | 3105 | 2 | Cache management, health checks and monitoring stats |
+| Server            | Port | Tools | Description                                                                                      |
+| ----------------- | ---- | ----- | ------------------------------------------------------------------------------------------------ |
+| `property-server` | 3100 | 8     | Property search, lookup, compare, enrich, sample, byIds, searchAdvanced, dedupe                  |
+| `market-server`   | 3101 | 5     | Price trends, inventory analysis, affordability metrics, competitive positioning, market summary |
+| `finance-server`  | 3102 | 4     | Mortgage calculator, ROI projections, affordability analysis, investment comparison              |
+| `graph-server`    | 3103 | 3     | Similarity search, relationship explanation, neighborhood graph analysis                         |
+| `commute-server`  | 3104 | 2     | Commute time estimation, transit/walk score lookup                                               |
+| `system-server`   | 3105 | 2     | Cache management, health checks and monitoring stats                                             |
 
 ### Full Tool Inventory
 
-| Tool | Server | Description |
-|------|--------|-------------|
-| `properties.search` | property | Natural-language property search with topK results |
+| Tool                        | Server   | Description                                        |
+| --------------------------- | -------- | -------------------------------------------------- |
+| `properties.search`         | property | Natural-language property search with topK results |
 | `properties.searchAdvanced` | property | Filter-based search (beds, baths, price, location) |
-| `properties.lookup` | property | Lookup property by address or ZPID |
-| `properties.byIds` | property | Batch fetch properties by ZPID array |
-| `properties.sample` | property | Random sample of N properties |
-| `properties.compare` | property | Side-by-side comparison of multiple properties |
-| `properties.enrich` | property | Enrich property with external data sources |
-| `properties.dedupe` | property | Deduplicate and rank property results |
-| `market.priceTrends` | market | Historical price trend data for an area |
-| `market.inventory` | market | Current inventory levels and days-on-market stats |
-| `market.affordability` | market | Affordability index for a location |
-| `market.competitive` | market | Competitive positioning analysis |
-| `market.summary` | market | Aggregated market summary report |
-| `finance.mortgage` | finance | Monthly payment, amortization, total cost |
-| `finance.roi` | finance | Rental ROI and appreciation projections |
-| `finance.affordability` | finance | Income-based affordability assessment |
-| `finance.compare` | finance | Compare financing scenarios side-by-side |
-| `graph.similar` | graph | Find similar properties via Neo4j graph |
-| `graph.explain` | graph | Explain relationship path between two properties |
-| `graph.neighborhood` | graph | Neighborhood-level graph analysis |
-| `commute.estimate` | commute | Commute time from property to destination |
-| `commute.score` | commute | Transit and walkability score for a location |
-| `system.cache.clear` | system | Clear tool result cache |
-| `system.health` | system | Health check and monitoring statistics |
+| `properties.lookup`         | property | Lookup property by address or ZPID                 |
+| `properties.byIds`          | property | Batch fetch properties by ZPID array               |
+| `properties.sample`         | property | Random sample of N properties                      |
+| `properties.compare`        | property | Side-by-side comparison of multiple properties     |
+| `properties.enrich`         | property | Enrich property with external data sources         |
+| `properties.dedupe`         | property | Deduplicate and rank property results              |
+| `market.priceTrends`        | market   | Historical price trend data for an area            |
+| `market.inventory`          | market   | Current inventory levels and days-on-market stats  |
+| `market.affordability`      | market   | Affordability index for a location                 |
+| `market.competitive`        | market   | Competitive positioning analysis                   |
+| `market.summary`            | market   | Aggregated market summary report                   |
+| `finance.mortgage`          | finance  | Monthly payment, amortization, total cost          |
+| `finance.roi`               | finance  | Rental ROI and appreciation projections            |
+| `finance.affordability`     | finance  | Income-based affordability assessment              |
+| `finance.compare`           | finance  | Compare financing scenarios side-by-side           |
+| `graph.similar`             | graph    | Find similar properties via Neo4j graph            |
+| `graph.explain`             | graph    | Explain relationship path between two properties   |
+| `graph.neighborhood`        | graph    | Neighborhood-level graph analysis                  |
+| `commute.estimate`          | commute  | Commute time from property to destination          |
+| `commute.score`             | commute  | Transit and walkability score for a location       |
+| `system.cache.clear`        | system   | Clear tool result cache                            |
+| `system.health`             | system   | Health check and monitoring statistics             |
 
 ### Shared Infrastructure
 
-| Component | Location | Purpose |
-|-----------|----------|---------|
-| Scoped Auth | `mcp/shared/auth.ts` | HMAC-SHA256 token validation with per-server scope enforcement |
-| Structured Logging | `mcp/shared/logging.ts` | JSON logging with correlation IDs and request tracing |
-| Error Handling | `mcp/shared/errors.ts` | Zod validation errors, HTTP error mapping, retry signals |
-| Connection Pool | `mcp/shared/pool.ts` | HTTP keep-alive connection pooling to backend API |
-| Config Loader | `mcp/config/servers.json` | Port assignments, tool registries, and feature flags |
+| Component          | Location                  | Purpose                                                        |
+| ------------------ | ------------------------- | -------------------------------------------------------------- |
+| Scoped Auth        | `mcp/shared/auth.ts`      | HMAC-SHA256 token validation with per-server scope enforcement |
+| Structured Logging | `mcp/shared/logging.ts`   | JSON logging with correlation IDs and request tracing          |
+| Error Handling     | `mcp/shared/errors.ts`    | Zod validation errors, HTTP error mapping, retry signals       |
+| Connection Pool    | `mcp/shared/pool.ts`      | HTTP keep-alive connection pooling to backend API              |
+| Config Loader      | `mcp/config/servers.json` | Port assignments, tool registries, and feature flags           |
 
 ### Unified Client
 
 The unified MCP client automatically routes tool calls to the correct domain server based on tool name prefixes:
 
 ```typescript
-import { createUnifiedClient } from './client';
+import { createUnifiedClient } from "./client";
 
 const client = createUnifiedClient({
   servers: {
-    property: 'http://localhost:3100',
-    market:   'http://localhost:3101',
-    finance:  'http://localhost:3102',
-    graph:    'http://localhost:3103',
-    commute:  'http://localhost:3104',
-    system:   'http://localhost:3105',
+    property: "http://localhost:3100",
+    market: "http://localhost:3101",
+    finance: "http://localhost:3102",
+    graph: "http://localhost:3103",
+    commute: "http://localhost:3104",
+    system: "http://localhost:3105",
   },
 });
 
 // Automatically routed to property-server:3100
-const results = await client.callTool('properties.search', {
-  q: 'Chapel Hill 3 bed',
+const results = await client.callTool("properties.search", {
+  q: "Chapel Hill 3 bed",
   topK: 5,
 });
 
 // Automatically routed to market-server:3101
-const trends = await client.callTool('market.priceTrends', {
-  q: 'Chapel Hill',
+const trends = await client.callTool("market.priceTrends", {
+  q: "Chapel Hill",
   topK: 100,
 });
 ```
@@ -638,12 +687,28 @@ Server configuration is defined in `mcp/config/servers.json`:
 ```json
 {
   "servers": {
-    "property": { "port": 3100, "tools": ["properties.*"], "maxConnections": 10 },
-    "market":   { "port": 3101, "tools": ["market.*", "analytics.*"], "maxConnections": 8 },
-    "finance":  { "port": 3102, "tools": ["finance.*"], "maxConnections": 6 },
-    "graph":    { "port": 3103, "tools": ["graph.*"], "maxConnections": 6 },
-    "commute":  { "port": 3104, "tools": ["commute.*", "map.*"], "maxConnections": 4 },
-    "system":   { "port": 3105, "tools": ["system.*", "monitoring.*"], "maxConnections": 4 }
+    "property": {
+      "port": 3100,
+      "tools": ["properties.*"],
+      "maxConnections": 10
+    },
+    "market": {
+      "port": 3101,
+      "tools": ["market.*", "analytics.*"],
+      "maxConnections": 8
+    },
+    "finance": { "port": 3102, "tools": ["finance.*"], "maxConnections": 6 },
+    "graph": { "port": 3103, "tools": ["graph.*"], "maxConnections": 6 },
+    "commute": {
+      "port": 3104,
+      "tools": ["commute.*", "map.*"],
+      "maxConnections": 4
+    },
+    "system": {
+      "port": 3105,
+      "tools": ["system.*", "monitoring.*"],
+      "maxConnections": 4
+    }
   },
   "shared": {
     "authRequired": true,
@@ -658,17 +723,17 @@ Server configuration is defined in `mcp/config/servers.json`:
 
 Each orchestration agent is granted access only to specific domain servers via scoped tokens:
 
-| Agent | property | market | finance | graph | commute | system |
-|-------|----------|--------|---------|-------|---------|--------|
-| PropertyAgent | **RW** | -- | -- | -- | -- | -- |
-| MarketAgent | R | **RW** | -- | -- | -- | -- |
-| FinanceAgent | R | R | **RW** | -- | -- | -- |
-| GraphAgent | R | -- | -- | **RW** | -- | -- |
-| MapAgent | -- | -- | -- | -- | **RW** | -- |
-| ReporterAgent | R | R | R | R | R | **RW** |
-| ZpidFinderAgent | **R** | -- | -- | -- | -- | -- |
-| AnalyticsAgent | R | **RW** | -- | -- | -- | -- |
-| ComplianceAgent | R | R | R | R | R | R |
+| Agent           | property | market | finance | graph  | commute | system |
+| --------------- | -------- | ------ | ------- | ------ | ------- | ------ |
+| PropertyAgent   | **RW**   | --     | --      | --     | --      | --     |
+| MarketAgent     | R        | **RW** | --      | --     | --      | --     |
+| FinanceAgent    | R        | R      | **RW**  | --     | --      | --     |
+| GraphAgent      | R        | --     | --      | **RW** | --      | --     |
+| MapAgent        | --       | --     | --      | --     | **RW**  | --     |
+| ReporterAgent   | R        | R      | R       | R      | R       | **RW** |
+| ZpidFinderAgent | **R**    | --     | --      | --     | --      | --     |
+| AnalyticsAgent  | R        | **RW** | --      | --     | --      | --     |
+| ComplianceAgent | R        | R      | R       | R      | R       | R      |
 
 **RW** = read-write, **R** = read-only, **--** = no access
 
@@ -755,7 +820,7 @@ classDiagram
     +stdio transport
     +Zod validation
   }
-  
+
   class Properties {
     +search(q, topK)
     +searchAdvanced(filters)
@@ -763,7 +828,7 @@ classDiagram
     +byIds(ids)
     +sample(topK)
   }
-  
+
   class Graph {
     +similar(zpid, limit)
     +explain(from, to)
@@ -772,35 +837,35 @@ classDiagram
     +comparePairs(zpids)
     +pathMatrix(zpids, limitPairs)
   }
-  
+
   class Analytics {
     +summarizeSearch(q, topK)
     +groupByZip(q, topK)
     +distributions(q, topK, buckets)
     +pricePerSqft(q, topK, buckets)
   }
-  
+
   class MarketAnalysis {
     +pricetrends(q, topK)
     +inventory(q, topK)
     +competitiveAnalysis(zpid)
     +affordabilityIndex(q, income)
   }
-  
+
   class BatchOperations {
     +compareProperties(zpids)
     +bulkSearch(queries)
     +enrichProperties(zpids)
     +exportProperties(zpids, format)
   }
-  
+
   class Monitoring {
     +stats(detailed)
     +toolUsage(toolName)
     +health()
     +reset(confirm)
   }
-  
+
   class TokenManagement {
     +generate(subject, scope)
     +validate(token)
@@ -811,13 +876,13 @@ classDiagram
     +stats()
     +validateRequest(header)
   }
-  
+
   class Map {
     +linkForZpids(ids)
     +buildLinkByQuery(q)
     +decodeLink(url)
   }
-  
+
   class Util {
     +extractZpids(text)
     +zillowLink(zpid)
@@ -827,7 +892,7 @@ classDiagram
     +geo.distance(coords)
     +geo.center(points)
   }
-  
+
   class Finance {
     +mortgage(price, apr, years)
     +affordability(income)
@@ -835,14 +900,14 @@ classDiagram
     +capRate(price, rent)
     +rentVsBuy(rent, price)
   }
-  
+
   class Auth {
     +login(email, password)
     +signup(username, email, password)
     +verifyEmail(email)
     +resetPassword(email)
   }
-  
+
   class Commute {
     +create(token, destinations)
     +list(token)
@@ -850,7 +915,7 @@ classDiagram
     +update(token, id)
     +delete(token, id)
   }
-  
+
   class System {
     +config()
     +time()
@@ -858,7 +923,7 @@ classDiagram
     +tools()
     +cache.clear()
   }
-  
+
   MCPServer --> Properties
   MCPServer --> Graph
   MCPServer --> Analytics
@@ -882,53 +947,53 @@ graph TB
     User[User Query]
     Token[Access Token]
   end
-  
+
   subgraph Core["Core Tools"]
     Props[Properties Tools]
     Graph[Graph Tools]
     Analytics[Analytics Tools]
   end
-  
+
   subgraph Advanced["Advanced Tools"]
     Market[Market Analysis]
     Batch[Batch Operations]
   end
-  
+
   subgraph Infrastructure["Infrastructure"]
     Auth[Token Management]
     Monitor[Monitoring]
     System[System Tools]
   end
-  
+
   User --> Props
   User --> Graph
   User --> Analytics
-  
+
   Props -.provides zpids.-> Graph
   Props -.provides data.-> Analytics
   Props -.provides data.-> Market
-  
+
   Graph -.similarity data.-> Market
   Analytics -.statistics.-> Market
-  
+
   Props --> Batch
   Graph --> Batch
   Market --> Batch
-  
+
   Token --> Auth
   Auth -.secures.-> Props
   Auth -.secures.-> Graph
   Auth -.secures.-> Market
-  
+
   Props -.tracked by.-> Monitor
   Graph -.tracked by.-> Monitor
   Analytics -.tracked by.-> Monitor
   Market -.tracked by.-> Monitor
   Batch -.tracked by.-> Monitor
-  
+
   System -.manages.-> Monitor
   System -.manages.-> Auth
-  
+
   style Core fill:#E8F4F8
   style Advanced fill:#FFF4E6
   style Infrastructure fill:#F0F0F0
@@ -941,35 +1006,35 @@ flowchart LR
   subgraph Input
     Query[Search Query]
   end
-  
+
   subgraph Search["Property Search"]
     PS[properties.search]
     Results[(Search Results)]
   end
-  
+
   subgraph Analysis["Market Analysis"]
     Trends[market.pricetrends]
     Inventory[market.inventory]
     Afford[market.affordabilityIndex]
   end
-  
+
   subgraph Insights["Generated Insights"]
     PriceStats[Price Statistics]
     Distribution[Inventory Distribution]
     AffordMetrics[Affordability Metrics]
   end
-  
+
   Query --> PS
   PS --> Results
-  
+
   Results --> Trends
   Results --> Inventory
   Results --> Afford
-  
+
   Trends --> PriceStats
   Inventory --> Distribution
   Afford --> AffordMetrics
-  
+
   PriceStats --> Report[Market Report]
   Distribution --> Report
   AffordMetrics --> Report
@@ -1047,7 +1112,7 @@ sequenceDiagram
   S->>S: Calculate comparison metrics
   S->>S: Generate rankings (bestValue, largestSize, etc)
   S-->>C: content: text(comparison JSON)
-  
+
   Note over C,S: Comparison includes:<br/>- Avg price, sqft, $/sqft<br/>- Min/max values<br/>- Ranked by value, size, bedrooms
 ```
 
@@ -1087,11 +1152,13 @@ A minimal stdio client is provided to help you explore tools locally.
 - Build output: `dist/client.js`
 
 Run (dev, auto‑spawn server)
+
 ```bash
 npm run client:dev # lists tools
 ```
 
 Run (built)
+
 ```bash
 npm run build
 npm run client        # lists tools
@@ -1140,23 +1207,24 @@ npm run client:call:parse -- properties.search '{"q":"3 bed in Chapel Hill","top
 ```
 
 Programmatic usage (excerpt)
+
 ```ts
-import { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 
 const transport = new StdioClientTransport({
   command: process.execPath,
-  args: ['server.js'],
-  cwd: 'dist',
+  args: ["server.js"],
+  cwd: "dist",
 });
 
-const client = new Client({ name: 'estatewise-mcp-client', version: '0.1.0' });
+const client = new Client({ name: "estatewise-mcp-client", version: "0.1.0" });
 await client.connect(transport);
 
 const tools = await client.listTools();
 const result = await client.callTool({
-  name: 'properties.search',
-  arguments: { q: '3 bed in Chapel Hill', topK: 3 },
+  name: "properties.search",
+  arguments: { q: "3 bed in Chapel Hill", topK: 3 },
 });
 ```
 
@@ -1166,36 +1234,36 @@ Below are example configurations for stdio‑based MCP clients. Consult your cli
 
 **Claude Desktop (example snippet)**
 
-  ```json
-  {
-    "mcpServers": {
-      "estatewise": {
-        "command": "node",
-        "args": ["/absolute/path/to/EstateWise-Chatbot/mcp/dist/server.js"],
-        "env": {
-          "API_BASE_URL": "https://estatewise-backend.vercel.app",
-          "FRONTEND_BASE_URL": "https://estatewise.vercel.app"
-        }
+```json
+{
+  "mcpServers": {
+    "estatewise": {
+      "command": "node",
+      "args": ["/absolute/path/to/EstateWise-Chatbot/mcp/dist/server.js"],
+      "env": {
+        "API_BASE_URL": "https://estatewise-backend.vercel.app",
+        "FRONTEND_BASE_URL": "https://estatewise.vercel.app"
       }
     }
   }
-  ```
+}
+```
 
 **Generic MCP launcher**
 
-  ```json
-  {
-    "name": "estatewise-mcp",
-    "transport": "stdio",
-    "command": "node",
-    "args": ["dist/server.js"],
-    "cwd": "/absolute/path/to/EstateWise-Chatbot/mcp",
-    "env": {
-      "API_BASE_URL": "https://estatewise-backend.vercel.app",
-      "FRONTEND_BASE_URL": "https://estatewise.vercel.app"
-    }
+```json
+{
+  "name": "estatewise-mcp",
+  "transport": "stdio",
+  "command": "node",
+  "args": ["dist/server.js"],
+  "cwd": "/absolute/path/to/EstateWise-Chatbot/mcp",
+  "env": {
+    "API_BASE_URL": "https://estatewise-backend.vercel.app",
+    "FRONTEND_BASE_URL": "https://estatewise.vercel.app"
   }
-  ```
+}
+```
 
 ## Directory Layout
 
@@ -1236,6 +1304,7 @@ The project structure is as follows:
 ## Use Cases
 
 ### Market Research
+
 ```bash
 # Analyze market trends for an area
 npm run client:call -- market.pricetrends '{"q":"Chapel Hill","topK":150}'
@@ -1248,6 +1317,7 @@ npm run client:call -- market.affordabilityIndex '{"q":"Chapel Hill","medianInco
 ```
 
 ### Property Comparison
+
 ```bash
 # Compare multiple properties side-by-side
 npm run client:call -- batch.compareProperties '{"zpids":[12345,67890,11111]}'
@@ -1260,6 +1330,7 @@ npm run client:call -- batch.enrichProperties '{"zpids":[12345,67890],"includeFi
 ```
 
 ### Batch Processing
+
 ```bash
 # Execute multiple searches in parallel
 npm run client:call -- batch.bulkSearch '{"queries":[{"q":"Chapel Hill 3 bed"},{"q":"Durham 2 bed"}]}'
@@ -1269,6 +1340,7 @@ npm run client:call -- batch.exportProperties '{"zpids":[12345,67890,11111],"for
 ```
 
 ### Performance Monitoring
+
 ```bash
 # Check server health and metrics
 npm run client:call -- monitoring.health
@@ -1284,6 +1356,7 @@ npm run client:call -- monitoring.reset '{"confirm":true}'
 ```
 
 ### Token Management
+
 ```bash
 # Generate a new access token
 npm run client:call -- mcp.token.generate '{"subject":"user123","scope":["read","write"],"includeRefreshToken":true}'
@@ -1315,6 +1388,7 @@ npm run client:call -- mcp.token.cleanup
 - For uncached GETs, use `httpGet()`. For POST/PUT/DELETE, use `httpPost/httpPut/httpDelete` and attach bearer tokens via `bearer(token)` when required.
 
 ### Caching & Logging
+
 - In‑memory LRU cache for backend GET responses is enabled by default.
 - Tune via env: `MCP_CACHE_TTL_MS` (default 30s), `MCP_CACHE_MAX` (default 200).
 - Clear at runtime with `system.cache.clear`.
@@ -1374,14 +1448,16 @@ The MCP server makes outbound HTTP requests to the configured backend API. Follo
 ### v0.2.0 (October 2025) - Market Intelligence & Monitoring Update
 
 **New Tool Categories**
+
 - ✨ **MCP Token Management** (8 tools): Generate, validate, revoke, and manage access/refresh tokens with HMAC signatures
 - ✨ **Market Analysis** (4 tools): `market.pricetrends`, `market.inventory`, `market.competitiveAnalysis`, `market.affordabilityIndex`
 - ✨ **Batch Operations** (4 tools): `batch.compareProperties`, `batch.bulkSearch`, `batch.enrichProperties`, `batch.exportProperties`
 - ✨ **Monitoring** (4 tools): `monitoring.stats`, `monitoring.toolUsage`, `monitoring.health`, `monitoring.reset`
 
 **Enhancements**
+
 - 🔐 **Token-Based Authentication**: Generate and validate MCP access tokens with configurable TTL and scopes
-- 🔄 **Refresh Tokens**: Long-lived refresh tokens for seamless token renewal  
+- 🔄 **Refresh Tokens**: Long-lived refresh tokens for seamless token renewal
 - 📊 Automatic tool call tracking and metrics collection
 - 💾 Enhanced caching with configurable TTL and size
 - 📈 Performance monitoring with memory and uptime tracking
@@ -1393,6 +1469,7 @@ The MCP server makes outbound HTTP requests to the configured backend API. Follo
 - 🧹 Automatic cleanup of expired tokens
 
 **Documentation**
+
 - 📚 Comprehensive use case examples including token management
 - 🔧 Updated directory structure with new token core module
 - 📖 Enhanced troubleshooting guide
@@ -1400,6 +1477,7 @@ The MCP server makes outbound HTTP requests to the configured backend API. Follo
 - 🔐 Token security best practices
 
 **Breaking Changes**
+
 - ❌ None - All changes are backward compatible
 
 ### v0.1.0 (August 2025) - Initial Release

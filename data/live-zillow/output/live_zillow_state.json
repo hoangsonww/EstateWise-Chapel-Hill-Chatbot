@@ -1,0 +1,98 @@
+{
+  "version": 1,
+  "updatedAt": "2026-04-16T02:21:07.320Z",
+  "urls": {
+    "https://www.zillow.com/homedetails/107-Lockart-Plz-Philadelphia-PA-19116/2077800306_zpid/": {
+      "lastAttemptAt": "2026-04-16T02:20:39.919Z",
+      "lastSuccessAt": "2026-04-16T02:20:39.919Z",
+      "consecutiveFailures": 0,
+      "lastError": null
+    },
+    "https://www.zillow.com/homedetails/17040-Agate-St-NE-Bainbridge-Island-WA-98110/23430011_zpid/": {
+      "lastAttemptAt": "2026-04-16T02:20:40.797Z",
+      "lastSuccessAt": "2026-04-16T02:20:40.797Z",
+      "consecutiveFailures": 0,
+      "lastError": null
+    },
+    "https://www.zillow.com/homedetails/3886-Big-Magnolia-Way-Southport-NC-28461/250772154_zpid/": {
+      "lastAttemptAt": "2026-04-16T02:20:41.615Z",
+      "lastSuccessAt": "2026-04-16T02:20:41.615Z",
+      "consecutiveFailures": 0,
+      "lastError": null
+    },
+    "https://www.zillow.com/homedetails/167-Parkhurst-Blvd-Toronto-ON-M4G-2E9/459548370_zpid/": {
+      "lastAttemptAt": "2026-04-16T02:21:04.776Z",
+      "lastSuccessAt": "2026-04-16T02:21:04.776Z",
+      "consecutiveFailures": 0,
+      "lastError": null
+    },
+    "https://www.zillow.com/homedetails/1195-N-Chester-Ave-Pasadena-CA-91104/20871765_zpid/": {
+      "lastAttemptAt": "2026-04-16T02:21:05.478Z",
+      "lastSuccessAt": "2026-04-16T02:21:05.478Z",
+      "consecutiveFailures": 0,
+      "lastError": null
+    },
+    "https://www.zillow.com/homedetails/2895-Kalakaua-Ave-APT-1403-Honolulu-HI-96815/82469946_zpid/": {
+      "lastAttemptAt": "2026-04-16T02:21:06.396Z",
+      "lastSuccessAt": "2026-04-16T02:21:06.396Z",
+      "consecutiveFailures": 0,
+      "lastError": null
+    }
+  },
+  "listings": {
+    "zpid:2077800306": {
+      "key": "zpid:2077800306",
+      "zpid": 2077800306,
+      "url": "https://www.zillow.com/homedetails/107-Lockart-Plz-Philadelphia-PA-19116/2077800306_zpid/",
+      "firstSeenAt": "2026-04-16T02:20:42.121Z",
+      "lastSeenAt": "2026-04-16T02:20:42.121Z",
+      "lastFetchedAt": "2026-04-16T02:20:39.919Z",
+      "qualityScore": 0.8
+    },
+    "zpid:23430011": {
+      "key": "zpid:23430011",
+      "zpid": 23430011,
+      "url": "https://www.zillow.com/homedetails/17040-Agate-St-NE-Bainbridge-Island-WA-98110/23430011_zpid/",
+      "firstSeenAt": "2026-04-16T02:20:42.121Z",
+      "lastSeenAt": "2026-04-16T02:20:42.121Z",
+      "lastFetchedAt": "2026-04-16T02:20:40.797Z",
+      "qualityScore": 0.8
+    },
+    "zpid:250772154": {
+      "key": "zpid:250772154",
+      "zpid": 250772154,
+      "url": "https://www.zillow.com/homedetails/3886-Big-Magnolia-Way-Southport-NC-28461/250772154_zpid/",
+      "firstSeenAt": "2026-04-16T02:20:42.121Z",
+      "lastSeenAt": "2026-04-16T02:20:42.121Z",
+      "lastFetchedAt": "2026-04-16T02:20:41.615Z",
+      "qualityScore": 0.8
+    },
+    "zpid:459548370": {
+      "key": "zpid:459548370",
+      "zpid": 459548370,
+      "url": "https://www.zillow.com/homedetails/167-Parkhurst-Blvd-Toronto-ON-M4G-2E9/459548370_zpid/",
+      "firstSeenAt": "2026-04-16T02:21:07.320Z",
+      "lastSeenAt": "2026-04-16T02:21:07.320Z",
+      "lastFetchedAt": "2026-04-16T02:21:04.776Z",
+      "qualityScore": 0.7
+    },
+    "zpid:20871765": {
+      "key": "zpid:20871765",
+      "zpid": 20871765,
+      "url": "https://www.zillow.com/homedetails/1195-N-Chester-Ave-Pasadena-CA-91104/20871765_zpid/",
+      "firstSeenAt": "2026-04-16T02:21:07.320Z",
+      "lastSeenAt": "2026-04-16T02:21:07.320Z",
+      "lastFetchedAt": "2026-04-16T02:21:05.478Z",
+      "qualityScore": 0.8
+    },
+    "zpid:82469946": {
+      "key": "zpid:82469946",
+      "zpid": 82469946,
+      "url": "https://www.zillow.com/homedetails/2895-Kalakaua-Ave-APT-1403-Honolulu-HI-96815/82469946_zpid/",
+      "firstSeenAt": "2026-04-16T02:21:07.320Z",
+      "lastSeenAt": "2026-04-16T02:21:07.320Z",
+      "lastFetchedAt": "2026-04-16T02:21:06.396Z",
+      "qualityScore": 0.8
+    }
+  }
+}

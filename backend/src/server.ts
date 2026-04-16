@@ -13,6 +13,7 @@ import commuteProfileRoutes from "./routes/commute-profile.routes";
 import graphRoutes from "./routes/graph.routes";
 import postRoutes from "./routes/post.routes";
 import commentRoutes from "./routes/comment.routes";
+import liveDataRoutes from "./routes/live-data.routes";
 import { errorHandler } from "./middleware/error.middleware";
 import cookieParser from "cookie-parser";
 import * as trpcExpress from "@trpc/server/adapters/express";
@@ -174,6 +175,7 @@ app.use("/api/commute-profiles", commuteProfileRoutes);
 app.use("/api/graph", graphRoutes);
 app.use("/api/posts", postRoutes);
 app.use("/api/comments", commentRoutes);
+app.use("/api/live-data", liveDataRoutes);
 
 // tRPC endpoint - non-blocking, optional alternative API
 /**

@@ -8,6 +8,7 @@
     "dev": "tsx src/server.ts",
     "start": "node dist/server.js",
     "build": "tsc -p tsconfig.json",
+    "test": "npm run build && node --test tests/*.test.mjs",
     "client:dev": "tsx src/client.ts list",
     "client": "node dist/client.js list",
     "client:call": "node dist/client.js call",

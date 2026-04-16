@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "updatedAt": "2026-04-16T02:21:07.324Z",
+  "runs": [
+    {
+      "runId": "20260416_022103785",
+      "generatedAt": "2026-04-16T02:21:07.320Z",
+      "source": "zillow-web-public",
+      "pipelineVersion": "2026.04.16",
+      "published": true,
+      "publishReason": "published",
+      "stats": {
+        "candidateUrlCount": 60,
+        "refreshableUrlCount": 57,
+        "fetchedCount": 3,
+        "successCount": 3,
+        "fetchErrorCount": 0,
+        "acceptedCount": 3,
+        "dedupedCount": 3,
+        "droppedCount": 0,
+        "durationMs": 3535
+      },
+      "quality": {
+        "average": 0.767,
+        "p10": 0.72,
+        "p50": 0.8,
+        "p90": 0.8,
+        "min": 0.7,
+        "max": 0.8
+      },
+      "freshness": {
+        "oldestFetchedAt": "2026-04-16T02:21:04.776Z",
+        "newestFetchedAt": "2026-04-16T02:21:06.396Z",
+        "oldestAgeHours": 0,
+        "newestAgeHours": 0
+      },
+      "warnings": [],
+      "paths": {
+        "rawRunPath": "/Users/davidnguyen/WebstormProjects/EstateWise-Chatbot/data/live-zillow/output/runs/live_zillow_snapshot.20260416_022103785.raw.json",
+        "normalizedRunPath": "/Users/davidnguyen/WebstormProjects/EstateWise-Chatbot/data/live-zillow/output/runs/live_zillow_snapshot.20260416_022103785.normalized.json",
+        "versionedSnapshotPath": "/Users/davidnguyen/WebstormProjects/EstateWise-Chatbot/data/live-zillow/output/snapshots/live_zillow_snapshot.20260416_022103785.normalized.json",
+        "stableNormalizedPath": "/Users/davidnguyen/WebstormProjects/EstateWise-Chatbot/data/live-zillow/output/live_zillow_snapshot.normalized.json"
+      }
+    },
+    {
+      "runId": "20260416_022036878",
+      "generatedAt": "2026-04-16T02:20:42.121Z",
+      "source": "zillow-web-public",
+      "pipelineVersion": "2026.04.16",
+      "published": true,
+      "publishReason": "published",
+      "stats": {
+        "candidateUrlCount": 60,
+        "refreshableUrlCount": 60,
+        "fetchedCount": 3,
+        "successCount": 3,
+        "fetchErrorCount": 0,
+        "acceptedCount": 3,
+        "dedupedCount": 3,
+        "droppedCount": 0,
+        "durationMs": 5243
+      },
+      "quality": {
+        "average": 0.8,
+        "p10": 0.8,
+        "p50": 0.8,
+        "p90": 0.8,
+        "min": 0.8,
+        "max": 0.8
+      },
+      "freshness": {
+        "oldestFetchedAt": "2026-04-16T02:20:39.919Z",
+        "newestFetchedAt": "2026-04-16T02:20:41.615Z",
+        "oldestAgeHours": 0,
+        "newestAgeHours": 0
+      },
+      "warnings": [],
+      "paths": {
+        "rawRunPath": "/Users/davidnguyen/WebstormProjects/EstateWise-Chatbot/data/live-zillow/output/runs/live_zillow_snapshot.20260416_022036878.raw.json",
+        "normalizedRunPath": "/Users/davidnguyen/WebstormProjects/EstateWise-Chatbot/data/live-zillow/output/runs/live_zillow_snapshot.20260416_022036878.normalized.json",
+        "versionedSnapshotPath": "/Users/davidnguyen/WebstormProjects/EstateWise-Chatbot/data/live-zillow/output/snapshots/live_zillow_snapshot.20260416_022036878.normalized.json",
+        "stableNormalizedPath": "/Users/davidnguyen/WebstormProjects/EstateWise-Chatbot/data/live-zillow/output/live_zillow_snapshot.normalized.json"
+      }
+    }
+  ]
+}

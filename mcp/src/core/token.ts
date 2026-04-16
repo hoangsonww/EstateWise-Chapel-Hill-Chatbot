@@ -1,4 +1,7 @@
 import * as crypto from "crypto";
+import fs from "node:fs";
+import path from "node:path";
+import { config } from "./config.js";
 
 /**
  * MCP Token Management
@@ -22,17 +25,92 @@ export interface MCPTokenPayload {
   metadata?: Record<string, unknown>;
 }
 
-const SECRET_KEY =
-  process.env.MCP_TOKEN_SECRET || crypto.randomBytes(32).toString("hex");
 const TOKEN_TTL_MS = parseInt(process.env.MCP_TOKEN_TTL_MS || "3600000", 10); // 1 hour default
 const REFRESH_TOKEN_TTL_MS = parseInt(
   process.env.MCP_REFRESH_TOKEN_TTL_MS || "2592000000",
   10,
 ); // 30 days
+const PERSIST_PATH =
+  config.tokenPersistPath && config.tokenPersistPath.trim().length > 0
+    ? path.resolve(config.tokenPersistPath.trim())
+    : null;
 
-// In-memory token storage (for production, use Redis or database)
+const EPHEMERAL_SECRET_KEY = crypto.randomBytes(32).toString("hex");
+const HAS_CONFIGURED_SECRET = Boolean(process.env.MCP_TOKEN_SECRET);
+
+// In-memory token storage with optional persistence.
 const tokenStore = new Map<string, MCPTokenPayload>();
 const refreshTokenStore = new Map<string, { sub: string; exp: number }>();
+
+interface PersistedTokenState {
+  version: 1;
+  savedAt: string;
+  tokens: Array<[string, MCPTokenPayload]>;
+  refreshTokens: Array<[string, { sub: string; exp: number }]>;
+}
+
+function getSecretKey(): string {
+  if (HAS_CONFIGURED_SECRET) return process.env.MCP_TOKEN_SECRET as string;
+  if (config.tokenRequireSecret) {
+    throw new Error(
+      "MCP_TOKEN_SECRET is required when MCP_TOKEN_REQUIRE_SECRET=true",
+    );
+  }
+  return EPHEMERAL_SECRET_KEY;
+}
+
+function loadPersistedState(): void {
+  if (!PERSIST_PATH || !fs.existsSync(PERSIST_PATH)) return;
+  try {
+    const raw = fs.readFileSync(PERSIST_PATH, "utf8");
+    const parsed = JSON.parse(raw) as PersistedTokenState;
+    const tokens = Array.isArray(parsed.tokens) ? parsed.tokens : [];
+    const refreshTokens = Array.isArray(parsed.refreshTokens)
+      ? parsed.refreshTokens
+      : [];
+    tokenStore.clear();
+    refreshTokenStore.clear();
+    for (const [token, payload] of tokens) {
+      if (!token || !payload || typeof payload.sub !== "string") continue;
+      tokenStore.set(token, payload);
+    }
+    for (const [token, payload] of refreshTokens) {
+      if (!token || !payload || typeof payload.sub !== "string") continue;
+      refreshTokenStore.set(token, payload);
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    // eslint-disable-next-line no-console
+    console.warn(
+      `[mcp-token] Failed to load persisted token state from ${PERSIST_PATH}; continuing with empty in-memory stores. ${message}`,
+    );
+    tokenStore.clear();
+    refreshTokenStore.clear();
+  }
+}
+
+function persistState(): void {
+  if (!PERSIST_PATH) return;
+  fs.mkdirSync(path.dirname(PERSIST_PATH), { recursive: true });
+  const payload: PersistedTokenState = {
+    version: 1,
+    savedAt: new Date().toISOString(),
+    tokens: Array.from(tokenStore.entries()),
+    refreshTokens: Array.from(refreshTokenStore.entries()),
+  };
+  const tempPath = `${PERSIST_PATH}.tmp-${process.pid}-${Date.now()}`;
+  try {
+    fs.writeFileSync(tempPath, JSON.stringify(payload, null, 2), "utf8");
+    fs.renameSync(tempPath, PERSIST_PATH);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    // eslint-disable-next-line no-console
+    console.warn(
+      `[mcp-token] Failed to persist token state to ${PERSIST_PATH}. ${message}`,
+    );
+    if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
+  }
+}
 
 /**
  * Generate a new MCP token
@@ -57,8 +135,8 @@ export function generateMCPToken(
   const signature = createSignature(tokenData);
   const token = `${Buffer.from(tokenData).toString("base64")}.${signature}`;
 
-  // Store in memory
   tokenStore.set(token, payload);
+  persistState();
 
   return {
     token,
@@ -90,8 +168,8 @@ export function validateMCPToken(token: string): MCPTokenPayload | null {
 
     // Check expiration
     if (payload.exp < Date.now()) {
-      // Clean up expired token
       tokenStore.delete(token);
+      persistState();
       return null;
     }
 
@@ -100,7 +178,7 @@ export function validateMCPToken(token: string): MCPTokenPayload | null {
     if (!storedPayload) return null;
 
     return payload;
-  } catch (error) {
+  } catch (_error) {
     return null;
   }
 }
@@ -109,7 +187,9 @@ export function validateMCPToken(token: string): MCPTokenPayload | null {
  * Revoke an MCP token
  */
 export function revokeMCPToken(token: string): boolean {
-  return tokenStore.delete(token);
+  const removed = tokenStore.delete(token);
+  if (removed) persistState();
+  return removed;
 }
 
 /**
@@ -121,6 +201,7 @@ export function generateRefreshToken(subject: string): string {
     sub: subject,
     exp: Date.now() + REFRESH_TOKEN_TTL_MS,
   });
+  persistState();
   return refreshToken;
 }
 
@@ -138,6 +219,7 @@ export function refreshAccessToken(
   // Check expiration
   if (refresh.exp < Date.now()) {
     refreshTokenStore.delete(refreshToken);
+    persistState();
     return null;
   }
 
@@ -149,14 +231,16 @@ export function refreshAccessToken(
  * Revoke a refresh token
  */
 export function revokeRefreshToken(refreshToken: string): boolean {
-  return refreshTokenStore.delete(refreshToken);
+  const removed = refreshTokenStore.delete(refreshToken);
+  if (removed) persistState();
+  return removed;
 }
 
 /**
  * Create HMAC signature for token data
  */
 function createSignature(data: string): string {
-  return crypto.createHmac("sha256", SECRET_KEY).update(data).digest("hex");
+  return crypto.createHmac("sha256", getSecretKey()).update(data).digest("hex");
 }
 
 /**
@@ -182,6 +266,7 @@ export function cleanupExpiredTokens(): { removed: number } {
     }
   }
 
+  if (removed > 0) persistState();
   return { removed };
 }
 
@@ -204,6 +289,11 @@ export function getTokenStats() {
     totalRefreshTokens: refreshTokenStore.size,
     activeRefreshTokens: activeRefreshTokens.length,
     expiredRefreshTokens: refreshTokenStore.size - activeRefreshTokens.length,
+    secretConfigured: HAS_CONFIGURED_SECRET,
+    ephemeralSecretInUse: !HAS_CONFIGURED_SECRET,
+    requireSecret: config.tokenRequireSecret,
+    persistentStoreEnabled: Boolean(PERSIST_PATH),
+    persistentStorePath: PERSIST_PATH,
   };
 }
 
@@ -239,10 +329,13 @@ export function validateRequest(headers: Record<string, string | undefined>): {
   return { valid: true, payload };
 }
 
+loadPersistedState();
+
 // Auto cleanup every 10 minutes
-setInterval(
+const cleanupTimer = setInterval(
   () => {
     cleanupExpiredTokens();
   },
   10 * 60 * 1000,
 );
+cleanupTimer.unref?.();

@@ -3,6 +3,11 @@ const toInt = (v: string | undefined, d: number) => {
   return Number.isFinite(n) ? n : d;
 };
 
+const toFloat = (v: string | undefined, d: number) => {
+  const n = v ? Number(v) : NaN;
+  return Number.isFinite(n) ? n : d;
+};
+
 const toBool = (v: string | undefined, d: boolean) => {
   if (v == null) return d;
   const s = v.toLowerCase();
@@ -48,5 +53,22 @@ export const config = {
   ),
   toolAllowList: toCsvList(process.env.MCP_TOOL_ALLOWLIST),
   toolDenyList: toCsvList(process.env.MCP_TOOL_DENYLIST),
+  tokenRequireSecret: toBool(process.env.MCP_TOKEN_REQUIRE_SECRET, false),
+  tokenPersistPath: process.env.MCP_TOKEN_PERSIST_PATH || "",
+  liveDataSnapshotPath:
+    process.env.LIVE_ZILLOW_SNAPSHOT_PATH ||
+    "../data/live-zillow/output/live_zillow_snapshot.normalized.json",
+  liveDataMaxResults: Math.max(
+    1,
+    toInt(process.env.LIVE_ZILLOW_MAX_RESULTS, 25),
+  ),
+  liveDataStaleHours: Math.max(
+    1,
+    toInt(process.env.LIVE_ZILLOW_STALE_HOURS, 72),
+  ),
+  liveDataMinQualityScore: Math.min(
+    1,
+    Math.max(0, toFloat(process.env.LIVE_ZILLOW_MIN_QUALITY_SCORE, 0)),
+  ),
   debug: toBool(process.env.MCP_DEBUG, false),
 };

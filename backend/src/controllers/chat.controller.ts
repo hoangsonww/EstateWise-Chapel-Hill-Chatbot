@@ -345,17 +345,20 @@ function adjustWeightsInPlace(
     // 2a) Specific expert bump
     wts[expert] = Math.min(Math.max(wts[expert] + delta, 0.1), 2.0);
   } else if (!expert) {
-    // 2b) Global thumb: pick two distinct non‐cluster experts
-    const iUp = Math.floor(Math.random() * NON_CLUSTER.length);
-    let iDown = Math.floor(Math.random() * NON_CLUSTER.length);
-    while (iDown === iUp) {
-      iDown = Math.floor(Math.random() * NON_CLUSTER.length);
+    // 2b) Global thumb-down: deterministic expert rebalance
+    // Decrease the strongest current expert and increase the weakest.
+    const sorted = [...NON_CLUSTER].sort((a, b) => {
+      const diff = (wts[b] ?? 1) - (wts[a] ?? 1);
+      return diff !== 0 ? diff : a.localeCompare(b);
+    });
+    const keyDown = sorted[0];
+    const keyUp = sorted[sorted.length - 1];
+    if (keyDown) {
+      wts[keyDown] = Math.min(Math.max((wts[keyDown] ?? 1) - 0.2, 0.1), 2.0);
     }
-    // 2c) Adjust & normalize
-    const keyUp = NON_CLUSTER[iUp];
-    const keyDown = NON_CLUSTER[iDown];
-    wts[keyUp] = Math.min(Math.max(wts[keyUp] + 0.2, 0.1), 2.0);
-    wts[keyDown] = Math.min(Math.max(wts[keyDown] - 0.2, 0.1), 2.0);
+    if (keyUp && keyUp !== keyDown) {
+      wts[keyUp] = Math.min(Math.max((wts[keyUp] ?? 1) + 0.2, 0.1), 2.0);
+    }
   }
 
   // 3) Re-enforce cluster analyst at 1 to avoid drift

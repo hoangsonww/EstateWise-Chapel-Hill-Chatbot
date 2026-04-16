@@ -36,6 +36,14 @@ export class ReporterAgent implements Agent {
       lines.push(
         `ZPIDs: ${bb.zpids.slice(0, 10).join(", ")}${bb.zpids.length > 10 ? "…" : ""}`,
       );
+    if (bb.policy?.applied?.length) {
+      lines.push(
+        `Policy (${bb.policy.version}) adjustments: ${bb.policy.applied.map((item) => `${item.zpid}(${item.reason}, boost=${item.boost})`).join("; ")}`,
+      );
+      if (bb.policy.disclosures.length) {
+        lines.push(`Disclosures: ${bb.policy.disclosures.join(" | ")}`);
+      }
+    }
     const webResults = ((bb.web?.search as any)?.results || []) as any[];
     if (webResults.length) {
       const refs = webResults
@@ -43,6 +51,23 @@ export class ReporterAgent implements Agent {
         .map((r) => `${r.title || "source"} (${r.url || "no-url"})`)
         .join("; ");
       lines.push(`Web sources: ${refs}`);
+    }
+    if ((bb.liveData?.results || []).length) {
+      const liveRefs = (bb.liveData?.results || [])
+        .slice(0, 3)
+        .map((r: any) => `${r.address || "listing"} (${r.url || "no-url"})`)
+        .join("; ");
+      lines.push(
+        `Live Zillow snapshot (${bb.liveData?.generatedAt || "unknown"}): ${liveRefs}`,
+      );
+      if (bb.liveData?.staleHours != null) {
+        lines.push(`Live snapshot age: ${bb.liveData.staleHours}h`);
+      }
+      if (bb.liveData?.warnings?.length) {
+        lines.push(
+          `Live snapshot warnings: ${bb.liveData.warnings.join(" | ")}`,
+        );
+      }
     }
     if (bb.mapLink) lines.push(`Map: ${bb.mapLink}`);
     if (bb.mortgage) {

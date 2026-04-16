@@ -13,6 +13,25 @@ function dirnameFromImportMeta(url: string) {
   return path.dirname(fileURLToPath(url));
 }
 
+/** Forward MCP-relevant env vars to spawned local server. */
+function buildForwardedEnv() {
+  const forwarded: Record<string, string> = {};
+  for (const [key, value] of Object.entries(process.env)) {
+    if (typeof value !== "string") continue;
+    if (
+      key.startsWith("MCP_") ||
+      key.startsWith("LIVE_ZILLOW_") ||
+      key === "API_BASE_URL" ||
+      key === "FRONTEND_BASE_URL" ||
+      key === "A2A_BASE_URL" ||
+      key === "WEB_TIMEOUT_MS"
+    ) {
+      forwarded[key] = value;
+    }
+  }
+  return forwarded;
+}
+
 /** Render an MCP content block into a human-readable string. */
 function renderContentBlock(
   block: ContentBlock,
@@ -71,6 +90,7 @@ async function main() {
     command: process.execPath,
     args: ["server.js"],
     cwd: distDir, // ensure we spawn from dist/
+    env: buildForwardedEnv(),
     stderr: "inherit",
   });
 
