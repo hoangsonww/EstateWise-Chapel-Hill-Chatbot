@@ -864,8 +864,15 @@ export const Conversation = mongoose.model("Conversation", ConversationSchema);
 
 ### 8.3 Authentication & JWT Workflow
 
-- **Signup/Login** endpoints issue JWT with 1h expiry
-- **Middleware** verifies `Authorization: Bearer <token>`
+Two sign-in paths converge on the same JWT contract:
+
+- **Password flow** — `POST /api/auth/signup` and `POST /api/auth/login` validate credentials with `bcryptjs` and issue a JWT signed with `JWT_SECRET`.
+- **Passkey (WebAuthn) flow** — `POST /api/auth/webauthn/{register,login}/{options,verify}` use `@simplewebauthn/server` for ceremony orchestration. Successful assertions issue the same JWT shape, so downstream code is path-agnostic.
+- **Authorization** — `authMiddleware` decodes `Authorization: Bearer <token>` (or the `token` cookie); `requireAuth` hard-fails routes that must be authenticated.
+- **Storage**
+  - Passkey credentials are embedded on the `User` document as a `credentials[]` subdoc array (`credentialID`, `publicKey`, `counter`, `transports`, `deviceType`, `backedUp`, `nickname`).
+  - In-flight WebAuthn challenges live in a separate `webauthnchallenges` collection with a TTL index (5 min) and are deleted on consumption — never stored on the user.
+- **RP configuration** — `WEBAUTHN_RP_ID` (frontend host), `WEBAUTHN_RP_NAME`, `WEBAUTHN_ORIGINS` (comma-separated allowed browser origins).
 
 ### 8.4 OpenAPI / Swagger Integration
 
@@ -1648,6 +1655,7 @@ To ensure the CI/CD pipeline runs smoothly, you need to configure the following 
 | `PINECONE_ENVIRONMENT`                                              | Pinecone environment identifier    |
 | `PINECONE_INDEX`                                                    | Name of your Pinecone vector index |
 | `JWT_SECRET`                                                        | Secret key for signing JWTs        |
+| `WEBAUTHN_RP_ID` / `WEBAUTHN_RP_NAME` / `WEBAUTHN_ORIGINS`          | Passkey RP configuration (must be set per-environment) |
 | additional secrets for Docker, AWS, and Vercel deployment as needed | ...                                |
 
 ### 13.3 Monitoring and Troubleshooting
@@ -2073,6 +2081,9 @@ The following environment variables are required for the application to function
 | ----------------------------------- | --------------------------------------------------------------------- |
 | `MONGO_URI`                         | MongoDB connection string                                             |
 | `JWT_SECRET`                        | Secret key for signing JWTs                                           |
+| `WEBAUTHN_RP_ID`                    | Effective domain of the **frontend** for passkey binding (e.g. `localhost`, `estatewise.vercel.app`) |
+| `WEBAUTHN_RP_NAME`                  | Human-readable RP name shown in OS passkey picker (default `EstateWise`) |
+| `WEBAUTHN_ORIGINS`                  | Comma-separated browser origins accepted during WebAuthn ceremonies   |
 | `GOOGLE_AI_API_KEY`                 | Google Gemini API key (chat + embeddings)                             |
 | `OPENAI_API_KEY`                    | OpenAI API key (fallback/runtime + CrewAI)                            |
 | `PINECONE_API_KEY`                  | Pinecone service key                                                  |

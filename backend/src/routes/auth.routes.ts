@@ -9,7 +9,16 @@ import {
   updateProfile,
   updatePassword,
 } from "../controllers/auth.controller";
-import { authMiddleware } from "../middleware/auth.middleware";
+import {
+  registrationOptions,
+  registrationVerify,
+  authenticationOptions,
+  authenticationVerify,
+  listCredentials,
+  renameCredential,
+  deleteCredential,
+} from "../controllers/webauthn.controller";
+import { authMiddleware, requireAuth } from "../middleware/auth.middleware";
 
 const router = Router();
 
@@ -310,5 +319,187 @@ router.put("/me", authMiddleware, updateProfile);
  *         description: Server error - Failed to update password
  */
 router.put("/password", authMiddleware, updatePassword);
+
+// ─── WebAuthn (passkeys) ────────────────────────────────────────────────────
+
+/**
+ * @swagger
+ * /api/auth/webauthn/register/options:
+ *   post:
+ *     summary: Begin passkey registration (authenticated)
+ *     tags: [Auth]
+ *     responses:
+ *       200:
+ *         description: PublicKeyCredentialCreationOptionsJSON
+ *       401:
+ *         description: Unauthorized
+ */
+router.post(
+  "/webauthn/register/options",
+  authMiddleware,
+  requireAuth,
+  registrationOptions,
+);
+
+/**
+ * @swagger
+ * /api/auth/webauthn/register/verify:
+ *   post:
+ *     summary: Complete passkey registration (authenticated)
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [response]
+ *             properties:
+ *               response:
+ *                 type: object
+ *                 description: RegistrationResponseJSON from @simplewebauthn/browser
+ *               nickname:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Passkey registered
+ *       400:
+ *         description: Verification failed or challenge expired
+ *       401:
+ *         description: Unauthorized
+ *       409:
+ *         description: Passkey already registered to another account
+ */
+router.post(
+  "/webauthn/register/verify",
+  authMiddleware,
+  requireAuth,
+  registrationVerify,
+);
+
+/**
+ * @swagger
+ * /api/auth/webauthn/login/options:
+ *   post:
+ *     summary: Begin passkey authentication
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 description: Optional — scopes options to a specific user.
+ *     responses:
+ *       200:
+ *         description: PublicKeyCredentialRequestOptionsJSON (+ sessionId for discoverable flow)
+ */
+router.post("/webauthn/login/options", authenticationOptions);
+
+/**
+ * @swagger
+ * /api/auth/webauthn/login/verify:
+ *   post:
+ *     summary: Complete passkey authentication and issue a JWT
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [response]
+ *             properties:
+ *               response:
+ *                 type: object
+ *                 description: AuthenticationResponseJSON from @simplewebauthn/browser
+ *               email:
+ *                 type: string
+ *                 description: Required if options were requested with email.
+ *               sessionId:
+ *                 type: string
+ *                 description: Required for discoverable-credential flow.
+ *     responses:
+ *       200:
+ *         description: Login successful — token + user
+ *       400:
+ *         description: Challenge expired or response invalid
+ *       401:
+ *         description: Verification failed
+ *       404:
+ *         description: Unknown credential
+ */
+router.post("/webauthn/login/verify", authenticationVerify);
+
+/**
+ * @swagger
+ * /api/auth/webauthn/credentials:
+ *   get:
+ *     summary: List the authenticated user's registered passkeys
+ *     tags: [Auth]
+ *     responses:
+ *       200:
+ *         description: Array of credential metadata (no secrets)
+ *       401:
+ *         description: Unauthorized
+ */
+router.get(
+  "/webauthn/credentials",
+  authMiddleware,
+  requireAuth,
+  listCredentials,
+);
+
+/**
+ * @swagger
+ * /api/auth/webauthn/credentials/{id}:
+ *   patch:
+ *     summary: Rename a passkey
+ *     tags: [Auth]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [nickname]
+ *             properties:
+ *               nickname: { type: string }
+ *     responses:
+ *       200:
+ *         description: Updated credential
+ *   delete:
+ *     summary: Remove a passkey
+ *     tags: [Auth]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Passkey removed
+ */
+router.patch(
+  "/webauthn/credentials/:id",
+  authMiddleware,
+  requireAuth,
+  renameCredential,
+);
+router.delete(
+  "/webauthn/credentials/:id",
+  authMiddleware,
+  requireAuth,
+  deleteCredential,
+);
 
 export default router;

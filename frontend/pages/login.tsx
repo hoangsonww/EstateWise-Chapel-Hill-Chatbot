@@ -10,7 +10,20 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { Eye, EyeOff, Key, MessageCircle, User } from "lucide-react";
+import {
+  Eye,
+  EyeOff,
+  Fingerprint,
+  Key,
+  MessageCircle,
+  User,
+} from "lucide-react";
+import { API_BASE_URL } from "@/lib/api";
+import {
+  passkeysAvailable,
+  signInWithPasskey,
+  browserSupportsWebAuthnAutofill,
+} from "@/lib/passkeys";
 
 const formVariants = {
   hidden: { opacity: 0, scale: 0.95 },
@@ -28,7 +41,69 @@ export default function LoginPage() {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [errorMsg, setErrorMsg] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isPasskeyLoading, setIsPasskeyLoading] = useState(false);
+  const [showPasskeys, setShowPasskeys] = useState(false);
   const router = useRouter();
+
+  const finishLogin = (data: {
+    token: string;
+    user: { username: string; email: string };
+  }) => {
+    Cookies.set("estatewise_token", data.token);
+    localStorage.setItem("username", data.user.username);
+    localStorage.setItem("email", data.user.email);
+  };
+
+  const handlePasskeySignIn = async (opts?: {
+    email?: string;
+    useBrowserAutofill?: boolean;
+  }) => {
+    if (isPasskeyLoading) return;
+    if (!opts?.useBrowserAutofill) setIsPasskeyLoading(true);
+    try {
+      const data = await signInWithPasskey(opts);
+      finishLogin(data);
+      toast.success("Signed in with passkey.");
+      router.push("/chat");
+    } catch (err: unknown) {
+      // Browser DOMException: AbortError / NotAllowedError = user cancelled.
+      // Don't yell at them. Anything else is a real error.
+      const e = err as { name?: string; message?: string };
+      if (e?.name === "AbortError" || e?.name === "NotAllowedError") {
+        if (!opts?.useBrowserAutofill) {
+          toast.error("Passkey sign-in cancelled.");
+        }
+      } else {
+        console.error(err);
+        toast.error(e?.message || "Passkey sign-in failed.");
+      }
+    } finally {
+      setIsPasskeyLoading(false);
+    }
+  };
+
+  // Show passkey UI only when supported, and start conditional UI (autofill)
+  // so the email field surfaces saved passkeys inline.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!passkeysAvailable()) return;
+      setShowPasskeys(true);
+      try {
+        const supportsAutofill = await browserSupportsWebAuthnAutofill();
+        if (!supportsAutofill || cancelled) return;
+        // Fire-and-forget; resolves only when user picks a passkey from the
+        // autofill dropdown. Errors are silenced unless they're real failures.
+        handlePasskeySignIn({ useBrowserAutofill: true });
+      } catch {
+        /* ignore */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -56,22 +131,15 @@ export default function LoginPage() {
     setErrorMsg("");
     setIsLoading(true);
     try {
-      const res = await fetch(
-        "https://estatewise-backend.vercel.app/api/auth/login",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password }),
-        },
-      );
+      const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
 
       if (res.status === 200) {
         const data = await res.json();
-        // Store the token in a browser cookie
-        Cookies.set("estatewise_token", data.token);
-        // Store user data in local storage
-        localStorage.setItem("username", data.user.username);
-        localStorage.setItem("email", data.user.email);
+        finishLogin(data);
         toast.success("You have successfully logged in.");
         router.push("/chat");
       } else {
@@ -172,6 +240,9 @@ export default function LoginPage() {
                     }
                   }}
                   required
+                  // "username webauthn" enables conditional UI: the password
+                  // manager surfaces saved passkeys directly in this field.
+                  autoComplete="username webauthn"
                   className="w-full"
                 />
               </div>
@@ -244,6 +315,52 @@ export default function LoginPage() {
                 )}
               </Button>
             </form>
+            {showPasskeys && (
+              <>
+                <div className="flex items-center gap-3 mt-4">
+                  <div className="flex-1 h-px bg-border" />
+                  <span className="text-xs text-muted-foreground">or</span>
+                  <div className="flex-1 h-px bg-border" />
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full mt-4 cursor-pointer"
+                  disabled={isPasskeyLoading}
+                  onClick={() =>
+                    handlePasskeySignIn(email ? { email } : undefined)
+                  }
+                  title="Sign in with a passkey"
+                  aria-label="Sign in with a passkey"
+                >
+                  {isPasskeyLoading ? (
+                    <>
+                      <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                        ></path>
+                      </svg>
+                      <span>Verifying…</span>
+                    </>
+                  ) : (
+                    <>
+                      <Fingerprint className="w-5 h-5" />
+                      <span>Sign in with a passkey</span>
+                    </>
+                  )}
+                </Button>
+              </>
+            )}
             <div className="space-y-3">
               <p className="text-sm text-center text-card-foreground">
                 Don&apos;t have an account?{" "}

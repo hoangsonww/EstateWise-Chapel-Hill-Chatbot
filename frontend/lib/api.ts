@@ -1,4 +1,13 @@
-export const API_BASE_URL = "https://estatewise-backend.vercel.app";
+export const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL ||
+  "https://estatewise-backend.vercel.app";
+
+/**
+ * Whether to render passkey UI. Defaults to enabled; set
+ * NEXT_PUBLIC_PASSKEYS_ENABLED=false to hide all passkey affordances.
+ */
+export const PASSKEYS_ENABLED =
+  process.env.NEXT_PUBLIC_PASSKEYS_ENABLED !== "false";
 
 export type ChatMessage = { role: "user" | "model"; text: string };
 
@@ -494,4 +503,143 @@ export async function downvoteComment(
     throw new Error(err.error || "Failed to downvote comment");
   }
   return await res.json();
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// WebAuthn / Passkeys API
+// ────────────────────────────────────────────────────────────────────────────
+
+export interface PasskeyCredentialSummary {
+  id: string;
+  credentialID: string;
+  nickname: string;
+  transports: string[];
+  deviceType?: "singleDevice" | "multiDevice";
+  backedUp?: boolean;
+  createdAt: string;
+  lastUsedAt: string;
+}
+
+export async function getRegistrationOptions(token: string) {
+  const res = await fetch(
+    `${API_BASE_URL}/api/auth/webauthn/register/options`,
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+    },
+  );
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || "Failed to start passkey registration");
+  }
+  return await res.json();
+}
+
+export async function verifyRegistration(
+  token: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  response: any,
+  nickname?: string,
+) {
+  const res = await fetch(`${API_BASE_URL}/api/auth/webauthn/register/verify`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ response, nickname }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || "Failed to register passkey");
+  }
+  return (await res.json()) as {
+    verified: boolean;
+    credential: PasskeyCredentialSummary;
+  };
+}
+
+export async function getAuthenticationOptions(email?: string) {
+  const res = await fetch(`${API_BASE_URL}/api/auth/webauthn/login/options`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(email ? { email } : {}),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || "Failed to start passkey login");
+  }
+  return await res.json();
+}
+
+export async function verifyAuthentication(params: {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  response: any;
+  email?: string;
+  sessionId?: string;
+}) {
+  const res = await fetch(`${API_BASE_URL}/api/auth/webauthn/login/verify`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || "Passkey login failed");
+  }
+  return (await res.json()) as {
+    token: string;
+    user: { username: string; email: string };
+  };
+}
+
+export async function listPasskeys(
+  token: string,
+): Promise<PasskeyCredentialSummary[]> {
+  const res = await fetch(`${API_BASE_URL}/api/auth/webauthn/credentials`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || "Failed to list passkeys");
+  }
+  const data = await res.json();
+  return data.credentials || [];
+}
+
+export async function renamePasskey(
+  token: string,
+  id: string,
+  nickname: string,
+) {
+  const res = await fetch(
+    `${API_BASE_URL}/api/auth/webauthn/credentials/${id}`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ nickname }),
+    },
+  );
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || "Failed to rename passkey");
+  }
+  return (await res.json()) as { credential: PasskeyCredentialSummary };
+}
+
+export async function deletePasskey(token: string, id: string) {
+  const res = await fetch(
+    `${API_BASE_URL}/api/auth/webauthn/credentials/${id}`,
+    {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    },
+  );
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || "Failed to delete passkey");
+  }
 }

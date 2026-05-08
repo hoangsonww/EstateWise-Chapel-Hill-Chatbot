@@ -34,6 +34,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { DarkModeToggle } from "@/components/dark-mode-toggle";
+import { PasskeysCard } from "@/components/passkeys-card";
 
 const formVariants = {
   hidden: { opacity: 0, y: 12 },
@@ -756,6 +757,8 @@ export default function ProfilePage() {
                     </form>
                   </CardContent>
                 </Card>
+
+                <PasskeysCard token={token} />
               </>
             )}
           </div>
