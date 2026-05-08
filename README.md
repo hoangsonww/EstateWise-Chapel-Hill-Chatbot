@@ -187,6 +187,8 @@ EstateWise is packed with both UI and AI features to enhance your home-finding e
 
 - **Secure User Authentication:** Sign up, log in, and log out with JWT‑based security.
 
+- **Passkeys (WebAuthn):** Phishing‑resistant, password‑less sign‑in via Face ID, Touch ID, Windows Hello, security keys, or your phone. Surfaced as conditional UI in the login email field and as an explicit "Sign in with a passkey" button. Multiple passkeys per account, fully manageable from the profile page (rename/remove).
+
 - **Conversation History:**
 
   - **Authenticated users** can view, rename, and delete past chats.
@@ -644,6 +646,14 @@ Example managed credentials
     NEO4J_DATABASE=neo4j
     INGEST_LIMIT=30772
 
+    # Passkeys / WebAuthn — RP_ID is the effective domain of the FRONTEND
+    # (not the backend). For local dev: localhost. For prod, the public
+    # frontend host (e.g. estatewise.vercel.app). Origins must match exactly,
+    # including scheme. Comma-separate multiple origins.
+    WEBAUTHN_RP_ID=localhost
+    WEBAUTHN_RP_NAME=EstateWise
+    WEBAUTHN_ORIGINS=http://localhost:3000
+
     # Speed & reliability tuning for Pinecone -> Neo4j ingest
     # Max IDs per page (serverless only). Range 1..1000
     PINECONE_PAGE_SIZE=1000
@@ -712,11 +722,19 @@ Example managed credentials
 
    The frontend should be running at [http://localhost:3000](http://localhost:3000).
 
-4. **Change API URL:**  
-   If your backend is running on a different port or domain, update the API URL in the frontend code (simply CTRL + F or CMD + F and search for our official backend API URL in all frontend files, then replace it with your backend URL - by default it is `http://localhost:3001`).
+4. **Change API URL:**
+   If your backend is running on a different port or domain, set `NEXT_PUBLIC_API_BASE_URL` in `frontend/.env.local` (preferred for new deployments):
 
-5. **View and Interact with the App:**  
-   Open your browser and navigate to [http://localhost:3000](http://localhost:3000) to view the app. You can interact with the chatbot, sign up, log in, and explore the features.
+   ```env
+   NEXT_PUBLIC_API_BASE_URL=http://localhost:3001
+   # Optional — set to "false" to hide all passkey UI
+   NEXT_PUBLIC_PASSKEYS_ENABLED=true
+   ```
+
+   A few legacy pages (`chat.tsx`, `charts.tsx`, `reset-password.tsx`) still hardcode the production URL — search/replace those if you need to point them locally.
+
+5. **View and Interact with the App:**
+   Open your browser and navigate to [http://localhost:3000](http://localhost:3000) to view the app. You can interact with the chatbot, sign up, log in (password or passkey), and explore the features.
 
 > [!CAUTION]
 > As you develop, before committing, we recommend running the linter and formatter to ensure code quality with `npm run format`. This will format your code according to the project's ESLint and Prettier configurations.

@@ -89,6 +89,12 @@ Optional features:
 - Ingest tuning: `INGEST_LIMIT`, `PINECONE_PAGE_SIZE`, `INGEST_RESUME`, `INGEST_CHECKPOINT_FILE`, `PINECONE_START_TOKEN`, `NEO4J_RESET`, `NEO4J_WRITE_RETRIES`
 - `LIVE_ZILLOW_SNAPSHOT_PATH` (optional path for `/api/live-data/*`; relative values resolve from `backend/`, default resolves to repo `data/live-zillow/output/live_zillow_snapshot.normalized.json`)
 
+WebAuthn / passkeys:
+
+- `WEBAUTHN_RP_ID` — effective domain of the **frontend** (e.g. `localhost`, `estatewise.vercel.app`). Credentials are bound to this; changing it invalidates existing passkeys.
+- `WEBAUTHN_RP_NAME` — human-readable name shown in the OS passkey picker (default: `EstateWise`).
+- `WEBAUTHN_ORIGINS` — comma-separated list of accepted browser origins, full scheme + host (+ port). E.g. `http://localhost:3000,https://estatewise.vercel.app`. Falls back to `WEBAUTHN_ORIGIN` (single value) for convenience.
+
 ## Data Model (MongoDB)
 
 ```mermaid
@@ -102,7 +108,8 @@ erDiagram
   USER {
     string username
     string email
-    string password
+    string password "optional — passkey-only accounts allowed"
+    array credentials "embedded passkey credentials"
   }
   CONVERSATION {
     string title
@@ -192,6 +199,13 @@ Auth:
 - `GET /api/auth/me`
 - `PUT /api/auth/me`
 - `PUT /api/auth/password`
+- `POST /api/auth/webauthn/register/options` *(authenticated — start passkey registration)*
+- `POST /api/auth/webauthn/register/verify` *(authenticated — finish passkey registration)*
+- `POST /api/auth/webauthn/login/options` *(begin passkey login; pass `email` to scope, omit for discoverable flow)*
+- `POST /api/auth/webauthn/login/verify` *(verify passkey assertion, returns JWT identical to `/login`)*
+- `GET /api/auth/webauthn/credentials` *(list current user's passkeys)*
+- `PATCH /api/auth/webauthn/credentials/:id` *(rename a passkey)*
+- `DELETE /api/auth/webauthn/credentials/:id` *(remove a passkey)*
 
 Chat:
 

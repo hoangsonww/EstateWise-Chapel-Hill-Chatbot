@@ -46,7 +46,7 @@ export const login = async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
     const user: IUser | null = await User.findOne({ email });
-    if (!user) {
+    if (!user || !user.password) {
       return res.status(400).json({ error: "Invalid credentials" });
     }
     const isMatch = await bcrypt.compare(password, user.password);
@@ -206,6 +206,11 @@ export const updatePassword = async (req: AuthRequest, res: Response) => {
     const user = await User.findById(req.user.id);
     if (!user) {
       return res.status(404).json({ error: "User not found" });
+    }
+    if (!user.password) {
+      return res
+        .status(400)
+        .json({ error: "Account has no password — set one via reset flow" });
     }
 
     const isMatch = await bcrypt.compare(currentPassword, user.password);

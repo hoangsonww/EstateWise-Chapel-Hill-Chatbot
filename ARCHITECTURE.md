@@ -354,6 +354,10 @@ EstateWise backend is composed of modular **microservices**, each responsible fo
 
 ### Authentication Service
 
+Two complementary sign-in flows are supported. Both terminate in the same JWT and cookie, so downstream services don't care which path the user took.
+
+**Email + password**
+
 ```mermaid
 sequenceDiagram
   participant Client
@@ -373,6 +377,47 @@ sequenceDiagram
   Auth-->>API: Token + user
   API-->>Client: Set-Cookie JWT
 ```
+
+**Passkey (WebAuthn)**
+
+```mermaid
+sequenceDiagram
+  participant Client as Browser
+  participant API
+  participant Auth
+  participant Mongo as MongoDB
+  participant JWT
+
+  Note over Client,Auth: Registration (authenticated user adds a passkey)
+  Client->>API: POST /api/auth/webauthn/register/options
+  API->>Auth: generateRegistrationOptions(rpID, excludeCredentials)
+  Auth->>Mongo: store challenge (TTL 5m)
+  Auth-->>Client: PublicKeyCredentialCreationOptionsJSON
+  Client->>Client: navigator.credentials.create()
+  Client->>API: POST /api/auth/webauthn/register/verify
+  API->>Auth: verifyRegistrationResponse(challenge, origin, rpID)
+  Auth->>Mongo: persist credential (id, publicKey, counter, transports)
+  Auth-->>Client: 201 Created
+
+  Note over Client,Auth: Authentication (login)
+  Client->>API: POST /api/auth/webauthn/login/options [email?]
+  API->>Auth: generateAuthenticationOptions(allowCredentials)
+  Auth->>Mongo: store challenge (TTL 5m)
+  Auth-->>Client: PublicKeyCredentialRequestOptionsJSON (+ sessionId)
+  Client->>Client: navigator.credentials.get()
+  Client->>API: POST /api/auth/webauthn/login/verify
+  API->>Auth: verifyAuthenticationResponse(...)
+  Auth->>Mongo: bump counter, set lastUsedAt
+  Auth->>JWT: sign token
+  Auth-->>Client: { token, user }
+```
+
+Key invariants:
+
+- **RP ID is the frontend domain.** Credentials are bound to it; rotating it invalidates all existing passkeys.
+- **Challenges are single-use, server-side, TTL'd 5 minutes** in the `webauthnchallenges` collection. They are never stored on the user document.
+- **Counter regression detection** logs a warning if a successful assertion returns a counter ≤ stored (potential cloned authenticator). Some platform authenticators legitimately report 0 — that case is tolerated.
+- **Discoverable-credential flow** (no email entered) issues an opaque `sessionId` so the verify step can locate the matching challenge.
 
 ### Chat Service (AI Pipeline)
 

@@ -10,7 +10,16 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { Eye, EyeOff, MessageCircle, Plus, UserPlus } from "lucide-react";
+import {
+  Eye,
+  EyeOff,
+  Fingerprint,
+  MessageCircle,
+  Plus,
+  UserPlus,
+} from "lucide-react";
+import { API_BASE_URL } from "@/lib/api";
+import { passkeysAvailable, registerPasskey } from "@/lib/passkeys";
 
 const formVariants = {
   hidden: { opacity: 0, scale: 0.95 },
@@ -31,7 +40,35 @@ export default function SignUpPage() {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [errorMsg, setErrorMsg] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [signedUpToken, setSignedUpToken] = useState<string | null>(null);
+  const [enrollingPasskey, setEnrollingPasskey] = useState(false);
   const router = useRouter();
+  const canOfferPasskey = passkeysAvailable();
+
+  const goToChat = () => router.push("/chat");
+
+  const handleAddPasskey = async () => {
+    if (!signedUpToken || enrollingPasskey) return;
+    setEnrollingPasskey(true);
+    try {
+      await registerPasskey(signedUpToken, "This device");
+      toast.success("Passkey saved — you can use it next time.");
+      goToChat();
+    } catch (err: unknown) {
+      const e = err as { name?: string; message?: string };
+      if (e?.name === "AbortError" || e?.name === "NotAllowedError") {
+        toast(
+          "Skipped passkey setup. You can add one later from your profile.",
+        );
+      } else {
+        console.error(err);
+        toast.error(e?.message || "Couldn't set up passkey.");
+      }
+      goToChat();
+    } finally {
+      setEnrollingPasskey(false);
+    }
+  };
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -67,30 +104,32 @@ export default function SignUpPage() {
 
     setIsLoading(true);
     try {
-      const res = await fetch(
-        "https://estatewise-backend.vercel.app/api/auth/signup",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username, email, password }),
-        },
-      );
+      const res = await fetch(`${API_BASE_URL}/api/auth/signup`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, email, password }),
+      });
 
       if (res.status === 201) {
-        // Automatically log the user in upon successful sign up
-        const loginRes = await fetch(
-          "https://estatewise-backend.vercel.app/api/auth/login",
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email, password }),
-          },
-        );
+        // Auto-log in after signup
+        const loginRes = await fetch(`${API_BASE_URL}/api/auth/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        });
         if (loginRes.status === 200) {
           const data = await loginRes.json();
           Cookies.set("estatewise_token", data.token);
-          router.push("/chat");
-          toast.success("Sign up and login successfully");
+          localStorage.setItem("username", data.user.username);
+          localStorage.setItem("email", data.user.email);
+          toast.success("Account created.");
+          // Surface passkey enrollment if the browser supports it; otherwise
+          // continue straight to the app.
+          if (canOfferPasskey) {
+            setSignedUpToken(data.token);
+          } else {
+            goToChat();
+          }
         } else {
           setErrorMsg(
             "Sign up succeeded but automatic login failed. Please log in manually.",
@@ -168,189 +207,250 @@ export default function SignUpPage() {
           className="w-full max-w-md"
         >
           <Card className="p-8 rounded-xl shadow-2xl bg-card m-2">
-            <div className="flex justify-center mt-2">
-              <UserPlus className="w-8 h-8 text-card-foreground opacity-80" />
-            </div>
-            <h1 className="text-3xl font-bold text-center text-card-foreground">
-              Sign Up
-            </h1>
-            <p className="text-sm text-center text-card-foreground">
-              Welcome! Create an account to save your conversations, settings,
-              and more.
-            </p>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-1 text-card-foreground">
-                  Username
-                </label>
-                <Input
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  required
-                  className="w-full"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1 text-card-foreground">
-                  Email
-                </label>
-                <Input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  className="w-full"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1 text-card-foreground">
-                  Password
-                </label>
-                <div className="relative">
-                  <Input
-                    type={showPassword ? "text" : "password"}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        handleSubmit(e);
-                      }
-                    }}
-                    required
-                    className="w-full pr-10"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword((prev) => !prev)}
-                    className="absolute inset-y-0 right-0 flex items-center px-3 focus:outline-none"
-                    aria-label="Toggle password visibility"
-                    title="Toggle password visibility"
-                  >
-                    {showPassword ? (
-                      <EyeOff className="w-5 h-5 text-gray-600" />
-                    ) : (
-                      <Eye className="w-5 h-5 text-gray-600" />
-                    )}
-                  </button>
+            {signedUpToken ? (
+              <div className="space-y-5">
+                <div className="flex justify-center mt-2">
+                  <Fingerprint className="w-10 h-10 text-card-foreground opacity-80" />
                 </div>
+                <h1 className="text-2xl font-bold text-center text-card-foreground">
+                  Set up a passkey?
+                </h1>
+                <p className="text-sm text-center text-card-foreground">
+                  Use Face ID, Touch ID, Windows Hello, or your phone to sign in
+                  next time — no password needed.
+                </p>
+                <Button
+                  type="button"
+                  className="w-full cursor-pointer"
+                  disabled={enrollingPasskey}
+                  onClick={handleAddPasskey}
+                >
+                  {enrollingPasskey ? (
+                    <>
+                      <svg
+                        className="animate-spin h-5 w-5 text-white"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                        ></path>
+                      </svg>
+                      Setting up…
+                    </>
+                  ) : (
+                    <>
+                      <Fingerprint className="w-5 h-5 text-white" />
+                      <span>Add a passkey</span>
+                    </>
+                  )}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="w-full cursor-pointer"
+                  disabled={enrollingPasskey}
+                  onClick={goToChat}
+                >
+                  Skip for now
+                </Button>
               </div>
-              <div>
-                <label className="block text-sm font-medium mb-1 text-card-foreground">
-                  Confirm Password
-                </label>
-                <div className="relative">
-                  <Input
-                    type={showConfirmPassword ? "text" : "password"}
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        handleSubmit(e);
-                      }
-                    }}
-                    required
-                    className="w-full pr-10"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword((prev) => !prev)}
-                    className="absolute inset-y-0 right-0 flex items-center px-3 focus:outline-none"
-                    aria-label="Toggle confirm password visibility"
-                    title="Toggle confirm password visibility"
-                  >
-                    {showConfirmPassword ? (
-                      <EyeOff className="w-5 h-5 text-gray-600" />
-                    ) : (
-                      <Eye className="w-5 h-5 text-gray-600" />
-                    )}
-                  </button>
+            ) : (
+              <>
+                <div className="flex justify-center mt-2">
+                  <UserPlus className="w-8 h-8 text-card-foreground opacity-80" />
                 </div>
-              </div>
-              <Button
-                type="submit"
-                className="w-full py-2 mt-4 cursor-pointer"
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <>
-                    <svg
-                      className="animate-spin h-5 w-5 text-white"
-                      viewBox="0 0 24 24"
+                <h1 className="text-3xl font-bold text-center text-card-foreground">
+                  Sign Up
+                </h1>
+                <p className="text-sm text-center text-card-foreground">
+                  Welcome! Create an account to save your conversations,
+                  settings, and more.
+                </p>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1 text-card-foreground">
+                      Username
+                    </label>
+                    <Input
+                      type="text"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      required
+                      className="w-full"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1 text-card-foreground">
+                      Email
+                    </label>
+                    <Input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                      className="w-full"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1 text-card-foreground">
+                      Password
+                    </label>
+                    <div className="relative">
+                      <Input
+                        type={showPassword ? "text" : "password"}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            handleSubmit(e);
+                          }
+                        }}
+                        required
+                        className="w-full pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword((prev) => !prev)}
+                        className="absolute inset-y-0 right-0 flex items-center px-3 focus:outline-none"
+                        aria-label="Toggle password visibility"
+                        title="Toggle password visibility"
+                      >
+                        {showPassword ? (
+                          <EyeOff className="w-5 h-5 text-gray-600" />
+                        ) : (
+                          <Eye className="w-5 h-5 text-gray-600" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1 text-card-foreground">
+                      Confirm Password
+                    </label>
+                    <div className="relative">
+                      <Input
+                        type={showConfirmPassword ? "text" : "password"}
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            handleSubmit(e);
+                          }
+                        }}
+                        required
+                        className="w-full pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword((prev) => !prev)}
+                        className="absolute inset-y-0 right-0 flex items-center px-3 focus:outline-none"
+                        aria-label="Toggle confirm password visibility"
+                        title="Toggle confirm password visibility"
+                      >
+                        {showConfirmPassword ? (
+                          <EyeOff className="w-5 h-5 text-gray-600" />
+                        ) : (
+                          <Eye className="w-5 h-5 text-gray-600" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                  <Button
+                    type="submit"
+                    className="w-full py-2 mt-4 cursor-pointer"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <>
+                        <svg
+                          className="animate-spin h-5 w-5 text-white"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          ></circle>
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                          ></path>
+                        </svg>
+                        Signing up...
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="w-5 h-5 text-white" />
+                        <span>Sign Up</span>
+                      </>
+                    )}
+                  </Button>
+                </form>
+                <div className="space-y-3">
+                  <p className="text-sm text-center text-card-foreground">
+                    Already have an account?{" "}
+                    <Link
+                      href="/login"
+                      className="text-primary underline"
+                      title="Log In"
                     >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                      ></path>
-                    </svg>
-                    Signing up...
-                  </>
-                ) : (
-                  <>
-                    <Plus className="w-5 h-5 text-white" />
-                    <span>Sign Up</span>
-                  </>
-                )}
-              </Button>
-            </form>
-            <div className="space-y-3">
-              <p className="text-sm text-center text-card-foreground">
-                Already have an account?{" "}
-                <Link
-                  href="/login"
-                  className="text-primary underline"
-                  title="Log In"
+                      Log In
+                    </Link>
+                  </p>
+                  <p className="text-sm text-center text-card-foreground">
+                    Forgot your password?{" "}
+                    <Link
+                      href="/reset-password"
+                      className="text-primary underline"
+                      title="Reset Password"
+                    >
+                      Reset Password
+                    </Link>
+                  </p>
+                </div>
+                <Button
+                  variant="secondary"
+                  className="w-full mt-0 cursor-pointer"
+                  onClick={() => router.push("/chat")}
+                  title="Back to Chat"
+                  aria-label="Back to Chat"
                 >
-                  Log In
-                </Link>
-              </p>
-              <p className="text-sm text-center text-card-foreground">
-                Forgot your password?{" "}
-                <Link
-                  href="/reset-password"
-                  className="text-primary underline"
-                  title="Reset Password"
-                >
-                  Reset Password
-                </Link>
-              </p>
-            </div>
-            <Button
-              variant="secondary"
-              className="w-full mt-0 cursor-pointer"
-              onClick={() => router.push("/chat")}
-              title="Back to Chat"
-              aria-label="Back to Chat"
-            >
-              <MessageCircle />
-              Back to Chat
-            </Button>
-            <p className="text-xs text-center mt-0.5 leading-relaxed text-muted-foreground">
-              By continuing, you agree to our{" "}
-              <Link
-                href="/terms"
-                className="font-semibold text-foreground/90 underline underline-offset-4 decoration-foreground/30 transition-colors hover:text-primary hover:decoration-primary"
-              >
-                Terms of Service
-              </Link>{" "}
-              and{" "}
-              <Link
-                href="/privacy"
-                className="font-semibold text-foreground/90 underline underline-offset-4 decoration-foreground/30 transition-colors hover:text-primary hover:decoration-primary"
-              >
-                Privacy Policy
-              </Link>
-              .
-            </p>
+                  <MessageCircle />
+                  Back to Chat
+                </Button>
+                <p className="text-xs text-center mt-0.5 leading-relaxed text-muted-foreground">
+                  By continuing, you agree to our{" "}
+                  <Link
+                    href="/terms"
+                    className="font-semibold text-foreground/90 underline underline-offset-4 decoration-foreground/30 transition-colors hover:text-primary hover:decoration-primary"
+                  >
+                    Terms of Service
+                  </Link>{" "}
+                  and{" "}
+                  <Link
+                    href="/privacy"
+                    className="font-semibold text-foreground/90 underline underline-offset-4 decoration-foreground/30 transition-colors hover:text-primary hover:decoration-primary"
+                  >
+                    Privacy Policy
+                  </Link>
+                  .
+                </p>
+              </>
+            )}
           </Card>
         </motion.div>
       </div>

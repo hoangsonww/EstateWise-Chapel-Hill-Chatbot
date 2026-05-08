@@ -62,14 +62,25 @@ npm run dev
 
 ## Backend API Base URL
 
-The frontend uses a hardcoded API base:
+`frontend/lib/api.ts` exports `API_BASE_URL`, which reads `NEXT_PUBLIC_API_BASE_URL` and falls back to the production backend. `pages/login.tsx` and `pages/signup.tsx` import this constant; older pages still hardcode the URL:
 
 - `frontend/lib/api.ts` (`API_BASE_URL`)
 - `frontend/pages/chat.tsx` (local constant)
 - `frontend/pages/charts.tsx` (local constant)
-- `frontend/pages/login.tsx`, `frontend/pages/signup.tsx`, `frontend/pages/reset-password.tsx` (direct URLs)
+- `frontend/pages/reset-password.tsx` (direct URL)
 
-For local development, change those constants to your local backend (e.g., `http://localhost:3001`).
+For local development, set `NEXT_PUBLIC_API_BASE_URL=http://localhost:3001` (or edit the remaining constants).
+
+## Passkeys
+
+Passkey (WebAuthn) sign-in is enabled by default and supported on Safari, Chrome, Edge, and Firefox on recent OSes. The login page surfaces conditional UI (passkeys appear in the email field's autofill dropdown) plus an explicit "Sign in with a passkey" button. Signup ends with an optional "Add a passkey" prompt; users can also manage passkeys from `/profile`.
+
+Environment flags:
+
+- `NEXT_PUBLIC_PASSKEYS_ENABLED` — set to `false` to hide all passkey UI (escape hatch). Defaults to enabled.
+- `NEXT_PUBLIC_API_BASE_URL` — backend origin used by passkey API calls.
+
+Note that passkeys are bound to the page's effective domain (the backend's `WEBAUTHN_RP_ID`). They will not work across Vercel preview URLs unless the RP ID is configured for that environment.
 
 ## Key UX Flows
 

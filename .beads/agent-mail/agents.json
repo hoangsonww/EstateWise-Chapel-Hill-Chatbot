@@ -1,0 +1,10 @@
+{
+  "agents": [
+    {
+      "id": "agt-a30df6df",
+      "name": "codex-neo4j-ingest",
+      "status": "active",
+      "registeredAt": "2026-04-21T17:05:24.026Z"
+    }
+  ]
+}
