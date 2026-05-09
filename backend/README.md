@@ -6,7 +6,7 @@ Backend API for the EstateWise real-estate assistant. This service exposes REST 
 
 - Chat: MoE-style responses with optional streaming and expert views
 - Gemini web grounding (service-only): Google Search-grounded generation with source links/citations (not wired to routes yet)
-- Auth: JWT-based signup/login/me/password flows
+- Auth: JWT-based signup/login/me/password flows + passkeys/WebAuthn for passwordless auth
 - Properties: vector search + chart spec generation for visualizations
 - Graph: Neo4j-powered “why/related” property insights
 - Commute profiles: multi-destination commute preferences
