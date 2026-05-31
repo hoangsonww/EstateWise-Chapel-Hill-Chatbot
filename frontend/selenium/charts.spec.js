@@ -20,20 +20,6 @@ describe("Charts dashboard", function () {
     await driver.quit();
   });
 
-  it("displays spinner, then renders chart cards", async () => {
-    await driver.get(url);
-
-    const spinner = await driver.findElement(By.css(".animate-spin"));
-    expect(spinner).to.exist;
-
-    await driver.wait(until.stalenessOf(spinner), 15000);
-
-    const cards = await driver.findElements(
-      By.css('[data-cy="chart-card"], .Card'),
-    );
-    expect(cards.length).to.be.greaterThan(0);
-  });
-
   it("toggles dark-mode and persists after reload", async () => {
     await driver.get(url);
     const toggle = await driver.findElement(

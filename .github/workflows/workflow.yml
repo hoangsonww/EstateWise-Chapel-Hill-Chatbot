@@ -210,6 +210,11 @@ jobs:
 
   # ────────────────────────────────────────────────────────────────
   #  ⚙️ 3d. Cypress E2E                                            #
+  #                                                                #
+  # Test is flaky due to various factors (test environment, CI     #
+  # resource constraints, etc.) so we allow failures without       #
+  # blocking the pipeline, but we still want to run it and collect #
+  # results/artifacts for visibility and debugging purposes.       #
   # ────────────────────────────────────────────────────────────────
   frontend-cypress-tests:
     name: "⚙️ Cypress E2E"
@@ -233,6 +238,10 @@ jobs:
 
   # ────────────────────────────────────────────────────────────────
   #  🕸️ 3e. Selenium E2E                                           #
+  #                                                                #
+  # Selenium tests are also flaky and resource-intensive, so we    #
+  # allow failures here as well while still running the tests and  #
+  # collecting results for visibility.                             #
   # ────────────────────────────────────────────────────────────────
   frontend-selenium-tests:
     name: "🕸️ Selenium E2E"
@@ -590,8 +599,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: |
-          echo "▲ Vercel CLI 30.0.0"
+          echo "▲ Vercel Automatic Deployment"
           echo "Deploying EstateWise …"
+          echo "Vercel will automatically build and deploy a production deployment from the main branch or a preview deployment for this PR. This step is informational and does not block the pipeline."
           sleep 2
           echo "✅ Production: https://estatewise.vercel.app (build ${GITHUB_SHA::7})"
 

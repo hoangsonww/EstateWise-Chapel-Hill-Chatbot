@@ -1,6 +1,6 @@
 [project]
 name = "EstateWise"
-version = "0.1.0"
+version = "1.1.0"
 description = "Python package for EstateWise, a chatbot that helps users find real estate properties in Chapel Hill, NC."
 authors = [
     { name="Son Nguyen", email="hoangson091104@gmail.com" },

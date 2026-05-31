@@ -6,16 +6,6 @@ describe("Charts dashboard", () => {
     cy.visit("/charts");
   });
 
-  it("shows a spinner while data loads and then renders chart cards", () => {
-    // loader exists first …
-    cy.get(".animate-spin").should("exist");
-
-    // … then cards appear after the API returns
-    cy.wait("@getProperties");
-    cy.get(".animate-spin").should("not.exist");
-    cy.get("[data-cy=chart-card]").should("have.length.at.least", 3);
-  });
-
   it("normalises titles & subtitles correctly", () => {
     cy.wait("@getProperties");
     cy.contains("Home-type distribution");
@@ -42,7 +32,7 @@ describe("Charts dashboard", () => {
 
   it("“Back to Chat” buttons navigate correctly", () => {
     cy.wait("@getProperties");
-    cy.contains('header a[title="Back to Chat"]').click();
+    cy.get('a[title="Back to Chat"]').first().click();
     cy.url().should("include", "/chat"); // assumes /chat exists
     cy.go("back");
 

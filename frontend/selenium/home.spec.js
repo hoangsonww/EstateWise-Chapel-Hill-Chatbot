@@ -23,7 +23,7 @@ describe("Home page", function () {
   it("shows hero and “Learn More” scrolls to #features", async () => {
     await driver.get(base);
     await driver.findElement(By.css("h1"));
-    await driver.findElement(By.css('a[aria-label="Learn More"]')).click();
+    await driver.findElement(By.css('[aria-label="Learn More"]')).click();
     await driver.wait(until.urlContains("#features"));
     expect(new URL(await driver.getCurrentUrl()).hash).to.equal("#features");
   });
