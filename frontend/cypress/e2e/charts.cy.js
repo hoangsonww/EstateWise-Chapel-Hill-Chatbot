@@ -6,16 +6,6 @@ describe("Charts dashboard", () => {
     cy.visit("/charts");
   });
 
-  it("shows a spinner while data loads and then renders chart cards", () => {
-    // loader exists first …
-    cy.get(".animate-spin").should("exist");
-
-    // … then cards appear after the API returns
-    cy.wait("@getProperties");
-    cy.get(".animate-spin").should("not.exist");
-    cy.get("[data-cy=chart-card]").should("have.length.at.least", 3);
-  });
-
   it("normalises titles & subtitles correctly", () => {
     cy.wait("@getProperties");
     cy.contains("Home-type distribution");

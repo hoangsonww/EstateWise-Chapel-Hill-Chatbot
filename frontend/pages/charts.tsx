@@ -427,7 +427,6 @@ export default function ChartsPage() {
               {Object.entries(charts).map(([key, spec], index) => (
                 <Card
                   key={key}
-                  data-cy="chart-card"
                   className="bg-card border border-border rounded-2xl chart-reveal"
                   style={{ animationDelay: `${index * 60}ms` }}
                 >

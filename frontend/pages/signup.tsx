@@ -283,7 +283,6 @@ export default function SignUpPage() {
                     </label>
                     <Input
                       type="text"
-                      placeholder="Username"
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
                       required
@@ -341,7 +340,6 @@ export default function SignUpPage() {
                     <div className="relative">
                       <Input
                         type={showConfirmPassword ? "text" : "password"}
-                        placeholder="Confirm Password"
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
                         onKeyDown={(e) => {
