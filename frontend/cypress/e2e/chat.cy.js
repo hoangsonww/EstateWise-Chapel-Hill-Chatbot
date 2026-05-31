@@ -12,7 +12,7 @@ describe("Chat page (guest mode)", () => {
 
     // hide sidebar
     cy.get('button[aria-label="Toggle Sidebar"]').click();
-    cy.get("aside").should("not.be.visible");
+    cy.get("aside").first().should("have.css", "width", "0px");
 
     // dark-mode
     const toggle = () => cy.get('button[aria-label="Toggle Dark Mode"]');

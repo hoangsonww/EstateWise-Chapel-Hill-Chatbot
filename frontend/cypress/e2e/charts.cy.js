@@ -42,7 +42,7 @@ describe("Charts dashboard", () => {
 
   it("“Back to Chat” buttons navigate correctly", () => {
     cy.wait("@getProperties");
-    cy.contains('header a[title="Back to Chat"]').click();
+    cy.get('a[title="Back to Chat"]').first().click();
     cy.url().should("include", "/chat"); // assumes /chat exists
     cy.go("back");
 

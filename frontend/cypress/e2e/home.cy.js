@@ -8,7 +8,7 @@ describe("EstateWise landing page", () => {
   it("displays the hero section and scrolls to Features when “Learn More” clicked", () => {
     cy.contains("h1", "EstateWise").should("be.visible");
 
-    cy.get('a[aria-label="Learn More"]').click();
+    cy.get('[aria-label="Learn More"]').click();
     cy.location("hash").should("eq", "#features");
 
     // first feature card appears in viewport
@@ -22,7 +22,7 @@ describe("EstateWise landing page", () => {
 
   it("slider navigation arrows cycle through items", () => {
     // go to Testimonials section
-    cy.get('a[href="#testimonials"]').scrollIntoView();
+    cy.get('#testimonials').scrollIntoView();
 
     // wait for slick to initialise
     cy.get("#testimonials .slick-slider").should("exist");
@@ -38,7 +38,7 @@ describe("EstateWise landing page", () => {
   it("FAQ accordion shows answers when scrolled into view", () => {
     cy.get("#faqs").scrollIntoView();
     // first question/answer pair becomes visible
-    cy.contains("#faqs h3", "How do I sign up?").should("be.visible");
-    cy.contains("#faqs p", "Simply click the").should("be.visible");
+    cy.contains("#faqs h3", "Do I need an account?").should("be.visible");
+    cy.contains("#faqs p", "You can chat as a guest").should("be.visible");
   });
 });

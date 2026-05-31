@@ -97,7 +97,6 @@
     "@types/react-dom": "^19",
     "@types/react-slick": "^0.23.13",
     "chai": "^5.2.0",
-    "chromedriver": "^138.0.1",
     "cypress": "^14.5.1",
     "eslint": "^9",
     "eslint-config-next": "15.3.0",

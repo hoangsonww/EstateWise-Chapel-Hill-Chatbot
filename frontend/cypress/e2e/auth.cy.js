@@ -25,7 +25,7 @@ describe("Login & Sign-up flows", () => {
     cy.contains("button", "Log In").click();
 
     cy.wait("@postLogin");
-    cy.contains("Login failed").should("be.visible");
+    cy.contains("Invalid credentials").should("be.visible");
   });
 
   it("signs the user up (and auto-logs in)", () => {

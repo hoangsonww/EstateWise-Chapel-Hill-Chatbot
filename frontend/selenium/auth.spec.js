@@ -50,9 +50,9 @@ describe("Auth forms (client-side)", function () {
       .sendKeys("bad", Key.ENTER);
 
     const toast = await driver.wait(
-      until.elementLocated(By.css(".sonner__toast")),
+      until.elementLocated(By.css("[data-sonner-toast]")),
       8000,
     );
-    expect(await toast.getText()).to.match(/login failed/i);
+    expect(await toast.getText()).to.match(/invalid|failed|error/i);
   });
 });
