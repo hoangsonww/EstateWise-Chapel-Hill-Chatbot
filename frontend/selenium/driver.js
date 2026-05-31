@@ -10,10 +10,7 @@ async function createDriver() {
     "--disable-gpu",
     "--window-size=1280,720",
   );
-  return new Builder()
-    .forBrowser("chrome")
-    .setChromeOptions(options)
-    .build();
+  return new Builder().forBrowser("chrome").setChromeOptions(options).build();
 }
 
 module.exports = { createDriver };
