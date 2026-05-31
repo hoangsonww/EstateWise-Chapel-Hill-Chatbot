@@ -5,6 +5,7 @@ Embed the Estatewise chatbot directly into your VS Code editor and get instant p
 ## Features
 
 - **One‑click access** to your Estatewise chatbot via the Command Palette.
+- **Branded Activity Bar sidebar** — a styled Home view with a logo, tagline, a primary **Open Chat** button, and quick links to the website and docs.
 - **Persistent Webview panel** with retained context when hidden or reopened.
 - **Sandboxed iframe** for secure, CSP‑compliant loading of `https://estatewise.vercel.app/chat`.
 - **Customizable Webview options** (scripts enabled, context retention).
@@ -76,10 +77,9 @@ This setup allows you to develop and test the extension interactively, making it
 
 ## Usage
 
-1. Open the **Command Palette** (Ctrl+Shift+P / Cmd+Shift+P).
-2. Type and run **Estatewise Chat: Open Chat**.
-3. The Estatewise chatbot will load in a side panel.
-4. Start typing your queries—everything runs through the hosted app at `https://estatewise.vercel.app/chat`.
+1. Click the **Estatewise Chat** icon in the VS Code Activity Bar.
+2. In the **Home** sidebar view, click **Open Chat** to launch the chat as an editor panel (or use the **Website** / **Docs** links). You can also open the **Command Palette** (Ctrl+Shift+P / Cmd+Shift+P) and run **Estatewise Chat: Open Chat**.
+3. Start typing your queries—everything runs through the hosted app at `https://estatewise.vercel.app/chat`.
 
 > **Tip:** You can keep the panel open permanently or hide it; your chat context will be preserved.
 
