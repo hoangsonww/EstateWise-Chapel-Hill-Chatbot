@@ -251,12 +251,16 @@ jobs:
       run:
         working-directory: frontend
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-      - run: npm ci --legacy-peer-deps
-      - run: |
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+      - name: Run Selenium tests
+        run: |
           xvfb-run -a npm run test:selenium || true
 
   # ────────────────────────────────────────────────────────────────
