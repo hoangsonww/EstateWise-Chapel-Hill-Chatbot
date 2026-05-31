@@ -2,7 +2,7 @@
   "name": "estatewise-chat",
   "displayName": "Estatewise Chat",
   "description": "Chat with Estatewise about Chapel Hill real estate, directly in VS Code.",
-  "version": "1.1.2",
+  "version": "1.2.2",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -39,7 +39,8 @@
     "Other"
   ],
   "activationEvents": [
-    "onCommand:estatewiseChat.openChat"
+    "onCommand:estatewiseChat.openChat",
+    "onView:estatewiseChat.chatView"
   ],
   "main": "./out/extension.js",
   "icon": "images/logo.png",
@@ -102,7 +103,25 @@
         "command": "estatewiseChat.openChat",
         "title": "Estatewise Chat: Open Chat"
       }
-    ]
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "estatewiseChat",
+          "title": "Estatewise Chat",
+          "icon": "images/estatewise-activity.svg"
+        }
+      ]
+    },
+    "views": {
+      "estatewiseChat": [
+        {
+          "id": "estatewiseChat.chatView",
+          "type": "webview",
+          "name": "Home"
+        }
+      ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
