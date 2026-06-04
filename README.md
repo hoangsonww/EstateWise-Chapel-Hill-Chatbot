@@ -2712,3 +2712,4 @@ Thank you for checking out **EstateWise**! We hope you find it useful in your re
 
 [⬆️ Back to Top](#table-of-contents)
 <!-- SOLID refactor touch 2026-06-03 -->
+<!-- SOLID refactor touch 2026-06-03-v2 -->
