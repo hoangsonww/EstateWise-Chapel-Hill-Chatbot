@@ -11,6 +11,9 @@ This document describes the comprehensive end-to-end architecture for EstateWise
 ![Vue](https://img.shields.io/badge/Vue-4FC08D?style=for-the-badge&logo=vuedotjs&logoColor=white)
 ![Nuxt](https://img.shields.io/badge/Nuxt-00C58E?style=for-the-badge&logo=nuxt&logoColor=white)
 ![Framer Motion](https://img.shields.io/badge/Framer%20Motion-000000?style=for-the-badge&logo=framer&logoColor=white)
+![React Three Fiber](https://img.shields.io/badge/React%20Three%20Fiber-000000?style=for-the-badge&logo=reactos&logoColor=white)
+![Three.js](https://img.shields.io/badge/Three.js-000000?style=for-the-badge&logo=threedotjs&logoColor=white)
+![WebGL](https://img.shields.io/badge/WebGL-990000?style=for-the-badge&logo=webgl&logoColor=white)
 ![Chart.js](https://img.shields.io/badge/Chart.js-F38B4A?style=for-the-badge&logo=chartdotjs&logoColor=white)
 ![Shadcn UI](https://img.shields.io/badge/Shadcn%20UI-000000?style=for-the-badge&logo=shadcn/ui&logoColor=white)
 ![MongoDB](https://img.shields.io/badge/MongoDB-47A248?style=for-the-badge&logo=mongodb&logoColor=white)
@@ -1427,6 +1430,10 @@ The `ContextEngineerAgent` runs early in the orchestrator loop (after Planner an
 4. Skip re-assembly when context is already populated
 
 ## Frontend Architecture
+
+The frontend is a Next.js + React application with a modular component hierarchy, centralized state management using React Query and Context API, and a responsive design system. It interfaces with the backend via REST APIs and WebSocket for real-time updates.
+
+It also has several advanced features like dynamic theming, accessibility support, 3D visualizations with Three.js, an integrated D3-based graph explorer for the knowledge graph, and many more! Feel free to explore the codebase and documentation for details on these features. The frontend is designed to provide a seamless and intuitive user experience while showcasing the powerful capabilities of the EstateWise platform.
 
 ### Component Hierarchy
 
