@@ -70,6 +70,9 @@ _Feel free to use the app as a guest or sign up for an account to save your conv
 ![Vue](https://img.shields.io/badge/Vue-4FC08D?style=for-the-badge&logo=vuedotjs&logoColor=white)
 ![Nuxt](https://img.shields.io/badge/Nuxt-00C58E?style=for-the-badge&logo=nuxt&logoColor=white)
 ![Framer Motion](https://img.shields.io/badge/Framer%20Motion-000000?style=for-the-badge&logo=framer&logoColor=white)
+![React Three Fiber](https://img.shields.io/badge/React%20Three%20Fiber-000000?style=for-the-badge&logo=reactos&logoColor=white)
+![Three.js](https://img.shields.io/badge/Three.js-000000?style=for-the-badge&logo=threedotjs&logoColor=white)
+![WebGL](https://img.shields.io/badge/WebGL-990000?style=for-the-badge&logo=webgl&logoColor=white)
 ![Chart.js](https://img.shields.io/badge/Chart.js-F38B4A?style=for-the-badge&logo=chartdotjs&logoColor=white)
 ![Shadcn UI](https://img.shields.io/badge/Shadcn%20UI-000000?style=for-the-badge&logo=shadcn/ui&logoColor=white)
 ![MongoDB](https://img.shields.io/badge/MongoDB-47A248?style=for-the-badge&logo=mongodb&logoColor=white)
@@ -416,6 +419,7 @@ graph LR
 - **Chart.js:** For interactive data visualizations and graphs.
 - **Tailwind CSS:** Utility-first CSS framework for rapid UI development.
 - **Responsive Design:** Optimized for desktop, tablet, and mobile devices.
+- **3D Visualizations:** Leveraging React Three Fiber and Three.js and WebGL for advanced visualizations for an appealing UX.
 - **API Integration:** Communicates with the backend API for chat functionality, user authentication, and conversation management.
 - and more...
 

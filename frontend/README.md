@@ -15,6 +15,7 @@ Next.js + React frontend for the EstateWise real-estate assistant. It provides c
 - Next.js (Pages Router) + React
 - Tailwind CSS + Radix UI components
 - Framer Motion for animations
+- React Three Fiber + three.js for the landing-page 3D backdrop
 - Chart.js + D3 for visualizations
 - Leaflet for maps
 - tRPC + React Query for typed insights data
@@ -118,7 +119,7 @@ sequenceDiagram
 
 Key routes under `frontend/pages`:
 
-- `/` - landing page
+- `/` - landing page (dark-only; full-page interactive 3D backdrop via `components/landing/Scene3D.tsx`; cursor- and scroll-reactive, procedural geometry only — no binary 3D assets). It auto-scales quality across `low` / `mobile` / `desktop` performance tiers (particle count, materials, lights, DPR, antialiasing, and per-frame CPU work) so it stays smooth on phones and weak GPUs, pauses the render loop while the tab is hidden, honors `prefers-reduced-motion`, and falls back to the CSS backdrop when WebGL is unavailable. Dark theme is scoped to the page wrapper, so other routes keep the user's light/dark preference.
 - `/chat` - chat UI with streaming support
 - `/insights` - market analytics + calculators (tRPC)
 - `/map` - Leaflet property map
