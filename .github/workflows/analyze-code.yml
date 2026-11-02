@@ -61,7 +61,12 @@ jobs:
 
       - name: Calculate lines of code
         run: |
-          cloc all-repos --json > cloc-output.json
+          # cloc 2.04+ appends a timeout notice to stdout after --json.
+          # Redirecting that stream into the JSON file makes jq fail
+          # ("Invalid numeric literal") once any file exceeds the per-file
+          # timeout. --out keeps the JSON document clean; the notice stays
+          # in the Actions log.
+          cloc all-repos --json --out cloc-output.json
 
       - name: Print stats
         run: |
